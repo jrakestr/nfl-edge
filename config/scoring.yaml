@@ -1,0 +1,43 @@
+# Fantasy scoring rules. Applied in sim/scoring.py to every draw.
+dk:
+  pass_yd: 0.04
+  pass_td: 4
+  int: -1
+  pass_300_bonus: 3
+  rush_yd: 0.1
+  rush_td: 6
+  rush_100_bonus: 3
+  rec: 1.0
+  rec_yd: 0.1
+  rec_td: 6
+  rec_100_bonus: 3
+  fumble_lost: -1
+  two_pt: 2
+  showdown_captain_multiplier: 1.5
+fd:
+  pass_yd: 0.04
+  pass_td: 4
+  int: -1
+  rush_yd: 0.1
+  rush_td: 6
+  rec: 0.5
+  rec_yd: 0.1
+  rec_td: 6
+  fumble_lost: -2
+  two_pt: 2
+  showdown_captain_multiplier: 1.5
+dst:
+  sack: 1
+  int: 2
+  fumble_rec: 2
+  td: 6
+  safety: 2
+  block_kick: 2
+  points_allowed:
+    - {max: 0, pts: 10}
+    - {max: 6, pts: 7}
+    - {max: 13, pts: 4}
+    - {max: 20, pts: 1}
+    - {max: 27, pts: 0}
+    - {max: 34, pts: -1}
+    - {max: 999, pts: -4}

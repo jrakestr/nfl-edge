@@ -1,0 +1,19 @@
+# Simulator parameters. Every output reads from the draws produced under these settings.
+draws_per_game: 20000
+seed: 2026
+priors:
+  lookback_weeks: 8          # weight recent usage/efficiency
+  prior_season_weight: 0.35  # blend in prior-season baseline early in the year
+  shrink_to_ffopportunity: 0.5  # 0 = ignore _exp stats, 1 = fully trust them
+team:
+  plays_per_game_sd: 6
+  pass_rate_sd: 0.05
+  home_field_pts: 1.5
+  rest_advantage_per_day: 0.15
+  weather_wind_threshold_mph: 15
+players:
+  usage_concentration: 40    # Dirichlet concentration for share draws (higher = tighter)
+  td_rate_sd: 0.01
+checks:
+  max_total_gap_vs_market: 6.0   # warn if fair total differs from market by more
+  max_spread_gap_vs_market: 4.0
