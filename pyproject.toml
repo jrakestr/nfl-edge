@@ -38,5 +38,8 @@ line-length = 100
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-m 'not network'"
-markers = ["network: requires internet access to nflverse releases"]
+addopts = "-m 'not network and not db'"
+markers = [
+  "network: requires internet access to nflverse releases",
+  "db: requires DATABASE_URL and local parquet draws; run with -m db",
+]
