@@ -11,6 +11,18 @@ Plan: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3 of docs/archit
 - ingest-opp-consensus-context (ea133c4): ffopportunity, FantasyPros weekly ECR backfill, depth charts (2024 and 2025 shapes), snap counts, rosters; COPY-based writes
 - backfill (e5a8db0): `nfl-edge backfill 2020 2025` runs all modules in 41s; one market_lines snapshot per game (1693 = Σ games)
 - priors-simple: team/usage/efficiency v1 (lookback + shrink only). Checkpoint B at 2025 wk10: league drives 10.83, plays/drive 5.71, PPD 2.135, FG/drive 0.158, neutral pass 0.588; team spread PPD 1.55–2.73; all four share types sum to 1.0 on every team; 32/32 teams have one QB1; 432 active players with history (61 QB / 110 RB / 163 WR / 98 TE). Players with no history are excluded until priors-refine adds a depth-chart cold start.
+- tests-sim (2b96e83): 33 spec tests written before the simulator; all failed against stubs.
+- sim-game (e54293a): drives-first game sim, fixed FG rate with solved p_td, game-script pass mix, OT resolution. Team-level dispersion at 5k: plays sd 7.9, margin sd 14.5, total sd 14.6, ties 0.4%.
+- sim-players-scoring (b226846): Dirichlet/multinomial allocation off team draws, capped TD splits (Σ player TDs == team TDs in every draw), QB line == receiver sums, DK/FD/PPR/DST scoring.
+- sim-slate (f1c6067): `nfl-edge sim --season S --week W --draws N`; parquet draws under data/draws/, model.sim_runs/proj_games/proj_players/player_correlations/sim_checks. 14 games at 5k draws in ~4s.
+- backtest: `nfl-edge backtest --season 2025 --weeks 1-18 --draws 5000` -> output/backtest_2025.md (+ CSVs; gitignored). Results below.
+
+## Backtest 2025 (v1 priors, 5k draws, 272 games, ~60s)
+- PASS spread MAE 2.73 vs close (bias −0.12, corr 0.82); PASS total MAE 2.32 (bias +0.48, corr 0.76); PASS invariants 3808/3808.
+- FAIL calibration monotone: P(home cover at close) buckets 0.3–0.7 hit 0.45 / 0.53 / 0.45 / 0.48. Flat at ~50% = the v1 sim has no information beyond the closing line. Sim-vs-result MAE 10.36 vs closing-line 9.72; Brier(home win) sim 0.225 vs spread-implied 0.212. Expected for lookback-only priors; not tuned away.
+- Market-gap warnings 65/544 (58 spread, 7 total). Worst weeks: 18 (spread MAE 5.0, bias −2.8; resting starters), 17 (3.75), 15 (3.62). All QB-channel / overrides territory → priors-refine.
+- Player baseline (mean weekly Spearman vs actual PPR, players ranked by both): QB sim 0.667 vs ECR 0.759; RB 0.741 vs 0.794; WR 0.640 vs 0.699; TE 0.624 vs 0.709. Sim trails consensus by 0.05–0.09 everywhere; gap is injury/QB information ECR has and v1 doesn't.
+- Leakage audit clean: priors source never references schedules/outcomes; loaded history max week is W−1 for weeks 1/10/18; roster status at week ≤ W is the one pre-kickoff information assumption (a live run has the same).
 
 ## Checkpoint A output (local Postgres 16, 2025-09-04)
 Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
@@ -29,4 +41,4 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 ## Checkpoints
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres; Supabase pending credentials)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
-- [ ] Backtest 2025 report at 5k draws; invariants 100%; spread MAE ≤ 3, total MAE ≤ 4
+- [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.73 ≤ 3, total MAE 2.32 ≤ 4; calibration NOT monotone (no edge over close in v1 — see above)

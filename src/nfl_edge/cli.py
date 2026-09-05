@@ -145,6 +145,33 @@ def sim(
                                           "threshold", "detail"])))
 
 
+def _parse_weeks(spec: str) -> list[int]:
+    out: list[int] = []
+    for part in spec.split(","):
+        part = part.strip()
+        if "-" in part:
+            a, b = part.split("-")
+            out += list(range(int(a), int(b) + 1))
+        elif part:
+            out.append(int(part))
+    return out
+
+
+@app.command()
+def backtest(
+    season: int = typer.Option(2025),
+    weeks: str = typer.Option("1-18", help="e.g. 1-18 or 3,5,7-9"),
+    draws: int = typer.Option(5000),
+    seed: int = typer.Option(None),
+    note: str = typer.Option(None),
+):
+    """Simulate past weeks from strictly-prior data; grade vs closing lines, results, and ECR."""
+    from .results import calibration
+
+    bt = calibration.run(season, _parse_weeks(weeks), draws=draws, seed=seed, note=note)
+    typer.echo(bt.report_path.read_text())
+
+
 @app.command()
 def lines(week: int, season: int = 2026):
     raise NotImplementedError("outputs.lines not built yet")
