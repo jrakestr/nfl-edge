@@ -8,6 +8,8 @@ __pycache__/
 data/dk/*
 data/fd/*
 data/props/*
+data/draws/
 !data/**/.gitkeep
+.cursor/hooks/state/
 output/
 *.parquet

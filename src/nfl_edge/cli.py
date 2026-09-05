@@ -1,8 +1,38 @@
 from __future__ import annotations
+
 import typer
+
 from .config import load_yaml
 
-app = typer.Typer(help="nfl-edge: one correlated simulation feeding lines, props, and DFS.")
+app = typer.Typer(
+    help="nfl-edge: one correlated simulation feeding lines, props, and DFS.",
+    pretty_exceptions_enable=False,  # tracebacks with locals could leak the DSN
+)
+db_app = typer.Typer(help="Database plumbing: migrations and row counts.")
+app.add_typer(db_app, name="db")
+
+
+@db_app.command("migrate")
+def db_migrate(dry_run: bool = typer.Option(False, help="List pending migrations only")):
+    """Apply pending db/migrations/*.sql against DATABASE_URL."""
+    from . import migrate
+
+    applied = migrate.apply(dry_run=dry_run)
+    if not applied:
+        typer.echo("no pending migrations")
+    for name in applied:
+        typer.echo(f"applied {name}")
+
+
+@db_app.command("counts")
+def db_counts():
+    """Row counts per raw/model table, by season."""
+    import polars as pl
+
+    from .db import table_counts
+
+    with pl.Config(tbl_rows=-1, tbl_hide_dataframe_shape=True, tbl_hide_column_data_types=True):
+        typer.echo(str(table_counts()))
 
 
 @app.command()

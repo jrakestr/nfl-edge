@@ -1,8 +1,10 @@
 """Schedules + free market lines from nflverse. Snapshots lines on every call."""
 from __future__ import annotations
+
 import nflreadpy as nfl
 import polars as pl
-from ..db import upsert, insert
+
+from ..db import insert, upsert
 
 SCHEDULE_COLS = [
     "game_id", "season", "game_type", "week", "gameday", "weekday", "gametime",

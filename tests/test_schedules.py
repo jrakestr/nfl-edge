@@ -1,7 +1,10 @@
 import polars as pl
+import pytest
+
 from nfl_edge.ingest import schedules
 
 
+@pytest.mark.network
 def test_fetch_2026_has_lines():
     df = schedules.fetch([2026])
     wk1 = df.filter(pl.col("week") == 1)
