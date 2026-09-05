@@ -1,6 +1,34 @@
 # Status
 
-Plan: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3 of docs/architecture.md §8)
+Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.cursor/plans/nfl_edge_step_4_lines_edge.plan.md` (Step 4, lines and edge; this section)
+
+## Step 4 — game lines and edge (2026-09-04)
+- migration-edges (26932ce): 0004 re-keys `model.edges` to `(run_id, market_line_id, market_type, side)` + `price`, `p_push`, `hold`; view `model.edges_latest`; `model.verdicts (run_id, game_id, market_line_id, payload jsonb)`.
+- tests-edge (a96e5d7): 44 spec tests for odds/de-vig/Kelly/snapshot edges and the verdict grammar, written first, all failing against stubs.
+- market-edge (4a548e2): `market/edge.py` — reads `{game_id}.game.parquet` once per game, six rows per market snapshot, `model_prob` = P(win | no push), two-way de-vig, quarter Kelly at the offered price (null odds → −110), `insert_ignore`; parity vs `proj_games.p_home_cover_market` (push = half) 14/14 on 2025 wk10, 16/16 on 2026 wk1. Edge config block in `sim.yaml` (this changes `config_hash` for runs after this commit).
+- outputs-lines (b7c9544) + cli-lines (811d3f4): `outputs/lines.py` pure verdict generator (three sentences, Side/Total/Home-wins chips, week summary, invariant-failed game withheld), `config/teams.yaml` (shared-city teams read "the Jets/Giants/Rams/Chargers"), `outputs/lines_io.py` + `nfl-edge lines --season --week [--run] [--json] [--min-edge] [--recompute]`; one `model.verdicts` row per game at the latest snapshot, same idempotency as edges.
+- ingest-prekickoff (4873521): seasons ahead of nflverse's date guard load what exists (stats/opportunity/snap_counts skipped with a message; rosters from the preseason roster file); `ingest --lines-only` without `--week` snapshots the whole season and adds missing schedule rows; the live ECR feed (`load_ff_rankings("week")`: `page`, `fantasypros_id`, `player_name`) is normalized to the archive shape — it had never been exercised and would have crashed on the first live Tuesday. `qb.load_starters` keeps string dtypes when no starters are announced (empty result → Null dtype → concat error; found on the first 2026 build). Roster-team review passed: Walker SEA→KC, Etienne JAX→NO, Dowdle CAR→PIT, W. Robinson NYG→TEN all sit on their 2026 team with history keyed by `player_id`; every team's target/carry shares sum to 1.000; 32/32 teams have one QB1 from the depth-chart fallback (schedules has no announced Week 1 starters yet).
+- lines-cron-doc (ee532de): `docs/ops.md` — snapshot cadence (documented, not created), weekly order, provenance; README points to it.
+- test-e2e-lines (7a0b88b): `tests/test_lines_e2e.py` under a `db` marker (excluded by default; `pytest -m db`).
+
+### Checkpoint C — Week 1 (run on local Postgres; Supabase blocked, see below)
+- `nfl-edge sim --season 2026 --week 1 --draws 20000`: run `3d4fe1c7-0c26-4d10-86ce-ef29ff02f0dc`, 16 games, invariants 224/224, 7.7s. Warnings 5/32: spread gap > 4 on ARI@LAC (fair 6 / market 10.5), BAL@IND (3 / −3.5), DAL@NYG (2 / −2.5), MIA@LV (−3 / 3.5); total gap on NYJ@TEN (46 / 38.5).
+- `nfl-edge lines --season 2026 --week 1` prints the week summary and 16 verdicts; `select count(*) from model.verdicts where run_id = '3d4fe1c7-…'` = 16. Summary: "11 sides and 13 totals clear a 3% edge; the biggest is Over 38.5 (+19.0%)". Those counts are what a lookback-only model produces against opening lines with a 2.6-point MAE to the close; the backtest says they do not cash. Grade them in Step 7, do not bet them.
+- Observed snapshot cadence: exactly 1 `raw.market_lines` row per 2026 game so far (nflverse opening numbers; two `--lines-only` pulls an hour apart were no-ops). Closing-line resolution is unknown until the cron runs through a game week — record it here before Step 7 leans on "closing line".
+- Week 18 rester note: 14 teams' season QB1 threw < 10 passes in 2025 wk18 (BUF, KC, PHI, LAC, GB, IND, ATL, NYJ, TEN, LV, MIA, and injury-return cases CIN/SF/WAS). For those teams the Week 1 model-minus-market spread averages −0.6 points vs +0.5 for the other 18 (team perspective, n = 14/18); the largest single gaps are LV −6.5, LAC −4.5, BUF −3.5. Directional evidence that the 2025 wk18 rows drag resting teams' priors down, not proof (opening lines, one week). Added to priors-refine below.
+
+### Supabase (blocked at supabase-bringup)
+- `.env` `DATABASE_URL` still fails: the host resolves (IPv6) and Postgres answers `password authentication failed` for every reading of the credential (the password field contains an unencoded `@`; tried it percent-encoded, and each half alone). The reset alphanumeric password did not land in `.env`. Once it does: `nfl-edge db migrate && nfl-edge backfill 2020 2025 && nfl-edge ingest --season 2026 --week 1 && nfl-edge sim --season 2026 --week 1 --draws 20000 && nfl-edge lines --season 2026 --week 1`, then diff `db counts` against the Checkpoint A table below and record it here. All Step 4 code is DB-agnostic; nothing else waits on it.
+
+### lines-refine (trailing todo; not started)
+- `fair_spread`/`fair_total` are medians of integer scores, so verdicts read "by 6.0 points" — use the mean (or a mid-quantile interpolation) for display and keep the median for P(cover). Sentence 1 uses `fair_spread` only; sentence 2/3 already use the exact draw probabilities.
+- Verdict for a game whose line moved after the sim: `lines` computes edges for the new snapshot but `proj_games.p_home_cover_market` still refers to the sim-time line; the parity check logs when no snapshot matches. Surface "line moved from X" in the payload.
+- `model.verdicts` keeps one row per snapshot; the UI wants the latest — add a `verdicts_latest` view alongside `edges_latest`.
+- Kelly is per-market and ignores correlation between a game's spread and moneyline; cap per-game exposure before any staking UI.
+
+### priors-refine additions from this step
+- Exclude or downweight prior-season Week 18 in `history_where`/`with_weights` (resting starters; wk18 MAE 4.75 in the backtest, and the Week 1 rester gap above).
+- Announced starters: `schedules.*_qb_id` is empty pre-kickoff; the depth-chart fallback carried Week 1. Re-run `ingest` Wed/Sat so the QB channel picks up announced starters.
 
 ## Done
 - Scaffold (d401be7): schedules ingest, migrations 0001–0002, configs, CLI shell
@@ -50,6 +78,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres; Supabase pending credentials)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
 - [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
+- [x] C — `nfl-edge lines --season 2026 --week 1` prints 16 verdicts from a 20k run and `model.verdicts` holds 16 rows (local Postgres). [ ] Same on Supabase once `.env` carries the reset password.
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It becomes a season-long grading target in Step 7. Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
