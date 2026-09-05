@@ -32,3 +32,8 @@ players:
 checks:
   max_total_gap_vs_market: 6.0   # warn if fair total differs from market by more
   max_spread_gap_vs_market: 4.0
+edge:
+  kelly_multiplier: 0.25   # quarter Kelly at the price actually offered
+  flat_edge: 0.01          # |edge| below this is "flat" (design-system intensity ramp)
+  strong_edge: 0.03        # design-system 100% intensity / verdict "clears"
+  default_price: -110      # only when a snapshot has null odds; flagged in the verdict
