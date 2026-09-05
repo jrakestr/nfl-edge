@@ -2,7 +2,7 @@
 
 One game simulator, four views: game lines, player props, DFS classic, and showdown — all derived from the same correlated draws so the outputs can never disagree with each other.
 
-See [docs/architecture.md](docs/architecture.md) for the full design.
+Start with [docs/purpose.md](docs/purpose.md). Design is in [docs/architecture.md](docs/architecture.md); standing constraints in [AGENTS.md](AGENTS.md).
 
 ## Stack
 
