@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import typer
 
-from .config import load_yaml
-
 app = typer.Typer(
     help="nfl-edge: one correlated simulation feeding lines, props, and DFS.",
     pretty_exceptions_enable=False,  # tracebacks with locals could leak the DSN
@@ -121,10 +119,30 @@ def priors(
 
 
 @app.command()
-def sim(week: int, season: int = 2026):
-    """Run the game simulator for a week and persist draws."""
-    cfg = load_yaml("sim.yaml")
-    raise NotImplementedError(f"sim not built yet (draws_per_game={cfg['draws_per_game']})")
+def sim(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+    draws: int = typer.Option(None, help="Draws per game (default: config draws_per_game)"),
+    seed: int = typer.Option(None, help="Base seed (default: config seed)"),
+    note: str = typer.Option(None),
+    no_persist: bool = typer.Option(False, help="Write parquet only; skip model.* tables"),
+):
+    """Run the correlated game simulator for a week: parquet draws + model.* summaries + checks."""
+    import polars as pl
+
+    from .sim import slate
+
+    r = slate.run(season, week, draws=draws, seed=seed, note=note, persist=not no_persist)
+    typer.echo(r.summary())
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=160, float_precision=2):
+        typer.echo(str(r.proj_games.select(["game_id", "fair_spread", "market_spread", "fair_total",
+                                            "market_total", "home_win_prob", "p_home_cover_market",
+                                            "p_over_market"])))
+        failed = r.checks.filter(~pl.col("passed"))
+        if not failed.is_empty():
+            typer.echo("checks not passed:")
+            typer.echo(str(failed.select(["severity", "check_name", "game_id", "team", "value",
+                                          "threshold", "detail"])))
 
 
 @app.command()

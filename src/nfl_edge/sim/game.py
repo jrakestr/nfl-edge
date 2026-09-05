@@ -22,11 +22,13 @@ import numpy as np
 XP_MAKE = 0.94         # extra point success
 TWO_PT_RATE = 0.06     # share of TDs followed by a 2-pt try
 TWO_PT_MAKE = 0.48
-DRIVES_SD = 1.3
+DRIVES_SD = 1.0
 SCRIPT_PASS_K = 0.03   # pass-rate shift per sqrt(point) of deficit
-SCRIPT_PPD_K = 0.02    # plays-per-drive shift per point trailing (trailing team runs more plays)
-PPD_SD = 0.45          # per-draw noise in plays per drive
+SCRIPT_PPD_K = 0.01    # plays-per-drive shift per point trailing (trailing team runs more plays)
+PPD_SD = 0.35          # per-draw noise in plays per drive
 MIN_DRIVES, MAX_DRIVES = 6, 16
+OT_TIE = 0.10          # regulation ties that stay tied after OT
+OT_FG = 0.55           # OT decided by a field goal (else a touchdown, no XP)
 
 
 @dataclass
@@ -157,6 +159,24 @@ def simulate_game(home: TeamPrior, away: TeamPrior, ctx: GameContext, n: int,
 
     td_h, fg_h, pts_h = _team_scoring(home, drives_h, p_td["home"], rng)
     td_a, fg_a, pts_a = _team_scoring(away, drives_a, p_td["away"], rng)
+
+    # Overtime: regulation ties get one extra drive for the winner; ~10% stay tied.
+    tie = pts_h == pts_a
+    if tie.any():
+        k = int(tie.sum())
+        decided = rng.random(k) >= OT_TIE
+        p_home = p_td["home"] / (p_td["home"] + p_td["away"])
+        home_wins = rng.random(k) < p_home
+        by_fg = rng.random(k) < OT_FG
+        idx = np.where(tie)[0]
+        for side_mask, drives, td, fg, pts in ((home_wins, drives_h, td_h, fg_h, pts_h),
+                                               (~home_wins, drives_a, td_a, fg_a, pts_a)):
+            sel = idx[decided & side_mask]
+            fgs = by_fg[decided & side_mask]
+            drives[sel] = np.minimum(drives[sel] + 1, MAX_DRIVES)
+            fg[sel] += fgs
+            td[sel] += ~fgs
+            pts[sel] += np.where(fgs, 3, 6)
     margin = (pts_h - pts_a).astype(float)
 
     def build(prior, drives, td, fg, pts, own_margin):

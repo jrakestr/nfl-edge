@@ -11,7 +11,7 @@ priors:
   shrink_k_carries: 60       # rushing efficiency: pseudo-carries toward positional average
 team:
   plays_per_game_sd: 6
-  pass_rate_sd: 0.05
+  pass_rate_sd: 0.03        # per-draw noise around the script-adjusted pass rate
   home_field_pts: 1.5
   rest_advantage_per_day: 0.15
   weather_wind_threshold_mph: 15
