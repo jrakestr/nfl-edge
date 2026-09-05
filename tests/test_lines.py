@@ -12,6 +12,9 @@ TEAMS = {
     "CHI": {"city": "Chicago", "nick": "Bears", "plural": True},
     "CAR": {"city": "Carolina", "nick": "Panthers", "plural": True},
     "TST": {"city": "Testville", "nick": "Heat", "plural": False},
+    "CLE": {"city": "Cleveland", "nick": "Browns", "plural": True},
+    "NYJ": {"city": "New York", "nick": "Jets", "plural": True, "name": "the Jets"},
+    "NYG": {"city": "New York", "nick": "Giants", "plural": True, "name": "the Giants"},
 }
 CFG = {"kelly_multiplier": 0.25, "flat_edge": 0.01, "strong_edge": 0.03, "default_price": -110}
 DRAWS = 20000
@@ -72,6 +75,18 @@ def test_sim_even():
     g = game(home_team="CAR", away_team="CHI", fair_spread=0.2, spread_line=-2.5)
     v = L.game_verdict(g, edges(), "ok", TEAMS, CFG, DRAWS)
     assert v.sentences[0] == "We have Carolina and Chicago even. The book has Chicago by 2.5."
+
+
+def test_shared_city_teams_use_their_display_name():
+    g = game(home_team="NYJ", away_team="CLE", fair_spread=4.0, spread_line=-1.5)
+    v = L.game_verdict(g, edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0] == "The Jets are favored to beat Cleveland by 4.0 points. The book has Cleveland by 1.5."
+    g = game(home_team="NYJ", away_team="NYG", fair_spread=-2.0, spread_line=3.0)
+    v = L.game_verdict(g, edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0] == "The Giants are favored to beat the Jets by 2.0 points. The book has the Jets by 3."
+    g = game(home_team="NYJ", away_team="NYG", fair_spread=0.1, spread_line=3.0)
+    v = L.game_verdict(g, edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0] == "We have the Jets and the Giants even. The book has the Jets by 3."
 
 
 def test_no_line_posted():

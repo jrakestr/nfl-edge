@@ -173,8 +173,38 @@ def backtest(
 
 
 @app.command()
-def lines(week: int, season: int = 2026):
-    raise NotImplementedError("outputs.lines not built yet")
+def lines(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+    run: str = typer.Option(None, help="run_id (default: latest sim run for the week)"),
+    as_json: bool = typer.Option(False, "--json", help="Emit the payload the UI reads instead of text"),
+    min_edge: float = typer.Option(0.0, help="Edge table: hide rows below this edge"),
+    recompute: bool = typer.Option(False, help="Delete and recompute this run's edges and verdicts"),
+):
+    """Plain-English verdicts + edge table for a simulated week; persists model.edges and model.verdicts."""
+    import json
+
+    import polars as pl
+
+    from .outputs import lines_io
+
+    w, stats = lines_io.build(season, week, run_id=run, recompute=recompute)
+    n_verdicts = lines_io.persist(w)
+    if as_json:
+        typer.echo(json.dumps(w.to_dict(), indent=1))
+        return
+    typer.echo(w.summary)
+    typer.echo(f"(edges: {stats.get('edges', 0)} new of {stats.get('rows', 0)} across {stats.get('snapshots', 0)} "
+               f"snapshots, parity {stats.get('parity')}; verdicts: {n_verdicts} new)\n")
+    for g in w.games:
+        flag = "" if g.status == "ok" else f"  [{g.status.upper()}]"
+        typer.echo(f"{g.away} @ {g.home}  {g.kickoff or ''}{flag}")
+        for s in g.sentences:
+            typer.echo(f"  {s}")
+        typer.echo("")
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=140, float_precision=3,
+                   tbl_hide_dataframe_shape=True, tbl_hide_column_data_types=True):
+        typer.echo(str(lines_io.edge_table(w, min_edge)))
 
 
 @app.command()

@@ -1,5 +1,7 @@
 # Team naming for plain-English verdicts. Static copy of nflreadpy load_teams() (2026-09).
 # plural: the nickname takes a plural verb ("The Lions are"). All current NFL nicknames do.
+# name: optional display name for sentence 1 when the city is shared ("the Jets are favored");
+#       defaults to city.
 ARI:
   city: Arizona
   nick: Cardinals
@@ -66,10 +68,12 @@ KC:
   plural: true
 LA:
   city: Los Angeles
+  name: the Rams
   nick: Rams
   plural: true
 LAC:
   city: Los Angeles
+  name: the Chargers
   nick: Chargers
   plural: true
 LV:
@@ -94,10 +98,12 @@ NE:
   plural: true
 NYG:
   city: New York
+  name: the Giants
   nick: Giants
   plural: true
 NYJ:
   city: New York
+  name: the Jets
   nick: Jets
   plural: true
 PHI:

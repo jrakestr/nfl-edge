@@ -50,10 +50,21 @@ class _Team:
         t = teams.get(abbr, {"city": abbr, "nick": abbr, "plural": True})
         self.abbr, self.city, self.nick = abbr, t["city"], t["nick"]
         self.plural = bool(t.get("plural", True))
+        # Sentence-1 display name: the city, or "the Jets" where two teams share a city.
+        self.name = t.get("name") or self.city
 
     @property
     def cover(self) -> str:
         return "cover" if self.plural else "covers"
+
+    @property
+    def be(self) -> str:
+        """Verb for the display name: 'is' for a city, 'are' for a plural nickname like 'the Jets'."""
+        return "are" if (self.name != self.city and self.plural) else "is"
+
+
+def _cap(s: str) -> str:
+    return s[0].upper() + s[1:] if s else s
 
 
 # ----------------------------------------------------------------------------- dataclasses
@@ -130,8 +141,8 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
     tl = g.get("total_line")
 
     # (1) side
-    lead = (f"We have {home.city} and {away.city} even." if sim_even
-            else f"{fav.city} is favored to beat {dog.city} by {m:.1f} points.")
+    lead = (f"We have {home.name} and {away.name} even." if sim_even
+            else _cap(f"{fav.name} {fav.be} favored to beat {dog.name} by {m:.1f} points."))
     if sl is None:
         return GameVerdict(status=status, sentences=[f"{lead} No line posted yet."], chips=None, max_edge=0.0, **base)
     sl = float(sl)
@@ -140,7 +151,7 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
     else:
         book_fav = home if sl > 0 else away
         b = _num(abs(sl))
-        book = f"The book has them by {b}." if (book_fav is fav and not sim_even) else f"The book has {book_fav.city} by {b}."
+        book = f"The book has them by {b}." if (book_fav is fav and not sim_even) else f"The book has {book_fav.name} by {b}."
     s1 = f"{lead} {book}"
 
     # (2) cover: the market's side at the book's number
