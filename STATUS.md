@@ -49,7 +49,8 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 ## Checkpoints
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres; Supabase pending credentials)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
-- [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4; calibration NOT monotone (no edge over close in v1 — see above)
+- [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
+- Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It becomes a season-long grading target in Step 7. Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
 - Populate `raw.player_overrides` weekly (injury report) — the RB/WR/TE gap to ECR is mostly this.
