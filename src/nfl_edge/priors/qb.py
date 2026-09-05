@@ -29,7 +29,7 @@ def load_starters(season: int, week: int) -> pl.DataFrame:
         where season = %s and week = %s and away_qb_id is not null
         """,
         (season, week, season, week),
-    )
+    ).cast({"team": pl.Utf8, "qb_id": pl.Utf8})  # empty pre-kickoff result must keep string dtypes
 
 
 def load_qb_weeks(season: int, week: int) -> pl.DataFrame:

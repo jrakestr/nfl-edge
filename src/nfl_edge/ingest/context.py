@@ -11,6 +11,7 @@ import nflreadpy as nfl
 import polars as pl
 
 from ..db import replace_where, upsert
+from . import season as season_guard
 
 DEPTH_COLS = ["season", "week", "club_code", "gsis_id", "position", "depth_position",
               "depth_team", "full_name", "dt"]
@@ -66,10 +67,23 @@ def run(seasons: list[int], week: int | None = None) -> dict:
         # No natural key -> always replace the whole season, even on a weekly live run.
         dc = build_depth_charts(nfl.load_depth_charts([season]), season)
         out["depth_charts"] += replace_where(dc, "raw.depth_charts", "season", season)
-    sc = build_snap_counts(nfl.load_snap_counts(seasons))
-    ro = build_rosters(nfl.load_rosters_weekly(seasons))
+    published, unpublished = season_guard.split(seasons)
+    if unpublished:
+        out["skipped"] = season_guard.skipped(unpublished, "snap_counts")
+    # Rosters: the weekly file for a season that has not kicked off does not exist; the preseason
+    # roster (`load_rosters`) has the same columns with week = 1 and stands in until it does.
+    parts = []
+    if published:
+        parts.append(build_rosters(nfl.load_rosters_weekly(published)))
+    for s in unpublished:
+        parts.append(build_rosters(nfl.load_rosters([s])))
+        out["rosters_source"] = f"{s}: preseason load_rosters (rosters_weekly not published)"
+    ro = pl.concat(parts) if parts else pl.DataFrame(schema={c: pl.Utf8 for c in ROSTER_COLS})
+    sc = build_snap_counts(nfl.load_snap_counts(published)) if published else None
     if week is not None:
-        sc, ro = sc.filter(pl.col("week") == week), ro.filter(pl.col("week") == week)
-    out["snap_counts"] = upsert(sc, "raw.snap_counts", ["season", "week", "pfr_player_id"])
+        ro = ro.filter(pl.col("week") == week)
+        sc = sc.filter(pl.col("week") == week) if sc is not None else None
+    if sc is not None:
+        out["snap_counts"] = upsert(sc, "raw.snap_counts", ["season", "week", "pfr_player_id"])
     out["rosters_weekly"] = upsert(ro, "raw.rosters_weekly", ["season", "week", "gsis_id"])
     return out

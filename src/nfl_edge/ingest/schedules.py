@@ -9,7 +9,7 @@ from __future__ import annotations
 import nflreadpy as nfl
 import polars as pl
 
-from ..db import insert_ignore, upsert
+from ..db import insert_ignore, read_sql, upsert
 
 SCHEDULE_COLS = [
     "game_id", "season", "game_type", "week", "gameday", "weekday", "gametime",
@@ -36,7 +36,13 @@ def run(seasons: list[int], week: int | None = None, lines_only: bool = False) -
     df = fetch(seasons)
     if week is not None:
         df = df.filter(pl.col("week") == week)
-    n_sched = 0 if lines_only else upsert(df, "raw.schedules", ["game_id"])
+    if lines_only:
+        # market_lines has an FK to schedules: add only the games not yet present, touch nothing else.
+        have = read_sql("select game_id from raw.schedules where season = any(%s)", (seasons,))["game_id"]
+        missing = df.filter(~pl.col("game_id").is_in(have.to_list()))
+        n_sched = upsert(missing, "raw.schedules", ["game_id"]) if not missing.is_empty() else 0
+    else:
+        n_sched = upsert(df, "raw.schedules", ["game_id"])
     lines = df.select(LINE_COLS).filter(pl.col("spread_line").is_not_null())
     n_lines = insert_ignore(lines, "raw.market_lines")
     return {"schedules": n_sched, "line_snapshots": n_lines}

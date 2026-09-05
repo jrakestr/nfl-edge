@@ -59,13 +59,26 @@ def build(rankings: pl.DataFrame, schedules: pl.DataFrame) -> pl.DataFrame:
     return w.select(OUT_COLS).sort(["season", "week", "page_type", "ecr"])
 
 
+LIVE_PAGES = {"qb": "weekly-qb", "ppr-rb": "weekly-rb", "ppr-wr": "weekly-wr", "ppr-te": "weekly-te",
+              "k": "weekly-k", "dst": "weekly-dst"}
+
+
+def normalize_live(cur: pl.DataFrame) -> pl.DataFrame:
+    """The live `week` feed uses its own column names and page keys; map onto the archive shape."""
+    out = cur.filter(pl.col("page").is_in(list(LIVE_PAGES))).with_columns(
+        pl.col("page").replace_strict(LIVE_PAGES, default=None).alias("page_type"),
+        pl.col("fantasypros_id").cast(pl.Utf8).alias("id"),
+        pl.col("player_name").alias("player"),
+    )
+    if "scrape_date" not in out.columns or out["scrape_date"].null_count() == out.height:
+        out = out.with_columns(pl.lit(dt.datetime.now(tz=dt.UTC).date().isoformat()).alias("scrape_date"))
+    return out
+
+
 def fetch(seasons: list[int], live: bool = False) -> pl.DataFrame:
     schedules = nfl.load_schedules()
     if live:
-        cur = nfl.load_ff_rankings("week").with_columns(
-            pl.lit(dt.datetime.now(tz=dt.UTC).date().isoformat()).alias("scrape_date")
-        )
-        df = build(cur, schedules)
+        df = build(normalize_live(nfl.load_ff_rankings("week")), schedules)
     else:
         df = build(nfl.load_ff_rankings("all"), schedules)
     return df.filter(pl.col("season").is_in(seasons))

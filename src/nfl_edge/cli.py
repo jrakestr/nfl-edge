@@ -38,16 +38,23 @@ def db_counts():
 
 @app.command()
 def ingest(
-    week: int = typer.Option(..., help="NFL week"),
+    week: int = typer.Option(None, help="NFL week (optional with --lines-only: whole season)"),
     season: int = typer.Option(2026),
-    lines_only: bool = typer.Option(False, help="Only snapshot market lines"),
+    lines_only: bool = typer.Option(False, help="Only snapshot market lines (the cron path)"),
 ):
-    """Pull nflverse data into Postgres (idempotent)."""
+    """Pull nflverse data into Postgres (idempotent). Pre-kickoff seasons load what is published."""
     from .ingest import consensus, context, opportunity, players, schedules, stats
+    from .ingest import season as season_guard
 
+    if week is None and not lines_only:
+        raise typer.BadParameter("--week is required unless --lines-only")
     typer.echo(f"schedules: {schedules.run([season], week=week, lines_only=lines_only)}")
     if lines_only:
         return
+    if not season_guard.published(season):
+        typer.echo(f"note: {season} is ahead of nflverse's current season "
+                   f"({season_guard.current_season()}); stats, opportunity and snap counts are skipped, "
+                   "rosters come from the preseason roster file")
     typer.echo(f"players: {players.run()}")
     for name, mod in (("stats", stats), ("opportunity", opportunity),
                       ("consensus", consensus), ("context", context)):

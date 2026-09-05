@@ -9,6 +9,7 @@ import nflreadpy as nfl
 import polars as pl
 
 from ..db import upsert
+from . import season
 from .stats import _pack
 
 ID_COLS = ["season", "week", "player_id", "full_name", "position", "posteam"]
@@ -27,6 +28,9 @@ def fetch(seasons: list[int]) -> pl.DataFrame:
 
 
 def run(seasons: list[int], week: int | None = None) -> dict:
+    seasons, unpublished = season.split(seasons)
+    if not seasons:
+        return {"skipped": season.skipped(unpublished, "ff_opportunity")}
     df = fetch(seasons)
     if week is not None:
         df = df.filter(pl.col("week") == week)

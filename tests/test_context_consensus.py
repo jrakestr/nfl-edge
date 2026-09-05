@@ -83,3 +83,35 @@ def test_opportunity_build_drops_team_residual_rows():
     out = opportunity.build(df)
     assert out.height == 1 and out["season"].dtype == pl.Int32 and out["week"][0] == 1
     assert out["stats"][0]["rec_attempt"] == 5.0
+
+
+def test_live_rankings_normalize_to_archive_shape():
+    live = pl.DataFrame(
+        {
+            "page": ["qb", "ppr-rb", "db", "dst"],
+            "fantasypros_id": [1, 2, 3, 4],
+            "player_name": ["A", "B", "C", "D"],
+            "pos": ["QB", "RB", "DB", "DST"],
+            "team": ["KC", "KC", "KC", "KC"],
+            "ecr": [1.0, 2.0, 3.0, 4.0],
+            "sd": [0.5, 0.5, 0.5, 0.5],
+            "best": [1, 1, 1, 1],
+            "worst": [3, 3, 3, 3],
+            "scrape_date": ["2025-09-03"] * 4,
+        }
+    )
+    out = consensus.normalize_live(live)
+    assert out["page_type"].to_list() == ["weekly-qb", "weekly-rb", "weekly-dst"]  # IDP page dropped
+    assert out["id"].dtype == pl.Utf8 and out["player"].to_list() == ["A", "B", "D"]
+    built = consensus.build(out, _schedules())
+    assert built["season"].unique().to_list() == [2025] and built["week"].unique().to_list() == [1]
+    assert set(built["page_type"]) == {"weekly-qb", "weekly-rb", "weekly-dst"}
+
+
+def test_season_guard_splits_published_from_unpublished(monkeypatch):
+    from nfl_edge.ingest import season
+
+    monkeypatch.setattr(season, "current_season", lambda: 2025)
+    assert season.split([2024, 2025, 2026]) == ([2024, 2025], [2026])
+    assert season.published(2025) and not season.published(2026)
+    assert "2026" in season.skipped([2026], "x")

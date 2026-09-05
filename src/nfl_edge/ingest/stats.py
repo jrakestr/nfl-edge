@@ -10,6 +10,7 @@ import nflreadpy as nfl
 import polars as pl
 
 from ..db import upsert
+from . import season
 
 PLAYER_ID_COLS = ["season", "week", "player_id", "player_name", "position", "team", "opponent_team"]
 TEAM_ID_COLS = ["season", "week", "team", "opponent_team"]
@@ -153,7 +154,12 @@ def fetch_team_game_agg(seasons: list[int]) -> pl.DataFrame:
 
 
 def run(seasons: list[int], week: int | None = None) -> dict:
-    out = {}
+    out: dict = {}
+    seasons, unpublished = season.split(seasons)
+    if unpublished:
+        out["skipped"] = season.skipped(unpublished, "player/team stats + pbp")
+    if not seasons:
+        return out
     ps = fetch_player_stats(seasons)
     ts = fetch_team_stats(seasons)
     ga = fetch_team_game_agg(seasons)
