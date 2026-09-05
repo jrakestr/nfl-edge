@@ -18,6 +18,9 @@ team:
 players:
   usage_concentration: 40    # Dirichlet concentration for share draws (higher = tighter)
   td_rate_sd: 0.01
+  fumble_lost_rate: 0.01     # per touch (carry or reception)
+  yds_gamma_shape_per_rec: 1.0    # Gamma shape per reception for rec yards (lower = heavier tail)
+  yds_gamma_shape_per_carry: 0.8  # Gamma shape per carry for rush yards
 checks:
   max_total_gap_vs_market: 6.0   # warn if fair total differs from market by more
   max_spread_gap_vs_market: 4.0
