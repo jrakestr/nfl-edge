@@ -13,6 +13,8 @@ from .config import database_url
 
 # String-typed frame columns that land in jsonb columns (serialized JSON text in the frame).
 JSON_COLS = {"stats", "payload"}
+# Refresh planner statistics after a bulk write at least this large.
+ANALYZE_MIN_ROWS = 10_000
 
 
 @contextmanager
@@ -74,6 +76,11 @@ def _write(df: pl.DataFrame, table: str, tail: str, pre: str | None = None,
         cur.execute(f"insert into {table} ({cols}) select {cols} from {stg} {tail}")
         n = cur.rowcount
         c.commit()
+        if n >= ANALYZE_MIN_ROWS:
+            # A bulk COPY leaves the planner without statistics until autovacuum catches up; on a
+            # small hosted instance that turned a 1.6s depth-chart query into a statement timeout.
+            cur.execute(f"analyze {table}")
+            c.commit()
     return n
 
 
@@ -138,4 +145,6 @@ def table_counts() -> pl.DataFrame:
         if f.is_empty():
             f = pl.DataFrame({"table": [fq], "season": ["-"], "rows": [0]})
         frames.append(f.cast({"table": pl.Utf8, "season": pl.Utf8, "rows": pl.Int64}))
+    if not frames:  # fresh database, no migrations applied yet
+        return pl.DataFrame(schema={"table": pl.Utf8, "season": pl.Utf8, "rows": pl.Int64})
     return pl.concat(frames, how="vertical")

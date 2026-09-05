@@ -11,14 +11,18 @@ Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.c
 - lines-cron-doc (ee532de): `docs/ops.md` — snapshot cadence (documented, not created), weekly order, provenance; README points to it.
 - test-e2e-lines (7a0b88b): `tests/test_lines_e2e.py` under a `db` marker (excluded by default; `pytest -m db`).
 
-### Checkpoint C — Week 1 (run on local Postgres; Supabase blocked, see below)
-- `nfl-edge sim --season 2026 --week 1 --draws 20000`: run `3d4fe1c7-0c26-4d10-86ce-ef29ff02f0dc`, 16 games, invariants 224/224, 7.7s. Warnings 5/32: spread gap > 4 on ARI@LAC (fair 6 / market 10.5), BAL@IND (3 / −3.5), DAL@NYG (2 / −2.5), MIA@LV (−3 / 3.5); total gap on NYJ@TEN (46 / 38.5).
+### Checkpoint C — Week 1 (Supabase; first run on local Postgres, see below)
+- Supabase run `5823f735-0431-4faf-b175-edb980…` (git `29386d8`, 20k draws): `nfl-edge lines --season 2026 --week 1` prints the week summary and 16 verdicts; `model.verdicts` = 16 rows, `model.edges` = 96 (16 snapshots × 6), parity 16/16, invariants 224/224, warnings 5/32 — the same five games and the same summary sentence as the local run below.
+- Local Postgres run `3d4fe1c7-0c26-4d10-86ce-ef29ff02f0dc` (`nfl-edge sim --season 2026 --week 1 --draws 20000`): 16 games, invariants 224/224, 7.7s. Warnings 5/32: spread gap > 4 on ARI@LAC (fair 6 / market 10.5), BAL@IND (3 / −3.5), DAL@NYG (2 / −2.5), MIA@LV (−3 / 3.5); total gap on NYJ@TEN (46 / 38.5).
 - `nfl-edge lines --season 2026 --week 1` prints the week summary and 16 verdicts; `select count(*) from model.verdicts where run_id = '3d4fe1c7-…'` = 16. Summary: "11 sides and 13 totals clear a 3% edge; the biggest is Over 38.5 (+19.0%)". Those counts are what a lookback-only model produces against opening lines with a 2.6-point MAE to the close; the backtest says they do not cash. Grade them in Step 7, do not bet them.
 - Observed snapshot cadence: exactly 1 `raw.market_lines` row per 2026 game so far (nflverse opening numbers; two `--lines-only` pulls an hour apart were no-ops). Closing-line resolution is unknown until the cron runs through a game week — record it here before Step 7 leans on "closing line".
 - Week 18 rester note: 14 teams' season QB1 threw < 10 passes in 2025 wk18 (BUF, KC, PHI, LAC, GB, IND, ATL, NYJ, TEN, LV, MIA, and injury-return cases CIN/SF/WAS). For those teams the Week 1 model-minus-market spread averages −0.6 points vs +0.5 for the other 18 (team perspective, n = 14/18); the largest single gaps are LV −6.5, LAC −4.5, BUF −3.5. Directional evidence that the 2025 wk18 rows drag resting teams' priors down, not proof (opening lines, one week). Added to priors-refine below.
 
-### Supabase (blocked at supabase-bringup)
-- `.env` `DATABASE_URL` still fails: the host resolves (IPv6) and Postgres answers `password authentication failed` for every reading of the credential (the password field contains an unencoded `@`; tried it percent-encoded, and each half alone). The reset alphanumeric password did not land in `.env`. Once it does: `nfl-edge db migrate && nfl-edge backfill 2020 2025 && nfl-edge ingest --season 2026 --week 1 && nfl-edge sim --season 2026 --week 1 --draws 20000 && nfl-edge lines --season 2026 --week 1`, then diff `db counts` against the Checkpoint A table below and record it here. All Step 4 code is DB-agnostic; nothing else waits on it.
+### Supabase bring-up (supabase-bringup, 2026-09-04 late)
+- Credential: the reset password authenticated once its `@` and `!` were percent-encoded in `.env` (the URL had two `@`). Rewritten in place; never printed. Run every command with `DATABASE_URL` unset in the shell — an exported local DSN silently overrides `.env`.
+- `db migrate` applied 0001–0004 on an empty database; `backfill --start 2020 --end 2025` took 3m20s over the network (41s local). `db counts` diff vs local (`output/counts_local.txt` / `output/counts_supabase.txt`, gitignored): 62/62 raw table-season pairs identical, including `depth_charts` 2025 (554,215) and 2026 (496,713); `market_lines` 1,805 both sides.
+- Two fixes surfaced by the remote, both in `db.py`/`cli.py`: `db counts` on a database with no tables raised (`concat empty list`) — now prints an empty table and says to migrate; and the first `sim` died at Supabase's 2-minute `statement_timeout` in `priors/depth.load_depth` because the bulk COPY left `raw.depth_charts` (1.24M rows) with no planner statistics. After `analyze` the same query runs in 1.6s; `_write` now analyzes a table after any write of ≥ 10,000 rows so a fresh backfill never depends on autovacuum timing.
+- `ingest --season 2026 --week 1` then `ingest --season 2026 --lines-only`: 272 schedules, 112 opening snapshots, 2,945 preseason roster rows, 496,713 daily depth-chart rows, 682 live-ECR rows; stats/opportunity/snap_counts skipped with the season-guard message. Snapshot cadence on Supabase: still 1 per game.
 
 ### lines-refine (trailing todo; not started)
 - `fair_spread`/`fair_total` are medians of integer scores, so verdicts read "by 6.0 points" — use the mean (or a mid-quantile interpolation) for display and keep the median for P(cover). Sentence 1 uses `fair_spread` only; sentence 2/3 already use the exact draw probabilities.
@@ -72,17 +76,17 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - Crosswalk: snap_counts pfr ids unresolved via raw.players 0.05–0.32% per season; 0.00–0.12% of offensive snaps
 
 ## Blocked / needs a decision
-- Supabase: Postgres rejects the password in .env (host reachable over IPv6). Reset the DB password to alphanumeric, update .env, then run `nfl-edge db migrate && nfl-edge backfill` (≈1 min locally; longer over the network). Everything above was validated against a local Postgres 16 container (`docker run --name nfl-edge-pg -p 5433:5432 postgres:16`).
+- Nothing blocked. Supabase is live and matches the local Postgres 16 container (`docker run --name nfl-edge-pg -p 5433:5432 postgres:16`) row for row; keep the local container for the `db`-marked e2e test, whose 2025 wk10 draws exist only locally.
 
 ## Checkpoints
-- [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres; Supabase pending credentials)
+- [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres 2026-09-04; Supabase identical, same day)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
 - [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
-- [x] C — `nfl-edge lines --season 2026 --week 1` prints 16 verdicts from a 20k run and `model.verdicts` holds 16 rows (local Postgres). [ ] Same on Supabase once `.env` carries the reset password.
+- [x] C — `nfl-edge lines --season 2026 --week 1` prints 16 verdicts from a 20k run and `model.verdicts` holds 16 rows, on Supabase (run `5823f735`) and on local Postgres (run `3d4fe1c7`).
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It becomes a season-long grading target in Step 7. Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
 - Populate `raw.player_overrides` weekly (injury report) — the RB/WR/TE gap to ECR is mostly this.
 - Depth-chart cold start covers ranks 1–3 only; deeper players with no history are still excluded.
 - OT is a one-drive resolution (0.4% ties); margin/total sd run ~0.5–1 point wide of NFL history — revisit once P(cover) is graded against real bets.
-- Supabase still pending an alphanumeric DB password; everything validated on local Postgres 16.
+- Supabase `statement_timeout` is 2 minutes for the `postgres` role. Any future query over `raw.depth_charts` daily rows (1.24M and growing ~3k/day) should filter on `(season, week, club_code)` (the only index) or add an index on `(season, dt)` in the next migration.

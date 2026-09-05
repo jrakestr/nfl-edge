@@ -31,7 +31,11 @@ def db_counts():
     from .ingest.players import unresolved_snap_pfr
 
     with pl.Config(tbl_rows=-1, tbl_hide_dataframe_shape=True, tbl_hide_column_data_types=True):
-        typer.echo(str(table_counts()))
+        counts = table_counts()
+        typer.echo(str(counts))
+        if counts.is_empty():
+            typer.echo("no raw/model tables yet; run `nfl-edge db migrate`")
+            return
         typer.echo("snap_counts pfr ids unresolved via raw.players:")
         typer.echo(str(unresolved_snap_pfr()))
 
