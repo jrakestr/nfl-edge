@@ -9,7 +9,8 @@ Plan: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3 of docs/archit
 - ingest-players (a7d7ada): raw.players crosswalk (24,832 players; 22,662 pfr, 4,720 fantasypros ids)
 - ingest-stats (dc36d3a): player/team weekly stats (jsonb), pbp -> raw.team_game_agg; attempts/carries tie out exactly to nflverse team_stats on 2024
 - ingest-opp-consensus-context (ea133c4): ffopportunity, FantasyPros weekly ECR backfill, depth charts (2024 and 2025 shapes), snap counts, rosters; COPY-based writes
-- backfill: `nfl-edge backfill 2020 2025` runs all modules in 41s; one market_lines snapshot per game (1693 = Σ games)
+- backfill (e5a8db0): `nfl-edge backfill 2020 2025` runs all modules in 41s; one market_lines snapshot per game (1693 = Σ games)
+- priors-simple: team/usage/efficiency v1 (lookback + shrink only). Checkpoint B at 2025 wk10: league drives 10.83, plays/drive 5.71, PPD 2.135, FG/drive 0.158, neutral pass 0.588; team spread PPD 1.55–2.73; all four share types sum to 1.0 on every team; 32/32 teams have one QB1; 432 active players with history (61 QB / 110 RB / 163 WR / 98 TE). Players with no history are excluded until priors-refine adds a depth-chart cold start.
 
 ## Checkpoint A output (local Postgres 16, 2025-09-04)
 Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
@@ -27,5 +28,5 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 
 ## Checkpoints
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres; Supabase pending credentials)
-- [ ] B — `nfl-edge priors --season 2025 --week 10` plausible
+- [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
 - [ ] Backtest 2025 report at 5k draws; invariants 100%; spread MAE ≤ 3, total MAE ≤ 4

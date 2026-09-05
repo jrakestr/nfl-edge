@@ -2,9 +2,13 @@
 draws_per_game: 20000
 seed: 2026
 priors:
-  lookback_weeks: 8          # weight recent usage/efficiency
-  prior_season_weight: 0.35  # blend in prior-season baseline early in the year
+  lookback_weeks: 8          # current-season row weight = exp(-(W - week) / lookback_weeks)
+  prior_season_weight: 0.35  # weight of every prior-season row (blend-in baseline)
   shrink_to_ffopportunity: 0.5  # 0 = ignore _exp stats, 1 = fully trust them
+  shrink_k_team: 4           # team rates: pseudo-games toward league average
+  shrink_k_usage: 3          # player shares: pseudo-games toward positional average share
+  shrink_k_targets: 40       # receiving efficiency: pseudo-targets toward positional average
+  shrink_k_carries: 60       # rushing efficiency: pseudo-carries toward positional average
 team:
   plays_per_game_sd: 6
   pass_rate_sd: 0.05

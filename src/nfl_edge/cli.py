@@ -91,6 +91,36 @@ def backfill(
 
 
 @app.command()
+def priors(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    team: str = typer.Option("KC", help="Team to print"),
+):
+    """Print one team's priors and its top-8 players (Checkpoint B eyeball)."""
+    import polars as pl
+
+    from . import priors as pr
+
+    p = pr.build(season, week)
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=160, float_precision=3):
+        typer.echo(f"league: { {k: round(v, 3) for k, v in p.team.league.items()} }")
+        typer.echo(str(p.team.teams.filter(pl.col("team") == team)))
+        u = p.usage.filter(pl.col("team") == team)
+        typer.echo(
+            f"{team}: {u.height} active players with history; "
+            f"target_share sum={u['target_share'].sum():.3f} carry_share sum={u['carry_share'].sum():.3f} "
+            f"rz_target sum={u['rz_target_share'].sum():.3f} rz_carry sum={u['rz_carry_share'].sum():.3f} "
+            f"qb1={u.filter(pl.col('is_qb1'))['full_name'].to_list()}"
+        )
+        top = u.with_columns((pl.col("target_share") + pl.col("carry_share")).alias("_u")) \
+            .sort("_u", descending=True).head(8).drop("_u")
+        top = top.join(p.efficiency.drop(["position", "season", "week"]), on="player_id", how="left")
+        typer.echo(str(top.drop(["season", "week", "team"])))
+        qb_per_team = p.usage.group_by("team").agg(pl.col("is_qb1").sum())
+        typer.echo(f"teams with exactly one QB1: {int((qb_per_team['is_qb1'] == 1).sum())}/{qb_per_team.height}")
+
+
+@app.command()
 def sim(week: int, season: int = 2026):
     """Run the game simulator for a week and persist draws."""
     cfg = load_yaml("sim.yaml")
