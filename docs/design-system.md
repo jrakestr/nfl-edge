@@ -1,15 +1,18 @@
 # nfl-edge design system
 
-Stack: Next.js + shadcn/ui on Vercel, reading `model.*` from Supabase. v1 surfaces: **Edge board** and **Lineup review**. Everything below exists so those two screens (and the player/props and grading screens that follow) share one language.
+Stack: Next.js + shadcn/ui on Vercel, reading `model.*` from Supabase. v1 surfaces: **Edge board**, **Prop detail**, **Lineup review**. Mockups live in the nfl-edge canvas artifact; this doc is the spec they follow.
+
+Reference products for feel: Outlier.bet for the prop/game detail layout (header, market tabs, stat-vs-line chart, right rail with timeline and matchup), Linear for list-plus-drawer discipline.
 
 ## Principles
 
-1. **Signal only.** Color means one thing: edge and its direction. Nothing else is colored. Team colors appear only as a 6px dot next to an abbreviation.
-2. **Numbers are the interface.** Labels are quiet sans; every number is monospace, tabular, right-aligned. Columns line up or the screen is wrong.
-3. **The summary screams, the table whispers.** One number per screen at display size. Everything repeated per row is at body size, muted, and gains weight only when it crosses a threshold.
-4. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
-5. **Every number has a run.** A `run_id` badge is visible on every screen. Stale runs are marked; two runs can be compared.
-6. **Light, not white.** Light is the only theme in v1. The page is warm off-white, not `#FFF`, so hours on the board don't glare; surfaces separate by hairline and a half-step of tone, not by shadow. No dark mode until someone asks for it.
+1. **Plain English first, numbers second.** Every screen leads with a sentence a normal person can read ("Detroit is favored to beat New Orleans by 10.4 points. The book has them by 7."). Numbers support the sentence as chips and columns; a Plain English / Table toggle exposes the dense view. Column headers say what the number means ("Cleared it, last 10", "Chance of over"), never the abbreviation.
+2. **Signal only.** Color means one thing: edge and its direction. Nothing else is colored. Team colors appear only as an 8px dot next to an abbreviation.
+3. **One typeface, no monospace.** Plus Jakarta Sans for everything. Numbers use `font-variant-numeric: tabular-nums` at weight 600–700 so columns align without a mono face.
+4. **The summary screams, the table whispers.** One number per screen at display size. Everything repeated per row is at body size, muted, and gains weight only when it crosses a threshold.
+5. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
+6. **Every number has a run.** A `run_id` badge is visible on every screen. Stale runs are marked; two runs can be compared.
+7. **Light, app-shaped.** Light is the only theme. Cool grey field (`#F4F5F7`), white cards with a 1px `#E6E8EC` border and 12px radius, a 216px white sidebar, a 52px top bar with breadcrumb, search and actions. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
 
 ## Tokens (`globals.css`, shadcn variable names where they exist)
 
@@ -17,13 +20,15 @@ Stack: Next.js + shadcn/ui on Vercel, reading `model.*` from Supabase. v1 surfac
 
 | Token | Value | Use |
 |---|---|---|
-| `--background` | `#F6F5F2` | page (warm off-white; never pure white) |
-| `--card` | `#FFFFFF` | app shell, cards, table body |
-| `--muted` | `#EFEDE8` | table header, panels, code |
-| `--accent` | `#E7E4DD` | hover row, selected row, drawer surface |
-| `--border` | `#DAD7CF` | hairlines |
-| `--foreground` | `#1B1A17` | primary text, numbers |
-| `--muted-foreground` | `#6B685F` | labels, secondary numbers |
+| `--background` | `#F4F5F7` | app field |
+| `--card` | `#FFFFFF` | sidebar, top bar, cards |
+| `--muted` | `#FAFBFC` | table header |
+| `--accent` | `#F7F8FA` | hover row |
+| `--border` | `#E6E8EC` | card and bar borders |
+| `--border-soft` | `#EEF0F3` | row dividers |
+| `--foreground` | `#111318` | text, numbers |
+| `--muted-foreground` | `#6F7683` | labels |
+| `--dim` | `#A0A6B1` | captions, placeholders |
 
 Four-step elevation: background → card → muted → accent. Cards get one shadow, `0 1px 2px rgb(27 26 23 / 0.06)`, and a `--border` hairline; nothing else casts a shadow.
 
@@ -31,11 +36,11 @@ Four-step elevation: background → card → muted → accent. Cards get one sha
 
 | Token | Value | Meaning |
 |---|---|---|
-| `--edge-pos` | `#1A7F5A` | model likes it (positive edge / over / favorite covers) |
-| `--edge-neg` | `#C0392B` | model fades it |
+| `--edge-pos` | `#109B62` (tint `#E5F6EE`) | model likes it (positive edge / over / favorite covers) |
+| `--edge-neg` | `#DE4A3A` (tint `#FCE9E6`) | model fades it |
 | `--edge-flat` | `--muted-foreground` | |edge| below threshold |
 | `--warn` | `#B26B00` | stale run, check warning, injury override active |
-| `--line` | `#2F5FD0` | market line / market side of any comparison |
+| `--line` | `#2F6BFF` (tint `#EEF3FF`) | market line / market side of any comparison |
 | `--model` | `--foreground` | model side of any comparison |
 
 All semantic colors are ≥ 4.5:1 on `--card` and `--background`. Tinted backgrounds for chips use the semantic color at 10% opacity.
@@ -46,28 +51,40 @@ Edge intensity: opacity ramps with |edge|. 0–1% flat; 1–3% color at 70%; >3%
 
 ### Typography
 
-| Role | Family | Size / line | Weight | Notes |
-|---|---|---|---|---|
-| Display number | `Geist Mono`, fallback `ui-monospace` | 32/36 | 600 | one per screen |
-| Table number | `Geist Mono` | 13/20 | 500 | `font-variant-numeric: tabular-nums`; right-aligned |
-| Body / label | `Geist Sans`, fallback `system-ui` | 13/20 | 400 | |
-| Column header | `Geist Sans` | 11/16 | 500 | uppercase, 0.04em tracking, `--muted-foreground` |
-| Caption | `Geist Sans` | 11/16 | 400 | run id, timestamps |
+Plus Jakarta Sans throughout (Google Fonts), fallback `system-ui`. No second family.
 
-Numbers are always 500 or heavier; labels never above 500. Percentages carry the sign: `+2.4%`, `−0.8%`. Spreads carry sign and half-points: `−3.5`. Probabilities are `62%`, never `0.62`.
+| Role | Size / line | Weight |
+|---|---|---|
+| Page/tile number | 26/32 | 800, tracking −0.02em |
+| Player/game title | 18/24 | 800 |
+| Sentence copy (verdicts, callouts) | 14/21 | 400, key facts in 700 |
+| Body, table cell | 13/18 | 500 |
+| Column header | 11/16 | 600, uppercase, 0.04em |
+| Caption | 11–12 | 400–500, `--dim` |
+
+Numbers: `tabular-nums`, weight 600–700, right-aligned in tables. Signs always shown (`+3.4`, `−7`). Probabilities as `61%`.
 
 ### Spacing, radius, motion
 
 - Spacing scale: 4, 8, 12, 16, 24, 32. Table cell padding 8×12. Card padding 16. Drawer padding 24.
-- Radius: 4 (chips, cells), 6 (cards, inputs), 8 (drawer). Nothing rounder.
+- Radius: 6 (pills, segmented controls), 8 (buttons, sidebar items), 12 (cards).
 - Motion: 120ms (hover, focus), 200ms (drawer open, row expand), 350ms (page-level). Easing `cubic-bezier(0.2, 0, 0, 1)`. No motion that isn't a response to a click.
-- Density toggle: `compact` (row 32px) default; `comfortable` (row 40px).
+- Rows: 44px in tables, 40px in compact logs. Sidebar items 36px.
 
 ## Components
 
 shadcn primitives used as-is: `Table`, `Sheet` (drawer), `Badge`, `Tabs`, `Toggle`, `Slider`, `Command` (player search), `Tooltip`, `Select`.
 
 Custom, built on top:
+
+### `VerdictCard`
+One game on the edge board in Plain English mode. Three lines generated from `proj_games` + `market_lines`: (1) who is favored and by how much vs the book, (2) whether the market side covers often enough to pay (needs ~52% at −110), (3) expected total vs line with over/under hit rate. Right column: `Side`, `Total`, `Home wins` chips. Grammar handles plural nicknames ("The Rams are").
+
+### `PropCallout`
+Tinted `--line` block under a player header: "Gibbs goes over 89.5 rush + receiving yards in 61% of our 20,000 simulated games. At −115 the book is pricing it like a 53% shot..." with a Lean over/under pill. Generated from `proj_players.stat_summary` and the entered line.
+
+### `StatBars`
+Outlier-style bar chart: one bar per recent game, green if it cleared the current line, red if not, dashed `--line` rule at the line. Header strip: line pill, over/under prices, "Cleared it, last 10", average, typical sim game, chance of over.
 
 ### `EdgeCell`
 The atom of the edge board. Shows model value, market value, and their difference.
@@ -97,8 +114,12 @@ Invariant/warning results for a run: green dot = all invariants passed; `--warn`
 
 ## Patterns
 
+### App shell
+Sidebar (Edge board, Games, Players, Props, Lineups, Grading; `RunBadge` pinned at bottom) + top bar (breadcrumb, search with `/`, page actions). Content is a 16px-gapped grid inside 20px padding.
+
 ### Edge board (`/week/[n]`)
-- Header: week selector, `RunBadge`, density toggle, one display number: count of games with |edge| above threshold.
+- Week summary sentence card with Plain English / Table toggle.
+- Plain English: stack of `VerdictCard`s sorted by |max edge|. Table: four summary tiles then the dense table below.
 - Table, one row per game, sorted by |max edge| desc. Columns: matchup (dots + abbrs, kickoff), `EdgeCell` spread, `EdgeCell` total, `EdgeCell` ML (as prob), P(cover) at market, `MarketPill`, `CheckStatus`.
 - Row click → `Sheet` drawer: score distribution (two-team histogram), fair vs. market history, top-10 player projections with `DistributionSpark`, correlation heat strip for that game.
 - Filters (top-left, persistent): slate (main/early/late/primetime), min |edge|, hide flat.
@@ -110,7 +131,12 @@ Invariant/warning results for a run: green dot = all invariants passed; `--warn`
 - Row click → drawer with per-player `DistributionSpark`, stack correlation, "why this lineup" (top 3 correlations that drove it).
 - Export: DK/FD CSV of selected lineups; the export is stamped with `run_id`.
 
-### Player view and grading (next)
+### Prop detail (`/props/[game]/[player]`)
+- Header card: avatar, name, position pill, game context, `Enter a line`, market tabs (Rush yds, Rec yds, Rush + Rec, Receptions, Anytime TD), L5/L10/L20/season/H2H segment, `PropCallout`.
+- Main: `StatBars` card, then a game-log card (date, opp, result, carries, rush yds, targets, catches, rec yds, total, vs line).
+- Right rail (340px): "Where his yards land" (sim histogram with 1-in-10 markers and fair price), "How the line has moved" (manual snapshots with model P(over) at each), "Up against" (defense/offense toggle, five plain-language rows), "When X goes over, who else does" (correlations as usually up / slightly up / usually down).
+
+### Grading (next)
 Same tokens and components; `DistributionSpark` becomes a full-width histogram in the player drawer with a prop-line input; grading reuses the edge-board table with an added Actual column and a calibration chart.
 
 ## Accessibility
