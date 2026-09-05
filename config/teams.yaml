@@ -1,0 +1,130 @@
+# Team naming for plain-English verdicts. Static copy of nflreadpy load_teams() (2026-09).
+# plural: the nickname takes a plural verb ("The Lions are"). All current NFL nicknames do.
+ARI:
+  city: Arizona
+  nick: Cardinals
+  plural: true
+ATL:
+  city: Atlanta
+  nick: Falcons
+  plural: true
+BAL:
+  city: Baltimore
+  nick: Ravens
+  plural: true
+BUF:
+  city: Buffalo
+  nick: Bills
+  plural: true
+CAR:
+  city: Carolina
+  nick: Panthers
+  plural: true
+CHI:
+  city: Chicago
+  nick: Bears
+  plural: true
+CIN:
+  city: Cincinnati
+  nick: Bengals
+  plural: true
+CLE:
+  city: Cleveland
+  nick: Browns
+  plural: true
+DAL:
+  city: Dallas
+  nick: Cowboys
+  plural: true
+DEN:
+  city: Denver
+  nick: Broncos
+  plural: true
+DET:
+  city: Detroit
+  nick: Lions
+  plural: true
+GB:
+  city: Green Bay
+  nick: Packers
+  plural: true
+HOU:
+  city: Houston
+  nick: Texans
+  plural: true
+IND:
+  city: Indianapolis
+  nick: Colts
+  plural: true
+JAX:
+  city: Jacksonville
+  nick: Jaguars
+  plural: true
+KC:
+  city: Kansas City
+  nick: Chiefs
+  plural: true
+LA:
+  city: Los Angeles
+  nick: Rams
+  plural: true
+LAC:
+  city: Los Angeles
+  nick: Chargers
+  plural: true
+LV:
+  city: Las Vegas
+  nick: Raiders
+  plural: true
+MIA:
+  city: Miami
+  nick: Dolphins
+  plural: true
+MIN:
+  city: Minnesota
+  nick: Vikings
+  plural: true
+NE:
+  city: New England
+  nick: Patriots
+  plural: true
+'NO':
+  city: New Orleans
+  nick: Saints
+  plural: true
+NYG:
+  city: New York
+  nick: Giants
+  plural: true
+NYJ:
+  city: New York
+  nick: Jets
+  plural: true
+PHI:
+  city: Philadelphia
+  nick: Eagles
+  plural: true
+PIT:
+  city: Pittsburgh
+  nick: Steelers
+  plural: true
+SEA:
+  city: Seattle
+  nick: Seahawks
+  plural: true
+SF:
+  city: San Francisco
+  nick: 49ers
+  plural: true
+TB:
+  city: Tampa Bay
+  nick: Buccaneers
+  plural: true
+TEN:
+  city: Tennessee
+  nick: Titans
+  plural: true
+WAS:
+  city: Washington
+  nick: Commanders
+  plural: true
