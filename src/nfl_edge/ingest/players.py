@@ -62,6 +62,26 @@ def fetch() -> pl.DataFrame:
     return build(nfl.load_players(), nfl.load_ff_playerids())
 
 
+def unresolved_snap_pfr() -> pl.DataFrame:
+    """Per season: snap_count pfr ids that do not resolve to a gsis_id through raw.players."""
+    from ..db import read_sql
+
+    return read_sql(
+        """
+        select s.season,
+               count(distinct s.pfr_player_id) as pfr_ids,
+               count(distinct s.pfr_player_id) filter (where p.gsis_id is null) as unresolved,
+               round(100.0 * count(distinct s.pfr_player_id) filter (where p.gsis_id is null)
+                     / greatest(count(distinct s.pfr_player_id), 1), 2) as unresolved_pct,
+               round(100.0 * sum(s.offense_snaps) filter (where p.gsis_id is null)
+                     / greatest(sum(s.offense_snaps), 1), 2) as unresolved_off_snap_pct
+        from raw.snap_counts s
+        left join raw.players p on p.pfr_id = s.pfr_player_id
+        group by s.season order by s.season
+        """
+    )
+
+
 def run(seasons: list[int] | None = None, week: int | None = None) -> dict:
     df = fetch()
     n = upsert(df, "raw.players", ["gsis_id"])

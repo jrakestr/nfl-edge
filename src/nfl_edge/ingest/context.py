@@ -45,6 +45,8 @@ def build_depth_charts(df: pl.DataFrame, season: int) -> pl.DataFrame:
 def build_snap_counts(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.select(SNAP_COLS)
+        .with_columns([pl.col(c).cast(pl.Int32, strict=False)
+                       for c in ("season", "week", "offense_snaps", "defense_snaps", "st_snaps")])
         .filter(pl.col("pfr_player_id").is_not_null())
         .unique(subset=["season", "week", "pfr_player_id"], keep="last")
     )

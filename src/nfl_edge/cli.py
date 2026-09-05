@@ -30,9 +30,12 @@ def db_counts():
     import polars as pl
 
     from .db import table_counts
+    from .ingest.players import unresolved_snap_pfr
 
     with pl.Config(tbl_rows=-1, tbl_hide_dataframe_shape=True, tbl_hide_column_data_types=True):
         typer.echo(str(table_counts()))
+        typer.echo("snap_counts pfr ids unresolved via raw.players:")
+        typer.echo(str(unresolved_snap_pfr()))
 
 
 @app.command()
@@ -42,24 +45,49 @@ def ingest(
     lines_only: bool = typer.Option(False, help="Only snapshot market lines"),
 ):
     """Pull nflverse data into Postgres (idempotent)."""
-    from .ingest import schedules
-    out = schedules.run([season], week=week, lines_only=lines_only)
-    typer.echo(f"schedules: {out}")
+    from .ingest import consensus, context, opportunity, players, schedules, stats
+
+    typer.echo(f"schedules: {schedules.run([season], week=week, lines_only=lines_only)}")
     if lines_only:
         return
-    for name in ("stats", "opportunity", "consensus", "context"):
-        try:
-            mod = __import__(f"nfl_edge.ingest.{name}", fromlist=["run"])
-            typer.echo(f"{name}: {mod.run([season], week=week)}")
-        except NotImplementedError as e:
-            typer.echo(f"{name}: skipped ({e})")
+    typer.echo(f"players: {players.run()}")
+    for name, mod in (("stats", stats), ("opportunity", opportunity),
+                      ("consensus", consensus), ("context", context)):
+        typer.echo(f"{name}: {mod.run([season], week=week)}")
+
+
+INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")
 
 
 @app.command()
-def backfill(start: int = 2020, end: int = 2025):
-    """Load prior seasons for backtesting."""
-    from .ingest import schedules
-    typer.echo(schedules.run(list(range(start, end + 1))))
+def backfill(
+    start: int = 2020,
+    end: int = 2025,
+    modules: str = typer.Option(",".join(INGEST_ORDER), help="Comma-separated subset to run"),
+):
+    """Load prior seasons for backtesting: players once, then each module per season."""
+    import time
+
+    from .ingest import consensus, context, opportunity, players, schedules, stats
+
+    mods = {"players": players, "schedules": schedules, "stats": stats,
+            "opportunity": opportunity, "consensus": consensus, "context": context}
+    selected = [m.strip() for m in modules.split(",") if m.strip()]
+    unknown = [m for m in selected if m not in mods]
+    if unknown:
+        raise typer.BadParameter(f"unknown modules {unknown}; choose from {list(INGEST_ORDER)}")
+    if "players" in selected:
+        t = time.time()
+        typer.echo(f"players: {players.run()} ({time.time() - t:.0f}s)")
+    for season in range(start, end + 1):
+        for name in INGEST_ORDER[1:]:
+            if name not in selected:
+                continue
+            t = time.time()
+            typer.echo(f"{season} {name}: {mods[name].run([season])} ({time.time() - t:.0f}s)")
+    if "consensus" in selected:
+        typer.echo("consensus coverage (weeks with ECR per season):")
+        typer.echo(str(consensus.coverage(consensus.fetch(list(range(start, end + 1))))))
 
 
 @app.command()

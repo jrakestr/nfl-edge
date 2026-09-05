@@ -1,10 +1,15 @@
-"""Schedules + free market lines from nflverse. Snapshots lines on every call."""
+"""Schedules + free market lines from nflverse.
+
+Every call snapshots the current lines into raw.market_lines; the unique index from migration
+0003 makes an unchanged snapshot a no-op, so historical backfills end with one row per game
+and the live season appends only when a value moves.
+"""
 from __future__ import annotations
 
 import nflreadpy as nfl
 import polars as pl
 
-from ..db import insert, upsert
+from ..db import insert_ignore, upsert
 
 SCHEDULE_COLS = [
     "game_id", "season", "game_type", "week", "gameday", "weekday", "gametime",
@@ -33,5 +38,5 @@ def run(seasons: list[int], week: int | None = None, lines_only: bool = False) -
         df = df.filter(pl.col("week") == week)
     n_sched = 0 if lines_only else upsert(df, "raw.schedules", ["game_id"])
     lines = df.select(LINE_COLS).filter(pl.col("spread_line").is_not_null())
-    n_lines = insert(lines, "raw.market_lines")
+    n_lines = insert_ignore(lines, "raw.market_lines")
     return {"schedules": n_sched, "line_snapshots": n_lines}

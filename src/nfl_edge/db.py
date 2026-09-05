@@ -49,8 +49,10 @@ def _stage(cur: psycopg.Cursor, df: pl.DataFrame, table: str) -> str:
     """COPY the frame into a temp table shaped like `table`; return the temp table name."""
     stg = "_stg_" + table.replace(".", "_")
     cur.execute(f"drop table if exists {stg}")
-    cur.execute(f"create temp table {stg} (like {table}) on commit drop")
-    with cur.copy(f"copy {stg} ({','.join(df.columns)}) from stdin") as cp:
+    cols = ",".join(df.columns)
+    # Types only (no constraints/defaults), restricted to the columns being written.
+    cur.execute(f"create temp table {stg} on commit drop as select {cols} from {table} where false")
+    with cur.copy(f"copy {stg} ({cols}) from stdin") as cp:
         for row in _rows(df):
             cp.write_row(row)
     return stg
@@ -129,5 +131,8 @@ def table_counts() -> pl.DataFrame:
             q = f"select {fq!r}::text as table, season::text as season, count(*) as rows from {fq} group by season order by season"
         else:
             q = f"select {fq!r}::text as table, 'all' as season, count(*) as rows from {fq}"
-        frames.append(read_sql(q).cast({"rows": pl.Int64}))
-    return pl.concat([f for f in frames if not f.is_empty()], how="vertical_relaxed")
+        f = read_sql(q)
+        if f.is_empty():
+            f = pl.DataFrame({"table": [fq], "season": ["-"], "rows": [0]})
+        frames.append(f.cast({"table": pl.Utf8, "season": pl.Utf8, "rows": pl.Int64}))
+    return pl.concat(frames, how="vertical")
