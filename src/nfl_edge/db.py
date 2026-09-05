@@ -45,52 +45,52 @@ def _rows(df: pl.DataFrame) -> list[tuple[Any, ...]]:
     return out
 
 
-def upsert(df: pl.DataFrame, table: str, key_cols: list[str]) -> int:
-    """Idempotent upsert of a polars frame into `schema.table`."""
+def _stage(cur: psycopg.Cursor, df: pl.DataFrame, table: str) -> str:
+    """COPY the frame into a temp table shaped like `table`; return the temp table name."""
+    stg = "_stg_" + table.replace(".", "_")
+    cur.execute(f"drop table if exists {stg}")
+    cur.execute(f"create temp table {stg} (like {table}) on commit drop")
+    with cur.copy(f"copy {stg} ({','.join(df.columns)}) from stdin") as cp:
+        for row in _rows(df):
+            cp.write_row(row)
+    return stg
+
+
+def _write(df: pl.DataFrame, table: str, tail: str, pre: str | None = None,
+           pre_params: tuple | None = None) -> int:
+    """Stage via COPY then `insert into table (cols) select cols from stg <tail>`."""
     if df.is_empty():
         return 0
-    cols = df.columns
-    placeholders = ",".join(["%s"] * len(cols))
-    updates = ",".join(f"{c}=excluded.{c}" for c in cols if c not in key_cols)
-    action = f"do update set {updates}" if updates else "do nothing"
-    sql = (
-        f"insert into {table} ({','.join(cols)}) values ({placeholders}) "
-        f"on conflict ({','.join(key_cols)}) {action}"
-    )
-    rows = _rows(df)
+    cols = ",".join(df.columns)
     with conn() as c, c.cursor() as cur:
-        cur.executemany(sql, rows)
+        if pre:
+            cur.execute(pre, pre_params)
+        stg = _stage(cur, df, table)
+        cur.execute(f"insert into {table} ({cols}) select {cols} from {stg} {tail}")
+        n = cur.rowcount
         c.commit()
-    return len(rows)
+    return n
+
+
+def upsert(df: pl.DataFrame, table: str, key_cols: list[str]) -> int:
+    """Idempotent upsert of a polars frame into `schema.table`. Returns rows written."""
+    updates = ",".join(f"{c}=excluded.{c}" for c in df.columns if c not in key_cols)
+    action = f"do update set {updates}" if updates else "do nothing"
+    return _write(df, table, f"on conflict ({','.join(key_cols)}) {action}")
 
 
 def insert(df: pl.DataFrame, table: str) -> int:
-    if df.is_empty():
-        return 0
-    cols = df.columns
-    sql = f"insert into {table} ({','.join(cols)}) values ({','.join(['%s'] * len(cols))})"
-    with conn() as c, c.cursor() as cur:
-        cur.executemany(sql, _rows(df))
-        c.commit()
-    return df.height
+    return _write(df, table, "")
 
 
 def insert_ignore(df: pl.DataFrame, table: str) -> int:
     """Insert, skipping rows that violate any unique constraint/index. Returns rows inserted."""
-    if df.is_empty():
-        return 0
-    cols = df.columns
-    sql = (
-        f"insert into {table} ({','.join(cols)}) values ({','.join(['%s'] * len(cols))}) "
-        "on conflict do nothing"
-    )
-    inserted = 0
-    with conn() as c, c.cursor() as cur:
-        for row in _rows(df):
-            cur.execute(sql, row)
-            inserted += cur.rowcount
-        c.commit()
-    return inserted
+    return _write(df, table, "on conflict do nothing")
+
+
+def replace_where(df: pl.DataFrame, table: str, col: str, value: Any) -> int:
+    """Delete rows where `col = value`, then insert the frame. For tables without a natural key."""
+    return _write(df, table, "", pre=f"delete from {table} where {col} = %s", pre_params=(value,))
 
 
 def read_sql(sql: str, params: tuple | dict | None = None) -> pl.DataFrame:
