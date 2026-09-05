@@ -24,10 +24,12 @@ git clone https://github.com/jrakestr/NFL-DFS-Tools.git ../NFL-DFS-Tools
 
 | When | Command |
 |---|---|
-| Tue | `nfl-edge ingest --week N` then `nfl-edge grade --week N-1` then `nfl-edge sim --week N` |
-| Wed–Sat | `nfl-edge ingest --lines-only --week N` and re-sim on news |
+| Tue | `nfl-edge ingest --week N` then `nfl-edge grade --week N-1` then `nfl-edge sim --week N` then `nfl-edge lines --week N` |
+| Wed–Sat | `nfl-edge ingest --lines-only` on a schedule (see [docs/ops.md](docs/ops.md)), `lines` for new snapshots, re-sim on news |
 | Sat | `nfl-edge dfs --site dk --slate main --week N` |
-| Sun AM | final `ingest` + `sim` + `dfs` |
+| Sun AM | final `ingest` + `sim` + `lines` + `dfs` |
+
+Snapshot cadence, the cron that is documented but not created, and the full weekly order: [docs/ops.md](docs/ops.md).
 
 ## Layout
 
