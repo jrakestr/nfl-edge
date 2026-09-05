@@ -6,9 +6,11 @@ Sources (all through the (season, week) leakage filter):
   raw.snap_counts           offense_pct, joined gsis<->pfr through raw.players
   raw.rosters_weekly        active roster at the target week (published pre-game; not leakage)
 
-Shares are weighted ratios of sums (player / team), shrunk toward the positional average share,
-then renormalized within team. One QB per team: most weighted pass attempts among rostered QBs.
-Players with no history are excluded in v1 (depth-chart cold start is priors-refine).
+Shares are weighted ratios of sums (player / team), shrunk toward the positional average share
+(red-zone shares toward the player's own volume share), then renormalized within team.
+QB1 is the announced starter (priors/qb.py), else depth-chart QB1, else most weighted attempts;
+QB2 is next in that order. Rostered players without history enter through the depth chart at a
+rank-scaled positional mean share. raw.player_overrides zero out / scale players before renorm.
 """
 from __future__ import annotations
 
@@ -89,8 +91,13 @@ def load_roster(season: int, week: int) -> pl.DataFrame:
     ).with_columns(pl.col("position").replace(POS_MAP))
 
 
-def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dict) -> pl.DataFrame:
-    """Pure: player-weeks + roster -> usage priors, one row per active player with history."""
+def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dict,
+          starters: pl.DataFrame | None = None, depth: pl.DataFrame | None = None,
+          overrides: pl.DataFrame | None = None) -> pl.DataFrame:
+    """Pure: player-weeks + roster (+ starters, depth chart, overrides) -> usage priors.
+
+    One row per active player with history, plus depth-chart cold starts when `depth` is given.
+    """
     g = common.with_weights(pw, season, week, c)
     raw = g.group_by("player_id").agg(
         pl.col("w").sum().alias("n_eff"),
@@ -110,18 +117,67 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
     )
     k = float(c["shrink_k_usage"])
     out = raw.join(pos_mean, on="position", how="left").with_columns(
-        [common.shrink(pl.col(f"_{s}"), pl.col("n_eff"), pl.col(f"pm_{s}"), k).alias(s) for s in SHARE_COLS]
+        common.shrink(pl.col("_target_share"), pl.col("n_eff"), pl.col("pm_target_share"), k).alias("target_share"),
+        common.shrink(pl.col("_carry_share"), pl.col("n_eff"), pl.col("pm_carry_share"), k).alias("carry_share"),
+    ).with_columns(
+        # red-zone shares shrink toward the player's own volume share, not the positional mean:
+        # a low-volume player's TD chances track his touches until the _exp data says otherwise
+        common.shrink(pl.col("_rz_target_share"), pl.col("n_eff"), pl.col("target_share"), k).alias("rz_target_share"),
+        common.shrink(pl.col("_rz_carry_share"), pl.col("n_eff"), pl.col("carry_share"), k).alias("rz_carry_share"),
     )
-    # attach to the active roster: roster team wins; players without history are dropped (v1)
-    out = roster.select(["team", "player_id", "full_name"]).join(out, on="player_id", how="inner")
-    # one QB per team
-    qb = (
-        out.filter(pl.col("position") == "QB")
-        .sort(["team", "w_attempts"], descending=[False, True])
-        .group_by("team", maintain_order=True).head(1)
-        .select(["player_id", pl.lit(True).alias("is_qb1")])
+    # attach to the active roster: roster team wins
+    ros = roster.select(["team", "player_id", "full_name", pl.col("position").alias("_ros_pos")])
+    out = ros.join(out, on="player_id", how="inner").drop("_ros_pos")
+    # cold start: rostered players without history but on the depth chart enter at a rank-scaled
+    # positional mean share (they still get renormalized with everyone else)
+    if depth is not None and not depth.is_empty():
+        rf = {int(k_): float(v) for k_, v in c.get("cold_start_rank_factor", {1: 1.0, 2: 0.6, 3: 0.35}).items()}
+        frac = float(c.get("cold_start_frac", 0.6))
+        cold = (
+            ros.join(out.select("player_id"), on="player_id", how="anti")
+            .join(depth.select(["player_id", "depth_rank"]), on="player_id", how="inner")
+            .filter(pl.col("depth_rank").is_in(list(rf)))
+            .rename({"_ros_pos": "position"})
+            .join(pos_mean, on="position", how="left")
+            .with_columns(pl.col("depth_rank").replace_strict(rf, default=0.0, return_dtype=pl.Float64).alias("_rf"))
+            .with_columns(
+                [(pl.col(f"pm_{s}") * pl.col("_rf") * frac).fill_null(0.0).alias(s) for s in SHARE_COLS]
+            )
+            .with_columns(pl.lit(0.0).alias("n_eff"), pl.lit(None, dtype=pl.Float64).alias("snap_pct"),
+                          pl.lit(0.0).alias("w_attempts"))
+            .select(["team", "player_id", "full_name", "position", "n_eff", "w_attempts", "snap_pct", *SHARE_COLS])
+        )
+        out = pl.concat([out.select(cold.columns), cold])
+    # manual overrides: out/doubtful zero the player; usage_multiplier scales shares before renorm
+    if overrides is not None and not overrides.is_empty():
+        ov = overrides.select(
+            "player_id",
+            pl.when(pl.col("status").str.to_lowercase().is_in(["out", "doubtful", "ir"])).then(0.0)
+            .otherwise(pl.col("usage_multiplier").fill_null(1.0)).cast(pl.Float64).alias("_mult"),
+        )
+        out = out.join(ov, on="player_id", how="left").with_columns(pl.col("_mult").fill_null(1.0))
+        out = out.with_columns([(pl.col(s) * pl.col("_mult")).alias(s) for s in SHARE_COLS])
+    else:
+        out = out.with_columns(pl.lit(1.0).alias("_mult"))
+    # QB1: announced starter (schedules) if rostered and not ruled out; else depth-chart QB1;
+    # else most weighted attempts. QB2: next by the same ordering (takes the non-starter attempts).
+    qbs = out.filter((pl.col("position") == "QB") & (pl.col("_mult") > 0))
+    if starters is not None and not starters.is_empty():
+        qbs = qbs.join(starters.select(["team", pl.col("qb_id").alias("_starter")]), on="team", how="left") \
+            .with_columns((pl.col("player_id") == pl.col("_starter")).fill_null(False).alias("_is_starter"))
+    else:
+        qbs = qbs.with_columns(pl.lit(False).alias("_is_starter"))
+    if depth is not None and not depth.is_empty():
+        qbs = qbs.join(depth.select(["player_id", "depth_rank"]), on="player_id", how="left")
+    else:
+        qbs = qbs.with_columns(pl.lit(None, dtype=pl.Int32).alias("depth_rank"))
+    qbs = qbs.with_columns(pl.col("depth_rank").fill_null(99)).sort(
+        ["team", "_is_starter", "depth_rank", "w_attempts"], descending=[False, True, False, True]
+    ).with_columns(pl.int_range(pl.len()).over("team").alias("_rank"))
+    flags = qbs.select("player_id", (pl.col("_rank") == 0).alias("is_qb1"), (pl.col("_rank") == 1).alias("is_qb2"))
+    out = out.join(flags, on="player_id", how="left").with_columns(
+        pl.col("is_qb1").fill_null(False), pl.col("is_qb2").fill_null(False)
     )
-    out = out.join(qb, on="player_id", how="left").with_columns(pl.col("is_qb1").fill_null(False))
     # renormalize within team: targets among non-QBs, carries among everyone
     non_qb = pl.col("position") != "QB"
     out = out.with_columns(
@@ -130,11 +186,21 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
     ).with_columns(
         [(pl.col(s) / pl.col(s).sum().over("team")).fill_nan(0.0).alias(s) for s in SHARE_COLS]
     )
-    cols = ["team", "player_id", "full_name", "position", "is_qb1", "n_eff", *SHARE_COLS, "snap_pct"]
+    cols = ["team", "player_id", "full_name", "position", "is_qb1", "is_qb2", "n_eff", *SHARE_COLS, "snap_pct"]
     return out.select(cols).with_columns(pl.lit(season).alias("season"), pl.lit(week).alias("week")) \
         .sort(["team", "target_share", "carry_share"], descending=[False, True, True])
 
 
-def usage_priors(season: int, week: int, c: dict | None = None) -> pl.DataFrame:
+def load_overrides(season: int, week: int) -> pl.DataFrame:
+    return read_sql(
+        "select player_id, status, usage_multiplier::float8 as usage_multiplier "
+        "from raw.player_overrides where season = %s and week = %s",
+        (season, week),
+    )
+
+
+def usage_priors(season: int, week: int, c: dict | None = None, starters: pl.DataFrame | None = None,
+                 depth: pl.DataFrame | None = None) -> pl.DataFrame:
     c = c or common.cfg()
-    return build(load_player_weeks(season, week), load_roster(season, week), season, week, c)
+    return build(load_player_weeks(season, week), load_roster(season, week), season, week, c,
+                 starters=starters, depth=depth, overrides=load_overrides(season, week))

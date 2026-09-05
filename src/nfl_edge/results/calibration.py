@@ -185,19 +185,30 @@ def player_metrics(p: pl.DataFrame) -> pl.DataFrame:
 
 # ----------------------------------------------------------------------------- leakage audit
 
-OUTCOME_TOKENS = re.compile(r"\b(result|home_score|away_score|total_line|spread_line|raw\.schedules)\b")
+OUTCOME_TOKENS = re.compile(r"\b(result|home_score|away_score|total_line|spread_line|moneyline|overtime)\b")
+SCHEDULE_TOKEN = re.compile(r"raw\.schedules")
 
 
 def leakage_audit(season: int, weeks: list[int]) -> list[str]:
     """Static + dynamic checks that priors never see the target week or game outcomes."""
     findings: list[str] = []
     src = ROOT / "src" / "nfl_edge" / "priors"
+    sched_refs = []
     for f in sorted(src.glob("*.py")):
         for i, line in enumerate(f.read_text().splitlines(), 1):
-            if OUTCOME_TOKENS.search(line) and not line.strip().startswith("#"):
-                findings.append(f"FAIL static: {f.name}:{i} references outcome/schedule token: {line.strip()}")
+            s = line.strip()
+            if s.startswith(("#", '"""', "'''")):
+                continue
+            if OUTCOME_TOKENS.search(line):
+                findings.append(f"FAIL static: {f.name}:{i} references an outcome token: {s}")
+            elif SCHEDULE_TOKEN.search(line):
+                sched_refs.append(f"{f.name}:{i}")
     if not any(x.startswith("FAIL static") for x in findings):
-        findings.append("PASS static: priors/*.py never reference raw.schedules, result, scores, or lines")
+        findings.append("PASS static: priors/*.py never reference result, scores, lines, or overtime")
+    findings.append(
+        f"NOTE static: priors read raw.schedules only for week-W starters / gamedays at {sched_refs}"
+        if sched_refs else "NOTE static: priors do not read raw.schedules"
+    )
     sim_src = (ROOT / "src" / "nfl_edge" / "sim" / "slate.py").read_text()
     if re.search(r"\bs\.(result|total|home_score|away_score)\b", sim_src):
         findings.append("FAIL static: sim/slate.py selects game outcomes from raw.schedules")

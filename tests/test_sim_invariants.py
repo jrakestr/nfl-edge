@@ -210,6 +210,26 @@ def test_allocation_tracks_shares(draws, home_players):
     assert abs(p.rush_yds.sum() / p.carries.sum() - 4.3) < 0.4
 
 
+def test_two_passers_still_sum_to_receivers_every_draw(draws):
+    """priors-refine: qb_att_share < 1 routes a share of attempts to QB2 with exact sums."""
+    u = _usage("HOME")
+    qb2 = pl.DataFrame({"player_id": ["HOME_qb2"], "position": ["QB"], "is_qb1": [False],
+                        "target_share": [0.0], "carry_share": [0.0], "rz_target_share": [0.0],
+                        "rz_carry_share": [0.0], "team": ["HOME"]})
+    u = pl.concat([u, qb2.select(u.columns)]).with_columns(
+        (pl.col("player_id") == "HOME_qb2").alias("is_qb2"), pl.lit(0.85).alias("qb_att_share"))
+    eff = _efficiency("HOME")
+    p = players.allocate(draws.home, u, eff, CFG, np.random.default_rng(13))
+    q1, q2 = p.player_ids.index("HOME_qb"), p.player_ids.index("HOME_qb2")
+    assert (p.pass_att[q1] + p.pass_att[q2] == draws.home.pass_att).all()
+    assert (p.pass_yds[q1] + p.pass_yds[q2] == p.rec_yds.sum(axis=0)).all()
+    assert (p.cmp[q1] + p.cmp[q2] == p.rec.sum(axis=0)).all()
+    assert (p.pass_td[q1] + p.pass_td[q2] == p.rec_td.sum(axis=0)).all()
+    assert (p.int[q1] + p.int[q2] == draws.home.int).all()
+    assert (p.pass_att >= 0).all() and (p.cmp <= p.pass_att).all() and (p.pass_td <= p.cmp).all()
+    assert abs(p.pass_att[q1].sum() / draws.home.pass_att.sum() - 0.85) < 0.02
+
+
 def test_player_arrays_shape_and_dtype(home_players):
     p = home_players
     n_players = len(p.player_ids)

@@ -81,13 +81,38 @@ def load_games(season: int, week: int) -> pl.DataFrame:
     )
 
 
-def team_prior(priors: pr.Priors, team: str) -> TeamPrior:
+def qb_channel(priors: pr.Priors, team: str) -> tuple[float, float]:
+    """(qb_pass_factor, qb_att_share) for the team's expected starter; neutral when unknown."""
+    if priors.qb.is_empty():
+        return 1.0, 1.0
+    row = priors.qb.filter(pl.col("team") == team)
+    if row.is_empty():
+        return 1.0, 1.0
+    r = row.row(0, named=True)
+    return float(r["qb_pass_factor"]), float(r["qb_att_share"])
+
+
+def team_prior(priors: pr.Priors, team: str, cfg: dict) -> TeamPrior:
     row = priors.team.teams.filter(pl.col("team") == team)
     if row.is_empty():
-        return TeamPrior(team=team, **{k: priors.team.league[k] for k in priors.team.league})
-    d = row.row(0, named=True)
+        d = {k: priors.team.league[k] for k in priors.team.league}
+    else:
+        d = row.row(0, named=True)
     d["team"] = team
+    factor, _ = qb_channel(priors, team)
+    d["off_ppd"] = d["off_ppd"] * factor ** float(cfg["priors"].get("qb_ppd_elasticity", 0.6))
     return TeamPrior.from_row(d)
+
+
+def qb_adjusted_efficiency(eff: pl.DataFrame, factor: float) -> pl.DataFrame:
+    """Receiver rates were measured under the team's lookback QB play; rescale to the starter."""
+    if factor == 1.0 or eff.is_empty():
+        return eff
+    return eff.with_columns(
+        (pl.col("yds_per_rec") * factor).alias("yds_per_rec"),
+        (pl.col("yds_per_target") * factor).alias("yds_per_target"),
+        (pl.col("catch_rate") * factor ** 0.5).clip(0.2, 0.95).alias("catch_rate"),
+    )
 
 
 def game_context(g: dict, cfg: dict) -> GameContext:
@@ -162,11 +187,11 @@ def _team_checks(t: TeamDraws, p: pp.PlayerDraws | None, usage: pl.DataFrame, d:
         # (1) player TDs == team TDs in every draw
         ok = ((p.rec_td.sum(0) == t.pass_td) & (p.rush_td.sum(0) == t.rush_td)).mean()
         add("td_sum", ok, 1.0, ok == 1.0)
-        # (2) QB totals == receiver sums and team pass_att
-        q = int(np.argmax(p.pass_att.sum(1))) if p.pass_att.any() else None
-        if q is not None:
-            ok = ((p.pass_att[q] == t.pass_att) & (p.pass_yds[q] == p.rec_yds.sum(0))
-                  & (p.cmp[q] == p.rec.sum(0))).mean()
+        # (2) passer totals (QB1 + QB2) == receiver sums and team pass_att
+        if p.pass_att.any():
+            ok = ((p.pass_att.sum(0) == t.pass_att) & (p.pass_yds.sum(0) == p.rec_yds.sum(0))
+                  & (p.cmp.sum(0) == p.rec.sum(0)) & (p.pass_td.sum(0) == p.rec_td.sum(0))
+                  & (p.int.sum(0) == t.int)).mean()
             add("qb_totals", ok, 1.0, ok == 1.0)
         ok = ((p.targets.sum(0) == t.pass_att) & (p.carries.sum(0) == t.rush_att)).mean()
         add("opportunity_totals", ok, 1.0, ok == 1.0)
@@ -186,7 +211,7 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
     game_id = g["game_id"]
     home, away = g["home_team"], g["away_team"]
     rng = game_rng(seed, game_id)
-    hp, ap = team_prior(priors, home), team_prior(priors, away)
+    hp, ap = team_prior(priors, home, cfg), team_prior(priors, away, cfg)
     d = simulate_game(hp, ap, game_context(g, cfg), n, rng, cfg, priors.team.league)
 
     frames, proj_players, checks = [], [], []
@@ -194,8 +219,9 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
     pdraws: dict[str, pp.PlayerDraws | None] = {}
     sides = (("home", d.home, hp), ("away", d.away, ap))
     for side, t, prior in sides:
-        usage = priors.usage.filter(pl.col("team") == t.team)
-        eff = priors.efficiency.filter(pl.col("player_id").is_in(usage["player_id"]))
+        factor, att_share = qb_channel(priors, t.team)
+        usage = priors.usage.filter(pl.col("team") == t.team).with_columns(pl.lit(att_share).alias("qb_att_share"))
+        eff = qb_adjusted_efficiency(priors.efficiency.filter(pl.col("player_id").is_in(usage["player_id"])), factor)
         p = pp.allocate(t, usage, eff, cfg, rng) if not usage.is_empty() else None
         pdraws[t.team] = p
         checks += _team_checks(t, p, usage, d, side, prior, game_id, cfg)

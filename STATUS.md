@@ -24,6 +24,14 @@ Plan: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3 of docs/archit
 - Player baseline (mean weekly Spearman vs actual PPR, players ranked by both): QB sim 0.667 vs ECR 0.759; RB 0.741 vs 0.794; WR 0.640 vs 0.699; TE 0.624 vs 0.709. Sim trails consensus by 0.05–0.09 everywhere; gap is injury/QB information ECR has and v1 doesn't.
 - Leakage audit clean: priors source never references schedules/outcomes; loaded history max week is W−1 for weeks 1/10/18; roster status at week ≤ W is the one pre-kickoff information assumption (a live run has the same).
 
+## Backtest 2025 after priors-refine (same 5k draws, 272 games, ~68s)
+- priors-refine: `priors/qb.py` (starter from `schedules.*_qb_id` → `qb_pass_factor` on off_ppd and receiver yardage, `qb_att_share` split to QB2 with exact passer sums), `priors/depth.py` (both depth-chart shapes → pre-kickoff rank; 2025 daily snapshots normalized in the loader, raw rows untouched), usage overrides (`raw.player_overrides` out/doubtful → 0, multiplier), depth-chart cold start, RZ shares shrunk toward own volume share.
+- Spread MAE 2.73 → 2.60 (corr 0.82 → 0.84); total MAE 2.32 → 2.26; warnings 65 → 60; invariants 3808/3808.
+- QB ranking: Spearman 0.667 → 0.754, now within 0.01 of ECR (0.763). RB/WR/TE unchanged (−0.05 / −0.06 / −0.09 vs ECR): the remaining gap is injury/inactive information (overrides table is empty in the backtest).
+- Week 18 still the outlier (4.75; was 5.0): resting non-QB starters is not in any source we ingest.
+- Calibration still flat vs the closing line (0.49 / 0.54 / 0.44 / 0.48 across the 0.3–0.7 buckets): no edge over close from public priors. This is the expected v1 outcome, not a defect; the acceptance criterion as written cannot be met without information the market lacks.
+- Leakage audit clean; priors' only `raw.schedules` reads are week-W starters and gamedays (listed by the audit).
+
 ## Checkpoint A output (local Postgres 16, 2025-09-04)
 Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - schedules 269 / 285 / 284 / 285 / 285 / 285; market_lines 1693 total (one per game)
@@ -41,4 +49,10 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 ## Checkpoints
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres; Supabase pending credentials)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
-- [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.73 ≤ 3, total MAE 2.32 ≤ 4; calibration NOT monotone (no edge over close in v1 — see above)
+- [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4; calibration NOT monotone (no edge over close in v1 — see above)
+
+## Open items for the next plan (lines/edge, DFS export)
+- Populate `raw.player_overrides` weekly (injury report) — the RB/WR/TE gap to ECR is mostly this.
+- Depth-chart cold start covers ranks 1–3 only; deeper players with no history are still excluded.
+- OT is a one-drive resolution (0.4% ties); margin/total sd run ~0.5–1 point wide of NFL history — revisit once P(cover) is graded against real bets.
+- Supabase still pending an alphanumeric DB password; everything validated on local Postgres 16.

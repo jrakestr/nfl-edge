@@ -9,6 +9,14 @@ priors:
   shrink_k_usage: 3          # player shares: pseudo-games toward positional average share
   shrink_k_targets: 40       # receiving efficiency: pseudo-targets toward positional average
   shrink_k_carries: 60       # rushing efficiency: pseudo-carries toward positional average
+  # priors-refine
+  shrink_k_qb_att: 150       # QB yards/att: pseudo-attempts toward league YPA
+  qb_factor_clip: [0.8, 1.2] # qb_pass_factor = starter YPA / team lookback YPA, clipped
+  qb_ppd_elasticity: 0.6     # team off_ppd scales by qb_pass_factor ** elasticity
+  qb_att_share_prior: 0.97   # starter share of team pass attempts, shrunk toward this
+  shrink_k_qb_share: 3       # pseudo-games for qb_att_share
+  cold_start_frac: 0.6       # depth-chart-only players get frac * rank_factor * positional mean share
+  cold_start_rank_factor: {1: 1.0, 2: 0.6, 3: 0.35}
 team:
   plays_per_game_sd: 6
   pass_rate_sd: 0.03        # per-draw noise around the script-adjusted pass rate

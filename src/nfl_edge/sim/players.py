@@ -9,7 +9,9 @@ outputs cannot disagree:
   carries  = multinomial(rush_att, Dirichlet(conc * carry_share))         sum == rush_att
   rush_td  = multinomial(rush_td, rz_carry_share * [carries > 0]), capped   sum == rush_td
   QB1      : pass_att = team pass_att, cmp = sum rec, pass_yds = sum rec_yds, pass_td = sum rec_td,
-             int = team int
+             int = team int; with qb_att_share < 1 and a QB2, a Binomial share of each receiver's
+             targets (and hypergeometric receptions/TDs, pro-rata yards) moves to QB2 so the passer
+             sum still equals the receiver sum exactly
   fum_lost = Bin(carries + rec, fumble_lost_rate)
 DST v1 (dst_stats): pts_allowed / sacks / int / fum_rec from the opponent's draws; defensive TDs,
 safeties and blocked kicks are 0 because they would add points the game sim did not score.
@@ -175,8 +177,13 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
     rush_td = _capped_split(team.rush_td, rz_c[:, None] * (carries > 0), carries, rng)
     rush_yds = _gamma_yards(carries, ypc, car_shape, rng)
 
-    # QB1 takes the whole passing line; its totals are the receivers' sums by construction
+    # QB1 takes the passing line; passer totals are the receivers' sums by construction.
+    # With qb_att_share < 1 and a QB2 on the roster, each receiver's targets are split between the
+    # passers (Binomial), then receptions / TDs follow by hypergeometric draws and yards pro rata,
+    # so QB1 + QB2 still equal the receiver sums exactly in every draw.
     qb_mask = u["is_qb1"].fill_null(False).to_numpy()
+    qb2_mask = u["is_qb2"].fill_null(False).to_numpy() if "is_qb2" in u.columns else np.zeros(P, bool)
+    att_share = float(u["qb_att_share"][0]) if "qb_att_share" in u.columns and u.height else 1.0
     pass_att = np.zeros((P, n), dtype=np.int64)
     cmp_ = np.zeros_like(pass_att)
     pass_yds = np.zeros_like(pass_att)
@@ -184,11 +191,20 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
     ints = np.zeros_like(pass_att)
     if qb_mask.any():
         q = int(np.argmax(qb_mask))
-        pass_att[q] = team.pass_att
-        cmp_[q] = rec.sum(axis=0)
-        pass_yds[q] = rec_yds.sum(axis=0)
-        pass_td[q] = rec_td.sum(axis=0)
-        ints[q] = team.int
+        tot_att, tot_cmp = team.pass_att, rec.sum(axis=0)
+        tot_yds, tot_td, tot_int = rec_yds.sum(axis=0), rec_td.sum(axis=0), team.int
+        if qb2_mask.any() and att_share < 1.0:
+            q2 = int(np.argmax(qb2_mask))
+            t2 = rng.binomial(targets, 1.0 - att_share)                          # QB2 targets per receiver
+            r2 = rng.hypergeometric(t2, np.maximum(targets - t2, 0), rec)         # QB2 receptions
+            y2 = np.where(rec > 0, np.round(rec_yds * r2 / np.maximum(rec, 1)), 0).astype(np.int64)
+            d2 = rng.hypergeometric(r2, np.maximum(rec - r2, 0), rec_td)          # QB2 TDs
+            a2, c2, yy2, td2 = t2.sum(0), r2.sum(0), y2.sum(0), d2.sum(0)
+            i2 = rng.binomial(tot_int, np.where(tot_att > 0, a2 / np.maximum(tot_att, 1), 0.0))
+            pass_att[q2], cmp_[q2], pass_yds[q2], pass_td[q2], ints[q2] = a2, c2, yy2, td2, i2
+            tot_att, tot_cmp, tot_yds = tot_att - a2, tot_cmp - c2, tot_yds - yy2
+            tot_td, tot_int = tot_td - td2, tot_int - i2
+        pass_att[q], cmp_[q], pass_yds[q], pass_td[q], ints[q] = tot_att, tot_cmp, tot_yds, tot_td, tot_int
 
     fum_lost = rng.binomial(carries + rec, fum_rate)
 
