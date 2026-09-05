@@ -11,6 +11,9 @@ from psycopg.types.json import Jsonb
 
 from .config import database_url
 
+# String-typed frame columns that land in jsonb columns (serialized JSON text in the frame).
+JSON_COLS = {"stats", "payload"}
+
 
 @contextmanager
 def conn() -> Iterator[psycopg.Connection]:
@@ -37,7 +40,7 @@ def _rows(df: pl.DataFrame) -> list[tuple[Any, ...]]:
             v = row[c]
             if c in struct_cols or isinstance(v, dict):
                 vals.append(Jsonb(v))
-            elif isinstance(v, str) and c == "stats":
+            elif isinstance(v, str) and c in JSON_COLS:
                 vals.append(Jsonb(json.loads(v)))
             else:
                 vals.append(v)
