@@ -22,14 +22,7 @@ git clone https://github.com/jrakestr/NFL-DFS-Tools.git ../NFL-DFS-Tools
 
 ## Weekly cadence
 
-| When | Command |
-|---|---|
-| Tue | `nfl-edge ingest --week N` then `nfl-edge grade --week N-1` then `nfl-edge sim --week N` then `nfl-edge lines --week N` |
-| Wed–Sat | `nfl-edge ingest --lines-only` on a schedule (see [docs/ops.md](docs/ops.md)), `lines` for new snapshots, re-sim on news |
-| Sat | `nfl-edge dfs --site dk --slate main --week N` |
-| Sun AM | final `ingest` + `sim` + `lines` + `dfs` |
-
-Snapshot cadence (LaunchAgent `com.nfl-edge.lines-only` on this Mac) and the full weekly order: [docs/ops.md](docs/ops.md).
+Ordered command list and LaunchAgent install: [docs/ops.md](docs/ops.md). Snapshot job: every 30 min through Sunday 2026-09-13 night, every 2 h after.
 
 ## Layout
 

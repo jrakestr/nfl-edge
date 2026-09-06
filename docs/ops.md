@@ -1,60 +1,95 @@
 # Operations: line snapshots and the weekly run order
 
-Scheduled on this Mac as LaunchAgent `com.nfl-edge.lines-only` (2026-09-06). `com.vix.cron` is
-not running here, so a crontab would never fire; the agent runs exactly the command below and
-nothing else. Plist: `scripts/com.nfl-edge.lines-only.plist`, loaded into `~/Library/LaunchAgents/`.
-Log: `output/cron-lines.log`. Reload after editing the plist:
+Scheduled on this Mac as LaunchAgent `com.nfl-edge.lines-only`. `com.vix.cron` is not running
+here, so a crontab would never fire. The agent runs `ops/lines-only.sh`, which calls exactly
+`nfl-edge ingest --season 2026 --lines-only` with `DATABASE_URL` unset so `.env` (Supabase) is
+used. Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log`.
 
-```
-launchctl bootout gui/$(id -u)/com.nfl-edge.lines-only
-cp scripts/com.nfl-edge.lines-only.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.lines-only.plist
-```
+## Cadence
 
-## Line snapshots
+- Through Sunday 2026-09-13 23:59 PT: every 30 minutes (`StartInterval` 1800).
+- After that cutoff: the wrapper no-ops except on even Pacific hours (2 h). `ops-refine` if a
+  later TNF/MNF needs a dedicated extra fire.
+- nflverse schedule lines are not a live odds feed. Snapshot resolution is bounded by upstream
+  refresh. During Week 1 count distinct snapshots per game and record the observed cadence in
+  `STATUS.md` before treating the last snapshot as the closing line.
 
 ```
 nfl-edge ingest --season 2026 --lines-only
 ```
 
-- Pulls the nflverse schedule for the whole season and `insert ... on conflict do nothing` into
-  `raw.market_lines` (unique on game + every quoted value). An unchanged pull is a no-op, so
-  over-scheduling costs one HTTP request and nothing else. Games not yet in `raw.schedules` are
-  added; existing schedule rows are not touched.
-- Suggested cadence (America/New_York):
-  - Tue–Sat: every 4 hours
-  - Sun: hourly 06:00–13:00
-  - 60 minutes before each Thursday and Monday kickoff
-- Constraint to keep in mind: nflverse schedule lines are not a live odds feed. Snapshot resolution
-  is bounded by upstream refresh, not by how often the cron runs. During Week 1 count distinct
-  snapshots per game (`select game_id, count(*) from raw.market_lines where game_id like '2026_01_%'
-  group by 1`) and record the observed cadence in `STATUS.md` before treating the last snapshot as
-  the closing line for Step 7 grading.
-- This Mac is Pacific; launchd calendar times are local. The checked-in plist converts the ET
-  cadence above (always ET−3 vs Pacific). The two extra intervals are Week 1 kickoffs: Thu
-  2026-09-10 20:35 ET → 16:35 PT, Mon 2026-09-14 20:15 ET → 16:15 PT. Update those two if a later
-  TNF/MNF is not at those times. `DATABASE_URL` is unset in the agent so `.env` (Supabase) is used.
-- Equivalent crontab if `cron` is actually running (this Mac: it is not):
+Pulls the nflverse schedule for the whole season and `insert ... on conflict do nothing` into
+`raw.market_lines`. An unchanged pull is a no-op. Games not yet in `raw.schedules` are added;
+existing schedule rows are not touched.
 
-  ```
-  CRON_TZ=America/New_York
-  # Tue-Sat every 4h
-  0 */4 * * 2-6  cd ~/Development/nfl-edge && /usr/bin/env -u DATABASE_URL .venv/bin/nfl-edge ingest --season 2026 --lines-only
-  # Sun hourly 06:00-13:00
-  0 6-13 * * 0   cd ~/Development/nfl-edge && /usr/bin/env -u DATABASE_URL .venv/bin/nfl-edge ingest --season 2026 --lines-only
-  ```
+## Install / swap (no snapshot gap)
 
-## Weekly order
+Same `Label` cannot be loaded twice. Bootstrap a temporary overlap agent first, then replace:
 
-| When | Command | Notes |
-|---|---|---|
-| Tue | `nfl-edge ingest --season 2026 --week W` | Full pull. Before nflverse publishes a season, stats / opportunity / snap counts are skipped with a message and rosters come from the preseason roster file. |
-| Tue | `nfl-edge grade --season 2026 --week W-1` | Grades every run of the week against scores and the last pre-kickoff snapshot (schedules fallback when none). CLV needs pre-kickoff snapshots, so the cron must be running. |
-| Tue/Wed | `nfl-edge sim --season 2026 --week W --draws 20000` | One run per slate; every output reads its parquet. |
-| Tue/Wed | `nfl-edge lines --season 2026 --week W` | Computes edges for every snapshot the run has not seen, writes `model.verdicts`, prints the verdicts and edge table. `--json` for the UI contract; `--recompute` to rebuild a run's edges and verdicts. |
-| Wed–Sat | `nfl-edge ingest --season 2026 --lines-only` (cron) then `nfl-edge lines ...` | New snapshots get edges without a re-sim. Re-sim only on news (injury report Fri/Sat). |
-| Sat | `nfl-edge dfs --site dk --slate main --week W` | Step 6; not built yet. |
-| Sun AM | final `ingest --week W`, `sim`, `lines`, `dfs` | |
+```
+UID=$(id -u)
+DEST="$HOME/Library/LaunchAgents/com.nfl-edge.lines-only.plist"
+SWAP="$HOME/Library/LaunchAgents/com.nfl-edge.lines-only-swap.plist"
+cd ~/Development/nfl-edge
+chmod +x ops/lines-only.sh
+cp ops/com.nfl-edge.lines-only.plist "$SWAP"
+/usr/libexec/PlistBuddy -c "Set :Label com.nfl-edge.lines-only-swap" "$SWAP"
+launchctl bootstrap gui/$UID "$SWAP"
+launchctl bootout gui/$UID/com.nfl-edge.lines-only
+cp ops/com.nfl-edge.lines-only.plist "$DEST"
+launchctl bootstrap gui/$UID "$DEST"
+launchctl bootout gui/$UID/com.nfl-edge.lines-only-swap
+rm -f "$SWAP"
+launchctl print gui/$UID/com.nfl-edge.lines-only
+```
+
+Reload after editing the checked-in plist (same overlap swap). Confirm the next fire with
+`launchctl print gui/$(id -u)/com.nfl-edge.lines-only` (`state` and `runs` / next interval).
+
+## Weekly runbook
+
+Replace `W` with the NFL week. Run in this order, on this Mac, with `DATABASE_URL` unset.
+
+Tuesday
+
+1. `nfl-edge ingest --season 2026 --week W`
+2. `nfl-edge grade --season 2026 --week W-1`  (skip on Week 1 until the previous week has scores)
+3. `nfl-edge sim --season 2026 --week W --draws 20000`
+4. `nfl-edge lines --season 2026 --week W`
+
+Wednesday / Friday (injury report)
+
+5. `nfl-edge overrides --season 2026 --week W --file data/props/overrides_W.csv`
+6. Re-sim and re-lines only if an override changed a starter or a usage share: steps 3 then 4.
+
+Saturday
+
+7. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
+
+Sunday AM (final)
+
+8. `nfl-edge ingest --season 2026 --week W`
+9. `nfl-edge sim --season 2026 --week W --draws 20000`
+10. `nfl-edge lines --season 2026 --week W`
+11. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
+
+Between those, the LaunchAgent keeps snapshotting. After a new snapshot, `nfl-edge lines --season 2026 --week W` writes edges without a re-sim.
+
+## Injury overrides CSV
+
+`nfl-edge overrides --season S --week W --file path.csv` upserts `raw.player_overrides`.
+Columns (header row required):
+
+- `player` — `gsis_id` (`00-…`) or display name. Same name matching as DK salaries (`merge_name` /
+  `display_name` + optional `team` + `position`; DST → `{team}_DST`; leftovers in
+  `config/dk_aliases.yaml`).
+- `status` — `out` | `doubtful` | `questionable` | `active`
+- `usage_multiplier` — float, default 1.0. `out` and `doubtful` zero usage in priors regardless.
+- `note` — free text
+- `team`, `position` — optional disambiguation
+
+Unmatched and ambiguous rows are reported and not written. `questionable` keeps the given
+multiplier (default 1.0).
 
 ## Provenance
 
