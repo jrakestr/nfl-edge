@@ -1,2529 +1,2528 @@
 {
- "run": {
-  "run_id": "5823f735-0431-4faf-b175-edb98059f0f4",
-  "season": 2026,
-  "week": 1,
-  "draws": 20000
- },
- "summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws.",
- "games": [
-  {
-   "game_id": "2026_01_MIA_LV",
-   "home": "LV",
-   "away": "MIA",
-   "kickoff": "2026-09-13 16:25",
-   "status": "warn",
-   "sentences": [
-    "Miami is favored to beat Las Vegas by 3.0 points. The book has Las Vegas by 3.5.",
-    "The Raiders cover \u22123.5 in 32% of our 20,000 simulated games; that does not pay at \u2212110 (needs 52%).",
-    "We expect 43.0 total points; the line is 40.5. The over hits 55% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "MIA +3.5",
-     "prob": 0.67875,
-     "market_prob": 0.5,
-     "edge": 0.17875,
-     "kelly": 0.08134375,
-     "price": -110,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Over 40.5",
-     "prob": 0.5512,
-     "market_prob": 0.5,
-     "edge": 0.0512,
-     "kelly": 0.01438,
-     "price": -110,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.40875,
-     "edge": -0.22259361818899,
-     "market_prob": 0.630940343781598,
-     "price": -192,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.22259361818899,
-   "fair": {
-    "spread": -3.0,
-    "total": 43.0,
-    "home_win_prob": 0.40875,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1833,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 3.5,
-    "total": 40.5,
-    "home_spread_odds": -110,
-    "away_spread_odds": -110,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": -192,
-    "away_moneyline": 160,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1833,
-     "ref_id": "2026_01_MIA_LV",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.32125,
-     "market_prob": 0.5,
-     "edge": -0.17875,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1833,
-     "ref_id": "2026_01_MIA_LV",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.67875,
-     "market_prob": 0.5,
-     "edge": 0.17875,
-     "kelly_fraction": 0.08134375,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1833,
-     "ref_id": "2026_01_MIA_LV",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.5512,
-     "market_prob": 0.5,
-     "edge": 0.0512,
-     "kelly_fraction": 0.01438,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1833,
-     "ref_id": "2026_01_MIA_LV",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.4488,
-     "market_prob": 0.5,
-     "edge": -0.0512,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1833,
-     "ref_id": "2026_01_MIA_LV",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.408346725592607,
-     "market_prob": 0.630940343781598,
-     "edge": -0.22259361818899,
-     "kelly_fraction": 0.0,
-     "price": -192,
-     "p_push": 0.0044,
-     "hold": 0.042149631190727
-    },
-    {
-     "market_line_id": 1833,
-     "ref_id": "2026_01_MIA_LV",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.591653274407393,
-     "market_prob": 0.369059656218402,
-     "edge": 0.22259361818899,
-     "kelly_fraction": 0.0837390625,
-     "price": 160,
-     "p_push": 0.0044,
-     "hold": 0.042149631190727
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": -110,
-     "needs": 0.5238095238095238
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+  "run": {
+    "run_id": "5823f735-0431-4faf-b175-edb98059f0f4",
+    "season": 2026,
+    "week": 1,
+    "draws": 20000
   },
-  {
-   "game_id": "2026_01_BAL_IND",
-   "home": "IND",
-   "away": "BAL",
-   "kickoff": "2026-09-13 13:00",
-   "status": "warn",
-   "sentences": [
-    "Indianapolis is favored to beat Baltimore by 3.0 points. The book has Baltimore by 3.5.",
-    "The Ravens cover \u22123.5 in 33% of our 20,000 simulated games; that does not pay at \u2212108 (needs 52%).",
-    "We expect 51.0 total points; the line is 48.5. The over hits 58% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "IND +3.5",
-     "prob": 0.66895,
-     "market_prob": 0.504329754069969,
-     "edge": 0.164620245930031,
-     "kelly": 0.0745435,
-     "price": -112,
-     "market_type": "spread",
-     "side": "home"
+  "games": [
+    {
+      "game_id": "2026_01_MIA_LV",
+      "home": "LV",
+      "away": "MIA",
+      "kickoff": "2026-09-13 16:25",
+      "status": "warn",
+      "sentences": [
+        "Miami is favored to beat Las Vegas by 3.0 points. The book has Las Vegas by 3.5.",
+        "The Raiders cover \u22123.5 in 32% of our 20,000 simulated games; that does not pay at \u2212110 (needs 52%).",
+        "We expect 43.0 total points; the line is 40.5. The over hits 55% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "MIA +3.5",
+          "prob": 0.67875,
+          "market_prob": 0.5,
+          "edge": 0.17875,
+          "kelly": 0.08134375,
+          "price": -110,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Over 40.5",
+          "prob": 0.5512,
+          "market_prob": 0.5,
+          "edge": 0.0512,
+          "kelly": 0.01438,
+          "price": -110,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.40875,
+          "edge": -0.22259361818899,
+          "market_prob": 0.630940343781598,
+          "price": -192,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.22259361818899,
+      "fair": {
+        "spread": -3.0,
+        "total": 43.0,
+        "home_win_prob": 0.40875,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1833,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 3.5,
+        "total": 40.5,
+        "home_spread_odds": -110,
+        "away_spread_odds": -110,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": -192,
+        "away_moneyline": 160,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1833,
+          "ref_id": "2026_01_MIA_LV",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.32125,
+          "market_prob": 0.5,
+          "edge": -0.17875,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1833,
+          "ref_id": "2026_01_MIA_LV",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.67875,
+          "market_prob": 0.5,
+          "edge": 0.17875,
+          "kelly_fraction": 0.08134375,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1833,
+          "ref_id": "2026_01_MIA_LV",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.5512,
+          "market_prob": 0.5,
+          "edge": 0.0512,
+          "kelly_fraction": 0.01438,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1833,
+          "ref_id": "2026_01_MIA_LV",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.4488,
+          "market_prob": 0.5,
+          "edge": -0.0512,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1833,
+          "ref_id": "2026_01_MIA_LV",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.408346725592607,
+          "market_prob": 0.630940343781598,
+          "edge": -0.22259361818899,
+          "kelly_fraction": 0.0,
+          "price": -192,
+          "p_push": 0.0044,
+          "hold": 0.042149631190727
+        },
+        {
+          "market_line_id": 1833,
+          "ref_id": "2026_01_MIA_LV",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.591653274407393,
+          "market_prob": 0.369059656218402,
+          "edge": 0.22259361818899,
+          "kelly_fraction": 0.0837390625,
+          "price": 160,
+          "p_push": 0.0044,
+          "hold": 0.042149631190727
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": -110,
+          "needs": 0.5238095238095238
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
     },
-    "total": {
-     "label": "Over 48.5",
-     "prob": 0.58065,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0914842361863489,
-     "kelly": 0.035083125,
-     "price": -105,
-     "market_type": "total",
-     "side": "over"
+    {
+      "game_id": "2026_01_BAL_IND",
+      "home": "IND",
+      "away": "BAL",
+      "kickoff": "2026-09-13 13:00",
+      "status": "warn",
+      "sentences": [
+        "Indianapolis is favored to beat Baltimore by 3.0 points. The book has Baltimore by 3.5.",
+        "The Ravens cover \u22123.5 in 33% of our 20,000 simulated games; that does not pay at \u2212108 (needs 52%).",
+        "We expect 51.0 total points; the line is 48.5. The over hits 58% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "IND +3.5",
+          "prob": 0.66895,
+          "market_prob": 0.504329754069969,
+          "edge": 0.164620245930031,
+          "kelly": 0.0745435,
+          "price": -112,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Over 48.5",
+          "prob": 0.58065,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0914842361863489,
+          "kelly": 0.035083125,
+          "price": -105,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.5841,
+          "edge": 0.193657033494597,
+          "market_prob": 0.390763765541741,
+          "price": 145,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.193657033494597,
+      "fair": {
+        "spread": 3.0,
+        "total": 51.0,
+        "home_win_prob": 0.5841,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1700,
+        "captured_at": "2026-09-05 06:25:55.202746+00",
+        "spread": -3.5,
+        "total": 48.5,
+        "home_spread_odds": -112,
+        "away_spread_odds": -108,
+        "over_odds": -105,
+        "under_odds": -115,
+        "home_moneyline": 145,
+        "away_moneyline": -175,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1700,
+          "ref_id": "2026_01_BAL_IND",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.66895,
+          "market_prob": 0.504329754069969,
+          "edge": 0.164620245930031,
+          "kelly_fraction": 0.0745435,
+          "price": -112,
+          "p_push": 0.0,
+          "hold": 0.0475326560232221
+        },
+        {
+          "market_line_id": 1700,
+          "ref_id": "2026_01_BAL_IND",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.33105,
+          "market_prob": 0.495670245930031,
+          "edge": -0.164620245930031,
+          "kelly_fraction": 0.0,
+          "price": -108,
+          "p_push": 0.0,
+          "hold": 0.0475326560232221
+        },
+        {
+          "market_line_id": 1700,
+          "ref_id": "2026_01_BAL_IND",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.58065,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0914842361863489,
+          "kelly_fraction": 0.035083125,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1700,
+          "ref_id": "2026_01_BAL_IND",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.41935,
+          "market_prob": 0.510834236186349,
+          "edge": -0.0914842361863489,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1700,
+          "ref_id": "2026_01_BAL_IND",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.584420799036338,
+          "market_prob": 0.390763765541741,
+          "edge": 0.193657033494597,
+          "kelly_fraction": 0.0741706896551724,
+          "price": 145,
+          "p_push": 0.0038,
+          "hold": 0.0445269016697587
+        },
+        {
+          "market_line_id": 1700,
+          "ref_id": "2026_01_BAL_IND",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.415579200963662,
+          "market_prob": 0.609236234458259,
+          "edge": -0.193657033494597,
+          "kelly_fraction": 0.0,
+          "price": -175,
+          "p_push": 0.0038,
+          "hold": 0.0445269016697587
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "away",
+          "call": "does not pay",
+          "price": -108,
+          "needs": 0.5192307692307693
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
     },
-    "home_wins": {
-     "prob": 0.5841,
-     "edge": 0.193657033494597,
-     "market_prob": 0.390763765541741,
-     "price": 145,
-     "market_type": "moneyline",
-     "side": "home"
+    {
+      "game_id": "2026_01_NYJ_TEN",
+      "home": "TEN",
+      "away": "NYJ",
+      "kickoff": "2026-09-13 13:00",
+      "status": "warn",
+      "sentences": [
+        "Tennessee is favored to beat the Jets by 1.0 points. The book has them by 1.5.",
+        "The Titans cover \u22121.5 in 50% of our 20,000 simulated games; that does not pay at \u2212115 (needs 53%).",
+        "We expect 46.0 total points; the line is 39.5, up from 38.5. The over hits 68% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "NYJ +1.5",
+          "prob": 0.50075,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0115842361863489,
+          "kelly": 0.0,
+          "price": -105,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Over 39.5",
+          "prob": 0.68005,
+          "market_prob": 0.489165763813651,
+          "edge": 0.190884236186349,
+          "kelly": 0.086025625,
+          "price": -105,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.52815,
+          "edge": -0.0144719710261081,
+          "market_prob": 0.542743538767396,
+          "price": -130,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.190884236186349,
+      "fair": {
+        "spread": 1.0,
+        "total": 46.0,
+        "home_win_prob": 0.52815,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1831,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 1.5,
+        "total": 39.5,
+        "home_spread_odds": -115,
+        "away_spread_odds": -105,
+        "over_odds": -105,
+        "under_odds": -115,
+        "home_moneyline": -130,
+        "away_moneyline": 110,
+        "moved_since_sim": {
+          "spread": null,
+          "total": {
+            "from": 38.5,
+            "to": 39.5
+          }
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1831,
+          "ref_id": "2026_01_NYJ_TEN",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.49925,
+          "market_prob": 0.510834236186349,
+          "edge": -0.0115842361863488,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1831,
+          "ref_id": "2026_01_NYJ_TEN",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.50075,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0115842361863489,
+          "kelly_fraction": 0.0,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1831,
+          "ref_id": "2026_01_NYJ_TEN",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.68005,
+          "market_prob": 0.489165763813651,
+          "edge": 0.190884236186349,
+          "kelly_fraction": 0.086025625,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1831,
+          "ref_id": "2026_01_NYJ_TEN",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.31995,
+          "market_prob": 0.510834236186349,
+          "edge": -0.190884236186349,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1831,
+          "ref_id": "2026_01_NYJ_TEN",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.528271567741288,
+          "market_prob": 0.542743538767396,
+          "edge": -0.0144719710261081,
+          "kelly_fraction": 0.0,
+          "price": -130,
+          "p_push": 0.0043,
+          "hold": 0.0414078674948239
+        },
+        {
+          "market_line_id": 1831,
+          "ref_id": "2026_01_NYJ_TEN",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.471728432258712,
+          "market_prob": 0.457256461232604,
+          "edge": 0.0144719710261081,
+          "kelly_fraction": 0.0,
+          "price": 110,
+          "p_push": 0.0043,
+          "hold": 0.0414078674948239
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": -115,
+          "needs": 0.5348837209302325
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_DAL_NYG",
+      "home": "NYG",
+      "away": "DAL",
+      "kickoff": "2026-09-13 20:20",
+      "status": "warn",
+      "sentences": [
+        "The Giants are favored to beat Dallas by 2.0 points. The book has Dallas by 2.5.",
+        "The Cowboys cover \u22122.5 in 41% of our 20,000 simulated games; that does not pay at \u2212118 (needs 54%).",
+        "We expect 54.0 total points; the line is 48.5. The over hits 64% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "NYG +2.5",
+          "prob": 0.59405,
+          "market_prob": 0.48263587428373,
+          "edge": 0.11141412571627,
+          "kelly": 0.04499525,
+          "price": -102,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Over 48.5",
+          "prob": 0.63615,
+          "market_prob": 0.5,
+          "edge": 0.13615,
+          "kelly": 0.05897875,
+          "price": -110,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.545775,
+          "edge": 0.118016163847196,
+          "market_prob": 0.427940364439536,
+          "price": 124,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.13615,
+      "fair": {
+        "spread": 2.0,
+        "total": 54.0,
+        "home_win_prob": 0.545775,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1836,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": -2.5,
+        "total": 48.5,
+        "home_spread_odds": -102,
+        "away_spread_odds": -118,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": 124,
+        "away_moneyline": -148,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1836,
+          "ref_id": "2026_01_DAL_NYG",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.59405,
+          "market_prob": 0.48263587428373,
+          "edge": 0.11141412571627,
+          "kelly_fraction": 0.04499525,
+          "price": -102,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1836,
+          "ref_id": "2026_01_DAL_NYG",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.40595,
+          "market_prob": 0.51736412571627,
+          "edge": -0.11141412571627,
+          "kelly_fraction": 0.0,
+          "price": -118,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1836,
+          "ref_id": "2026_01_DAL_NYG",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.63615,
+          "market_prob": 0.5,
+          "edge": 0.13615,
+          "kelly_fraction": 0.05897875,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1836,
+          "ref_id": "2026_01_DAL_NYG",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.36385,
+          "market_prob": 0.5,
+          "edge": -0.13615,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1836,
+          "ref_id": "2026_01_DAL_NYG",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.545956528286733,
+          "market_prob": 0.427940364439536,
+          "edge": 0.118016163847196,
+          "kelly_fraction": 0.044770564516129,
+          "price": 124,
+          "p_push": 0.00395,
+          "hold": 0.0432027649769586
+        },
+        {
+          "market_line_id": 1836,
+          "ref_id": "2026_01_DAL_NYG",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.454043471713267,
+          "market_prob": 0.572059635560464,
+          "edge": -0.118016163847196,
+          "kelly_fraction": 0.0,
+          "price": -148,
+          "p_push": 0.00395,
+          "hold": 0.0432027649769586
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "away",
+          "call": "does not pay",
+          "price": -118,
+          "needs": 0.5412844036697247
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_ARI_LAC",
+      "home": "LAC",
+      "away": "ARI",
+      "kickoff": "2026-09-13 16:25",
+      "status": "warn",
+      "sentences": [
+        "The Chargers are favored to beat Arizona by 6.0 points. The book has them by 10.5.",
+        "The Chargers cover \u221210.5 in 37% of our 20,000 simulated games; that does not pay at \u2212110 (needs 52%).",
+        "We expect 45.0 total points; the line is 46.5. The under hits 54% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "ARI +10.5",
+          "prob": 0.62665,
+          "market_prob": 0.5,
+          "edge": 0.12665,
+          "kelly": 0.05399125,
+          "price": -110,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Under 46.5",
+          "prob": 0.5431,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0539342361863488,
+          "kelly": 0.01583875,
+          "price": -105,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.686825,
+          "edge": -0.124526674113581,
+          "market_prob": 0.811866859623734,
+          "price": -550,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.12665,
+      "fair": {
+        "spread": 6.0,
+        "total": 45.0,
+        "home_win_prob": 0.686825,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1832,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 10.5,
+        "total": 46.5,
+        "home_spread_odds": -110,
+        "away_spread_odds": -110,
+        "over_odds": -115,
+        "under_odds": -105,
+        "home_moneyline": -550,
+        "away_moneyline": 410,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1832,
+          "ref_id": "2026_01_ARI_LAC",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.37335,
+          "market_prob": 0.5,
+          "edge": -0.12665,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1832,
+          "ref_id": "2026_01_ARI_LAC",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.62665,
+          "market_prob": 0.5,
+          "edge": 0.12665,
+          "kelly_fraction": 0.05399125,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1832,
+          "ref_id": "2026_01_ARI_LAC",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.4569,
+          "market_prob": 0.510834236186349,
+          "edge": -0.0539342361863488,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1832,
+          "ref_id": "2026_01_ARI_LAC",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.5431,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0539342361863488,
+          "kelly_fraction": 0.01583875,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1832,
+          "ref_id": "2026_01_ARI_LAC",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.687340185510153,
+          "market_prob": 0.811866859623734,
+          "edge": -0.124526674113581,
+          "kelly_fraction": 0.0,
+          "price": -550,
+          "p_push": 0.00275,
+          "hold": 0.0422322775263952
+        },
+        {
+          "market_line_id": 1832,
+          "ref_id": "2026_01_ARI_LAC",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.312659814489847,
+          "market_prob": 0.188133140376266,
+          "edge": 0.124526674113581,
+          "kelly_fraction": 0.0361542682926829,
+          "price": 410,
+          "p_push": 0.00275,
+          "hold": 0.0422322775263952
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": -110,
+          "needs": 0.5238095238095238
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_TB_CIN",
+      "home": "CIN",
+      "away": "TB",
+      "kickoff": "2026-09-13 13:00",
+      "status": "ok",
+      "sentences": [
+        "Cincinnati is favored to beat Tampa Bay by 1.0 points. The book has them by 3.5.",
+        "The Bengals cover \u22123.5 in 43% of our 20,000 simulated games; that does not pay at \u2212115 (needs 53%).",
+        "We expect 50.0 total points; the line is 50.5. That lands within a point of the line."
+      ],
+      "chips": {
+        "side": {
+          "label": "TB +3.5",
+          "prob": 0.57055,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0813842361863488,
+          "kelly": 0.029906875,
+          "price": -105,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Under 50.5",
+          "prob": 0.50475,
+          "market_prob": 0.48263587428373,
+          "edge": 0.0221141257162701,
+          "kelly": 0.0,
+          "price": -102,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.52185,
+          "edge": -0.122780409337651,
+          "market_prob": 0.644729178800233,
+          "price": -205,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.122780409337651,
+      "fair": {
+        "spread": 1.0,
+        "total": 50.0,
+        "home_win_prob": 0.52185,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1825,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 3.5,
+        "total": 50.5,
+        "home_spread_odds": -115,
+        "away_spread_odds": -105,
+        "over_odds": -118,
+        "under_odds": -102,
+        "home_moneyline": -205,
+        "away_moneyline": 170,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1825,
+          "ref_id": "2026_01_TB_CIN",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.42945,
+          "market_prob": 0.510834236186349,
+          "edge": -0.0813842361863488,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1825,
+          "ref_id": "2026_01_TB_CIN",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.57055,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0813842361863488,
+          "kelly_fraction": 0.029906875,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1825,
+          "ref_id": "2026_01_TB_CIN",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.49525,
+          "market_prob": 0.51736412571627,
+          "edge": -0.0221141257162701,
+          "kelly_fraction": 0.0,
+          "price": -118,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1825,
+          "ref_id": "2026_01_TB_CIN",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.50475,
+          "market_prob": 0.48263587428373,
+          "edge": 0.0221141257162701,
+          "kelly_fraction": 0.0,
+          "price": -102,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1825,
+          "ref_id": "2026_01_TB_CIN",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.521948769462582,
+          "market_prob": 0.644729178800233,
+          "edge": -0.122780409337651,
+          "kelly_fraction": 0.0,
+          "price": -205,
+          "p_push": 0.0045,
+          "hold": 0.0425015179113539
+        },
+        {
+          "market_line_id": 1825,
+          "ref_id": "2026_01_TB_CIN",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.478051230537418,
+          "market_prob": 0.355270821199767,
+          "edge": 0.122780409337651,
+          "kelly_fraction": 0.0425632352941177,
+          "price": 170,
+          "p_push": 0.0045,
+          "hold": 0.0425015179113539
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": -115,
+          "needs": 0.5348837209302325
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_GB_MIN",
+      "home": "MIN",
+      "away": "GB",
+      "kickoff": "2026-09-13 16:25",
+      "status": "ok",
+      "sentences": [
+        "Minnesota is favored to beat Green Bay by 2.0 points. The book has them by 1.5.",
+        "The Vikings cover \u22121.5 in 51% of our 20,000 simulated games; that does not pay at \u2212108 (needs 52%).",
+        "We expect 42.0 total points; the line is 46.5, up from 45.5. The under hits 62% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "MIN \u22121.5",
+          "prob": 0.50985,
+          "market_prob": 0.495670245930031,
+          "edge": 0.0141797540699689,
+          "kelly": 0.0,
+          "price": -108,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Under 46.5",
+          "prob": 0.61535,
+          "market_prob": 0.510834236186349,
+          "edge": 0.104515763813651,
+          "kelly": 0.043250625,
+          "price": -115,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.53965,
+          "edge": 0.0137146594682541,
+          "market_prob": 0.52608658526172,
+          "price": -122,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.104515763813651,
+      "fair": {
+        "spread": 2.0,
+        "total": 42.0,
+        "home_win_prob": 0.53965,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1834,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 1.5,
+        "total": 46.5,
+        "home_spread_odds": -108,
+        "away_spread_odds": -112,
+        "over_odds": -105,
+        "under_odds": -115,
+        "home_moneyline": -122,
+        "away_moneyline": 102,
+        "moved_since_sim": {
+          "spread": null,
+          "total": {
+            "from": 45.5,
+            "to": 46.5
+          }
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1834,
+          "ref_id": "2026_01_GB_MIN",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.50985,
+          "market_prob": 0.495670245930031,
+          "edge": 0.0141797540699689,
+          "kelly_fraction": 0.0,
+          "price": -108,
+          "p_push": 0.0,
+          "hold": 0.0475326560232221
+        },
+        {
+          "market_line_id": 1834,
+          "ref_id": "2026_01_GB_MIN",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.49015,
+          "market_prob": 0.504329754069969,
+          "edge": -0.0141797540699689,
+          "kelly_fraction": 0.0,
+          "price": -112,
+          "p_push": 0.0,
+          "hold": 0.0475326560232221
+        },
+        {
+          "market_line_id": 1834,
+          "ref_id": "2026_01_GB_MIN",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.38465,
+          "market_prob": 0.489165763813651,
+          "edge": -0.104515763813651,
+          "kelly_fraction": 0.0,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1834,
+          "ref_id": "2026_01_GB_MIN",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.61535,
+          "market_prob": 0.510834236186349,
+          "edge": 0.104515763813651,
+          "kelly_fraction": 0.043250625,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1834,
+          "ref_id": "2026_01_GB_MIN",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.539801244729974,
+          "market_prob": 0.52608658526172,
+          "edge": 0.0137146594682541,
+          "kelly_fraction": 0.0,
+          "price": -122,
+          "p_push": 0.0038,
+          "hold": 0.0445990545000448
+        },
+        {
+          "market_line_id": 1834,
+          "ref_id": "2026_01_GB_MIN",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.460198755270026,
+          "market_prob": 0.47391341473828,
+          "edge": -0.0137146594682541,
+          "kelly_fraction": 0.0,
+          "price": 102,
+          "p_push": 0.0038,
+          "hold": 0.0445990545000448
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": -108,
+          "needs": 0.5192307692307693
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_NO_DET",
+      "home": "DET",
+      "away": "NO",
+      "kickoff": "2026-09-13 13:00",
+      "status": "ok",
+      "sentences": [
+        "Detroit is favored to beat New Orleans by 6.0 points. The book has them by 7.",
+        "The Lions cover \u22127 in 47% of our 20,000 simulated games; that does not pay at \u2212110 (needs 52%).",
+        "We expect 46.0 total points; the line is 49.5. The under hits 59% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "NO +7",
+          "prob": 0.533677137052665,
+          "market_prob": 0.5,
+          "edge": 0.0336771370526645,
+          "kelly": 0.00497249999999999,
+          "price": -110,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Under 49.5",
+          "prob": 0.59135,
+          "market_prob": 0.489165763813651,
+          "edge": 0.102184236186349,
+          "kelly": 0.040566875,
+          "price": -105,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.66815,
+          "edge": -0.0568932996847629,
+          "market_prob": 0.725752508361204,
+          "price": -310,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.102184236186349,
+      "fair": {
+        "spread": 6.0,
+        "total": 46.0,
+        "home_win_prob": 0.66815,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1698,
+        "captured_at": "2026-09-05 06:25:55.202746+00",
+        "spread": 7.0,
+        "total": 49.5,
+        "home_spread_odds": -110,
+        "away_spread_odds": -110,
+        "over_odds": -115,
+        "under_odds": -105,
+        "home_moneyline": -310,
+        "away_moneyline": 250,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1698,
+          "ref_id": "2026_01_NO_DET",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.466322862947336,
+          "market_prob": 0.5,
+          "edge": -0.0336771370526645,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.04015,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1698,
+          "ref_id": "2026_01_NO_DET",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.533677137052665,
+          "market_prob": 0.5,
+          "edge": 0.0336771370526645,
+          "kelly_fraction": 0.00497249999999999,
+          "price": -110,
+          "p_push": 0.04015,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1698,
+          "ref_id": "2026_01_NO_DET",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.40865,
+          "market_prob": 0.510834236186349,
+          "edge": -0.102184236186349,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1698,
+          "ref_id": "2026_01_NO_DET",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.59135,
+          "market_prob": 0.489165763813651,
+          "edge": 0.102184236186349,
+          "kelly_fraction": 0.040566875,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1698,
+          "ref_id": "2026_01_NO_DET",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.668859208676441,
+          "market_prob": 0.725752508361204,
+          "edge": -0.0568932996847629,
+          "kelly_fraction": 0.0,
+          "price": -310,
+          "p_push": 0.0042,
+          "hold": 0.0418118466898956
+        },
+        {
+          "market_line_id": 1698,
+          "ref_id": "2026_01_NO_DET",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.331140791323559,
+          "market_prob": 0.274247491638796,
+          "edge": 0.0568932996847629,
+          "kelly_fraction": 0.0158325,
+          "price": 250,
+          "p_push": 0.0042,
+          "hold": 0.0418118466898956
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": -110,
+          "needs": 0.5238095238095238
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_SF_LA",
+      "home": "LA",
+      "away": "SF",
+      "kickoff": "2026-09-10 20:35",
+      "status": "ok",
+      "sentences": [
+        "The Rams are favored to beat San Francisco by 6.0 points. The book has them by 3.5.",
+        "The Rams cover \u22123.5 in 57% of our 20,000 simulated games; that pays at \u2212108 (needs 52%).",
+        "We expect 50.0 total points; the line is 48.5. The over hits 55% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "LA \u22123.5",
+          "prob": 0.57215,
+          "market_prob": 0.495670245930031,
+          "edge": 0.0764797540699689,
+          "kelly": 0.027518,
+          "price": -108,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Over 48.5",
+          "prob": 0.54795,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0587842361863489,
+          "kelly": 0.018324375,
+          "price": -105,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.663575,
+          "edge": 0.0331680083628719,
+          "market_prob": 0.630940343781598,
+          "price": -192,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0764797540699689,
+      "fair": {
+        "spread": 6.0,
+        "total": 50.0,
+        "home_win_prob": 0.663575,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1823,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 3.5,
+        "total": 48.5,
+        "home_spread_odds": -108,
+        "away_spread_odds": -112,
+        "over_odds": -105,
+        "under_odds": -115,
+        "home_moneyline": -192,
+        "away_moneyline": 160,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1823,
+          "ref_id": "2026_01_SF_LA",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.57215,
+          "market_prob": 0.495670245930031,
+          "edge": 0.0764797540699689,
+          "kelly_fraction": 0.027518,
+          "price": -108,
+          "p_push": 0.0,
+          "hold": 0.0475326560232221
+        },
+        {
+          "market_line_id": 1823,
+          "ref_id": "2026_01_SF_LA",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.42785,
+          "market_prob": 0.504329754069969,
+          "edge": -0.0764797540699689,
+          "kelly_fraction": 0.0,
+          "price": -112,
+          "p_push": 0.0,
+          "hold": 0.0475326560232221
+        },
+        {
+          "market_line_id": 1823,
+          "ref_id": "2026_01_SF_LA",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.54795,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0587842361863489,
+          "kelly_fraction": 0.018324375,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1823,
+          "ref_id": "2026_01_SF_LA",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.45205,
+          "market_prob": 0.510834236186349,
+          "edge": -0.058784236186349,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1823,
+          "ref_id": "2026_01_SF_LA",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.66410835214447,
+          "market_prob": 0.630940343781598,
+          "edge": 0.0331680083628719,
+          "kelly_fraction": 0.00478350000000004,
+          "price": -192,
+          "p_push": 0.00325,
+          "hold": 0.042149631190727
+        },
+        {
+          "market_line_id": 1823,
+          "ref_id": "2026_01_SF_LA",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.33589164785553,
+          "market_prob": 0.369059656218402,
+          "edge": -0.0331680083628719,
+          "kelly_fraction": 0.0,
+          "price": 160,
+          "p_push": 0.00325,
+          "hold": 0.042149631190727
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "pays",
+          "price": -108,
+          "needs": 0.5192307692307693
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_ATL_PIT",
+      "home": "PIT",
+      "away": "ATL",
+      "kickoff": "2026-09-13 13:00",
+      "status": "ok",
+      "sentences": [
+        "Pittsburgh is favored to beat Atlanta by 3.0 points. The book has them by 3.5.",
+        "The Steelers cover \u22123.5 in 49% of our 20,000 simulated games \u2014 a coin flip at \u2212102.",
+        "We expect 44.0 total points; the line is 42.5. The over hits 56% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "PIT \u22123.5",
+          "prob": 0.4872,
+          "market_prob": 0.48263587428373,
+          "edge": 0.00456412571627024,
+          "kelly": 0.0,
+          "price": -102,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Over 42.5",
+          "prob": 0.5637,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0745342361863489,
+          "kelly": 0.02639625,
+          "price": -105,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.5875,
+          "edge": -0.0346592262214347,
+          "market_prob": 0.622466551861174,
+          "price": -185,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0745342361863489,
+      "fair": {
+        "spread": 3.0,
+        "total": 44.0,
+        "home_win_prob": 0.5875,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1702,
+        "captured_at": "2026-09-05 06:25:55.202746+00",
+        "spread": 3.5,
+        "total": 42.5,
+        "home_spread_odds": -102,
+        "away_spread_odds": -118,
+        "over_odds": -105,
+        "under_odds": -115,
+        "home_moneyline": -185,
+        "away_moneyline": 154,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1702,
+          "ref_id": "2026_01_ATL_PIT",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.4872,
+          "market_prob": 0.48263587428373,
+          "edge": 0.00456412571627024,
+          "kelly_fraction": 0.0,
+          "price": -102,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1702,
+          "ref_id": "2026_01_ATL_PIT",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.5128,
+          "market_prob": 0.51736412571627,
+          "edge": -0.0045641257162703,
+          "kelly_fraction": 0.0,
+          "price": -118,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1702,
+          "ref_id": "2026_01_ATL_PIT",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.5637,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0745342361863489,
+          "kelly_fraction": 0.02639625,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1702,
+          "ref_id": "2026_01_ATL_PIT",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.4363,
+          "market_prob": 0.510834236186349,
+          "edge": -0.0745342361863489,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1702,
+          "ref_id": "2026_01_ATL_PIT",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.587807325639739,
+          "market_prob": 0.622466551861174,
+          "edge": -0.0346592262214347,
+          "kelly_fraction": 0.0,
+          "price": -185,
+          "p_push": 0.0035,
+          "hold": 0.0428235944191186
+        },
+        {
+          "market_line_id": 1702,
+          "ref_id": "2026_01_ATL_PIT",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.412192674360261,
+          "market_prob": 0.377533448138826,
+          "edge": 0.0346592262214347,
+          "kelly_fraction": 0.0075982142857143,
+          "price": 154,
+          "p_push": 0.0035,
+          "hold": 0.0428235944191186
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "coin flip",
+          "price": -102,
+          "needs": 0.504950495049505
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_WAS_PHI",
+      "home": "PHI",
+      "away": "WAS",
+      "kickoff": "2026-09-13 16:25",
+      "status": "ok",
+      "sentences": [
+        "Philadelphia is favored to beat Washington by 7.0 points. The book has them by 5.5.",
+        "The Eagles cover \u22125.5 in 56% of our 20,000 simulated games; that pays at \u2212105 (needs 51%).",
+        "We expect 44.0 total points; the line is 44.5. That lands within a point of the line."
+      ],
+      "chips": {
+        "side": {
+          "label": "PHI \u22125.5",
+          "prob": 0.55615,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0669842361863489,
+          "kelly": 0.022526875,
+          "price": -105,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Under 44.5",
+          "prob": 0.5139,
+          "market_prob": 0.5,
+          "edge": 0.0139,
+          "kelly": 0.0,
+          "price": -110,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.697875,
+          "edge": 0.0410848059151768,
+          "market_prob": 0.657475226195605,
+          "price": -218,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0669842361863489,
+      "fair": {
+        "spread": 7.0,
+        "total": 44.0,
+        "home_win_prob": 0.697875,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1707,
+        "captured_at": "2026-09-05 06:25:55.202746+00",
+        "spread": 5.5,
+        "total": 44.5,
+        "home_spread_odds": -105,
+        "away_spread_odds": -115,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": -218,
+        "away_moneyline": 180,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1707,
+          "ref_id": "2026_01_WAS_PHI",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.55615,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0669842361863489,
+          "kelly_fraction": 0.022526875,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1707,
+          "ref_id": "2026_01_WAS_PHI",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.44385,
+          "market_prob": 0.510834236186349,
+          "edge": -0.066984236186349,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1707,
+          "ref_id": "2026_01_WAS_PHI",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.4861,
+          "market_prob": 0.5,
+          "edge": -0.0139,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1707,
+          "ref_id": "2026_01_WAS_PHI",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.5139,
+          "market_prob": 0.5,
+          "edge": 0.0139,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1707,
+          "ref_id": "2026_01_WAS_PHI",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.698560032110782,
+          "market_prob": 0.657475226195605,
+          "edge": 0.0410848059151768,
+          "kelly_fraction": 0.0103195000000001,
+          "price": -218,
+          "p_push": 0.00345,
+          "hold": 0.0426774483378256
+        },
+        {
+          "market_line_id": 1707,
+          "ref_id": "2026_01_WAS_PHI",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.301439967889218,
+          "market_prob": 0.342524773804395,
+          "edge": -0.0410848059151768,
+          "kelly_fraction": 0.0,
+          "price": 180,
+          "p_push": 0.00345,
+          "hold": 0.0426774483378256
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "pays",
+          "price": -105,
+          "needs": 0.5121951219512195
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_BUF_HOU",
+      "home": "HOU",
+      "away": "BUF",
+      "kickoff": "2026-09-13 13:00",
+      "status": "ok",
+      "sentences": [
+        "Houston is favored to beat Buffalo by 2.0 points. The book has Buffalo by 1.5.",
+        "The Bills cover \u22121.5 in 43% of our 20,000 simulated games; that does not pay at \u2212105 (needs 51%).",
+        "We expect 45.0 total points; the line is 44.5. That lands within a point of the line."
+      ],
+      "chips": {
+        "side": {
+          "label": "HOU +1.5",
+          "prob": 0.5701,
+          "market_prob": 0.510834236186349,
+          "edge": 0.0592657638136512,
+          "kelly": 0.01892875,
+          "price": -115,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Over 44.5",
+          "prob": 0.5066,
+          "market_prob": 0.5,
+          "edge": 0.00660000000000005,
+          "kelly": 0.0,
+          "price": -110,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.5346,
+          "edge": 0.0520856510549557,
+          "market_prob": 0.48263587428373,
+          "price": -102,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0592657638136512,
+      "fair": {
+        "spread": 2.0,
+        "total": 45.0,
+        "home_win_prob": 0.5346,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1699,
+        "captured_at": "2026-09-05 06:25:55.202746+00",
+        "spread": -1.5,
+        "total": 44.5,
+        "home_spread_odds": -115,
+        "away_spread_odds": -105,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": -102,
+        "away_moneyline": -118,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1699,
+          "ref_id": "2026_01_BUF_HOU",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.5701,
+          "market_prob": 0.510834236186349,
+          "edge": 0.0592657638136512,
+          "kelly_fraction": 0.01892875,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1699,
+          "ref_id": "2026_01_BUF_HOU",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.4299,
+          "market_prob": 0.489165763813651,
+          "edge": -0.0592657638136512,
+          "kelly_fraction": 0.0,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1699,
+          "ref_id": "2026_01_BUF_HOU",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.5066,
+          "market_prob": 0.5,
+          "edge": 0.00660000000000005,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1699,
+          "ref_id": "2026_01_BUF_HOU",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.4934,
+          "market_prob": 0.5,
+          "edge": -0.00660000000000005,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1699,
+          "ref_id": "2026_01_BUF_HOU",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.534721525338685,
+          "market_prob": 0.48263587428373,
+          "edge": 0.0520856510549557,
+          "kelly_fraction": 0.01498175,
+          "price": -102,
+          "p_push": 0.0035,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1699,
+          "ref_id": "2026_01_BUF_HOU",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.465278474661315,
+          "market_prob": 0.51736412571627,
+          "edge": -0.0520856510549557,
+          "kelly_fraction": 0.0,
+          "price": -118,
+          "p_push": 0.0035,
+          "hold": 0.0462348987192298
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "away",
+          "call": "does not pay",
+          "price": -105,
+          "needs": 0.5121951219512195
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_DEN_KC",
+      "home": "KC",
+      "away": "DEN",
+      "kickoff": "2026-09-14 20:15",
+      "status": "ok",
+      "sentences": [
+        "Kansas City is favored to beat Denver by 1.0 points. The book has them by 3.",
+        "The Chiefs cover \u22123 in 44% of our 20,000 simulated games; that does not pay at +100 (needs 50%).",
+        "We expect 40.0 total points; the line is 42.5. The under hits 56% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "DEN +3",
+          "prob": 0.562657695542473,
+          "market_prob": 0.521739130434783,
+          "edge": 0.0409185651076901,
+          "kelly": 0.00900000000000002,
+          "price": -120,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Under 42.5",
+          "prob": 0.55755,
+          "market_prob": 0.5,
+          "edge": 0.05755,
+          "kelly": 0.01771375,
+          "price": -110,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.5128,
+          "edge": -0.0506329113924051,
+          "market_prob": 0.563492063492063,
+          "price": -142,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.05755,
+      "fair": {
+        "spread": 1.0,
+        "total": 40.0,
+        "home_win_prob": 0.5128,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1837,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 3.0,
+        "total": 42.5,
+        "home_spread_odds": 100,
+        "away_spread_odds": -120,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": -142,
+        "away_moneyline": 120,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1837,
+          "ref_id": "2026_01_DEN_KC",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.437342304457527,
+          "market_prob": 0.478260869565217,
+          "edge": -0.0409185651076901,
+          "kelly_fraction": 0.0,
+          "price": 100,
+          "p_push": 0.0488,
+          "hold": 0.0454545454545454
+        },
+        {
+          "market_line_id": 1837,
+          "ref_id": "2026_01_DEN_KC",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.562657695542473,
+          "market_prob": 0.521739130434783,
+          "edge": 0.0409185651076901,
+          "kelly_fraction": 0.00900000000000002,
+          "price": -120,
+          "p_push": 0.0488,
+          "hold": 0.0454545454545454
+        },
+        {
+          "market_line_id": 1837,
+          "ref_id": "2026_01_DEN_KC",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.44245,
+          "market_prob": 0.5,
+          "edge": -0.05755,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1837,
+          "ref_id": "2026_01_DEN_KC",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.55755,
+          "market_prob": 0.5,
+          "edge": 0.05755,
+          "kelly_fraction": 0.01771375,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1837,
+          "ref_id": "2026_01_DEN_KC",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.512859152099658,
+          "market_prob": 0.563492063492063,
+          "edge": -0.0506329113924051,
+          "kelly_fraction": 0.0,
+          "price": -142,
+          "p_push": 0.0046,
+          "hold": 0.0413223140495869
+        },
+        {
+          "market_line_id": 1837,
+          "ref_id": "2026_01_DEN_KC",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.487140847900342,
+          "market_prob": 0.436507936507937,
+          "edge": 0.0506329113924051,
+          "kelly_fraction": 0.0148708333333334,
+          "price": 120,
+          "p_push": 0.0046,
+          "hold": 0.0413223140495869
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "does not pay",
+          "price": 100,
+          "needs": 0.5
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_CHI_CAR",
+      "home": "CAR",
+      "away": "CHI",
+      "kickoff": "2026-09-13 13:00",
+      "status": "ok",
+      "sentences": [
+        "Chicago is favored to beat Carolina by 2.0 points. The book has them by 2.5.",
+        "The Bears cover \u22122.5 in 50% of our 20,000 simulated games; that does not pay at \u2212118 (needs 54%).",
+        "We expect 46.0 total points; the line is 47.5. The under hits 55% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "CAR +2.5",
+          "prob": 0.50415,
+          "market_prob": 0.48263587428373,
+          "edge": 0.0215141257162702,
+          "kelly": 0.0,
+          "price": -102,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Under 47.5",
+          "prob": 0.55495,
+          "market_prob": 0.5,
+          "edge": 0.0549500000000001,
+          "kelly": 0.01634875,
+          "price": -110,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.45605,
+          "edge": 0.0388572724987055,
+          "market_prob": 0.417007358953393,
+          "price": 130,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0549500000000001,
+      "fair": {
+        "spread": -2.0,
+        "total": 46.0,
+        "home_win_prob": 0.45605,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1824,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": -2.5,
+        "total": 47.5,
+        "home_spread_odds": -102,
+        "away_spread_odds": -118,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": 130,
+        "away_moneyline": -155,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1824,
+          "ref_id": "2026_01_CHI_CAR",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.50415,
+          "market_prob": 0.48263587428373,
+          "edge": 0.0215141257162702,
+          "kelly_fraction": 0.0,
+          "price": -102,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1824,
+          "ref_id": "2026_01_CHI_CAR",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.49585,
+          "market_prob": 0.51736412571627,
+          "edge": -0.0215141257162702,
+          "kelly_fraction": 0.0,
+          "price": -118,
+          "p_push": 0.0,
+          "hold": 0.0462348987192298
+        },
+        {
+          "market_line_id": 1824,
+          "ref_id": "2026_01_CHI_CAR",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.44505,
+          "market_prob": 0.5,
+          "edge": -0.05495,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1824,
+          "ref_id": "2026_01_CHI_CAR",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.55495,
+          "market_prob": 0.5,
+          "edge": 0.0549500000000001,
+          "kelly_fraction": 0.01634875,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1824,
+          "ref_id": "2026_01_CHI_CAR",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.455864631452099,
+          "market_prob": 0.417007358953393,
+          "edge": 0.0388572724987055,
+          "kelly_fraction": 0.00928557692307697,
+          "price": 130,
+          "p_push": 0.0042,
+          "hold": 0.0426257459505541
+        },
+        {
+          "market_line_id": 1824,
+          "ref_id": "2026_01_CHI_CAR",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.544135368547901,
+          "market_prob": 0.582992641046607,
+          "edge": -0.0388572724987055,
+          "kelly_fraction": 0.0,
+          "price": -155,
+          "p_push": 0.0042,
+          "hold": 0.0426257459505541
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "away",
+          "call": "does not pay",
+          "price": -118,
+          "needs": 0.5412844036697247
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_NE_SEA",
+      "home": "SEA",
+      "away": "NE",
+      "kickoff": "2026-09-09 20:20",
+      "status": "ok",
+      "sentences": [
+        "Seattle is favored to beat New England by 5.0 points. The book has them by 3.5.",
+        "The Seahawks cover \u22123.5 in 53% of our 20,000 simulated games; that pays at \u2212105 (needs 51%).",
+        "We expect 43.0 total points; the line is 44.5. The under hits 55% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "SEA \u22123.5",
+          "prob": 0.53045,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0412842361863489,
+          "kelly": 0.00935562499999999,
+          "price": -105,
+          "market_type": "spread",
+          "side": "home"
+        },
+        "total": {
+          "label": "Under 44.5",
+          "prob": 0.54695,
+          "market_prob": 0.510834236186349,
+          "edge": 0.0361157638136511,
+          "kelly": 0.00648562500000004,
+          "price": -115,
+          "market_type": "total",
+          "side": "under"
+        },
+        "home_wins": {
+          "prob": 0.628125,
+          "edge": 0.0121947445835708,
+          "market_prob": 0.616438356164384,
+          "price": -180,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0412842361863489,
+      "fair": {
+        "spread": 5.0,
+        "total": 43.0,
+        "home_win_prob": 0.628125,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1694,
+        "captured_at": "2026-09-05 06:25:55.202746+00",
+        "spread": 3.5,
+        "total": 44.5,
+        "home_spread_odds": -105,
+        "away_spread_odds": -115,
+        "over_odds": -105,
+        "under_odds": -115,
+        "home_moneyline": -180,
+        "away_moneyline": 150,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1694,
+          "ref_id": "2026_01_NE_SEA",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.53045,
+          "market_prob": 0.489165763813651,
+          "edge": 0.0412842361863489,
+          "kelly_fraction": 0.00935562499999999,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1694,
+          "ref_id": "2026_01_NE_SEA",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.46955,
+          "market_prob": 0.510834236186349,
+          "edge": -0.0412842361863489,
+          "kelly_fraction": 0.0,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1694,
+          "ref_id": "2026_01_NE_SEA",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.45305,
+          "market_prob": 0.489165763813651,
+          "edge": -0.0361157638136511,
+          "kelly_fraction": 0.0,
+          "price": -105,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1694,
+          "ref_id": "2026_01_NE_SEA",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.54695,
+          "market_prob": 0.510834236186349,
+          "edge": 0.0361157638136511,
+          "kelly_fraction": 0.00648562500000004,
+          "price": -115,
+          "p_push": 0.0,
+          "hold": 0.0470788428814521
+        },
+        {
+          "market_line_id": 1694,
+          "ref_id": "2026_01_NE_SEA",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.628633100747954,
+          "market_prob": 0.616438356164384,
+          "edge": 0.0121947445835708,
+          "kelly_fraction": 0.0,
+          "price": -180,
+          "p_push": 0.00395,
+          "hold": 0.0428571428571429
+        },
+        {
+          "market_line_id": 1694,
+          "ref_id": "2026_01_NE_SEA",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.371366899252046,
+          "market_prob": 0.383561643835616,
+          "edge": -0.0121947445835708,
+          "kelly_fraction": 0.0,
+          "price": 150,
+          "p_push": 0.00395,
+          "hold": 0.0428571428571429
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "pays",
+          "price": -105,
+          "needs": 0.5121951219512195
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
+    },
+    {
+      "game_id": "2026_01_CLE_JAX",
+      "home": "JAX",
+      "away": "CLE",
+      "kickoff": "2026-09-13 13:00",
+      "status": "ok",
+      "sentences": [
+        "Jacksonville is favored to beat Cleveland by 7.0 points. The book has them by 7.5.",
+        "The Jaguars cover \u22127.5 in 50% of our 20,000 simulated games \u2014 a coin flip at \u2212110.",
+        "We expect 42.0 total points; the line is 40.5. The over hits 54% of the time."
+      ],
+      "chips": {
+        "side": {
+          "label": "CLE +7.5",
+          "prob": 0.5033,
+          "market_prob": 0.5,
+          "edge": 0.00330000000000008,
+          "kelly": 0.0,
+          "price": -110,
+          "market_type": "spread",
+          "side": "away"
+        },
+        "total": {
+          "label": "Over 40.5",
+          "prob": 0.53625,
+          "market_prob": 0.5,
+          "edge": 0.03625,
+          "kelly": 0.00653124999999998,
+          "price": -110,
+          "market_type": "total",
+          "side": "over"
+        },
+        "home_wins": {
+          "prob": 0.7179,
+          "edge": -0.0384353611673385,
+          "market_prob": 0.757188498402556,
+          "price": -375,
+          "market_type": "moneyline",
+          "side": "home"
+        }
+      },
+      "max_edge": 0.0384353611673385,
+      "fair": {
+        "spread": 7.0,
+        "total": 42.0,
+        "home_win_prob": 0.7179,
+        "spread_mean": null,
+        "total_mean": null,
+        "display": "median"
+      },
+      "market": {
+        "snapshot_id": 1829,
+        "captured_at": "2026-09-06 19:14:28.461525+00",
+        "spread": 7.5,
+        "total": 40.5,
+        "home_spread_odds": -110,
+        "away_spread_odds": -110,
+        "over_odds": -110,
+        "under_odds": -110,
+        "home_moneyline": -375,
+        "away_moneyline": 295,
+        "moved_since_sim": {
+          "spread": null,
+          "total": null
+        }
+      },
+      "edges": [
+        {
+          "market_line_id": 1829,
+          "ref_id": "2026_01_CLE_JAX",
+          "market_type": "spread",
+          "side": "home",
+          "model_prob": 0.4967,
+          "market_prob": 0.5,
+          "edge": -0.00330000000000003,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1829,
+          "ref_id": "2026_01_CLE_JAX",
+          "market_type": "spread",
+          "side": "away",
+          "model_prob": 0.5033,
+          "market_prob": 0.5,
+          "edge": 0.00330000000000008,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1829,
+          "ref_id": "2026_01_CLE_JAX",
+          "market_type": "total",
+          "side": "over",
+          "model_prob": 0.53625,
+          "market_prob": 0.5,
+          "edge": 0.03625,
+          "kelly_fraction": 0.00653124999999998,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1829,
+          "ref_id": "2026_01_CLE_JAX",
+          "market_type": "total",
+          "side": "under",
+          "model_prob": 0.46375,
+          "market_prob": 0.5,
+          "edge": -0.03625,
+          "kelly_fraction": 0.0,
+          "price": -110,
+          "p_push": 0.0,
+          "hold": 0.0476190476190477
+        },
+        {
+          "market_line_id": 1829,
+          "ref_id": "2026_01_CLE_JAX",
+          "market_type": "moneyline",
+          "side": "home",
+          "model_prob": 0.718753137235217,
+          "market_prob": 0.757188498402556,
+          "edge": -0.0384353611673385,
+          "kelly_fraction": 0.0,
+          "price": -375,
+          "p_push": 0.0039,
+          "hold": 0.0426382411725517
+        },
+        {
+          "market_line_id": 1829,
+          "ref_id": "2026_01_CLE_JAX",
+          "market_type": "moneyline",
+          "side": "away",
+          "model_prob": 0.281246862764783,
+          "market_prob": 0.242811501597444,
+          "edge": 0.0384353611673385,
+          "kelly_fraction": 0.00936377118644066,
+          "price": 295,
+          "p_push": 0.0039,
+          "hold": 0.0426382411725517
+        }
+      ],
+      "calls": {
+        "cover": {
+          "market_type": "spread",
+          "side": "home",
+          "call": "coin flip",
+          "price": -110,
+          "needs": 0.5238095238095238
+        }
+      },
+      "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
     }
-   },
-   "max_edge": 0.193657033494597,
-   "fair": {
-    "spread": 3.0,
-    "total": 51.0,
-    "home_win_prob": 0.5841,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1700,
-    "captured_at": "2026-09-05 06:25:55.202746+00",
-    "spread": -3.5,
-    "total": 48.5,
-    "home_spread_odds": -112,
-    "away_spread_odds": -108,
-    "over_odds": -105,
-    "under_odds": -115,
-    "home_moneyline": 145,
-    "away_moneyline": -175,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1700,
-     "ref_id": "2026_01_BAL_IND",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.66895,
-     "market_prob": 0.504329754069969,
-     "edge": 0.164620245930031,
-     "kelly_fraction": 0.0745435,
-     "price": -112,
-     "p_push": 0.0,
-     "hold": 0.0475326560232221
-    },
-    {
-     "market_line_id": 1700,
-     "ref_id": "2026_01_BAL_IND",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.33105,
-     "market_prob": 0.495670245930031,
-     "edge": -0.164620245930031,
-     "kelly_fraction": 0.0,
-     "price": -108,
-     "p_push": 0.0,
-     "hold": 0.0475326560232221
-    },
-    {
-     "market_line_id": 1700,
-     "ref_id": "2026_01_BAL_IND",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.58065,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0914842361863489,
-     "kelly_fraction": 0.035083125,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1700,
-     "ref_id": "2026_01_BAL_IND",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.41935,
-     "market_prob": 0.510834236186349,
-     "edge": -0.0914842361863489,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1700,
-     "ref_id": "2026_01_BAL_IND",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.584420799036338,
-     "market_prob": 0.390763765541741,
-     "edge": 0.193657033494597,
-     "kelly_fraction": 0.0741706896551724,
-     "price": 145,
-     "p_push": 0.0038,
-     "hold": 0.0445269016697587
-    },
-    {
-     "market_line_id": 1700,
-     "ref_id": "2026_01_BAL_IND",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.415579200963662,
-     "market_prob": 0.609236234458259,
-     "edge": -0.193657033494597,
-     "kelly_fraction": 0.0,
-     "price": -175,
-     "p_push": 0.0038,
-     "hold": 0.0445269016697587
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "away",
-     "call": "does not pay",
-     "price": -108,
-     "needs": 0.5192307692307693
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_NYJ_TEN",
-   "home": "TEN",
-   "away": "NYJ",
-   "kickoff": "2026-09-13 13:00",
-   "status": "warn",
-   "sentences": [
-    "Tennessee is favored to beat the Jets by 1.0 points. The book has them by 1.5.",
-    "The Titans cover \u22121.5 in 50% of our 20,000 simulated games; that does not pay at \u2212115 (needs 53%).",
-    "We expect 46.0 total points; the line is 39.5, up from 38.5. The over hits 68% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "NYJ +1.5",
-     "prob": 0.50075,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0115842361863489,
-     "kelly": 0.0,
-     "price": -105,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Over 39.5",
-     "prob": 0.68005,
-     "market_prob": 0.489165763813651,
-     "edge": 0.190884236186349,
-     "kelly": 0.086025625,
-     "price": -105,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.52815,
-     "edge": -0.0144719710261081,
-     "market_prob": 0.542743538767396,
-     "price": -130,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.190884236186349,
-   "fair": {
-    "spread": 1.0,
-    "total": 46.0,
-    "home_win_prob": 0.52815,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1831,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 1.5,
-    "total": 39.5,
-    "home_spread_odds": -115,
-    "away_spread_odds": -105,
-    "over_odds": -105,
-    "under_odds": -115,
-    "home_moneyline": -130,
-    "away_moneyline": 110,
-    "moved_since_sim": {
-     "spread": null,
-     "total": {
-      "from": 38.5,
-      "to": 39.5
-     }
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1831,
-     "ref_id": "2026_01_NYJ_TEN",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.49925,
-     "market_prob": 0.510834236186349,
-     "edge": -0.0115842361863488,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1831,
-     "ref_id": "2026_01_NYJ_TEN",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.50075,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0115842361863489,
-     "kelly_fraction": 0.0,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1831,
-     "ref_id": "2026_01_NYJ_TEN",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.68005,
-     "market_prob": 0.489165763813651,
-     "edge": 0.190884236186349,
-     "kelly_fraction": 0.086025625,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1831,
-     "ref_id": "2026_01_NYJ_TEN",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.31995,
-     "market_prob": 0.510834236186349,
-     "edge": -0.190884236186349,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1831,
-     "ref_id": "2026_01_NYJ_TEN",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.528271567741288,
-     "market_prob": 0.542743538767396,
-     "edge": -0.0144719710261081,
-     "kelly_fraction": 0.0,
-     "price": -130,
-     "p_push": 0.0043,
-     "hold": 0.0414078674948239
-    },
-    {
-     "market_line_id": 1831,
-     "ref_id": "2026_01_NYJ_TEN",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.471728432258712,
-     "market_prob": 0.457256461232604,
-     "edge": 0.0144719710261081,
-     "kelly_fraction": 0.0,
-     "price": 110,
-     "p_push": 0.0043,
-     "hold": 0.0414078674948239
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": -115,
-     "needs": 0.5348837209302325
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_DAL_NYG",
-   "home": "NYG",
-   "away": "DAL",
-   "kickoff": "2026-09-13 20:20",
-   "status": "warn",
-   "sentences": [
-    "The Giants are favored to beat Dallas by 2.0 points. The book has Dallas by 2.5.",
-    "The Cowboys cover \u22122.5 in 41% of our 20,000 simulated games; that does not pay at \u2212118 (needs 54%).",
-    "We expect 54.0 total points; the line is 48.5. The over hits 64% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "NYG +2.5",
-     "prob": 0.59405,
-     "market_prob": 0.48263587428373,
-     "edge": 0.11141412571627,
-     "kelly": 0.04499525,
-     "price": -102,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Over 48.5",
-     "prob": 0.63615,
-     "market_prob": 0.5,
-     "edge": 0.13615,
-     "kelly": 0.05897875,
-     "price": -110,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.545775,
-     "edge": 0.118016163847196,
-     "market_prob": 0.427940364439536,
-     "price": 124,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.13615,
-   "fair": {
-    "spread": 2.0,
-    "total": 54.0,
-    "home_win_prob": 0.545775,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1836,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": -2.5,
-    "total": 48.5,
-    "home_spread_odds": -102,
-    "away_spread_odds": -118,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": 124,
-    "away_moneyline": -148,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1836,
-     "ref_id": "2026_01_DAL_NYG",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.59405,
-     "market_prob": 0.48263587428373,
-     "edge": 0.11141412571627,
-     "kelly_fraction": 0.04499525,
-     "price": -102,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1836,
-     "ref_id": "2026_01_DAL_NYG",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.40595,
-     "market_prob": 0.51736412571627,
-     "edge": -0.11141412571627,
-     "kelly_fraction": 0.0,
-     "price": -118,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1836,
-     "ref_id": "2026_01_DAL_NYG",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.63615,
-     "market_prob": 0.5,
-     "edge": 0.13615,
-     "kelly_fraction": 0.05897875,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1836,
-     "ref_id": "2026_01_DAL_NYG",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.36385,
-     "market_prob": 0.5,
-     "edge": -0.13615,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1836,
-     "ref_id": "2026_01_DAL_NYG",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.545956528286733,
-     "market_prob": 0.427940364439536,
-     "edge": 0.118016163847196,
-     "kelly_fraction": 0.044770564516129,
-     "price": 124,
-     "p_push": 0.00395,
-     "hold": 0.0432027649769586
-    },
-    {
-     "market_line_id": 1836,
-     "ref_id": "2026_01_DAL_NYG",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.454043471713267,
-     "market_prob": 0.572059635560464,
-     "edge": -0.118016163847196,
-     "kelly_fraction": 0.0,
-     "price": -148,
-     "p_push": 0.00395,
-     "hold": 0.0432027649769586
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "away",
-     "call": "does not pay",
-     "price": -118,
-     "needs": 0.5412844036697247
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_ARI_LAC",
-   "home": "LAC",
-   "away": "ARI",
-   "kickoff": "2026-09-13 16:25",
-   "status": "warn",
-   "sentences": [
-    "The Chargers are favored to beat Arizona by 6.0 points. The book has them by 10.5.",
-    "The Chargers cover \u221210.5 in 37% of our 20,000 simulated games; that does not pay at \u2212110 (needs 52%).",
-    "We expect 45.0 total points; the line is 46.5. The under hits 54% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "ARI +10.5",
-     "prob": 0.62665,
-     "market_prob": 0.5,
-     "edge": 0.12665,
-     "kelly": 0.05399125,
-     "price": -110,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Under 46.5",
-     "prob": 0.5431,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0539342361863488,
-     "kelly": 0.01583875,
-     "price": -105,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.686825,
-     "edge": -0.124526674113581,
-     "market_prob": 0.811866859623734,
-     "price": -550,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.12665,
-   "fair": {
-    "spread": 6.0,
-    "total": 45.0,
-    "home_win_prob": 0.686825,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1832,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 10.5,
-    "total": 46.5,
-    "home_spread_odds": -110,
-    "away_spread_odds": -110,
-    "over_odds": -115,
-    "under_odds": -105,
-    "home_moneyline": -550,
-    "away_moneyline": 410,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1832,
-     "ref_id": "2026_01_ARI_LAC",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.37335,
-     "market_prob": 0.5,
-     "edge": -0.12665,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1832,
-     "ref_id": "2026_01_ARI_LAC",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.62665,
-     "market_prob": 0.5,
-     "edge": 0.12665,
-     "kelly_fraction": 0.05399125,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1832,
-     "ref_id": "2026_01_ARI_LAC",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.4569,
-     "market_prob": 0.510834236186349,
-     "edge": -0.0539342361863488,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1832,
-     "ref_id": "2026_01_ARI_LAC",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.5431,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0539342361863488,
-     "kelly_fraction": 0.01583875,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1832,
-     "ref_id": "2026_01_ARI_LAC",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.687340185510153,
-     "market_prob": 0.811866859623734,
-     "edge": -0.124526674113581,
-     "kelly_fraction": 0.0,
-     "price": -550,
-     "p_push": 0.00275,
-     "hold": 0.0422322775263952
-    },
-    {
-     "market_line_id": 1832,
-     "ref_id": "2026_01_ARI_LAC",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.312659814489847,
-     "market_prob": 0.188133140376266,
-     "edge": 0.124526674113581,
-     "kelly_fraction": 0.0361542682926829,
-     "price": 410,
-     "p_push": 0.00275,
-     "hold": 0.0422322775263952
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": -110,
-     "needs": 0.5238095238095238
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_TB_CIN",
-   "home": "CIN",
-   "away": "TB",
-   "kickoff": "2026-09-13 13:00",
-   "status": "ok",
-   "sentences": [
-    "Cincinnati is favored to beat Tampa Bay by 1.0 points. The book has them by 3.5.",
-    "The Bengals cover \u22123.5 in 43% of our 20,000 simulated games; that does not pay at \u2212115 (needs 53%).",
-    "We expect 50.0 total points; the line is 50.5. That lands within a point of the line."
-   ],
-   "chips": {
-    "side": {
-     "label": "TB +3.5",
-     "prob": 0.57055,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0813842361863488,
-     "kelly": 0.029906875,
-     "price": -105,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Under 50.5",
-     "prob": 0.50475,
-     "market_prob": 0.48263587428373,
-     "edge": 0.0221141257162701,
-     "kelly": 0.0,
-     "price": -102,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.52185,
-     "edge": -0.122780409337651,
-     "market_prob": 0.644729178800233,
-     "price": -205,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.122780409337651,
-   "fair": {
-    "spread": 1.0,
-    "total": 50.0,
-    "home_win_prob": 0.52185,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1825,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 3.5,
-    "total": 50.5,
-    "home_spread_odds": -115,
-    "away_spread_odds": -105,
-    "over_odds": -118,
-    "under_odds": -102,
-    "home_moneyline": -205,
-    "away_moneyline": 170,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1825,
-     "ref_id": "2026_01_TB_CIN",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.42945,
-     "market_prob": 0.510834236186349,
-     "edge": -0.0813842361863488,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1825,
-     "ref_id": "2026_01_TB_CIN",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.57055,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0813842361863488,
-     "kelly_fraction": 0.029906875,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1825,
-     "ref_id": "2026_01_TB_CIN",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.49525,
-     "market_prob": 0.51736412571627,
-     "edge": -0.0221141257162701,
-     "kelly_fraction": 0.0,
-     "price": -118,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1825,
-     "ref_id": "2026_01_TB_CIN",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.50475,
-     "market_prob": 0.48263587428373,
-     "edge": 0.0221141257162701,
-     "kelly_fraction": 0.0,
-     "price": -102,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1825,
-     "ref_id": "2026_01_TB_CIN",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.521948769462582,
-     "market_prob": 0.644729178800233,
-     "edge": -0.122780409337651,
-     "kelly_fraction": 0.0,
-     "price": -205,
-     "p_push": 0.0045,
-     "hold": 0.0425015179113539
-    },
-    {
-     "market_line_id": 1825,
-     "ref_id": "2026_01_TB_CIN",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.478051230537418,
-     "market_prob": 0.355270821199767,
-     "edge": 0.122780409337651,
-     "kelly_fraction": 0.0425632352941177,
-     "price": 170,
-     "p_push": 0.0045,
-     "hold": 0.0425015179113539
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": -115,
-     "needs": 0.5348837209302325
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_GB_MIN",
-   "home": "MIN",
-   "away": "GB",
-   "kickoff": "2026-09-13 16:25",
-   "status": "ok",
-   "sentences": [
-    "Minnesota is favored to beat Green Bay by 2.0 points. The book has them by 1.5.",
-    "The Vikings cover \u22121.5 in 51% of our 20,000 simulated games; that does not pay at \u2212108 (needs 52%).",
-    "We expect 42.0 total points; the line is 46.5, up from 45.5. The under hits 62% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "MIN \u22121.5",
-     "prob": 0.50985,
-     "market_prob": 0.495670245930031,
-     "edge": 0.0141797540699689,
-     "kelly": 0.0,
-     "price": -108,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Under 46.5",
-     "prob": 0.61535,
-     "market_prob": 0.510834236186349,
-     "edge": 0.104515763813651,
-     "kelly": 0.043250625,
-     "price": -115,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.53965,
-     "edge": 0.0137146594682541,
-     "market_prob": 0.52608658526172,
-     "price": -122,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.104515763813651,
-   "fair": {
-    "spread": 2.0,
-    "total": 42.0,
-    "home_win_prob": 0.53965,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1834,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 1.5,
-    "total": 46.5,
-    "home_spread_odds": -108,
-    "away_spread_odds": -112,
-    "over_odds": -105,
-    "under_odds": -115,
-    "home_moneyline": -122,
-    "away_moneyline": 102,
-    "moved_since_sim": {
-     "spread": null,
-     "total": {
-      "from": 45.5,
-      "to": 46.5
-     }
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1834,
-     "ref_id": "2026_01_GB_MIN",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.50985,
-     "market_prob": 0.495670245930031,
-     "edge": 0.0141797540699689,
-     "kelly_fraction": 0.0,
-     "price": -108,
-     "p_push": 0.0,
-     "hold": 0.0475326560232221
-    },
-    {
-     "market_line_id": 1834,
-     "ref_id": "2026_01_GB_MIN",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.49015,
-     "market_prob": 0.504329754069969,
-     "edge": -0.0141797540699689,
-     "kelly_fraction": 0.0,
-     "price": -112,
-     "p_push": 0.0,
-     "hold": 0.0475326560232221
-    },
-    {
-     "market_line_id": 1834,
-     "ref_id": "2026_01_GB_MIN",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.38465,
-     "market_prob": 0.489165763813651,
-     "edge": -0.104515763813651,
-     "kelly_fraction": 0.0,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1834,
-     "ref_id": "2026_01_GB_MIN",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.61535,
-     "market_prob": 0.510834236186349,
-     "edge": 0.104515763813651,
-     "kelly_fraction": 0.043250625,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1834,
-     "ref_id": "2026_01_GB_MIN",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.539801244729974,
-     "market_prob": 0.52608658526172,
-     "edge": 0.0137146594682541,
-     "kelly_fraction": 0.0,
-     "price": -122,
-     "p_push": 0.0038,
-     "hold": 0.0445990545000448
-    },
-    {
-     "market_line_id": 1834,
-     "ref_id": "2026_01_GB_MIN",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.460198755270026,
-     "market_prob": 0.47391341473828,
-     "edge": -0.0137146594682541,
-     "kelly_fraction": 0.0,
-     "price": 102,
-     "p_push": 0.0038,
-     "hold": 0.0445990545000448
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": -108,
-     "needs": 0.5192307692307693
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_NO_DET",
-   "home": "DET",
-   "away": "NO",
-   "kickoff": "2026-09-13 13:00",
-   "status": "ok",
-   "sentences": [
-    "Detroit is favored to beat New Orleans by 6.0 points. The book has them by 7.",
-    "The Lions cover \u22127 in 47% of our 20,000 simulated games; that does not pay at \u2212110 (needs 52%).",
-    "We expect 46.0 total points; the line is 49.5. The under hits 59% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "NO +7",
-     "prob": 0.533677137052665,
-     "market_prob": 0.5,
-     "edge": 0.0336771370526645,
-     "kelly": 0.00497249999999999,
-     "price": -110,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Under 49.5",
-     "prob": 0.59135,
-     "market_prob": 0.489165763813651,
-     "edge": 0.102184236186349,
-     "kelly": 0.040566875,
-     "price": -105,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.66815,
-     "edge": -0.0568932996847629,
-     "market_prob": 0.725752508361204,
-     "price": -310,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.102184236186349,
-   "fair": {
-    "spread": 6.0,
-    "total": 46.0,
-    "home_win_prob": 0.66815,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1698,
-    "captured_at": "2026-09-05 06:25:55.202746+00",
-    "spread": 7.0,
-    "total": 49.5,
-    "home_spread_odds": -110,
-    "away_spread_odds": -110,
-    "over_odds": -115,
-    "under_odds": -105,
-    "home_moneyline": -310,
-    "away_moneyline": 250,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1698,
-     "ref_id": "2026_01_NO_DET",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.466322862947336,
-     "market_prob": 0.5,
-     "edge": -0.0336771370526645,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.04015,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1698,
-     "ref_id": "2026_01_NO_DET",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.533677137052665,
-     "market_prob": 0.5,
-     "edge": 0.0336771370526645,
-     "kelly_fraction": 0.00497249999999999,
-     "price": -110,
-     "p_push": 0.04015,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1698,
-     "ref_id": "2026_01_NO_DET",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.40865,
-     "market_prob": 0.510834236186349,
-     "edge": -0.102184236186349,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1698,
-     "ref_id": "2026_01_NO_DET",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.59135,
-     "market_prob": 0.489165763813651,
-     "edge": 0.102184236186349,
-     "kelly_fraction": 0.040566875,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1698,
-     "ref_id": "2026_01_NO_DET",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.668859208676441,
-     "market_prob": 0.725752508361204,
-     "edge": -0.0568932996847629,
-     "kelly_fraction": 0.0,
-     "price": -310,
-     "p_push": 0.0042,
-     "hold": 0.0418118466898956
-    },
-    {
-     "market_line_id": 1698,
-     "ref_id": "2026_01_NO_DET",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.331140791323559,
-     "market_prob": 0.274247491638796,
-     "edge": 0.0568932996847629,
-     "kelly_fraction": 0.0158325,
-     "price": 250,
-     "p_push": 0.0042,
-     "hold": 0.0418118466898956
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": -110,
-     "needs": 0.5238095238095238
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_SF_LA",
-   "home": "LA",
-   "away": "SF",
-   "kickoff": "2026-09-10 20:35",
-   "status": "ok",
-   "sentences": [
-    "The Rams are favored to beat San Francisco by 6.0 points. The book has them by 3.5.",
-    "The Rams cover \u22123.5 in 57% of our 20,000 simulated games; that pays at \u2212108 (needs 52%).",
-    "We expect 50.0 total points; the line is 48.5. The over hits 55% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "LA \u22123.5",
-     "prob": 0.57215,
-     "market_prob": 0.495670245930031,
-     "edge": 0.0764797540699689,
-     "kelly": 0.027518,
-     "price": -108,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Over 48.5",
-     "prob": 0.54795,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0587842361863489,
-     "kelly": 0.018324375,
-     "price": -105,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.663575,
-     "edge": 0.0331680083628719,
-     "market_prob": 0.630940343781598,
-     "price": -192,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0764797540699689,
-   "fair": {
-    "spread": 6.0,
-    "total": 50.0,
-    "home_win_prob": 0.663575,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1823,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 3.5,
-    "total": 48.5,
-    "home_spread_odds": -108,
-    "away_spread_odds": -112,
-    "over_odds": -105,
-    "under_odds": -115,
-    "home_moneyline": -192,
-    "away_moneyline": 160,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1823,
-     "ref_id": "2026_01_SF_LA",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.57215,
-     "market_prob": 0.495670245930031,
-     "edge": 0.0764797540699689,
-     "kelly_fraction": 0.027518,
-     "price": -108,
-     "p_push": 0.0,
-     "hold": 0.0475326560232221
-    },
-    {
-     "market_line_id": 1823,
-     "ref_id": "2026_01_SF_LA",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.42785,
-     "market_prob": 0.504329754069969,
-     "edge": -0.0764797540699689,
-     "kelly_fraction": 0.0,
-     "price": -112,
-     "p_push": 0.0,
-     "hold": 0.0475326560232221
-    },
-    {
-     "market_line_id": 1823,
-     "ref_id": "2026_01_SF_LA",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.54795,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0587842361863489,
-     "kelly_fraction": 0.018324375,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1823,
-     "ref_id": "2026_01_SF_LA",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.45205,
-     "market_prob": 0.510834236186349,
-     "edge": -0.058784236186349,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1823,
-     "ref_id": "2026_01_SF_LA",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.66410835214447,
-     "market_prob": 0.630940343781598,
-     "edge": 0.0331680083628719,
-     "kelly_fraction": 0.00478350000000004,
-     "price": -192,
-     "p_push": 0.00325,
-     "hold": 0.042149631190727
-    },
-    {
-     "market_line_id": 1823,
-     "ref_id": "2026_01_SF_LA",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.33589164785553,
-     "market_prob": 0.369059656218402,
-     "edge": -0.0331680083628719,
-     "kelly_fraction": 0.0,
-     "price": 160,
-     "p_push": 0.00325,
-     "hold": 0.042149631190727
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "pays",
-     "price": -108,
-     "needs": 0.5192307692307693
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_ATL_PIT",
-   "home": "PIT",
-   "away": "ATL",
-   "kickoff": "2026-09-13 13:00",
-   "status": "ok",
-   "sentences": [
-    "Pittsburgh is favored to beat Atlanta by 3.0 points. The book has them by 3.5.",
-    "The Steelers cover \u22123.5 in 49% of our 20,000 simulated games \u2014 a coin flip at \u2212102.",
-    "We expect 44.0 total points; the line is 42.5. The over hits 56% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "PIT \u22123.5",
-     "prob": 0.4872,
-     "market_prob": 0.48263587428373,
-     "edge": 0.00456412571627024,
-     "kelly": 0.0,
-     "price": -102,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Over 42.5",
-     "prob": 0.5637,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0745342361863489,
-     "kelly": 0.02639625,
-     "price": -105,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.5875,
-     "edge": -0.0346592262214347,
-     "market_prob": 0.622466551861174,
-     "price": -185,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0745342361863489,
-   "fair": {
-    "spread": 3.0,
-    "total": 44.0,
-    "home_win_prob": 0.5875,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1702,
-    "captured_at": "2026-09-05 06:25:55.202746+00",
-    "spread": 3.5,
-    "total": 42.5,
-    "home_spread_odds": -102,
-    "away_spread_odds": -118,
-    "over_odds": -105,
-    "under_odds": -115,
-    "home_moneyline": -185,
-    "away_moneyline": 154,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1702,
-     "ref_id": "2026_01_ATL_PIT",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.4872,
-     "market_prob": 0.48263587428373,
-     "edge": 0.00456412571627024,
-     "kelly_fraction": 0.0,
-     "price": -102,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1702,
-     "ref_id": "2026_01_ATL_PIT",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.5128,
-     "market_prob": 0.51736412571627,
-     "edge": -0.0045641257162703,
-     "kelly_fraction": 0.0,
-     "price": -118,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1702,
-     "ref_id": "2026_01_ATL_PIT",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.5637,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0745342361863489,
-     "kelly_fraction": 0.02639625,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1702,
-     "ref_id": "2026_01_ATL_PIT",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.4363,
-     "market_prob": 0.510834236186349,
-     "edge": -0.0745342361863489,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1702,
-     "ref_id": "2026_01_ATL_PIT",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.587807325639739,
-     "market_prob": 0.622466551861174,
-     "edge": -0.0346592262214347,
-     "kelly_fraction": 0.0,
-     "price": -185,
-     "p_push": 0.0035,
-     "hold": 0.0428235944191186
-    },
-    {
-     "market_line_id": 1702,
-     "ref_id": "2026_01_ATL_PIT",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.412192674360261,
-     "market_prob": 0.377533448138826,
-     "edge": 0.0346592262214347,
-     "kelly_fraction": 0.0075982142857143,
-     "price": 154,
-     "p_push": 0.0035,
-     "hold": 0.0428235944191186
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "coin flip",
-     "price": -102,
-     "needs": 0.504950495049505
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_WAS_PHI",
-   "home": "PHI",
-   "away": "WAS",
-   "kickoff": "2026-09-13 16:25",
-   "status": "ok",
-   "sentences": [
-    "Philadelphia is favored to beat Washington by 7.0 points. The book has them by 5.5.",
-    "The Eagles cover \u22125.5 in 56% of our 20,000 simulated games; that pays at \u2212105 (needs 51%).",
-    "We expect 44.0 total points; the line is 44.5. That lands within a point of the line."
-   ],
-   "chips": {
-    "side": {
-     "label": "PHI \u22125.5",
-     "prob": 0.55615,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0669842361863489,
-     "kelly": 0.022526875,
-     "price": -105,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Under 44.5",
-     "prob": 0.5139,
-     "market_prob": 0.5,
-     "edge": 0.0139,
-     "kelly": 0.0,
-     "price": -110,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.697875,
-     "edge": 0.0410848059151768,
-     "market_prob": 0.657475226195605,
-     "price": -218,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0669842361863489,
-   "fair": {
-    "spread": 7.0,
-    "total": 44.0,
-    "home_win_prob": 0.697875,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1707,
-    "captured_at": "2026-09-05 06:25:55.202746+00",
-    "spread": 5.5,
-    "total": 44.5,
-    "home_spread_odds": -105,
-    "away_spread_odds": -115,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": -218,
-    "away_moneyline": 180,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1707,
-     "ref_id": "2026_01_WAS_PHI",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.55615,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0669842361863489,
-     "kelly_fraction": 0.022526875,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1707,
-     "ref_id": "2026_01_WAS_PHI",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.44385,
-     "market_prob": 0.510834236186349,
-     "edge": -0.066984236186349,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1707,
-     "ref_id": "2026_01_WAS_PHI",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.4861,
-     "market_prob": 0.5,
-     "edge": -0.0139,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1707,
-     "ref_id": "2026_01_WAS_PHI",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.5139,
-     "market_prob": 0.5,
-     "edge": 0.0139,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1707,
-     "ref_id": "2026_01_WAS_PHI",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.698560032110782,
-     "market_prob": 0.657475226195605,
-     "edge": 0.0410848059151768,
-     "kelly_fraction": 0.0103195000000001,
-     "price": -218,
-     "p_push": 0.00345,
-     "hold": 0.0426774483378256
-    },
-    {
-     "market_line_id": 1707,
-     "ref_id": "2026_01_WAS_PHI",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.301439967889218,
-     "market_prob": 0.342524773804395,
-     "edge": -0.0410848059151768,
-     "kelly_fraction": 0.0,
-     "price": 180,
-     "p_push": 0.00345,
-     "hold": 0.0426774483378256
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "pays",
-     "price": -105,
-     "needs": 0.5121951219512195
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_BUF_HOU",
-   "home": "HOU",
-   "away": "BUF",
-   "kickoff": "2026-09-13 13:00",
-   "status": "ok",
-   "sentences": [
-    "Houston is favored to beat Buffalo by 2.0 points. The book has Buffalo by 1.5.",
-    "The Bills cover \u22121.5 in 43% of our 20,000 simulated games; that does not pay at \u2212105 (needs 51%).",
-    "We expect 45.0 total points; the line is 44.5. That lands within a point of the line."
-   ],
-   "chips": {
-    "side": {
-     "label": "HOU +1.5",
-     "prob": 0.5701,
-     "market_prob": 0.510834236186349,
-     "edge": 0.0592657638136512,
-     "kelly": 0.01892875,
-     "price": -115,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Over 44.5",
-     "prob": 0.5066,
-     "market_prob": 0.5,
-     "edge": 0.00660000000000005,
-     "kelly": 0.0,
-     "price": -110,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.5346,
-     "edge": 0.0520856510549557,
-     "market_prob": 0.48263587428373,
-     "price": -102,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0592657638136512,
-   "fair": {
-    "spread": 2.0,
-    "total": 45.0,
-    "home_win_prob": 0.5346,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1699,
-    "captured_at": "2026-09-05 06:25:55.202746+00",
-    "spread": -1.5,
-    "total": 44.5,
-    "home_spread_odds": -115,
-    "away_spread_odds": -105,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": -102,
-    "away_moneyline": -118,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1699,
-     "ref_id": "2026_01_BUF_HOU",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.5701,
-     "market_prob": 0.510834236186349,
-     "edge": 0.0592657638136512,
-     "kelly_fraction": 0.01892875,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1699,
-     "ref_id": "2026_01_BUF_HOU",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.4299,
-     "market_prob": 0.489165763813651,
-     "edge": -0.0592657638136512,
-     "kelly_fraction": 0.0,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1699,
-     "ref_id": "2026_01_BUF_HOU",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.5066,
-     "market_prob": 0.5,
-     "edge": 0.00660000000000005,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1699,
-     "ref_id": "2026_01_BUF_HOU",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.4934,
-     "market_prob": 0.5,
-     "edge": -0.00660000000000005,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1699,
-     "ref_id": "2026_01_BUF_HOU",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.534721525338685,
-     "market_prob": 0.48263587428373,
-     "edge": 0.0520856510549557,
-     "kelly_fraction": 0.01498175,
-     "price": -102,
-     "p_push": 0.0035,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1699,
-     "ref_id": "2026_01_BUF_HOU",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.465278474661315,
-     "market_prob": 0.51736412571627,
-     "edge": -0.0520856510549557,
-     "kelly_fraction": 0.0,
-     "price": -118,
-     "p_push": 0.0035,
-     "hold": 0.0462348987192298
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "away",
-     "call": "does not pay",
-     "price": -105,
-     "needs": 0.5121951219512195
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_DEN_KC",
-   "home": "KC",
-   "away": "DEN",
-   "kickoff": "2026-09-14 20:15",
-   "status": "ok",
-   "sentences": [
-    "Kansas City is favored to beat Denver by 1.0 points. The book has them by 3.",
-    "The Chiefs cover \u22123 in 44% of our 20,000 simulated games; that does not pay at +100 (needs 50%).",
-    "We expect 40.0 total points; the line is 42.5. The under hits 56% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "DEN +3",
-     "prob": 0.562657695542473,
-     "market_prob": 0.521739130434783,
-     "edge": 0.0409185651076901,
-     "kelly": 0.00900000000000002,
-     "price": -120,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Under 42.5",
-     "prob": 0.55755,
-     "market_prob": 0.5,
-     "edge": 0.05755,
-     "kelly": 0.01771375,
-     "price": -110,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.5128,
-     "edge": -0.0506329113924051,
-     "market_prob": 0.563492063492063,
-     "price": -142,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.05755,
-   "fair": {
-    "spread": 1.0,
-    "total": 40.0,
-    "home_win_prob": 0.5128,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1837,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 3.0,
-    "total": 42.5,
-    "home_spread_odds": 100,
-    "away_spread_odds": -120,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": -142,
-    "away_moneyline": 120,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1837,
-     "ref_id": "2026_01_DEN_KC",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.437342304457527,
-     "market_prob": 0.478260869565217,
-     "edge": -0.0409185651076901,
-     "kelly_fraction": 0.0,
-     "price": 100,
-     "p_push": 0.0488,
-     "hold": 0.0454545454545454
-    },
-    {
-     "market_line_id": 1837,
-     "ref_id": "2026_01_DEN_KC",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.562657695542473,
-     "market_prob": 0.521739130434783,
-     "edge": 0.0409185651076901,
-     "kelly_fraction": 0.00900000000000002,
-     "price": -120,
-     "p_push": 0.0488,
-     "hold": 0.0454545454545454
-    },
-    {
-     "market_line_id": 1837,
-     "ref_id": "2026_01_DEN_KC",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.44245,
-     "market_prob": 0.5,
-     "edge": -0.05755,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1837,
-     "ref_id": "2026_01_DEN_KC",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.55755,
-     "market_prob": 0.5,
-     "edge": 0.05755,
-     "kelly_fraction": 0.01771375,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1837,
-     "ref_id": "2026_01_DEN_KC",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.512859152099658,
-     "market_prob": 0.563492063492063,
-     "edge": -0.0506329113924051,
-     "kelly_fraction": 0.0,
-     "price": -142,
-     "p_push": 0.0046,
-     "hold": 0.0413223140495869
-    },
-    {
-     "market_line_id": 1837,
-     "ref_id": "2026_01_DEN_KC",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.487140847900342,
-     "market_prob": 0.436507936507937,
-     "edge": 0.0506329113924051,
-     "kelly_fraction": 0.0148708333333334,
-     "price": 120,
-     "p_push": 0.0046,
-     "hold": 0.0413223140495869
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "does not pay",
-     "price": 100,
-     "needs": 0.5
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_CHI_CAR",
-   "home": "CAR",
-   "away": "CHI",
-   "kickoff": "2026-09-13 13:00",
-   "status": "ok",
-   "sentences": [
-    "Chicago is favored to beat Carolina by 2.0 points. The book has them by 2.5.",
-    "The Bears cover \u22122.5 in 50% of our 20,000 simulated games; that does not pay at \u2212118 (needs 54%).",
-    "We expect 46.0 total points; the line is 47.5. The under hits 55% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "CAR +2.5",
-     "prob": 0.50415,
-     "market_prob": 0.48263587428373,
-     "edge": 0.0215141257162702,
-     "kelly": 0.0,
-     "price": -102,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Under 47.5",
-     "prob": 0.55495,
-     "market_prob": 0.5,
-     "edge": 0.0549500000000001,
-     "kelly": 0.01634875,
-     "price": -110,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.45605,
-     "edge": 0.0388572724987055,
-     "market_prob": 0.417007358953393,
-     "price": 130,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0549500000000001,
-   "fair": {
-    "spread": -2.0,
-    "total": 46.0,
-    "home_win_prob": 0.45605,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1824,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": -2.5,
-    "total": 47.5,
-    "home_spread_odds": -102,
-    "away_spread_odds": -118,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": 130,
-    "away_moneyline": -155,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1824,
-     "ref_id": "2026_01_CHI_CAR",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.50415,
-     "market_prob": 0.48263587428373,
-     "edge": 0.0215141257162702,
-     "kelly_fraction": 0.0,
-     "price": -102,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1824,
-     "ref_id": "2026_01_CHI_CAR",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.49585,
-     "market_prob": 0.51736412571627,
-     "edge": -0.0215141257162702,
-     "kelly_fraction": 0.0,
-     "price": -118,
-     "p_push": 0.0,
-     "hold": 0.0462348987192298
-    },
-    {
-     "market_line_id": 1824,
-     "ref_id": "2026_01_CHI_CAR",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.44505,
-     "market_prob": 0.5,
-     "edge": -0.05495,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1824,
-     "ref_id": "2026_01_CHI_CAR",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.55495,
-     "market_prob": 0.5,
-     "edge": 0.0549500000000001,
-     "kelly_fraction": 0.01634875,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1824,
-     "ref_id": "2026_01_CHI_CAR",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.455864631452099,
-     "market_prob": 0.417007358953393,
-     "edge": 0.0388572724987055,
-     "kelly_fraction": 0.00928557692307697,
-     "price": 130,
-     "p_push": 0.0042,
-     "hold": 0.0426257459505541
-    },
-    {
-     "market_line_id": 1824,
-     "ref_id": "2026_01_CHI_CAR",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.544135368547901,
-     "market_prob": 0.582992641046607,
-     "edge": -0.0388572724987055,
-     "kelly_fraction": 0.0,
-     "price": -155,
-     "p_push": 0.0042,
-     "hold": 0.0426257459505541
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "away",
-     "call": "does not pay",
-     "price": -118,
-     "needs": 0.5412844036697247
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_NE_SEA",
-   "home": "SEA",
-   "away": "NE",
-   "kickoff": "2026-09-09 20:20",
-   "status": "ok",
-   "sentences": [
-    "Seattle is favored to beat New England by 5.0 points. The book has them by 3.5.",
-    "The Seahawks cover \u22123.5 in 53% of our 20,000 simulated games; that pays at \u2212105 (needs 51%).",
-    "We expect 43.0 total points; the line is 44.5. The under hits 55% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "SEA \u22123.5",
-     "prob": 0.53045,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0412842361863489,
-     "kelly": 0.00935562499999999,
-     "price": -105,
-     "market_type": "spread",
-     "side": "home"
-    },
-    "total": {
-     "label": "Under 44.5",
-     "prob": 0.54695,
-     "market_prob": 0.510834236186349,
-     "edge": 0.0361157638136511,
-     "kelly": 0.00648562500000004,
-     "price": -115,
-     "market_type": "total",
-     "side": "under"
-    },
-    "home_wins": {
-     "prob": 0.628125,
-     "edge": 0.0121947445835708,
-     "market_prob": 0.616438356164384,
-     "price": -180,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0412842361863489,
-   "fair": {
-    "spread": 5.0,
-    "total": 43.0,
-    "home_win_prob": 0.628125,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1694,
-    "captured_at": "2026-09-05 06:25:55.202746+00",
-    "spread": 3.5,
-    "total": 44.5,
-    "home_spread_odds": -105,
-    "away_spread_odds": -115,
-    "over_odds": -105,
-    "under_odds": -115,
-    "home_moneyline": -180,
-    "away_moneyline": 150,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1694,
-     "ref_id": "2026_01_NE_SEA",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.53045,
-     "market_prob": 0.489165763813651,
-     "edge": 0.0412842361863489,
-     "kelly_fraction": 0.00935562499999999,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1694,
-     "ref_id": "2026_01_NE_SEA",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.46955,
-     "market_prob": 0.510834236186349,
-     "edge": -0.0412842361863489,
-     "kelly_fraction": 0.0,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1694,
-     "ref_id": "2026_01_NE_SEA",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.45305,
-     "market_prob": 0.489165763813651,
-     "edge": -0.0361157638136511,
-     "kelly_fraction": 0.0,
-     "price": -105,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1694,
-     "ref_id": "2026_01_NE_SEA",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.54695,
-     "market_prob": 0.510834236186349,
-     "edge": 0.0361157638136511,
-     "kelly_fraction": 0.00648562500000004,
-     "price": -115,
-     "p_push": 0.0,
-     "hold": 0.0470788428814521
-    },
-    {
-     "market_line_id": 1694,
-     "ref_id": "2026_01_NE_SEA",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.628633100747954,
-     "market_prob": 0.616438356164384,
-     "edge": 0.0121947445835708,
-     "kelly_fraction": 0.0,
-     "price": -180,
-     "p_push": 0.00395,
-     "hold": 0.0428571428571429
-    },
-    {
-     "market_line_id": 1694,
-     "ref_id": "2026_01_NE_SEA",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.371366899252046,
-     "market_prob": 0.383561643835616,
-     "edge": -0.0121947445835708,
-     "kelly_fraction": 0.0,
-     "price": 150,
-     "p_push": 0.00395,
-     "hold": 0.0428571428571429
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "pays",
-     "price": -105,
-     "needs": 0.5121951219512195
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  },
-  {
-   "game_id": "2026_01_CLE_JAX",
-   "home": "JAX",
-   "away": "CLE",
-   "kickoff": "2026-09-13 13:00",
-   "status": "ok",
-   "sentences": [
-    "Jacksonville is favored to beat Cleveland by 7.0 points. The book has them by 7.5.",
-    "The Jaguars cover \u22127.5 in 50% of our 20,000 simulated games \u2014 a coin flip at \u2212110.",
-    "We expect 42.0 total points; the line is 40.5. The over hits 54% of the time."
-   ],
-   "chips": {
-    "side": {
-     "label": "CLE +7.5",
-     "prob": 0.5033,
-     "market_prob": 0.5,
-     "edge": 0.00330000000000008,
-     "kelly": 0.0,
-     "price": -110,
-     "market_type": "spread",
-     "side": "away"
-    },
-    "total": {
-     "label": "Over 40.5",
-     "prob": 0.53625,
-     "market_prob": 0.5,
-     "edge": 0.03625,
-     "kelly": 0.00653124999999998,
-     "price": -110,
-     "market_type": "total",
-     "side": "over"
-    },
-    "home_wins": {
-     "prob": 0.7179,
-     "edge": -0.0384353611673385,
-     "market_prob": 0.757188498402556,
-     "price": -375,
-     "market_type": "moneyline",
-     "side": "home"
-    }
-   },
-   "max_edge": 0.0384353611673385,
-   "fair": {
-    "spread": 7.0,
-    "total": 42.0,
-    "home_win_prob": 0.7179,
-    "spread_mean": null,
-    "total_mean": null,
-    "display": "median"
-   },
-   "market": {
-    "snapshot_id": 1829,
-    "captured_at": "2026-09-06 19:14:28.461525+00",
-    "spread": 7.5,
-    "total": 40.5,
-    "home_spread_odds": -110,
-    "away_spread_odds": -110,
-    "over_odds": -110,
-    "under_odds": -110,
-    "home_moneyline": -375,
-    "away_moneyline": 295,
-    "moved_since_sim": {
-     "spread": null,
-     "total": null
-    }
-   },
-   "edges": [
-    {
-     "market_line_id": 1829,
-     "ref_id": "2026_01_CLE_JAX",
-     "market_type": "spread",
-     "side": "home",
-     "model_prob": 0.4967,
-     "market_prob": 0.5,
-     "edge": -0.00330000000000003,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1829,
-     "ref_id": "2026_01_CLE_JAX",
-     "market_type": "spread",
-     "side": "away",
-     "model_prob": 0.5033,
-     "market_prob": 0.5,
-     "edge": 0.00330000000000008,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1829,
-     "ref_id": "2026_01_CLE_JAX",
-     "market_type": "total",
-     "side": "over",
-     "model_prob": 0.53625,
-     "market_prob": 0.5,
-     "edge": 0.03625,
-     "kelly_fraction": 0.00653124999999998,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1829,
-     "ref_id": "2026_01_CLE_JAX",
-     "market_type": "total",
-     "side": "under",
-     "model_prob": 0.46375,
-     "market_prob": 0.5,
-     "edge": -0.03625,
-     "kelly_fraction": 0.0,
-     "price": -110,
-     "p_push": 0.0,
-     "hold": 0.0476190476190477
-    },
-    {
-     "market_line_id": 1829,
-     "ref_id": "2026_01_CLE_JAX",
-     "market_type": "moneyline",
-     "side": "home",
-     "model_prob": 0.718753137235217,
-     "market_prob": 0.757188498402556,
-     "edge": -0.0384353611673385,
-     "kelly_fraction": 0.0,
-     "price": -375,
-     "p_push": 0.0039,
-     "hold": 0.0426382411725517
-    },
-    {
-     "market_line_id": 1829,
-     "ref_id": "2026_01_CLE_JAX",
-     "market_type": "moneyline",
-     "side": "away",
-     "model_prob": 0.281246862764783,
-     "market_prob": 0.242811501597444,
-     "edge": 0.0384353611673385,
-     "kelly_fraction": 0.00936377118644066,
-     "price": 295,
-     "p_push": 0.0039,
-     "hold": 0.0426382411725517
-    }
-   ],
-   "calls": {
-    "cover": {
-     "market_type": "spread",
-     "side": "home",
-     "call": "coin flip",
-     "price": -110,
-     "needs": 0.5238095238095238
-    }
-   },
-   "week_summary": "Week 1: 16 games. 11 sides and 13 totals clear a 3% edge; the biggest is Over 39.5 (+19.1%). Run 5823f735 \u00b7 20k draws."
-  }
- ]
+  ]
 }

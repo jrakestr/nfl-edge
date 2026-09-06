@@ -1,46 +1,7 @@
 import { sql } from "@/lib/db";
-import { maxEdge } from "@/lib/edge";
-import { BoardRowSchema, type BoardRow, type EdgeSide } from "@/lib/types";
+import { maxEdge, pivotEdges, type RawEdge } from "@/lib/edge";
+import { BoardRowSchema, type BoardRow } from "@/lib/types";
 
-type RawEdge = {
-  market_type: "spread" | "total" | "moneyline";
-  side: "home" | "away" | "over" | "under";
-  model_prob: number;
-  market_prob: number;
-  edge: number;
-  kelly_fraction: number;
-  price: number | null;
-};
-
-const EMPTY: BoardRow["edges"] = {
-  spread_home: null,
-  spread_away: null,
-  total_over: null,
-  total_under: null,
-  ml_home: null,
-  ml_away: null,
-};
-
-export function pivotEdges(rows: RawEdge[] | null): BoardRow["edges"] {
-  const out = { ...EMPTY };
-  for (const r of rows ?? []) {
-    const side: EdgeSide = {
-      model_prob: r.model_prob,
-      market_prob: r.market_prob,
-      edge: r.edge,
-      kelly_fraction: r.kelly_fraction,
-      price: r.price,
-    };
-    const key =
-      r.market_type === "spread"
-        ? (`spread_${r.side}` as "spread_home" | "spread_away")
-        : r.market_type === "total"
-          ? (`total_${r.side}` as "total_over" | "total_under")
-          : (`ml_${r.side}` as "ml_home" | "ml_away");
-    out[key] = side;
-  }
-  return out;
-}
 
 /**
  * Table rows for a run: proj_games ⨝ raw.schedules ⨝ the game's newest raw.market_lines

@@ -1,3 +1,5 @@
+import type { BoardRow, EdgeSide } from "@/lib/types";
+
 /**
  * Edge thresholds and formatting. Mirrors config/sim.yaml `edge:` (flat_edge 0.01,
  * strong_edge 0.03) and the design-system intensity ramp:
@@ -71,4 +73,45 @@ export function displayValue(mean: number | null | undefined, median: number | n
 /** Largest positive edge across a board row's six sides (matches lines.py's max_edge). */
 export function maxEdge(row: { edges: Record<string, { edge: number } | null> }): number {
   return Math.max(0, ...Object.values(row.edges).map((e) => e?.edge ?? 0));
+}
+
+export type RawEdge = {
+  market_type: "spread" | "total" | "moneyline";
+  side: "home" | "away" | "over" | "under";
+  model_prob: number;
+  market_prob: number;
+  edge: number;
+  kelly_fraction: number;
+  price: number | null;
+};
+
+const EMPTY: BoardRow["edges"] = {
+  spread_home: null,
+  spread_away: null,
+  total_over: null,
+  total_under: null,
+  ml_home: null,
+  ml_away: null,
+};
+
+/** model.edges rows for one (run, snapshot) → the six named sides of a BoardRow. */
+export function pivotEdges(rows: RawEdge[] | null): BoardRow["edges"] {
+  const out = { ...EMPTY };
+  for (const r of rows ?? []) {
+    const side: EdgeSide = {
+      model_prob: r.model_prob,
+      market_prob: r.market_prob,
+      edge: r.edge,
+      kelly_fraction: r.kelly_fraction,
+      price: r.price,
+    };
+    const key =
+      r.market_type === "spread"
+        ? (`spread_${r.side}` as "spread_home" | "spread_away")
+        : r.market_type === "total"
+          ? (`total_${r.side}` as "total_over" | "total_under")
+          : (`ml_${r.side}` as "ml_home" | "ml_away");
+    out[key] = side;
+  }
+  return out;
 }
