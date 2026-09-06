@@ -2,6 +2,14 @@
 
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below).
 
+## Phase 1 — web app (2026-09-06)
+- Linked `web/` to Vercel project `transit-trends/nfl-edge`. `DATABASE_URL` is the session pooler (IPv4) on Production and Preview. Direct `db.*.supabase.co` does not resolve on Vercel.
+- Preview (Deployment Protection on): https://nfl-edge-dj28g8tlj-transit-trends.vercel.app — `/` → `/week/1`, 16 VerdictCards, RunBadge `run 5823f7 · … · 20k`, week summary, same payload as local. Run `5823f735`.
+- Local `npm run dev` on :3100: same board; Table view tiles include “No graded weeks yet”; `/props/nope/nobody` is “Player not found”, not 404.
+
+### Checkpoint 1
+- UI reads `model.verdicts_latest` / `model.edges_latest` for 2026 week 1 from Supabase. Five warn games are ARI@LAC, BAL@IND, DAL@NYG, MIA@LV, NYJ@TEN. `vercel --prod` left for after this tick if the stable domain should match.
+
 ## Phase 0 — operations (2026-09-06)
 - ops-cron (3a21561): LaunchAgent template `ops/com.nfl-edge.lines-only.plist` + `ops/lines-only.sh`. Cadence: every 30 min through 2026-09-13 23:59 PT, every 2 h after (wrapper no-ops off the even-hour grid). Overlap swap: bootstrap `com.nfl-edge.lines-only-swap` before bootout of the old 4h calendar agent, then bootstrap the new label, then bootout the swap. `scripts/` plist removed.
 - ops-overrides (400fdd4): `nfl-edge overrides --season --week --file` → `raw.player_overrides`. Matcher in `ingest/names.py` (gsis_id, merge_name/display_name + team + position, DST nick/city, `config/dk_aliases.yaml`). CSV documented in `docs/ops.md`. Weekly runbook is an ordered command list.
@@ -115,7 +123,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 
 ## Checkpoints
 - [x] 0 — LaunchAgent 30 min (next fire ~13:03:57 MST 2026-09-06); overrides two-row fixture loaded then deleted
-- [ ] UI — Edge board live on a Vercel URL reading Week 1 from Supabase (architecture §8 step 4b; plan: web app)
+- [x] UI — Edge board live on a Vercel URL reading Week 1 from Supabase (architecture §8 step 4b; plan: web app). Preview https://nfl-edge-dj28g8tlj-transit-trends.vercel.app run `5823f735`.
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres 2026-09-04; Supabase identical, same day)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
 - [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
@@ -124,7 +132,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
-- Populate `raw.player_overrides` weekly via `nfl-edge overrides` (injury report) — the RB/WR/TE gap to ECR is mostly this. Table is empty after Checkpoint 0's test rows were deleted.
+- Populate `raw.player_overrides` weekly via `nfl-edge overrides` and DK Status on salary ingest — 156 Week 1 rows from the DK Main CSV (101 out, 55 Q); leftover unmatched names stay in `output/dk_salaries_*.txt`.
 - Depth-chart cold start covers ranks 1–3 only; deeper players with no history are still excluded.
 - OT is a one-drive resolution (0.4% ties); margin/total sd run ~0.5–1 point wide of NFL history — revisit once P(cover) is graded against real bets.
 - Supabase `statement_timeout` is 2 minutes for the `postgres` role. Any future query over `raw.depth_charts` daily rows (1.24M and growing ~3k/day) should filter on `(season, week, club_code)` (the only index) or add an index on `(season, dt)` in the next migration.
