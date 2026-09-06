@@ -67,3 +67,8 @@ export function homeLine(nflverseSpread: number): number {
 export function displayValue(mean: number | null | undefined, median: number | null | undefined): number | null {
   return mean ?? median ?? null;
 }
+
+/** Largest positive edge across a board row's six sides (matches lines.py's max_edge). */
+export function maxEdge(row: { edges: Record<string, { edge: number } | null> }): number {
+  return Math.max(0, ...Object.values(row.edges).map((e) => e?.edge ?? 0));
+}

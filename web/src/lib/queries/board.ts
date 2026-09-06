@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { maxEdge } from "@/lib/edge";
 import { BoardRowSchema, type BoardRow, type EdgeSide } from "@/lib/types";
 
 type RawEdge = {
@@ -86,7 +87,3 @@ export async function boardRows(runId: string): Promise<BoardRow[]> {
   return parsed.sort((a, b) => maxEdge(b) - maxEdge(a));
 }
 
-/** Largest positive edge across the six sides (matches lines.py's max_edge). */
-export function maxEdge(row: BoardRow): number {
-  return Math.max(0, ...Object.values(row.edges).map((e) => e?.edge ?? 0));
-}

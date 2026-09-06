@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { NAV } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { useSidebarFooter } from "./PageActions";
 
 export function Sidebar({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname() ?? "/";
+  const registered = useSidebarFooter();
   return (
     <aside
       className="sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r border-border bg-card"
@@ -39,7 +41,7 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
         })}
       </nav>
       <div className="border-t border-border-soft p-3">
-        {footer ?? <span className="t-caption">no run loaded</span>}
+        {registered ?? footer ?? <span className="t-caption">no run loaded</span>}
       </div>
     </aside>
   );

@@ -31,6 +31,10 @@ export const ChipsSchema = z
   })
   .loose();
 
+/** `market.moved_since_sim.{spread,total}`: null when unchanged, else the sim-time and current numbers. */
+const MovedSchema = z.object({ from: num, to: num }).loose().nullable().optional();
+export type Moved = z.infer<typeof MovedSchema>;
+
 export const PayloadEdgeSchema = z
   .object({
     market_line_id: z.number().int(),
@@ -81,7 +85,7 @@ export const VerdictPayloadSchema = z
         home_moneyline: z.number().int().nullable().optional(),
         away_moneyline: z.number().int().nullable().optional(),
         moved_since_sim: z
-          .object({ spread: numOrNull.optional(), total: numOrNull.optional() })
+          .object({ spread: MovedSchema, total: MovedSchema })
           .loose()
           .nullable()
           .optional(),
@@ -160,7 +164,10 @@ export const BoardRowSchema = z.object({
   p_home_cover_market: numOrNull,
   p_over_market: numOrNull,
   market_line_id: z.number().int().nullable(),
-  captured_at: z.coerce.date().nullable(),
+  captured_at: z
+    .union([z.date(), z.string()])
+    .nullable()
+    .transform((d) => (d == null ? null : typeof d === "string" ? d : d.toISOString())), // ISO, serializable
   spread_line: numOrNull, // nflverse convention (positive = home favored)
   total_line: numOrNull,
   home_spread_odds: z.number().int().nullable(),
