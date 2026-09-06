@@ -99,3 +99,12 @@ def test_invalid_status_unmatched():
     )
     assert matched.is_empty()
     assert unmatched[0]["reason"] == "bad_status"
+
+
+def test_zero_usage_multiplier_is_kept():
+    matched, unmatched = N.apply_overrides(
+        [{"player": "00-0033873", "status": "out", "usage_multiplier": 0.0, "note": "x"}],
+        CATALOG, {}, TEAMS,
+    )
+    assert unmatched == []
+    assert matched["usage_multiplier"].to_list() == [0.0]

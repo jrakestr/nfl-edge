@@ -1,6 +1,14 @@
 # Status
 
-Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.cursor/plans/nfl_edge_step_4_lines_edge.plan.md` (Step 4, done); `~/.cursor/plans/nfl_edge_step_7_grading.plan.md` (Step 7, grading — this section; stop at grade-checkpoint, do not start grade-refine)
+Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below).
+
+## Phase 0 — operations (2026-09-06)
+- ops-cron (3a21561): LaunchAgent template `ops/com.nfl-edge.lines-only.plist` + `ops/lines-only.sh`. Cadence: every 30 min through 2026-09-13 23:59 PT, every 2 h after (wrapper no-ops off the even-hour grid). Overlap swap: bootstrap `com.nfl-edge.lines-only-swap` before bootout of the old 4h calendar agent, then bootstrap the new label, then bootout the swap. `scripts/` plist removed.
+- ops-overrides (400fdd4): `nfl-edge overrides --season --week --file` → `raw.player_overrides`. Matcher in `ingest/names.py` (gsis_id, merge_name/display_name + team + position, DST nick/city, `config/dk_aliases.yaml`). CSV documented in `docs/ops.md`. Weekly runbook is an ordered command list.
+
+### Checkpoint 0
+- LaunchAgent `com.nfl-edge.lines-only`: `run interval = 1800 seconds`, `runs = 1`, `last exit code = 0` (RunAtLoad ingest at 2026-09-06 12:33:57 MST, `line_snapshots: 0` — nflverse unchanged). Next fire ~12:33:57+1800s = **13:03:57 MST**.
+- Two-row fixture `tests/fixtures/overrides_two_row.csv` against Supabase: wrote Mahomes `00-0033873` out (usage_multiplier 0) and Gibbs `00-0039139` questionable (1.0). Test rows deleted after the select so Week 1 priors are not zeroed. `raw.player_overrides` count 0. `raw.market_lines` 1820.
 
 ## Step 4 — game lines and edge (2026-09-04)
 - migration-edges (26932ce): 0004 re-keys `model.edges` to `(run_id, market_line_id, market_type, side)` + `price`, `p_push`, `hold`; view `model.edges_latest`; `model.verdicts (run_id, game_id, market_line_id, payload jsonb)`.
@@ -55,11 +63,8 @@ Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.c
 - **Brier 0.2319 vs close 0.2365** is the sim beating the market on one week by a hair. Same caveat. Season-wide 2025 was 0.225 vs 0.212 the other way.
 - **CLV is zero everywhere** because backfilled snapshots are post-kickoff, as the plan stated. The first CLV that means anything comes from Week 1 pre-kickoff snapshots.
 
-### `--lines-only` job (2026-09-06)
-- `com.vix.cron` is not running on this Mac (`launchctl print system/com.vix.cron` → not running). A user crontab would never fire. Installed LaunchAgent `com.nfl-edge.lines-only` (`scripts/com.nfl-edge.lines-only.plist` → `~/Library/LaunchAgents/`) running exactly `nfl-edge ingest --season 2026 --lines-only` with `DATABASE_URL` unset so `.env` (Supabase) is used.
-- Cadence matches `docs/ops.md` in America/New_York, converted to Pacific for this machine: Tue–Sat every 4h, Sun hourly 06:00–13:00 ET, plus 60 min before Week 1 Thu 20:35 ET (16:35 PT) and Mon 20:15 ET (16:15 PT). Later TNF/MNF kickoffs that are not those times need the two extra intervals updated.
-- Log: `output/cron-lines.log` (gitignored). First live CLV still depends on this job actually catching an nflverse refresh before kickoff.
-- Manual pull at install (2026-09-06 afternoon PT): 15 new `raw.market_lines` rows (schedules 0). Cadence is no longer stuck at one snapshot per game.
+### `--lines-only` job (2026-09-06; replaced same day in Phase 0)
+- Replaced by Checkpoint 0 above. Old 4h calendar plist is gone; `ops/` is the source of truth.
 
 ### grade-refine (trailing; not started)
 - Per-game exposure cap across correlated markets; ROI by kickoff slot and by favorite/dog; player-prop and DFS grading when those views exist; `results` for the sim-time snapshot as well as the last (open-vs-close comparison of the model).
@@ -109,6 +114,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - Nothing blocked. Supabase is live and matches the local Postgres 16 container (`docker run --name nfl-edge-pg -p 5433:5432 postgres:16`) row for row; keep the local container for the `db`-marked e2e test, whose 2025 wk10 draws exist only locally.
 
 ## Checkpoints
+- [x] 0 — LaunchAgent 30 min (next fire ~13:03:57 MST 2026-09-06); overrides two-row fixture loaded then deleted
 - [ ] UI — Edge board live on a Vercel URL reading Week 1 from Supabase (architecture §8 step 4b; plan: web app)
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres 2026-09-04; Supabase identical, same day)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
@@ -118,7 +124,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
-- Populate `raw.player_overrides` weekly (injury report) — the RB/WR/TE gap to ECR is mostly this.
+- Populate `raw.player_overrides` weekly via `nfl-edge overrides` (injury report) — the RB/WR/TE gap to ECR is mostly this. Table is empty after Checkpoint 0's test rows were deleted.
 - Depth-chart cold start covers ranks 1–3 only; deeper players with no history are still excluded.
 - OT is a one-drive resolution (0.4% ties); margin/total sd run ~0.5–1 point wide of NFL history — revisit once P(cover) is graded against real bets.
 - Supabase `statement_timeout` is 2 minutes for the `postgres` role. Any future query over `raw.depth_charts` daily rows (1.24M and growing ~3k/day) should filter on `(season, week, club_code)` (the only index) or add an index on `(season, dt)` in the next migration.

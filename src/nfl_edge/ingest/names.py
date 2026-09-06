@@ -185,7 +185,7 @@ def apply_overrides(rows: list[dict], catalog: pl.DataFrame, aliases: dict[str, 
         matched_rows.append({
             "player_id": m.player_id,
             "status": status,
-            "usage_multiplier": float(row.get("usage_multiplier") or 1.0),
+            "usage_multiplier": 1.0 if row.get("usage_multiplier") is None else float(row["usage_multiplier"]),
             "note": row.get("note") or None,
         })
     schema = {"player_id": pl.Utf8, "status": pl.Utf8, "usage_multiplier": pl.Float64, "note": pl.Utf8}
