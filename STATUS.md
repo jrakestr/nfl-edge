@@ -8,7 +8,7 @@ Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.c
 - market-edge (4a548e2): `market/edge.py` — reads `{game_id}.game.parquet` once per game, six rows per market snapshot, `model_prob` = P(win | no push), two-way de-vig, quarter Kelly at the offered price (null odds → −110), `insert_ignore`; parity vs `proj_games.p_home_cover_market` (push = half) 14/14 on 2025 wk10, 16/16 on 2026 wk1. Edge config block in `sim.yaml` (this changes `config_hash` for runs after this commit).
 - outputs-lines (b7c9544) + cli-lines (811d3f4): `outputs/lines.py` pure verdict generator (three sentences, Side/Total/Home-wins chips, week summary, invariant-failed game withheld), `config/teams.yaml` (shared-city teams read "the Jets/Giants/Rams/Chargers"), `outputs/lines_io.py` + `nfl-edge lines --season --week [--run] [--json] [--min-edge] [--recompute]`; one `model.verdicts` row per game at the latest snapshot, same idempotency as edges.
 - ingest-prekickoff (4873521): seasons ahead of nflverse's date guard load what exists (stats/opportunity/snap_counts skipped with a message; rosters from the preseason roster file); `ingest --lines-only` without `--week` snapshots the whole season and adds missing schedule rows; the live ECR feed (`load_ff_rankings("week")`: `page`, `fantasypros_id`, `player_name`) is normalized to the archive shape — it had never been exercised and would have crashed on the first live Tuesday. `qb.load_starters` keeps string dtypes when no starters are announced (empty result → Null dtype → concat error; found on the first 2026 build). Roster-team review passed: Walker SEA→KC, Etienne JAX→NO, Dowdle CAR→PIT, W. Robinson NYG→TEN all sit on their 2026 team with history keyed by `player_id`; every team's target/carry shares sum to 1.000; 32/32 teams have one QB1 from the depth-chart fallback (schedules has no announced Week 1 starters yet).
-- lines-cron-doc (ee532de): `docs/ops.md` — snapshot cadence (documented, not created), weekly order, provenance; README points to it.
+- lines-cron-doc (ee532de): `docs/ops.md` — snapshot cadence, weekly order, provenance; README points to it. Installed 2026-09-06 as LaunchAgent `com.nfl-edge.lines-only` (cron daemon not running on this Mac).
 - test-e2e-lines (7a0b88b): `tests/test_lines_e2e.py` under a `db` marker (excluded by default; `pytest -m db`).
 
 ### Checkpoint C — Week 1 (Supabase; first run on local Postgres, see below)
@@ -48,7 +48,18 @@ Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.c
 - Verdicts (only the two runs with chips: `30b9d16c` and `a66ce78b`): Side 7-7-0 ROI −5.2%, Total 7-7-0 ROI −4.3%, cover-call accuracy **57.1%** (n=14, coin flips excluded). The five older wk10 runs have edges but no verdict payloads.
 - Calibration (all 7 runs, last snapshot, both sides of every market): Brier sim **0.2319** vs close **0.2365**; buckets 0.1–0.9 hit 0.00 / 0.13 / 0.34 / 0.48 / 0.52 / 0.66 / 0.87 / 1.00 (`monotone=True` on this week). Season file `output/grading_2025.md` uses the newest run only (same 21-21-0 / 57.1%).
 - Supabase: 0005 applied; `nfl-edge lines --season 2026 --week 1 --recompute` rewrote 16 verdicts with `chips.*.market_type/side` and `calls.cover` (run `5823f735` still has null `mean_*` — median display until that week is re-simmed). No grading until games are played.
-- First live grade: `nfl-edge grade --season 2026 --week 1` on Tue 2026-09-15; needs the `--lines-only` cron running from now so pre-kickoff snapshots exist for CLV.
+- First live grade: `nfl-edge grade --season 2026 --week 1` on Tue 2026-09-15; needs the `--lines-only` job running from now so pre-kickoff snapshots exist for CLV.
+
+### How to read Checkpoint D (do not get excited)
+- **Kelly ROI +21.5% on a 50% record is a one-week artifact.** Quarter-Kelly sizes plus-money dogs heavily; two or three of them hit and n is 14 moneyline picks. It will swing the other way on a different week. Watch **flat ROI** until there are ten graded weeks.
+- **Brier 0.2319 vs close 0.2365** is the sim beating the market on one week by a hair. Same caveat. Season-wide 2025 was 0.225 vs 0.212 the other way.
+- **CLV is zero everywhere** because backfilled snapshots are post-kickoff, as the plan stated. The first CLV that means anything comes from Week 1 pre-kickoff snapshots.
+
+### `--lines-only` job (2026-09-06)
+- `com.vix.cron` is not running on this Mac (`launchctl print system/com.vix.cron` → not running). A user crontab would never fire. Installed LaunchAgent `com.nfl-edge.lines-only` (`scripts/com.nfl-edge.lines-only.plist` → `~/Library/LaunchAgents/`) running exactly `nfl-edge ingest --season 2026 --lines-only` with `DATABASE_URL` unset so `.env` (Supabase) is used.
+- Cadence matches `docs/ops.md` in America/New_York, converted to Pacific for this machine: Tue–Sat every 4h, Sun hourly 06:00–13:00 ET, plus 60 min before Week 1 Thu 20:35 ET (16:35 PT) and Mon 20:15 ET (16:15 PT). Later TNF/MNF kickoffs that are not those times need the two extra intervals updated.
+- Log: `output/cron-lines.log` (gitignored). First live CLV still depends on this job actually catching an nflverse refresh before kickoff.
+- Manual pull at install (2026-09-06 afternoon PT): 15 new `raw.market_lines` rows (schedules 0). Cadence is no longer stuck at one snapshot per game.
 
 ### grade-refine (trailing; not started)
 - Per-game exposure cap across correlated markets; ROI by kickoff slot and by favorite/dog; player-prop and DFS grading when those views exist; `results` for the sim-time snapshot as well as the last (open-vs-close comparison of the model).

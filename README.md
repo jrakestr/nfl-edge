@@ -29,7 +29,7 @@ git clone https://github.com/jrakestr/NFL-DFS-Tools.git ../NFL-DFS-Tools
 | Sat | `nfl-edge dfs --site dk --slate main --week N` |
 | Sun AM | final `ingest` + `sim` + `lines` + `dfs` |
 
-Snapshot cadence, the cron that is documented but not created, and the full weekly order: [docs/ops.md](docs/ops.md).
+Snapshot cadence (LaunchAgent `com.nfl-edge.lines-only` on this Mac) and the full weekly order: [docs/ops.md](docs/ops.md).
 
 ## Layout
 

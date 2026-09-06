@@ -1,7 +1,15 @@
 # Operations: line snapshots and the weekly run order
 
-Documented, not scheduled. Nothing in this repo installs a cron; when one is created it should run
-exactly the commands below and nothing else.
+Scheduled on this Mac as LaunchAgent `com.nfl-edge.lines-only` (2026-09-06). `com.vix.cron` is
+not running here, so a crontab would never fire; the agent runs exactly the command below and
+nothing else. Plist: `scripts/com.nfl-edge.lines-only.plist`, loaded into `~/Library/LaunchAgents/`.
+Log: `output/cron-lines.log`. Reload after editing the plist:
+
+```
+launchctl bootout gui/$(id -u)/com.nfl-edge.lines-only
+cp scripts/com.nfl-edge.lines-only.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.lines-only.plist
+```
 
 ## Line snapshots
 
@@ -22,13 +30,18 @@ nfl-edge ingest --season 2026 --lines-only
   snapshots per game (`select game_id, count(*) from raw.market_lines where game_id like '2026_01_%'
   group by 1`) and record the observed cadence in `STATUS.md` before treating the last snapshot as
   the closing line for Step 7 grading.
-- Example crontab, for reference only:
+- This Mac is Pacific; launchd calendar times are local. The checked-in plist converts the ET
+  cadence above (always ET−3 vs Pacific). The two extra intervals are Week 1 kickoffs: Thu
+  2026-09-10 20:35 ET → 16:35 PT, Mon 2026-09-14 20:15 ET → 16:15 PT. Update those two if a later
+  TNF/MNF is not at those times. `DATABASE_URL` is unset in the agent so `.env` (Supabase) is used.
+- Equivalent crontab if `cron` is actually running (this Mac: it is not):
 
   ```
+  CRON_TZ=America/New_York
   # Tue-Sat every 4h
-  0 */4 * * 2-6  cd ~/Development/nfl-edge && .venv/bin/nfl-edge ingest --season 2026 --lines-only
+  0 */4 * * 2-6  cd ~/Development/nfl-edge && /usr/bin/env -u DATABASE_URL .venv/bin/nfl-edge ingest --season 2026 --lines-only
   # Sun hourly 06:00-13:00
-  0 6-13 * * 0   cd ~/Development/nfl-edge && .venv/bin/nfl-edge ingest --season 2026 --lines-only
+  0 6-13 * * 0   cd ~/Development/nfl-edge && /usr/bin/env -u DATABASE_URL .venv/bin/nfl-edge ingest --season 2026 --lines-only
   ```
 
 ## Weekly order
