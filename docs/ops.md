@@ -36,7 +36,7 @@ nfl-edge ingest --season 2026 --lines-only
 | When | Command | Notes |
 |---|---|---|
 | Tue | `nfl-edge ingest --season 2026 --week W` | Full pull. Before nflverse publishes a season, stats / opportunity / snap counts are skipped with a message and rosters come from the preseason roster file. |
-| Tue | `nfl-edge grade --week W-1` | Step 7; not built yet. |
+| Tue | `nfl-edge grade --season 2026 --week W-1` | Grades every run of the week against scores and the last pre-kickoff snapshot (schedules fallback when none). CLV needs pre-kickoff snapshots, so the cron must be running. |
 | Tue/Wed | `nfl-edge sim --season 2026 --week W --draws 20000` | One run per slate; every output reads its parquet. |
 | Tue/Wed | `nfl-edge lines --season 2026 --week W` | Computes edges for every snapshot the run has not seen, writes `model.verdicts`, prints the verdicts and edge table. `--json` for the UI contract; `--recompute` to rebuild a run's edges and verdicts. |
 | Wed–Sat | `nfl-edge ingest --season 2026 --lines-only` (cron) then `nfl-edge lines ...` | New snapshots get edges without a re-sim. Re-sim only on news (injury report Fri/Sat). |

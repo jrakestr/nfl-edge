@@ -229,8 +229,35 @@ def dfs(week: int, site: str = "dk", slate: str = "main", season: int = 2026):
 
 
 @app.command()
-def grade(week: int, season: int = 2026):
-    raise NotImplementedError("results.grade not built yet")
+def grade(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+    run: str = typer.Option(None, help="run_id (default: every sim run for the week)"),
+):
+    """Grade every edge and verdict of a week against scores and the close; write model.results."""
+    import polars as pl
+
+    from .results import grade as G
+
+    report = G.run(season, week, run_id=run)
+    n_pq = len(report.skipped_no_parquet)
+    typer.echo(
+        f"graded {len(report.run_ids)} runs · {report.n_rows} edge rows · {report.n_verdicts} verdict rows · "
+        f"skipped: {report.skipped_unplayed} games unplayed, {n_pq} runs without parquet"
+    )
+    for rid in report.skipped_no_parquet:
+        typer.echo(f"  skipped {rid}: parquet missing")
+    if report.brier_sim is not None:
+        typer.echo(f"Brier sim {report.brier_sim:.4f} vs close {report.brier_close:.4f}"
+                   f"{'' if report.monotone is None else f'; monotone={report.monotone}'}")
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=160, float_precision=3,
+                   tbl_hide_dataframe_shape=True, tbl_hide_column_data_types=True):
+        for title, df in (("picks", report.picks), ("verdicts", report.verdicts),
+                          ("games", report.games), ("calibration", report.calibration)):
+            if df.is_empty():
+                continue
+            typer.echo(f"\n{title}")
+            typer.echo(str(df))
 
 
 if __name__ == "__main__":
