@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
-import { DEFAULT_WEEK } from "@/lib/config";
+import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
+import { newestWeek } from "@/lib/queries/runs";
 
-// Replaced in web-data with the newest week that has a run.
-export default function Home() {
-  redirect(`/week/${DEFAULT_WEEK}`);
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
+  redirect(`/week/${week}`);
 }
