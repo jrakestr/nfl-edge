@@ -81,6 +81,7 @@ class GameVerdict:
     fair: dict
     market: dict
     edges: list[dict] = field(default_factory=list)
+    calls: dict | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -113,18 +114,25 @@ def _edge_row(edges: list[dict], market_type: str, side: str) -> dict | None:
 
 def _chip(label: str, r: dict) -> dict:
     return {"label": label, "prob": float(r["model_prob"]), "market_prob": float(r["market_prob"]),
-            "edge": float(r["edge"]), "kelly": float(r["kelly_fraction"]), "price": int(r["price"])}
+            "edge": float(r["edge"]), "kelly": float(r["kelly_fraction"]), "price": int(r["price"]),
+            "market_type": r["market_type"], "side": r["side"]}
 
 
 def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict, draws: int) -> GameVerdict:
     home, away = _Team(g["home_team"], teams), _Team(g["away_team"], teams)
-    fair = {"spread": g.get("fair_spread"), "total": g.get("fair_total"), "home_win_prob": g.get("home_win_prob")}
+    use_mean = g.get("mean_spread") is not None
+    fair = {
+        "spread": g.get("fair_spread"), "total": g.get("fair_total"), "home_win_prob": g.get("home_win_prob"),
+        "spread_mean": g.get("mean_spread"), "total_mean": g.get("mean_total"),
+        "display": "mean" if use_mean else "median",
+    }
     market = {
         "snapshot_id": g.get("market_line_id"), "captured_at": g.get("captured_at"),
         "spread": g.get("spread_line"), "total": g.get("total_line"),
         "home_spread_odds": g.get("home_spread_odds"), "away_spread_odds": g.get("away_spread_odds"),
         "over_odds": g.get("over_odds"), "under_odds": g.get("under_odds"),
         "home_moneyline": g.get("home_moneyline"), "away_moneyline": g.get("away_moneyline"),
+        "moved_since_sim": {"spread": None, "total": None},
     }
     base = {"game_id": g["game_id"], "home": home.abbr, "away": away.abbr, "kickoff": g.get("kickoff"),
             "fair": fair, "market": market,
@@ -133,7 +141,7 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
         return GameVerdict(status="fail", sentences=[WITHHELD], chips=None, max_edge=0.0, **base)
 
     flat = float(cfg["flat_edge"])
-    fs = float(g["fair_spread"])
+    fs = float(g["mean_spread"] if use_mean else g["fair_spread"])
     m = abs(fs)
     sim_even = m < 0.5
     fav, dog = (home, away) if fs > 0 else (away, home)
@@ -152,6 +160,10 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
         book_fav = home if sl > 0 else away
         b = _num(abs(sl))
         book = f"The book has them by {b}." if (book_fav is fav and not sim_even) else f"The book has {book_fav.name} by {b}."
+    sim_sl = g.get("sim_spread")
+    if sim_sl is not None and float(sim_sl) != sl:
+        book = book[:-1] + f", moved from {_signed(-float(sim_sl))} since we ran."
+        market["moved_since_sim"]["spread"] = {"from": float(sim_sl), "to": sl}
     s1 = f"{lead} {book}"
 
     # (2) cover: the market's side at the book's number
@@ -162,21 +174,31 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
     odds_key = "home_spread_odds" if mkt_side_is_home else "away_spread_odds"
     assumed = g.get(odds_key) is None
     p, price, e = float(r["model_prob"]), int(r["price"]), float(r["edge"])
+    be = american_to_prob(price)
     head = f"The {side_team.nick} {side_team.cover} {_signed(side_line)} in {_pct(p)} of our {draws:,} simulated games"
     if abs(e) < flat:
+        call = "coin flip"
         s2 = f"{head} {DASH} a coin flip at {_price(price)}."
     else:
-        be = american_to_prob(price)
-        verdict = "pays" if p > be else "does not pay"
-        s2 = f"{head}; that {verdict} at {_price(price)} ({'assumed; ' if assumed else ''}needs {_pct(be)})."
+        call = "pays" if p > be else "does not pay"
+        s2 = f"{head}; that {call} at {_price(price)} ({'assumed; ' if assumed else ''}needs {_pct(be)})."
+    calls = {"cover": {"market_type": "spread", "side": "home" if mkt_side_is_home else "away",
+                       "call": call, "price": price, "needs": be}}
 
     # (3) total
     over, under = _edge_row(edges, "total", "over"), _edge_row(edges, "total", "under")
     if tl is None or over is None:
         s3, total_chip = "No total posted yet.", None
     else:
-        ft, t = float(g["fair_total"]), float(tl)
-        lead3 = f"We expect {ft:.1f} total points; the line is {_num(t)}."
+        use_mean_t = g.get("mean_total") is not None
+        ft, t = float(g["mean_total"] if use_mean_t else g["fair_total"]), float(tl)
+        line_bit = _num(t)
+        sim_tl = g.get("sim_total")
+        if sim_tl is not None and float(sim_tl) != t:
+            direction = "up" if t > float(sim_tl) else "down"
+            line_bit = f"{_num(t)}, {direction} from {_num(float(sim_tl))}"
+            market["moved_since_sim"]["total"] = {"from": float(sim_tl), "to": t}
+        lead3 = f"We expect {ft:.1f} total points; the line is {line_bit}."
         if abs(ft - t) < 1.0:
             s3 = f"{lead3} That lands within a point of the line."
         else:
@@ -193,11 +215,13 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
     hw = {"prob": float(g["home_win_prob"]) if g.get("home_win_prob") is not None else None,
           "edge": float(ml["edge"]) if ml else None,
           "market_prob": float(ml["market_prob"]) if ml else None,
-          "price": int(ml["price"]) if ml else None}
+          "price": int(ml["price"]) if ml else None,
+          "market_type": "moneyline", "side": "home"}
     chips = {"side": side_chip, "total": total_chip, "home_wins": hw}
     max_edge = max([abs(side_chip["edge"])] + ([abs(total_chip["edge"])] if total_chip else [])
                    + ([abs(hw["edge"])] if hw["edge"] is not None else []))
-    return GameVerdict(status=status, sentences=[s1, s2, s3], chips=chips, max_edge=float(max_edge), **base)
+    return GameVerdict(status=status, sentences=[s1, s2, s3], chips=chips, max_edge=float(max_edge),
+                       calls=calls, **base)
 
 
 # ----------------------------------------------------------------------------- week

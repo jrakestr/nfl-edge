@@ -278,6 +278,7 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
     fair_spread, fair_total = float(np.median(margin)), float(np.median(total))
     proj_game = {
         "game_id": game_id, "fair_spread": fair_spread, "fair_total": fair_total,
+        "mean_spread": float(margin.mean()), "mean_total": float(total.mean()),
         "home_win_prob": float((margin > 0).mean() + 0.5 * (margin == 0).mean()),
         "p_home_cover_market": None if ms is None else float((margin > ms).mean() + 0.5 * (margin == ms).mean()),
         "p_over_market": None if mt is None else float((total > mt).mean() + 0.5 * (total == mt).mean()),

@@ -256,3 +256,97 @@ def test_build_week_sorts_by_max_edge_and_applies_check_status():
     d = w.to_dict()
     assert d["run"]["run_id"] == "7f3a1b2c-0000" and d["run"]["draws"] == DRAWS
     assert d["games"][0]["week_summary"] == w.summary
+
+
+# ----------------------------------------------------------------------------- mean display (median fallback)
+def test_mean_spread_and_total_used_when_present():
+    v = L.game_verdict(game(mean_spread=5.8, mean_total=46.1), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0] == "Detroit is favored to beat New Orleans by 5.8 points. The book has them by 7."
+    assert v.sentences[2].startswith("We expect 46.1 total points; the line is 44.5.")
+    assert v.fair["spread"] == pytest.approx(10.4)
+    assert v.fair["spread_mean"] == pytest.approx(5.8)
+    assert v.fair["total_mean"] == pytest.approx(46.1)
+    assert v.fair["display"] == "mean"
+
+
+def test_median_when_mean_is_null_same_sentence_otherwise():
+    with_mean = L.game_verdict(game(mean_spread=10.4, mean_total=47.3), edges(), "ok", TEAMS, CFG, DRAWS)
+    without = L.game_verdict(game(), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert with_mean.sentences == without.sentences
+    assert without.fair["display"] == "median"
+    assert without.fair["spread_mean"] is None and without.fair["total_mean"] is None
+
+
+def test_sim_even_and_favorite_use_the_displayed_mean():
+    v = L.game_verdict(game(mean_spread=0.2, fair_spread=10.4), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0] == "We have Detroit and New Orleans even. The book has Detroit by 7."
+
+
+# ----------------------------------------------------------------------------- line moved since sim
+def test_spread_moved_up_appends_signed_book_clause():
+    v = L.game_verdict(game(sim_spread=6.5), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0].endswith(f"The book has them by 7, moved from {MINUS}6.5 since we ran.")
+    assert v.market["moved_since_sim"]["spread"] == {"from": 6.5, "to": 7.0}
+    assert v.market["moved_since_sim"]["total"] is None
+
+
+def test_spread_moved_down_appends_signed_book_clause():
+    v = L.game_verdict(game(sim_spread=7.5), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.sentences[0].endswith(f"The book has them by 7, moved from {MINUS}7.5 since we ran.")
+    assert v.market["moved_since_sim"]["spread"] == {"from": 7.5, "to": 7.0}
+
+
+def test_total_moved_up_and_down():
+    up = L.game_verdict(game(sim_total=43.5), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert "the line is 44.5, up from 43.5." in up.sentences[2]
+    assert up.market["moved_since_sim"]["total"] == {"from": 43.5, "to": 44.5}
+    down = L.game_verdict(game(sim_total=46.5), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert "the line is 44.5, down from 46.5." in down.sentences[2]
+    assert down.market["moved_since_sim"]["total"] == {"from": 46.5, "to": 44.5}
+
+
+def test_unchanged_sim_line_has_no_moved_clause():
+    v = L.game_verdict(game(sim_spread=7.0, sim_total=44.5), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert "moved from" not in v.sentences[0]
+    assert "up from" not in v.sentences[2] and "down from" not in v.sentences[2]
+    assert v.market["moved_since_sim"] == {"spread": None, "total": None}
+
+
+# ----------------------------------------------------------------------------- structured chips / calls
+def test_chip_market_type_and_side_home_over():
+    v = L.game_verdict(game(), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.chips["side"]["market_type"] == "spread" and v.chips["side"]["side"] == "home"
+    assert v.chips["total"]["market_type"] == "total" and v.chips["total"]["side"] == "over"
+    assert v.chips["home_wins"]["market_type"] == "moneyline" and v.chips["home_wins"]["side"] == "home"
+
+
+def test_chip_market_type_and_side_away_under():
+    v = L.game_verdict(game(), edges(p_home=0.40, m_home=0.49, p_over=0.42, m_over=0.50),
+                       "ok", TEAMS, CFG, DRAWS)
+    assert v.chips["side"]["market_type"] == "spread" and v.chips["side"]["side"] == "away"
+    assert v.chips["total"]["market_type"] == "total" and v.chips["total"]["side"] == "under"
+
+
+def test_calls_cover_matches_sentence_2_pays():
+    v = L.game_verdict(game(), edges(), "ok", TEAMS, CFG, DRAWS)
+    assert v.calls["cover"] == {
+        "market_type": "spread", "side": "home", "call": "pays", "price": -108,
+        "needs": pytest.approx(108 / 208),
+    }
+
+
+def test_calls_cover_matches_sentence_2_does_not_pay():
+    g = game(home_team="CAR", away_team="CHI", fair_spread=-1.8, spread_line=-2.5,
+             home_spread_odds=-102, away_spread_odds=-118)
+    v = L.game_verdict(g, edges(p_home=0.50, m_home=0.54, price_home=-102, price_away=-118),
+                       "ok", TEAMS, CFG, DRAWS)
+    assert v.calls["cover"]["side"] == "away"
+    assert v.calls["cover"]["call"] == "does not pay"
+    assert v.calls["cover"]["price"] == -118
+    assert v.calls["cover"]["needs"] == pytest.approx(118 / 218)
+
+
+def test_calls_cover_matches_sentence_2_coin_flip():
+    v = L.game_verdict(game(), edges(p_home=0.495, m_home=0.49), "ok", TEAMS, CFG, DRAWS)
+    assert v.calls["cover"]["call"] == "coin flip"
+    assert v.calls["cover"]["price"] == -108
