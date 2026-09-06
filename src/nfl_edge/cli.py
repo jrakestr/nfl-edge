@@ -272,8 +272,29 @@ def dk_salaries(
 
 
 @app.command()
-def dfs(week: int, site: str = "dk", slate: str = "main", season: int = 2026):
-    raise NotImplementedError("dfs wrappers not built yet")
+def dfs(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+    site: str = typer.Option("dk"),
+    slate: str = typer.Option(..., help="Salary slate (main, full, …). IDs are per-slate; never mix."),
+    run: str = typer.Option(None, help="run_id (default: newest sim for the week)"),
+    lineups: int = typer.Option(150),
+    field: int = typer.Option(20000, help="GPP simulation iterations"),
+    export: str = typer.Option(None, "--export", help="DK upload CSV path, stamped with run_id"),
+):
+    """Export this slate, run the optimizer + GPP sim, persist lineups/exposure."""
+    from pathlib import Path
+
+    from .dfs.pipeline import run as dfs_run
+
+    r = dfs_run(
+        season, week, site=site, slate=slate, run_id=run,
+        lineups=lineups, field=field, export=Path(export) if export else None,
+    )
+    typer.echo(
+        f"dfs {r['slate_id']}: {r['n_lineups']} lineups, {r['n_exposure']} exposure, "
+        f"upload {r['upload']}"
+    )
 
 
 @app.command()
