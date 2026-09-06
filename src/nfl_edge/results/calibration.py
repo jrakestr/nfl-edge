@@ -359,3 +359,142 @@ def run(season: int, weeks: list[int], draws: int = 5000, seed: int | None = Non
     bt = Backtest(season, weeks, run_ids, games, players, checks, leakage, OUT / f"backtest_{season}.md")
     bt.report_path = write_report(bt, draws)
     return bt
+
+
+# ----------------------------------------------------------------------------- season grading (model.results)
+def _wlp(df: pl.DataFrame) -> tuple[int, int, int]:
+    return (df.filter(pl.col("outcome") == 1).height,
+            df.filter(pl.col("outcome") == 0).height,
+            df.filter(pl.col("outcome").is_null()).height)
+
+
+def _week_pick_row(week, df: pl.DataFrame) -> dict:
+    picks = df.filter(pl.col("is_last_snapshot") & (pl.col("edge") > 0))
+    w, l, p = _wlp(picks)
+    side = df.filter(pl.col("verdict_pick") & (pl.col("market_type") == "spread"))
+    tot = df.filter(pl.col("verdict_pick") & (pl.col("market_type") == "total"))
+    calls = df.filter(pl.col("verdict_call").is_in(["pays", "does not pay"])
+                      & pl.col("outcome").is_not_null())
+    correct = 0
+    for r in calls.iter_rows(named=True):
+        if ((r["verdict_call"] == "pays" and r["outcome"] == 1)
+                or (r["verdict_call"] == "does not pay" and r["outcome"] == 0)):
+            correct += 1
+    clv_pts = picks.filter(pl.col("clv_points").is_not_null())
+    stake = float(picks["kelly_fraction"].sum()) if picks.height else 0.0
+    sw, sl, sp = _wlp(side)
+    tw, tl, tp = _wlp(tot)
+    return {
+        "week": week, "n": picks.height, "record": f"{w}-{l}-{p}",
+        "flat_roi": float(picks["pnl"].mean()) if picks.height else float("nan"),
+        "kelly_roi": float(picks["pnl_kelly"].sum() / stake) if stake else 0.0,
+        "mean_clv_points": float(clv_pts["clv_points"].mean()) if clv_pts.height else float("nan"),
+        "mean_clv": float(picks["clv"].mean()) if picks.height else float("nan"),
+        "pct_clv_pos": float((clv_pts["clv_points"] > 0).mean()) if clv_pts.height else float("nan"),
+        "side_record": f"{sw}-{sl}-{sp}", "total_record": f"{tw}-{tl}-{tp}",
+        "cover_n": calls.height,
+        "cover_acc": (correct / calls.height) if calls.height else float("nan"),
+    }
+
+
+def results_report(season: int, weeks: list[int] | None = None) -> Path:
+    """Per-week and cumulative grading from model.results. Newest graded run per week."""
+    df = read_sql(
+        """
+        select r.season, r.week, r.run_id::text as run_id, r.created_at,
+               res.market_type, res.side, res.model_prob::float8 as model_prob,
+               res.closing_prob::float8 as closing_prob, res.outcome, res.clv::float8 as clv,
+               res.edge::float8 as edge, res.kelly_fraction::float8 as kelly_fraction,
+               res.clv_points::float8 as clv_points, res.pnl::float8 as pnl,
+               res.pnl_kelly::float8 as pnl_kelly, res.actual::float8 as actual,
+               res.is_last_snapshot, res.verdict_pick, res.verdict_call, res.close_source
+        from model.results res
+        join model.sim_runs r on r.run_id = res.run_id
+        where r.season = %s
+        """,
+        (season,),
+    )
+    if weeks:
+        df = df.filter(pl.col("week").is_in(weeks))
+    OUT.mkdir(exist_ok=True)
+    path = OUT / f"grading_{season}.md"
+    if df.is_empty():
+        path.write_text(f"# Grading {season}\n\n_no graded rows_\n")
+        return path
+
+    listed = (
+        df.select(["week", "run_id", "created_at"]).unique()
+        .sort(["week", "created_at"], descending=[False, True])
+    )
+    newest = listed.unique(subset=["week"], keep="first").sort("week")
+    keep_ids = newest["run_id"].to_list()
+    primary = df.filter(pl.col("run_id").is_in(keep_ids))
+    other = listed.filter(~pl.col("run_id").is_in(keep_ids))
+
+    week_rows = [_week_pick_row(int(w), primary.filter(pl.col("week") == w))
+                 for w in newest["week"].to_list()]
+    weekly = pl.DataFrame(week_rows, strict=False)
+    cumul = pl.DataFrame([_week_pick_row("all", primary)], strict=False)
+
+    last = primary.filter(pl.col("is_last_snapshot") & pl.col("outcome").is_not_null()
+                          & pl.col("model_prob").is_not_null())
+    both = last.filter(pl.col("closing_prob").is_not_null())
+    nan = float("nan")
+    brier_sim = brier_close = nan
+    if both.height:
+        y = both["outcome"].to_numpy().astype(float)
+        brier_sim = float(((both["model_prob"].to_numpy() - y) ** 2).mean())
+        brier_close = float(((both["closing_prob"].to_numpy() - y) ** 2).mean())
+    src = last.with_columns(
+        pl.col("actual").alias("result"), pl.lit(False).alias("push"),
+        (pl.col("outcome") == 1).alias("hit"),
+    )
+    buckets = calibration_buckets(src, col="model_prob", hit="hit") if last.height else pl.DataFrame()
+    mono = is_monotone(buckets) if last.height else False
+
+    others_md = (
+        "\n".join(f"- week {r['week']}: `{r['run_id']}`" for r in other.iter_rows(named=True))
+        if other.height else "_none_"
+    )
+    chosen_md = "\n".join(
+        f"- week {r['week']}: `{r['run_id']}`" for r in newest.iter_rows(named=True)
+    )
+    lines = [
+        f"# Grading {season}",
+        "",
+        (
+            "CLV columns are structurally zero on backfilled seasons (snapshots were captured after "
+            "kickoff, so the close is the schedules fallback equal to the bet line). They are "
+            "informative from 2026 Week 1 onward, once the lines-only cron is producing pre-kickoff "
+            "snapshots."
+        ),
+        "",
+        "## Chosen run per week (newest with graded rows)",
+        "",
+        chosen_md,
+        "",
+        "## Other graded runs (listed, not in the tables)",
+        "",
+        others_md,
+        "",
+        "## Per week (picks with is_last_snapshot and edge > 0)",
+        "",
+        _fmt(weekly, 3),
+        "",
+        "## Cumulative",
+        "",
+        _fmt(cumul, 3),
+        "",
+        "## Calibration: model_prob vs hit rate (last snapshot, non-push)",
+        "",
+        _fmt(buckets.select(["lo", "hi", "n", "mean_prob", "hit_rate"]), 2) if not buckets.is_empty()
+        else "_no rows_",
+        "",
+        f"Monotone (buckets with n>=5, reversals <= 0.05 allowed): {mono}",
+        "",
+        f"Brier sim {brier_sim:.4f} vs close {brier_close:.4f}.",
+        "",
+    ]
+    path.write_text("\n".join(lines))
+    primary.write_csv(OUT / f"grading_{season}_results.csv")
+    return path

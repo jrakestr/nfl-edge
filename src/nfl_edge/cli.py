@@ -237,6 +237,7 @@ def grade(
     """Grade every edge and verdict of a week against scores and the close; write model.results."""
     import polars as pl
 
+    from .results import calibration as cal
     from .results import grade as G
 
     report = G.run(season, week, run_id=run)
@@ -258,6 +259,8 @@ def grade(
                 continue
             typer.echo(f"\n{title}")
             typer.echo(str(df))
+    report_path = cal.results_report(season)
+    typer.echo(f"\n{report_path}")
 
 
 if __name__ == "__main__":
