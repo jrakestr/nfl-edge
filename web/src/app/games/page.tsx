@@ -1,7 +1,26 @@
-import { EmptyState } from "@/components/EmptyState";
+import { GamesList } from "@/components/games/GamesList";
+import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
+import { boardRows } from "@/lib/queries/board";
+import { checksForRun } from "@/lib/queries/checks";
+import { newestWeek, runsForWeek } from "@/lib/queries/runs";
+import { verdictsForRun } from "@/lib/queries/verdicts";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Games" };
 
-export default function Page() {
-  return <EmptyState title="Games">One row per game with the score distribution from the draws. Fills in with the draws read path (web-refine).</EmptyState>;
+export default async function Page() {
+  const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
+  const runs = await runsForWeek(CURRENT_SEASON, week);
+  const run = runs[0] ?? null;
+  const [rows, verdicts, checks] = run
+    ? await Promise.all([boardRows(run.run_id), verdictsForRun(run.run_id), checksForRun(run.run_id)])
+    : [[], [], new Map()];
+  return (
+    <GamesList
+      week={week}
+      rows={rows}
+      verdicts={Object.fromEntries(verdicts.map((v) => [v.game_id, v.payload]))}
+      checks={Object.fromEntries(checks)}
+    />
+  );
 }
