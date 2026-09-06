@@ -161,10 +161,17 @@ def _dst_frame(team: str, n: int, dst_pts: np.ndarray) -> pl.DataFrame:
     return pl.DataFrame(cols)
 
 
+def _histogram(arr: np.ndarray, n_bins: int = 20) -> dict:
+    counts, edges = np.histogram(arr, bins=n_bins)
+    return {"bins": [round(float(x), 4) for x in edges], "counts": [int(c) for c in counts]}
+
+
 def _summarize(name: str, arr: np.ndarray) -> dict:
+    del name
     q = np.percentile(arr, [10, 50, 90])
     return {"mean": round(float(arr.mean()), 3), "sd": round(float(arr.std()), 3),
-            "p10": float(q[0]), "p50": float(q[1]), "p90": float(q[2])}
+            "p10": float(q[0]), "p50": float(q[1]), "p90": float(q[2]),
+            "hist": _histogram(arr)}
 
 
 def _team_checks(t: TeamDraws, p: pp.PlayerDraws | None, usage: pl.DataFrame, d: GameDraws,
