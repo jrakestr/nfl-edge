@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { DEFAULT_WEEK } from "@/lib/config";
 
-// Replaced in web-data with the newest week that has a run.
-export default function Home() {
+export default function WeekIndex() {
   redirect(`/week/${DEFAULT_WEEK}`);
 }
