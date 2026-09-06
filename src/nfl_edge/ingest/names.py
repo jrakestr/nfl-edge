@@ -26,6 +26,7 @@ def merge_key(name: str) -> str:
     s = s.encode("ascii", "ignore").decode("ascii")
     s = s.lower()
     s = re.sub(r"[^a-z0-9\s]", "", s)
+    s = re.sub(r"\b(jr|sr|ii|iii|iv|v)\b", "", s)
     return re.sub(r"\s+", " ", s).strip()
 
 
@@ -95,7 +96,7 @@ def prepare_catalog(catalog: pl.DataFrame) -> pl.DataFrame:
     for src, dst in TEAM_ALIASES.items():
         team = pl.when(team == src).then(pl.lit(dst)).otherwise(team)
     return catalog.with_columns(
-        pl.col("merge_name").fill_null("").str.to_lowercase().alias("_mn"),
+        pl.col("merge_name").fill_null("").map_elements(merge_key, return_dtype=pl.Utf8).alias("_mn"),
         pl.col("display_name").fill_null("").map_elements(merge_key, return_dtype=pl.Utf8).alias("_dn"),
         team.alias("_team"),
         pl.col("position").fill_null("").str.to_uppercase().alias("_pos"),

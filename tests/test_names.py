@@ -21,7 +21,9 @@ TEAMS = {
 
 def test_merge_key_strips_punctuation_and_suffixes():
     assert N.merge_key("Ja'Marr Chase") == "jamarr chase"
-    assert N.merge_key("Patrick Mahomes II") == "patrick mahomes ii"
+    assert N.merge_key("Patrick Mahomes II") == "patrick mahomes"
+    assert N.merge_key("James Cook III") == "james cook"
+    assert N.merge_key("Brian Robinson Jr.") == "brian robinson"
     assert N.merge_key("A.J. Brown") == "aj brown"
 
 

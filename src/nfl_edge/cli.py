@@ -240,6 +240,37 @@ def overrides(
                    f"team={u.get('team')} pos={u.get('position')}")
 
 
+@app.command("dk-salaries")
+def dk_salaries(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(None, "--file", help="DK salary export CSV"),
+    site: str = typer.Option("dk"),
+    slate: str = typer.Option("main"),
+):
+    """Upsert raw.dk_salaries from a DK export. Status O/D/Q/OUT/IR write raw.player_overrides."""
+    from pathlib import Path
+
+    from .ingest import dk_salaries as dk
+
+    path = Path(file) if file else dk.default_path(season, week, slate)
+    r = dk.run(season, week, path, site=site, slate=slate)
+    typer.echo(
+        f"dk salaries {r['slate_id']}: {r['written']} written / {r['rows']} rows, "
+        f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
+        f"{r['overrides_written']} overrides"
+    )
+    for u in r["unmatched"]:
+        typer.echo(
+            f"  {u.get('match_reason', 'unmatched')}: {u.get('name')} "
+            f"team={u.get('team')} pos={u.get('position')} status={u.get('status')}"
+        )
+    for s in r["override_skipped"]:
+        typer.echo(
+            f"  override-{s.get('reason')}: {s.get('name')} team={s.get('team')} status={s.get('status')}"
+        )
+
+
 @app.command()
 def dfs(week: int, site: str = "dk", slate: str = "main", season: int = 2026):
     raise NotImplementedError("dfs wrappers not built yet")

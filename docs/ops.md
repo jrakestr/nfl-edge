@@ -64,14 +64,16 @@ Wednesday / Friday (injury report)
 
 Saturday
 
-7. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
+7. `nfl-edge dk-salaries --season 2026 --week W --slate main`
+8. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
 
 Sunday AM (final)
 
-8. `nfl-edge ingest --season 2026 --week W`
-9. `nfl-edge sim --season 2026 --week W --draws 20000`
-10. `nfl-edge lines --season 2026 --week W`
-11. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
+9. `nfl-edge ingest --season 2026 --week W`
+10. `nfl-edge sim --season 2026 --week W --draws 20000`
+11. `nfl-edge lines --season 2026 --week W`
+12. `nfl-edge dk-salaries --season 2026 --week W --slate main`
+13. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
 
 Between those, the LaunchAgent keeps snapshotting. After a new snapshot, `nfl-edge lines --season 2026 --week W` writes edges without a re-sim.
 
@@ -90,6 +92,14 @@ Columns (header row required):
 
 Unmatched and ambiguous rows are reported and not written. `questionable` keeps the given
 multiplier (default 1.0).
+
+## DK salaries
+
+`nfl-edge dk-salaries --season S --week W --slate main` reads `data/dk/DKSalaries_S_wkWW_main.csv`
+(or `--file`). Writes `raw.dk_salaries` (unmatched names kept with null `player_id`, never dropped)
+and fills `raw.players.dk_id`. DK `Status` O/OUT and IR → `player_overrides` out (usage 0); D →
+doubtful (usage 0); Q → questionable (usage 1.0). Unmatched names and skipped overrides go to
+stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `config/dk_aliases.yaml`.
 
 ## Web
 
