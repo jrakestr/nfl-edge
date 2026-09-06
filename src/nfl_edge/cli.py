@@ -298,6 +298,40 @@ def dfs(
 
 
 @app.command()
+def props(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+    file: str = typer.Option(..., "--file", help="CSV: player, stat, line, over_odds, under_odds"),
+    run: str = typer.Option(None, help="run_id (default: newest sim for the week)"),
+):
+    """Load manual prop lines, compute P(over) from parquet draws, persist model.prop_edges."""
+    from pathlib import Path
+
+    from .market import props_manual
+    from .outputs import props as props_out
+
+    loaded = props_manual.run(season, week, Path(file))
+    typer.echo(
+        f"props {loaded['season']} wk{loaded['week']}: {loaded['written']} written / {loaded['rows']} rows"
+    )
+    for u in loaded["unmatched"]:
+        typer.echo(
+            f"  {u.get('reason', 'unmatched')}: {u.get('player')} stat={u.get('stat')} "
+            f"team={u.get('team')} pos={u.get('position')}"
+        )
+    if loaded["written"] == 0:
+        return
+    edges = props_out.run(season, week, run_id=run)
+    typer.echo(
+        f"prop_edges run {edges['run_id']}: {edges['n_edges']} rows from {edges['n_props']} lines"
+    )
+    for s in edges["skipped"]:
+        typer.echo(
+            f"  {s.get('reason')}: {s.get('player_name')} {s.get('stat')} {s.get('line')}"
+        )
+
+
+@app.command()
 def grade(
     week: int = typer.Option(...),
     season: int = typer.Option(2026),
