@@ -91,6 +91,32 @@ Columns (header row required):
 Unmatched and ambiguous rows are reported and not written. `questionable` keeps the given
 multiplier (default 1.0).
 
+## Web
+
+The Next.js app in `web/` reads Supabase directly from server components; it never writes.
+
+- **Vercel project** `nfl-edge`, linked to `github.com/jrakestr/nfl-edge`, **Root Directory = `web`**,
+  framework Next.js, Node 22. Previews per branch/PR, production from `main`.
+- **Env var**: `DATABASE_URL` only. Value is the Supabase **session pooler** URI (IPv4; the direct
+  `db.<ref>.supabase.co` host is IPv6-only and Vercel cannot reach it), set for Production and
+  Preview via `vercel env add` (pasted interactively, never in a shell-history line). Locally the
+  same URI lives in `web/.env.local`, which `web/.gitignore` excludes.
+- **Role**: migration `0006_web_reader_role.sql` creates `web_reader` (login, SELECT on `model.*`
+  and `raw.*`, default privileges for future tables, 15 s statement timeout) **without a
+  password**. Set it by hand once in the Supabase SQL editor: `alter role web_reader password '…'`
+  (letters and digits only, so the URI needs no percent-encoding). The pooler user for a custom
+  role is `web_reader.<project_ref>`:
+  `postgresql://web_reader.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
+- **Freshness**: every page is `force-dynamic`; a new `sim` / `lines` run shows on the next
+  request with no redeploy. `sim` alone is not enough for the board: `model.verdicts_latest` and
+  `model.edges_latest` key on each game's newest `raw.market_lines` snapshot, so after the
+  LaunchAgent snapshots a new line the board shows a "N of 16 games have a newer line" note until
+  `nfl-edge lines --season S --week W` runs again. Run `lines` last in the weekly order.
+- **Connections**: `postgres.js` pool `max: 3` per instance; preview + prod cold starts stay under
+  the free pooler's limit.
+- **Deploy**: `cd web && vercel link` (once) → `vercel` for a preview URL → `vercel --prod` only
+  after the UI checkpoint in `STATUS.md` is ticked.
+
 ## Provenance
 
 Every `sim` run records `git_sha`, `config_hash` and `draws_per_game` in `model.sim_runs`; `lines`

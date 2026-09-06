@@ -6,7 +6,7 @@
  * and unreachable from Vercel). Session mode keeps server-side prepared statements valid.
  * If it ever becomes the transaction pooler (port 6543), add `prepare: false` below.
  *
- * `max: 3` per instance and `revalidate = 60` on pages keep the pooler's small connection
+ * `max: 3` per instance and force-dynamic pages (16 rows a request) keep the pooler's small connection
  * budget mostly idle. The value of DATABASE_URL is never logged.
  */
 import postgres, { type Sql } from "postgres";
