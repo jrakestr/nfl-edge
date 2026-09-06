@@ -2,6 +2,14 @@
 
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below).
 
+## Phase 2 — DFS (2026-09-06)
+- Week 1 DK Main + Full on run `e7a5ff4e` (histograms, 20k): 150 lineups each with win%/ROI in `model.dfs_lineups` / `dfs_exposure`. Upload CSVs at `data/dfs/e7a5ff4e-…/dk/{main,full}/dk_upload.csv`.
+- `nfl-edge dfs --slate` is required. `nfl-edge grade` skips DFS until `player_stats_weekly` exists for the week (`dfs: skipped (scores unpublished)` on 2026 wk1).
+- Preview: https://nfl-edge-902bjznuh-transit-trends.vercel.app — `/lineups` Week 1 DK Main (150 LineupCards, export, exposure), `/games` sim-score table (16 games). Deployment Protection on. RunBadge footer still says "no run loaded" on those two routes (shell footer); data is in the page body.
+
+### Checkpoint 2
+- 150 Week 1 DK Main lineups in `model.dfs_lineups` with win%/ROI; DK upload CSV produced; lineup review and games page render locally and on the preview URL above.
+
 ## Phase 1 — web app (2026-09-06)
 - Linked `web/` to Vercel project `transit-trends/nfl-edge`. `DATABASE_URL` is the session pooler (IPv4) on Production and Preview. Direct `db.*.supabase.co` does not resolve on Vercel.
 - Preview (Deployment Protection on): https://nfl-edge-dj28g8tlj-transit-trends.vercel.app — `/` → `/week/1`, 16 VerdictCards, RunBadge `run 5823f7 · … · 20k`, week summary, same payload as local. Run `5823f735`.
@@ -129,6 +137,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
 - [x] C — `nfl-edge lines --season 2026 --week 1` prints 16 verdicts from a 20k run and `model.verdicts` holds 16 rows, on Supabase (run `5823f735`) and on local Postgres (run `3d4fe1c7`).
 - [x] D — `nfl-edge grade --season 2025 --week 10` on local Postgres: 7 runs, 588 `model.results` rows, picks ~50%, CLV 0 by construction; 2026 wk1 verdicts on Supabase carry structured chip/call fields. First live grade Tue 2026-09-15.
+- [x] 2 — 150 Week 1 DK Main lineups + upload CSV; `/lineups` and `/games` on preview https://nfl-edge-902bjznuh-transit-trends.vercel.app (run `e7a5ff4e`).
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
