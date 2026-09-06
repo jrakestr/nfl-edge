@@ -155,6 +155,7 @@ Automate the Tue/Sat/Sun steps with a scheduled task once the CLI is stable.
 2. `priors/` — team pace/strength and player usage from the raw tables.
 3. `sim/game.py` + `sim/players.py` + scoring; validate against 2025 with the consistency checks and a calibration plot for spreads/totals.
 4. `outputs/lines.py` and `market/edge.py` — first real product: model vs market on Week N sides/totals.
+4b. Web app (`web/`, Next.js + shadcn on Vercel, spec in `docs/design-system.md`): app shell and the Edge board reading `model.verdicts`, `model.edges_latest`, `model.proj_games`, `model.sim_checks`. This is how the outputs get looked at; it runs in parallel with 5–7 and every later step adds a screen to it (props in 6, grading in 7).
 5. `outputs/dfs_export.py` + optimizer wrapper — Week N lineups.
 6. Props view and showdown routing.
 7. `results/grade.py` — close the loop before Week 3 so the season's data accumulates.

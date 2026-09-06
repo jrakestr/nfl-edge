@@ -79,6 +79,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - Nothing blocked. Supabase is live and matches the local Postgres 16 container (`docker run --name nfl-edge-pg -p 5433:5432 postgres:16`) row for row; keep the local container for the `db`-marked e2e test, whose 2025 wk10 draws exist only locally.
 
 ## Checkpoints
+- [ ] UI — Edge board live on a Vercel URL reading Week 1 from Supabase (architecture §8 step 4b; plan: web app)
 - [x] A — backfill 2020–2025 loaded, `nfl-edge db counts` printed (local Postgres 2026-09-04; Supabase identical, same day)
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
 - [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
