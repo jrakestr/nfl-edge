@@ -23,6 +23,11 @@ def default_path(season: int, week: int, slate: str = "main") -> Path:
     return DATA_DIR / "dk" / f"DKSalaries_{season}_wk{week:02d}_{slate}.csv"
 
 
+def slate_type_for(slate: str) -> str:
+    """Showdown slates only. `full` is the 16-game classic week, not showdown."""
+    return "showdown" if slate.strip().lower() == "showdown" else "classic"
+
+
 def map_dk_status(raw: object | None) -> tuple[str, float] | None:
     if raw is None:
         return None
@@ -162,7 +167,7 @@ def _write_report(path: Path, summary: dict) -> None:
 
 def run(season: int, week: int, path: Path, site: str = "dk", slate: str = "main") -> dict:
     slate_id = f"{season}_{week:02d}_{slate}"
-    slate_type = "classic" if slate == "main" else "showdown"
+    slate_type = slate_type_for(slate)
     rows = attach_ids(parse_dk_csv(path), load_catalog(), N.load_aliases(), N.load_teams())
     frame = salary_frame(rows, site=site, slate_id=slate_id, slate_type=slate_type)
     written = 0
@@ -172,7 +177,8 @@ def run(season: int, week: int, path: Path, site: str = "dk", slate: str = "main
         execute(
             "update raw.players p set dk_id = s.player_dk_id "
             "from raw.dk_salaries s "
-            "where s.site = %s and s.slate_id = %s and s.player_id = p.gsis_id",
+            "where s.site = %s and s.slate_id = %s and s.player_id = p.gsis_id "
+            "and (p.dk_id is null or p.dk_id = '')",
             (site, slate_id),
         )
     ov_rows, ov_skipped = overrides_from_status(rows)

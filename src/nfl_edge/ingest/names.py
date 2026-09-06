@@ -64,7 +64,17 @@ def load_teams() -> dict:
 
 
 def _team_keys(abbr: str, meta: dict) -> set[str]:
-    keys = {merge_key(abbr), merge_key(meta.get("city", "")), merge_key(meta.get("nick", ""))}
+    abbrs = {abbr}
+    for src, dst in TEAM_ALIASES.items():
+        if dst == abbr:
+            abbrs.add(src)
+        if src == abbr:
+            abbrs.add(dst)
+    keys = set()
+    for a in abbrs:
+        keys.add(merge_key(a))
+    keys.add(merge_key(meta.get("city", "")))
+    keys.add(merge_key(meta.get("nick", "")))
     city, nick = meta.get("city", ""), meta.get("nick", "")
     if city and nick:
         keys.add(merge_key(f"{city} {nick}"))

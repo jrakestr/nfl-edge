@@ -11,7 +11,7 @@ CATALOG = pl.DataFrame({
     "gsis_id": ["00-0033873", "00-0036900", "00-0039139", "00-0037837"],
     "display_name": ["Patrick Mahomes", "Ja'Marr Chase", "Jahmyr Gibbs", "Puka Nacua"],
     "merge_name": ["patrick mahomes", "jamarr chase", "jahmyr gibbs", "puka nacua"],
-    "latest_team": ["KC", "CIN", "DET", "LAR"],
+    "latest_team": ["KC", "CIN", "DET", "LA"],
     "position": ["QB", "WR", "RB", "WR"],
 })
 
@@ -19,7 +19,7 @@ TEAMS = {
     "KC": {"city": "Kansas City", "nick": "Chiefs"},
     "CIN": {"city": "Cincinnati", "nick": "Bengals"},
     "DET": {"city": "Detroit", "nick": "Lions"},
-    "LAR": {"city": "Los Angeles", "nick": "Rams"},
+    "LA": {"city": "Los Angeles", "nick": "Rams"},
     "LAC": {"city": "Los Angeles", "nick": "Chargers"},
 }
 
@@ -89,3 +89,16 @@ def test_salary_frame_keeps_unmatched():
     assert set(frame["player_dk_id"].to_list()) == {
         "43727001", "43727002", "43727003", "43727004", "43727005", "43727006", "43727007",
     }
+
+
+def test_slate_type_full_is_classic():
+    assert D.slate_type_for("main") == "classic"
+    assert D.slate_type_for("full") == "classic"
+    assert D.slate_type_for("showdown") == "showdown"
+
+
+def test_attach_ids_dk_lar_to_nflverse_la():
+    rows = D.attach_ids(D.parse_dk_csv(FIXTURE), CATALOG, {}, TEAMS)
+    by_name = {r["name"]: r for r in rows}
+    assert by_name["Puka Nacua"]["team"] == "LAR"
+    assert by_name["Puka Nacua"]["player_id"] == "00-0037837"

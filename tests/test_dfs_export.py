@@ -125,6 +125,7 @@ def test_write_export_three_files(tmp_path: Path):
     dumped = json.loads((tmp_path / "config.json").read_text())
     assert dumped["custom_correlations"]["Patrick Mahomes"]["Chiefs"] == 0.4
     assert dumped["projection_path"] == "projections.csv"
+    assert (tmp_path / "contest_structure.csv").is_file()
     report_text = (tmp_path / "report.txt").read_text()
     assert "Ghost Player" in report_text
     assert "Puka Nacua" in report_text

@@ -7,13 +7,13 @@ CATALOG = pl.DataFrame({
     "gsis_id": ["00-0033873", "00-0033288", "00-0033289"],
     "display_name": ["Patrick Mahomes", "Joshua Kelly", "Joshua Kelly"],
     "merge_name": ["patrick mahomes", "joshua kelly", "joshua kelly"],
-    "latest_team": ["KC", "LAR", "LAC"],
+    "latest_team": ["KC", "LA", "LAC"],
     "position": ["QB", "RB", "RB"],
 })
 
 TEAMS = {
     "KC": {"city": "Kansas City", "nick": "Chiefs"},
-    "LAR": {"city": "Los Angeles", "nick": "Rams"},
+    "LA": {"city": "Los Angeles", "nick": "Rams"},
     "LAC": {"city": "Los Angeles", "nick": "Chargers"},
     "DET": {"city": "Detroit", "nick": "Lions"},
 }
@@ -110,3 +110,26 @@ def test_zero_usage_multiplier_is_kept():
     )
     assert unmatched == []
     assert matched["usage_multiplier"].to_list() == [0.0]
+
+
+def test_dk_lar_matches_nflverse_la_player_and_dst():
+    catalog = pl.DataFrame({
+        "gsis_id": ["00-0037837"],
+        "display_name": ["Puka Nacua"],
+        "merge_name": ["puka nacua"],
+        "latest_team": ["LA"],
+        "position": ["WR"],
+    })
+    player = N.match_one(
+        {"player": "Puka Nacua", "team": "LAR", "position": "WR"}, catalog, {}, TEAMS,
+    )
+    assert player.player_id == "00-0037837"
+    assert player.reason is None
+    dst = N.match_one(
+        {"player": "Rams", "team": "LAR", "position": "DST"}, catalog, {}, TEAMS,
+    )
+    assert dst.player_id == "LA_DST"
+    named = N.match_one(
+        {"player": "LAR", "team": "LAR", "position": "DST"}, catalog, {}, TEAMS,
+    )
+    assert named.player_id == "LA_DST"

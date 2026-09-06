@@ -12,7 +12,7 @@ from psycopg.types.json import Jsonb
 from .config import database_url
 
 # String-typed frame columns that land in jsonb columns (serialized JSON text in the frame).
-JSON_COLS = {"stats", "payload"}
+JSON_COLS = {"stats", "payload", "lineup"}
 # Refresh planner statistics after a bulk write at least this large.
 ANALYZE_MIN_ROWS = 10_000
 

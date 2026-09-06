@@ -175,6 +175,9 @@ def write_export(
         w.writeheader()
         w.writerows(player_ids)
     (out_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
+    structure = CONFIG_DIR / "dfs" / "contest_structure.csv"
+    if structure.exists():
+        (out_dir / "contest_structure.csv").write_text(structure.read_text())
     lines = [
         f"projections {len(projections)}  player_ids {len(player_ids)}",
         "",
