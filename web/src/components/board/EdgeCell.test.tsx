@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { EdgeCell } from "./EdgeCell";
-import { direction, intensity, line, signed, signedPct } from "@/lib/edge";
+import { direction, homeLine, intensity, line, signed, signedPct } from "@/lib/edge";
 
 function cell(props: Partial<React.ComponentProps<typeof EdgeCell>>) {
   const { container } = render(<EdgeCell model={-3} market={-3.5} kind="spread" edge={0.02} {...props} />);
@@ -58,6 +58,10 @@ describe("formatters", () => {
     expect(line(0)).toBe("PK");
     expect(line(-3)).toBe("−3");
     expect(line(3.5)).toBe("+3.5");
+  });
+  it("homeLine: nflverse home-favored → book-convention home line", () => {
+    expect(homeLine(3)).toBe(-3);
+    expect(homeLine(3.5)).toBe(-3.5);
   });
   it("signed handles negative zero", () => {
     expect(signed(-0)).toBe("0.0");
