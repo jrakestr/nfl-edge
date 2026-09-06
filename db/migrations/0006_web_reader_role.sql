@@ -8,7 +8,7 @@
 do $$
 begin
   if not exists (select 1 from pg_roles where rolname = 'web_reader') then
-    create role web_reader login;
+    create role web_reader login nosuperuser nocreatedb;
   end if;
 end
 $$;
