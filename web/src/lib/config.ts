@@ -5,10 +5,10 @@ export const CURRENT_SEASON = 2026;
 export const DEFAULT_WEEK = 1;
 
 export const NAV = [
-  { href: "/week", label: "Edge board", match: /^\/week/ },
+  { href: "/week", label: "Edge board", match: /^\/week(?:\/\d+)?$/ },
   { href: "/games", label: "Games", match: /^\/games/ },
   { href: "/players", label: "Players", match: /^\/players/ },
   { href: "/props", label: "Props", match: /^\/props/ },
-  { href: "/lineups", label: "Lineups", match: /^\/lineups/ },
+  { href: "/lineups", label: "Lineups", match: /^\/lineups|\/dfs\// },
   { href: "/grading", label: "Grading", match: /^\/grading/ },
 ] as const;

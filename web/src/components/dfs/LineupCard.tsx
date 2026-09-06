@@ -1,0 +1,95 @@
+import { StackChip, type Stack } from "./StackChip";
+import { pct as fmtPct } from "@/lib/edge";
+import type { DfsLineup } from "@/lib/types";
+
+const SLOT_ORDER = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as const;
+
+function lastToken(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return parts[parts.length - 1] ?? name;
+}
+
+export function stacksFromPlayers(
+  players: DfsLineup["players"],
+  teams: Record<string, string>,
+): Stack[] {
+  const counts = new Map<string, number>();
+  for (const p of players) {
+    const team = teams[p.name.toLowerCase()];
+    if (!team) continue;
+    counts.set(team, (counts.get(team) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([team, count]) => ({ team, count }));
+}
+
+export function LineupCard({
+  lineup,
+  teams = {},
+  selected = false,
+  onToggle,
+}: {
+  lineup: DfsLineup;
+  teams?: Record<string, string>;
+  selected?: boolean;
+  onToggle?: () => void;
+}) {
+  const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
+  const stacks = stacksFromPlayers(lineup.players, teams);
+  return (
+    <article className="card flex flex-col gap-2 p-4" aria-label={`Lineup ${lineup.lineup_id}`}>
+      <div className="flex items-start gap-3">
+        {onToggle ? (
+          <input
+            type="checkbox"
+            className="mt-2 size-4 shrink-0"
+            checked={selected}
+            onChange={onToggle}
+            aria-label={`Select lineup ${lineup.lineup_id}`}
+          />
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1">
+            {SLOT_ORDER.map((slot) => {
+              const p = bySlot.get(slot);
+              return (
+                <span
+                  key={slot}
+                  title={p?.name ?? slot}
+                  className="inline-flex h-8 min-w-9 items-center justify-center rounded-sm bg-muted px-1.5 t-caption"
+                >
+                  {p ? lastToken(p.name) : slot}
+                </span>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 t-caption">
+            <span>
+              Salary used{" "}
+              <span className="tnum text-foreground">
+                {lineup.salary_used != null ? lineup.salary_used.toLocaleString("en-US") : "—"}
+              </span>
+            </span>
+            <span>
+              Proj{" "}
+              <span className="tnum text-foreground">
+                {lineup.proj_fpts != null ? lineup.proj_fpts.toFixed(1) : "—"}
+              </span>
+            </span>
+            <span>
+              Win %{" "}
+              <span className="tnum text-foreground">{fmtPct(lineup.sim_win_pct)}</span>
+            </span>
+            <span>
+              ROI{" "}
+              <span className="tnum text-foreground">{fmtPct(lineup.sim_roi)}</span>
+            </span>
+            {stacks.length ? stacks.map((s) => <StackChip key={s.team} {...s} />) : <StackChip />}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}

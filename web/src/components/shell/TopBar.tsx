@@ -13,6 +13,12 @@ const LABELS: Record<string, string> = {
   props: "Props",
   lineups: "Lineups",
   grading: "Grading",
+  dfs: "Lineups",
+  dk: "DraftKings",
+  fd: "FanDuel",
+  main: "Main",
+  full: "Full",
+  showdown: "Showdown",
 };
 
 function crumbs(pathname: string): { href: string; label: string }[] {

@@ -198,3 +198,38 @@ export const GameChecksSchema = z.object({
   warnings: z.number().int(),
 });
 export type GameChecks = z.infer<typeof GameChecksSchema>;
+
+export const DfsSlotSchema = z.object({
+  slot: z.string(),
+  name: z.string(),
+  dk_id: z.string().nullable().optional(),
+});
+export type DfsSlot = z.infer<typeof DfsSlotSchema>;
+
+export const DfsLineupSchema = z.object({
+  lineup_id: z.string(),
+  salary_used: z.number().int().nullable(),
+  stack: z.string().nullable(),
+  proj_fpts: numOrNull,
+  sim_win_pct: numOrNull,
+  sim_roi: numOrNull,
+  players: z.array(DfsSlotSchema),
+});
+export type DfsLineup = z.infer<typeof DfsLineupSchema>;
+
+export const DfsExposureSchema = z.object({
+  player_id: z.string(),
+  name: z.string(),
+  team: z.string().nullable(),
+  sim_own: numOrNull,
+  proj_own: numOrNull,
+  leverage: numOrNull,
+});
+export type DfsExposure = z.infer<typeof DfsExposureSchema>;
+
+export const CorrPairSchema = z.object({
+  a: z.string(),
+  b: z.string(),
+  corr: num,
+});
+export type CorrPair = z.infer<typeof CorrPairSchema>;
