@@ -233,3 +233,84 @@ export const CorrPairSchema = z.object({
   corr: num,
 });
 export type CorrPair = z.infer<typeof CorrPairSchema>;
+
+export const HistSchema = z.object({
+  bins: z.array(num),
+  counts: z.array(z.number()),
+});
+export type Hist = z.infer<typeof HistSchema>;
+
+export const PropEdgeSchema = z.object({
+  market_prop_id: z.number().int(),
+  player_id: z.string(),
+  player_name: z.string(),
+  game_id: z.string().nullable(),
+  home: z.string().nullable(),
+  away: z.string().nullable(),
+  stat: z.string(),
+  line: num,
+  p_over: numOrNull,
+  model_prob: numOrNull,
+  market_prob: numOrNull,
+  edge: numOrNull,
+  kelly_fraction: numOrNull,
+  price: z.number().int().nullable(),
+  under_odds: z.number().int().nullable(),
+  over_odds: z.number().int().nullable(),
+  sentence: z.string().nullable(),
+  lean: z.enum(["over", "under", "flat"]).nullable(),
+  typical: numOrNull,
+});
+export type PropEdge = z.infer<typeof PropEdgeSchema>;
+
+export const PropSnapSchema = z.object({
+  captured_at: z.string(),
+  line: num,
+  over_odds: z.number().int().nullable(),
+  under_odds: z.number().int().nullable(),
+});
+export type PropSnap = z.infer<typeof PropSnapSchema>;
+
+export const PlayerWeekSchema = z.object({
+  season: z.number().int(),
+  week: z.number().int(),
+  gameday: z.string().nullable(),
+  opponent: z.string().nullable(),
+  team: z.string().nullable(),
+  home: z.string().nullable(),
+  away: z.string().nullable(),
+  home_score: z.number().int().nullable(),
+  away_score: z.number().int().nullable(),
+  stats: z.record(z.string(), z.unknown()),
+});
+export type PlayerWeek = z.infer<typeof PlayerWeekSchema>;
+
+export const WeekPlayerSchema = z.object({
+  player_id: z.string(),
+  display_name: z.string(),
+  position: z.string().nullable(),
+  team: z.string().nullable(),
+  game_id: z.string().nullable(),
+  fpts_dk_mean: numOrNull,
+  hist: HistSchema.nullable(),
+});
+export type WeekPlayer = z.infer<typeof WeekPlayerSchema>;
+
+export type MatchupRow = { label: string; value: string };
+
+export type PlayerHeader = {
+  gsis_id: string;
+  display_name: string;
+  position: string | null;
+  latest_team: string | null;
+};
+
+export type GameContext = {
+  game_id: string;
+  season: number;
+  week: number;
+  home: string;
+  away: string;
+  gameday: string;
+  gametime: string | null;
+};
