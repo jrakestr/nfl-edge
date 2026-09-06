@@ -458,7 +458,7 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
                     all_rows.append(row)
 
     if all_rows:
-        df = pl.DataFrame(all_rows)
+        df = pl.DataFrame(all_rows, infer_schema_length=None)
         now = datetime.now(ET)
         written = df.with_columns(pl.lit(now).alias("graded_at"))
         upsert(written, "model.results", RESULTS_KEY)

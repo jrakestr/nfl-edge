@@ -1,6 +1,6 @@
 # Status
 
-Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.cursor/plans/nfl_edge_step_4_lines_edge.plan.md` (Step 4, lines and edge; this section)
+Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.cursor/plans/nfl_edge_step_4_lines_edge.plan.md` (Step 4, done); `~/.cursor/plans/nfl_edge_step_7_grading.plan.md` (Step 7, grading — this section; stop at grade-checkpoint, do not start grade-refine)
 
 ## Step 4 — game lines and edge (2026-09-04)
 - migration-edges (26932ce): 0004 re-keys `model.edges` to `(run_id, market_line_id, market_type, side)` + `price`, `p_push`, `hold`; view `model.edges_latest`; `model.verdicts (run_id, game_id, market_line_id, payload jsonb)`.
@@ -24,15 +24,34 @@ Plans: `~/.cursor/plans/nfl_edge_steps_1-3_*.plan.md` (Steps 1–3, done); `~/.c
 - Two fixes surfaced by the remote, both in `db.py`/`cli.py`: `db counts` on a database with no tables raised (`concat empty list`) — now prints an empty table and says to migrate; and the first `sim` died at Supabase's 2-minute `statement_timeout` in `priors/depth.load_depth` because the bulk COPY left `raw.depth_charts` (1.24M rows) with no planner statistics. After `analyze` the same query runs in 1.6s; `_write` now analyzes a table after any write of ≥ 10,000 rows so a fresh backfill never depends on autovacuum timing.
 - `ingest --season 2026 --week 1` then `ingest --season 2026 --lines-only`: 272 schedules, 112 opening snapshots, 2,945 preseason roster rows, 496,713 daily depth-chart rows, 682 live-ECR rows; stats/opportunity/snap_counts skipped with the season-guard message. Snapshot cadence on Supabase: still 1 per game.
 
-### lines-refine (trailing todo; not started)
-- `fair_spread`/`fair_total` are medians of integer scores, so verdicts read "by 6.0 points" — use the mean (or a mid-quantile interpolation) for display and keep the median for P(cover). Sentence 1 uses `fair_spread` only; sentence 2/3 already use the exact draw probabilities.
-- Verdict for a game whose line moved after the sim: `lines` computes edges for the new snapshot but `proj_games.p_home_cover_market` still refers to the sim-time line; the parity check logs when no snapshot matches. Surface "line moved from X" in the payload.
-- `model.verdicts` keeps one row per snapshot; the UI wants the latest — add a `verdicts_latest` view alongside `edges_latest`.
-- Kelly is per-market and ignores correlation between a game's spread and moneyline; cap per-game exposure before any staking UI.
+### lines-refine (display items done in Step 7; Kelly cap still trailing)
+- Displayed spread/total now use `mean_spread`/`mean_total` when present (median stays for P(cover)/P(over)). Sentence 1 on the fresh 2025 wk10 run reads "by 5.9 points" not "6.0".
+- Line-moved-since-sim clause and `market.moved_since_sim` are in the payload; 2025 wk10 has one snapshot so the clause does not fire.
+- `model.verdicts_latest` exists (0005). Chips carry `market_type`/`side`; `calls.cover` is structured (`pays` / `does not pay` / `coin flip`).
+- Kelly is still per-market and ignores correlation between a game's spread and moneyline; cap per-game exposure stays in `grade-refine`.
 
 ### priors-refine additions from this step
 - Exclude or downweight prior-season Week 18 in `history_where`/`with_weights` (resting starters; wk18 MAE 4.75 in the backtest, and the Week 1 rester gap above).
 - Announced starters: `schedules.*_qb_id` is empty pre-kickoff; the depth-chart fallback carried Week 1. Re-run `ingest` Wed/Sat so the QB channel picks up announced starters.
+
+## Step 7 — grading (2026-09-06)
+- migration-results (e0121e0): 0005 re-keys `model.results` to `(run_id, market_line_id, market_type, side)` with line/price/CLV/pnl columns, `proj_games.mean_spread`/`mean_total`, view `model.verdicts_latest`. Applied locally and on Supabase (empty `results` both sides).
+- lines-refine-display (75ef9fc): mean display with median fallback; moved-since-sim; structured chip/call fields. Fresh sim required for mean columns; older runs fall back to the median.
+- tests-grade (6bf2e26) + results-grade (63fb129): 40 spec tests then `results/grade.py` (`outcome`, `pnl`, `clv_points`, `pick_close`, `grade_snapshot`, `run`). `infer_schema_length=None` on the results frame so runs without verdicts (null `verdict_call`) can share a table with runs that have `pays`.
+- cli-grade (ecdbc94) + calibration-results (c001749): `nfl-edge grade --season --week [--run]`; `output/grading_{season}.md` (CLV-zero header for backfilled seasons).
+- test-e2e-grade (1f377ec): `tests/test_grade_e2e.py` (`db`).
+
+### Checkpoint D — 2025 wk10 local Postgres; 2026 wk1 structured verdicts on Supabase
+- Fresh local sim `30b9d16c-5f84-4105-a693-657a6ce95756` (5k draws): 14 games, invariants 196/196, warnings 4/28. Verdicts use the mean ("Houston is favored … by 5.9 points"); no moved-since-sim clause (one snapshot per game). `lines --recompute` on `a66ce78b-84cf-4285-afc1-622bfc459076` rewrote the 14 pre-0005 payloads.
+- `nfl-edge grade --season 2025 --week 10`: 7 parquet runs, 588 `model.results` rows (7 × 84), 28 verdict rows, 0 unplayed, 0 missing parquet. `close_source = schedules` and `clv_points = 0` on every non-ML row (backfilled snapshots are post-kickoff).
+- Picks (`is_last_snapshot and edge > 0`, 42 sides per run = 14 games × 3 markets). Newest run `30b9d16c`: **21-21-0**, flat ROI **+2.3%**, Kelly ROI +21.5%. Spread 7-7-0 (−5.2%), total 7-7-0 (−4.3%), moneyline 7-7-0 (+16.3% — plus-money dogs). The other six runs sit in 20-22-0 to 22-20-0, flat ROI −2.3% to +6.8%. ~50% as expected; overall ROI is not negative because the ML dogs paid more than the spread/total hold lost. Honest number, not a betting green light.
+- Verdicts (only the two runs with chips: `30b9d16c` and `a66ce78b`): Side 7-7-0 ROI −5.2%, Total 7-7-0 ROI −4.3%, cover-call accuracy **57.1%** (n=14, coin flips excluded). The five older wk10 runs have edges but no verdict payloads.
+- Calibration (all 7 runs, last snapshot, both sides of every market): Brier sim **0.2319** vs close **0.2365**; buckets 0.1–0.9 hit 0.00 / 0.13 / 0.34 / 0.48 / 0.52 / 0.66 / 0.87 / 1.00 (`monotone=True` on this week). Season file `output/grading_2025.md` uses the newest run only (same 21-21-0 / 57.1%).
+- Supabase: 0005 applied; `nfl-edge lines --season 2026 --week 1 --recompute` rewrote 16 verdicts with `chips.*.market_type/side` and `calls.cover` (run `5823f735` still has null `mean_*` — median display until that week is re-simmed). No grading until games are played.
+- First live grade: `nfl-edge grade --season 2026 --week 1` on Tue 2026-09-15; needs the `--lines-only` cron running from now so pre-kickoff snapshots exist for CLV.
+
+### grade-refine (trailing; not started)
+- Per-game exposure cap across correlated markets; ROI by kickoff slot and by favorite/dog; player-prop and DFS grading when those views exist; `results` for the sim-time snapshot as well as the last (open-vs-close comparison of the model).
 
 ## Done
 - Scaffold (d401be7): schedules ingest, migrations 0001–0002, configs, CLI shell
@@ -84,7 +103,8 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - [x] B — `nfl-edge priors --season 2025 --week 10` plausible (see above)
 - [x] Backtest 2025 report at 5k draws; invariants 100%; spread MAE 2.60 ≤ 3, total MAE 2.26 ≤ 4
 - [x] C — `nfl-edge lines --season 2026 --week 1` prints 16 verdicts from a 20k run and `model.verdicts` holds 16 rows, on Supabase (run `5823f735`) and on local Postgres (run `3d4fe1c7`).
-- Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It becomes a season-long grading target in Step 7. Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
+- [x] D — `nfl-edge grade --season 2025 --week 10` on local Postgres: 7 runs, 588 `model.results` rows, picks ~50%, CLV 0 by construction; 2026 wk1 verdicts on Supabase carry structured chip/call fields. First live grade Tue 2026-09-15.
+- Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)
 - Populate `raw.player_overrides` weekly (injury report) — the RB/WR/TE gap to ECR is mostly this.
