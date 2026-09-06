@@ -46,7 +46,17 @@ src/nfl_edge/
 config/      scoring.yaml, sim.yaml, dfs/*.json
 db/migrations/
 data/        dk/ fd/ salary exports, props/ manual prop lines (gitignored)
+web/         Next.js app (Edge board, prop detail); reads model.* read-only
 ```
+
+## Web app
+
+```
+cd web && npm install && npm run dev      # http://localhost:3000 -> /week/<newest week with a run>
+npm run lint && npm run typecheck && npm test && npm run build
+```
+
+`web/.env.local` holds `DATABASE_URL` = the Supabase **session pooler** URI (IPv4; the direct host is IPv6-only and Vercel cannot reach it). Never committed. On Vercel the project's Root Directory is `web` and the same variable is set in the project's environment. Spec: [docs/design-system.md](docs/design-system.md).
 
 ## Status
 
