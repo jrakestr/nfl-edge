@@ -16,6 +16,7 @@ from ..config import ROOT, load_yaml
 from ..db import read_sql, upsert
 from ..market import edge as edge_mod
 from ..market.edge import decimal_odds, devig_two_way
+from . import dfs_grade
 from .calibration import calibration_buckets, is_monotone
 
 ET = ZoneInfo("America/New_York")
@@ -39,6 +40,8 @@ class GradeReport:
     brier_sim: float | None = None
     brier_close: float | None = None
     monotone: bool | None = None
+    dfs: dict = field(default_factory=dict)
+    props: dict = field(default_factory=dict)
 
 
 # ----------------------------------------------------------------------------- pure
@@ -470,9 +473,10 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
     games_tbl = _games_table(df, meta) if not df.is_empty() else pl.DataFrame()
     cal, brier_s, brier_c, mono = (_calibration_tables(df) if not df.is_empty()
                                    else (pl.DataFrame(), None, None, None))
+    dfs = dfs_grade.run(season, week, run_id=run_id)
     return GradeReport(
         season=season, week=week, run_ids=kept_runs, n_rows=df.height if not df.is_empty() else 0,
         n_verdicts=n_verdicts, skipped_unplayed=len(unplayed), skipped_no_parquet=skipped_pq,
         picks=picks, verdicts=verd_tbl, games=games_tbl, calibration=cal,
-        brier_sim=brier_s, brier_close=brier_c, monotone=mono,
+        brier_sim=brier_s, brier_close=brier_c, monotone=mono, dfs=dfs,
     )

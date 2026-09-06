@@ -330,6 +330,16 @@ def grade(
             typer.echo(str(df))
     report_path = cal.results_report(season)
     typer.echo(f"\n{report_path}")
+    dfs = report.dfs or {}
+    if dfs.get("skipped"):
+        typer.echo(f"dfs: skipped ({dfs.get('reason')})")
+    elif dfs.get("n_lineups"):
+        typer.echo(f"dfs: {dfs['n_lineups']} lineups graded")
+    props = report.props or {}
+    if props.get("skipped"):
+        typer.echo(f"props: skipped ({props.get('reason')})")
+    elif props.get("n_rows"):
+        typer.echo(f"props: {props['n_rows']} edges graded")
 
 
 if __name__ == "__main__":
