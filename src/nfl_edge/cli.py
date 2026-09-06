@@ -219,8 +219,25 @@ def lines(
 
 
 @app.command()
-def props(week: int, season: int = 2026):
-    raise NotImplementedError("outputs.props not built yet")
+def overrides(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(..., "--file", help="CSV: player, status, usage_multiplier, note"),
+):
+    """Upsert raw.player_overrides from a CSV. Unmatched names are reported, not guessed."""
+    from pathlib import Path
+
+    from .ingest import overrides as ov
+
+    r = ov.run(season, week, Path(file))
+    typer.echo(
+        f"overrides {r['season']} wk{r['week']}: {r['written']} written / {r['rows']} rows"
+    )
+    for pid in r["matched"]:
+        typer.echo(f"  matched {pid}")
+    for u in r["unmatched"]:
+        typer.echo(f"  {u.get('reason', 'unmatched')}: {u.get('player')} "
+                   f"team={u.get('team')} pos={u.get('position')}")
 
 
 @app.command()

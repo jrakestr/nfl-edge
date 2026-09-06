@@ -1,0 +1,3 @@
+# Leftover DK / override names that do not match merge_name + team + position.
+# key: name as it appears in the CSV; value: gsis_id
+{}
