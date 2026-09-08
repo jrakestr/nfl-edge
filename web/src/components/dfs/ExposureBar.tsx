@@ -19,7 +19,7 @@ export function ExposureBar({
   return (
     <div className="flex flex-col gap-1" aria-label={`${name} exposure`}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="t-body truncate">{name}</span>
+        <span className="t-body truncate font-semibold text-foreground">{name}</span>
         <EdgeCell model={mine ?? null} market={field ?? null} kind="pct" edge={lev} />
       </div>
       <div className="flex flex-col gap-0.5">

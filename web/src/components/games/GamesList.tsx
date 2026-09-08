@@ -48,7 +48,7 @@ export function GamesList({
           <TableHeader className="bg-muted">
             <TableRow className="hover:bg-transparent">
               {COLS.map((c) => (
-                <TableHead key={c} className="t-colhead text-dim">
+                <TableHead key={c} className="t-colhead text-muted-foreground">
                   {c}
                 </TableHead>
               ))}
@@ -76,11 +76,11 @@ export function GamesList({
                       <Matchup home={r.home} away={r.away} />
                     </TableCell>
                     <TableCell className="t-caption">{kickoffLabel(r.gameday, r.gametime)}</TableCell>
-                    <TableCell className="tnum">
+                    <TableCell className="tnum font-semibold text-foreground">
                       {sc ? `${sc.away.toFixed(1)}–${sc.home.toFixed(1)}` : "—"}
                     </TableCell>
-                    <TableCell className="tnum">{spread == null ? "—" : line(homeLine(spread))}</TableCell>
-                    <TableCell className="tnum">{total == null ? "—" : total.toFixed(1)}</TableCell>
+                    <TableCell className="tnum font-semibold text-foreground">{spread == null ? "—" : line(homeLine(spread))}</TableCell>
+                    <TableCell className="tnum font-semibold text-foreground">{total == null ? "—" : total.toFixed(1)}</TableCell>
                   </TableRow>
                 );
               })

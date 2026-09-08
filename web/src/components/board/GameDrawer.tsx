@@ -75,12 +75,12 @@ export function GameDrawer({
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="t-colhead h-8 px-2">Side</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right">Model</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right">Market</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right">Edge</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right">Price</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right">¼ Kelly</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-muted-foreground">Side</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Model</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Market</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Edge</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Price</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">¼ Kelly</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -102,8 +102,8 @@ export function GameDrawer({
                               "—"
                             )}
                           </TableCell>
-                          <TableCell className="tnum px-2 text-right text-muted-foreground">{e ? price(e.price) : "—"}</TableCell>
-                          <TableCell className="tnum px-2 text-right text-muted-foreground">
+                          <TableCell className="tnum px-2 text-right font-semibold text-foreground">{e ? price(e.price) : "—"}</TableCell>
+                          <TableCell className="tnum px-2 text-right font-semibold text-foreground">
                             {e ? `${(e.kelly_fraction * 100).toFixed(1)}%` : "—"}
                           </TableCell>
                         </TableRow>

@@ -84,10 +84,10 @@
   --secondary: #f7f8fa;
   --secondary-foreground: #111318;
   --muted: #fafbfc;
-  --muted-foreground: #6f7683;
+  --muted-foreground: #5b6270;
   --accent: #f7f8fa;
   --accent-foreground: #111318;
-  --destructive: #de4a3a;
+  --destructive: #b8342a;
   --border: #e6e8ec;
   --border-soft: #eef0f3;
   --input: #e6e8ec;
@@ -109,12 +109,12 @@
   --chart-5: #e6e8ec;
 
   /* semantic — the only saturated colors */
-  --edge-pos: #109b62;
+  --edge-pos: #0b7a4c;
   --edge-pos-tint: #e5f6ee;
-  --edge-neg: #de4a3a;
+  --edge-neg: #b8342a;
   --edge-neg-tint: #fce9e6;
-  --warn: #b26b00;
-  --line: #2f6bff;
+  --warn: #9a5a00;
+  --line: #1f56d9;
   --line-tint: #eef3ff;
 
   /* motion */
@@ -181,7 +181,7 @@
     font-size: 11px;
     line-height: 16px;
     font-weight: 500;
-    color: var(--dim);
+    color: var(--muted-foreground);
   }
   .tnum {
     font-variant-numeric: tabular-nums;

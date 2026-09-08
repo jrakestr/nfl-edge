@@ -35,32 +35,32 @@ export function StatBars({
     <section className="card p-4" data-slot="stat-bars">
       <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">
         <div>
-          <div className="t-colhead text-dim">Line</div>
-          <div className="t-body tnum">{line != null ? line : "—"}</div>
+          <div className="t-colhead text-muted-foreground">Line</div>
+          <div className="t-body tnum font-semibold text-foreground">{line != null ? line : "—"}</div>
         </div>
         <div>
-          <div className="t-colhead text-dim">Over</div>
-          <div className="t-body tnum">{price(overOdds)}</div>
+          <div className="t-colhead text-muted-foreground">Over</div>
+          <div className="t-body tnum font-semibold text-foreground">{price(overOdds)}</div>
         </div>
         <div>
-          <div className="t-colhead text-dim">Under</div>
-          <div className="t-body tnum">{price(underOdds)}</div>
+          <div className="t-colhead text-muted-foreground">Under</div>
+          <div className="t-body tnum font-semibold text-foreground">{price(underOdds)}</div>
         </div>
         <div>
-          <div className="t-colhead text-dim">Cleared it, last 10</div>
-          <div className="t-body tnum">{last10.length ? `${cleared}/${last10.length}` : "—"}</div>
+          <div className="t-colhead text-muted-foreground">Cleared it, last 10</div>
+          <div className="t-body tnum font-semibold text-foreground">{last10.length ? `${cleared}/${last10.length}` : "—"}</div>
         </div>
         <div>
-          <div className="t-colhead text-dim">Average</div>
-          <div className="t-body tnum">{numOrDash(avg, 1)}</div>
+          <div className="t-colhead text-muted-foreground">Average</div>
+          <div className="t-body tnum font-semibold text-foreground">{numOrDash(avg, 1)}</div>
         </div>
         <div>
-          <div className="t-colhead text-dim">Typical sim game</div>
-          <div className="t-body tnum">{numOrDash(typical, 1)}</div>
+          <div className="t-colhead text-muted-foreground">Typical sim game</div>
+          <div className="t-body tnum font-semibold text-foreground">{numOrDash(typical, 1)}</div>
         </div>
         <div>
-          <div className="t-colhead text-dim">Chance of over</div>
-          <div className="t-body tnum">{pct(pOver)}</div>
+          <div className="t-colhead text-muted-foreground">Chance of over</div>
+          <div className="t-body tnum font-semibold text-foreground">{pct(pOver)}</div>
         </div>
       </div>
       <div className="relative flex h-24 items-end gap-1 rounded-md bg-muted px-2 py-2">

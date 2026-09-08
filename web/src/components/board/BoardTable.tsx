@@ -160,7 +160,8 @@ export function BoardTable({
                     "—"
                   ) : (
                     <span>
-                      <span className="font-semibold text-foreground">{r.home}</span> {pct(r.p_home_cover_market)}
+                      <span className="font-semibold text-foreground">{r.home}</span>{" "}
+                      <span className="font-semibold text-foreground">{pct(r.p_home_cover_market)}</span>
                     </span>
                   )}
                 </TableCell>

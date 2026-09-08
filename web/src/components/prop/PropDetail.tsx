@@ -140,7 +140,7 @@ export function PropDetail({
             </div>
           </div>
           <label className="flex max-w-xs flex-col gap-1">
-            <span className="t-colhead text-dim">Entered line</span>
+            <span className="t-colhead text-muted-foreground">Entered line</span>
             <Input
               readOnly
               value={edge ? String(edge.line) : ""}
@@ -190,7 +190,7 @@ export function PropDetail({
             <thead className="bg-muted">
               <tr>
                 {LOG_COLS.map((c) => (
-                  <th key={c} className="px-3 py-2 text-left t-colhead text-dim">
+                  <th key={c} className="px-3 py-2 text-left t-colhead text-muted-foreground">
                     {c}
                   </th>
                 ))}
@@ -218,17 +218,17 @@ export function PropDetail({
                   return (
                     <tr key={`${g.season}-${g.week}`} className="border-t border-border-soft">
                       <td className="px-3 py-2 t-caption tnum">{g.gameday ?? `${g.season} wk${g.week}`}</td>
-                      <td className="px-3 py-2 t-caption">{g.opponent ?? "—"}</td>
-                      <td className="px-3 py-2 t-caption tnum">{result}</td>
-                      <td className="px-3 py-2 t-caption tnum">{carries}</td>
-                      <td className="px-3 py-2 t-caption tnum">{rush ?? "—"}</td>
-                      <td className="px-3 py-2 t-caption tnum">{targets}</td>
-                      <td className="px-3 py-2 t-caption tnum">{rec ?? "—"}</td>
-                      <td className="px-3 py-2 t-caption tnum">{recY ?? "—"}</td>
-                      <td className="px-3 py-2 t-caption tnum">
+                      <td className="px-3 py-2 font-semibold text-foreground">{g.opponent ?? "—"}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">{result}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">{carries}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">{rush ?? "—"}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">{targets}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">{rec ?? "—"}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">{recY ?? "—"}</td>
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">
                         {rush != null || recY != null ? (rush ?? 0) + (recY ?? 0) : "—"}
                       </td>
-                      <td className="px-3 py-2 t-caption tnum">
+                      <td className="px-3 py-2 tnum font-semibold text-foreground">
                         {vs == null || edge == null ? "—" : vs > edge.line ? "Over" : vs < edge.line ? "Under" : "Push"}
                       </td>
                     </tr>

@@ -101,7 +101,7 @@ function ChipRow({ name, chip, probOnly = false }: { name: string; chip: Chip | 
   if (!chip) {
     return (
       <div className="flex items-baseline justify-between gap-2" data-chip={name}>
-        <span className="t-colhead text-dim">{name}</span>
+        <span className="t-colhead text-muted-foreground">{name}</span>
         <span className="t-caption">—</span>
       </div>
     );
@@ -111,7 +111,7 @@ function ChipRow({ name, chip, probOnly = false }: { name: string; chip: Chip | 
   return (
     <div className="flex flex-col gap-0.5" data-chip={name} data-edge={dir}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="t-colhead text-dim">{name}</span>
+        <span className="t-colhead text-muted-foreground">{name}</span>
         <EdgeDiff dir={dir} inten={inten} className="text-[13px]">
           {signedPct(chip.edge)}
         </EdgeDiff>
@@ -122,7 +122,7 @@ function ChipRow({ name, chip, probOnly = false }: { name: string; chip: Chip | 
           <span className="text-foreground font-semibold">{pct(chip.prob)}</span>
           <span className="text-dim"> · </span>
           <span className="text-line font-semibold">{pct(chip.market_prob)}</span>
-          {chip.price != null ? <span className="text-dim"> {price(chip.price)}</span> : null}
+          {chip.price != null ? <span className="text-muted-foreground"> {price(chip.price)}</span> : null}
         </span>
       </div>
     </div>

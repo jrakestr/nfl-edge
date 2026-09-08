@@ -68,7 +68,7 @@ export function LineupCard({
                 <span
                   key={slot}
                   title={p?.name ?? slot}
-                  className="inline-flex h-8 min-w-9 items-center justify-center rounded-sm bg-muted px-1.5 t-caption"
+                  className="inline-flex h-8 min-w-9 items-center justify-center rounded-sm bg-muted px-1.5 t-body font-semibold text-foreground"
                 >
                   {label}
                 </span>
@@ -78,25 +78,25 @@ export function LineupCard({
           <div className="flex flex-wrap items-center gap-3 t-caption">
             <span>
               Salary used{" "}
-              <span className="tnum text-foreground">
+              <span className="tnum font-semibold text-foreground">
                 {lineup.salary_used != null ? lineup.salary_used.toLocaleString("en-US") : "—"}
               </span>
             </span>
             <span>
               Proj{" "}
-              <span className="tnum text-foreground">
+              <span className="tnum font-semibold text-foreground">
                 {lineup.proj_fpts != null ? lineup.proj_fpts.toFixed(1) : "—"}
               </span>
             </span>
             <span>
               Win %{" "}
-              <span className="tnum text-foreground">
+              <span className="tnum font-semibold text-foreground">
                 {fmtPct(lineup.sim_win_pct, Math.abs((lineup.sim_win_pct ?? 0) * 100) < 1 ? 1 : 0)}
               </span>
             </span>
             <span>
               ROI{" "}
-              <span className="tnum text-foreground">{fmtPct(lineup.sim_roi)}</span>
+              <span className="tnum font-semibold text-foreground">{fmtPct(lineup.sim_roi)}</span>
             </span>
             {stacks.length ? stacks.map((s) => <StackChip key={s.team} {...s} />) : <StackChip />}
           </div>

@@ -292,6 +292,7 @@ export const WeekPlayerSchema = z.object({
   team: z.string().nullable(),
   game_id: z.string().nullable(),
   fpts_dk_mean: numOrNull,
+  typical_dk: numOrNull,
   hist: HistSchema.nullable(),
 });
 export type WeekPlayer = z.infer<typeof WeekPlayerSchema>;

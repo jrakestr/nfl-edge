@@ -40,6 +40,7 @@ const PLAYER: WeekPlayer = {
   team: "DET",
   game_id: "2026_01_NO_DET",
   fpts_dk_mean: 18.2,
+  typical_dk: 22.3,
   hist: { bins: [0, 10, 20], counts: [1, 2] },
 };
 
@@ -64,6 +65,7 @@ describe("props-web surfaces", () => {
   it("Players search filters and links to prop detail", () => {
     render(<PlayersList players={[PLAYER]} />);
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+    expect(screen.getByText("22.3")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Name or team"), { target: { value: "zzz" } });
     expect(screen.getByText("No projections listed yet")).toBeInTheDocument();
   });

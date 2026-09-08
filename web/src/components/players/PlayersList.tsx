@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DistributionSpark } from "@/components/board/DistributionSpark";
 import type { WeekPlayer } from "@/lib/types";
 
 const COLS = ["Player", "Pos", "Team", "DK pts", "Typical game"] as const;
@@ -28,7 +27,7 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
       <header className="flex flex-col gap-3">
         <h1 className="t-title">Players</h1>
         <label className="flex max-w-sm flex-col gap-1">
-          <span className="t-colhead text-dim">Search</span>
+          <span className="t-colhead text-muted-foreground">Search</span>
           <Input
             placeholder="Name or team"
             value={q}
@@ -45,7 +44,7 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
           <TableHeader className="bg-muted">
             <TableRow className="hover:bg-transparent">
               {COLS.map((c) => (
-                <TableHead key={c} className="t-colhead text-dim">
+                <TableHead key={c} className="t-colhead text-muted-foreground">
                   {c}
                 </TableHead>
               ))}
@@ -64,18 +63,18 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
                   <TableCell>
                     <Link
                       href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
-                      className="underline-offset-2 hover:underline"
+                      className="font-semibold text-foreground underline-offset-2 hover:underline"
                     >
                       {p.display_name}
                     </Link>
                   </TableCell>
-                  <TableCell className="t-caption">{p.position ?? "—"}</TableCell>
-                  <TableCell className="t-caption">{p.team ?? "—"}</TableCell>
-                  <TableCell className="tnum">
+                  <TableCell className="t-body text-foreground font-semibold">{p.position ?? "—"}</TableCell>
+                  <TableCell className="t-body text-foreground font-semibold">{p.team ?? "—"}</TableCell>
+                  <TableCell className="tnum font-semibold text-foreground">
                     {p.fpts_dk_mean != null ? p.fpts_dk_mean.toFixed(1) : "—"}
                   </TableCell>
-                  <TableCell>
-                    <DistributionSpark counts={p.hist?.counts} bins={p.hist?.bins} />
+                  <TableCell className="tnum font-semibold text-foreground">
+                    {p.typical_dk != null ? p.typical_dk.toFixed(1) : "—"}
                   </TableCell>
                 </TableRow>
               ))

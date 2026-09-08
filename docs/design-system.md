@@ -9,7 +9,7 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 1. **Plain English first, numbers second.** Every screen leads with a sentence a normal person can read ("Detroit is favored to beat New Orleans by 10.4 points. The book has them by 7."). Numbers support the sentence as chips and columns; a Plain English / Table toggle exposes the dense view. Column headers say what the number means ("Cleared it, last 10", "Chance of over"), never the abbreviation.
 2. **Signal only.** Color means one thing: edge and its direction. Nothing else is colored. Team colors appear only as an 8px dot next to an abbreviation.
 3. **One typeface, no monospace.** Plus Jakarta Sans for everything. Numbers use `font-variant-numeric: tabular-nums` at weight 600–700 so columns align without a mono face.
-4. **The summary screams, the table whispers.** One number per screen at display size. Everything repeated per row is at body size, muted, and gains weight only when it crosses a threshold.
+4. **The summary screams, the table whispers.** One number per screen at display size. Player names, team abbreviations, and every primary number are `--foreground` at weight 600. Labels and column headers use `--muted-foreground`. `--dim` is never used for anything a person needs to read.
 5. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
 6. **Every number has a run.** A `run_id` badge is visible on every screen. Stale runs are marked; two runs can be compared.
 7. **Light, app-shaped.** Light is the only theme. Cool grey field (`#F4F5F7`), white cards with a 1px `#E6E8EC` border and 12px radius, a 216px white sidebar, a 52px top bar with breadcrumb, search and actions. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
@@ -27,8 +27,8 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 | `--border` | `#E6E8EC` | card and bar borders |
 | `--border-soft` | `#EEF0F3` | row dividers |
 | `--foreground` | `#111318` | text, numbers |
-| `--muted-foreground` | `#6F7683` | labels |
-| `--dim` | `#A0A6B1` | captions, placeholders |
+| `--muted-foreground` | `#5B6270` | labels, captions, column headers |
+| `--dim` | `#A0A6B1` | decorative punctuation and placeholders only |
 
 Four-step elevation: background → card → muted → accent. Cards get one shadow, `0 1px 2px rgb(27 26 23 / 0.06)`, and a `--border` hairline; nothing else casts a shadow.
 
@@ -36,18 +36,18 @@ Four-step elevation: background → card → muted → accent. Cards get one sha
 
 | Token | Value | Meaning |
 |---|---|---|
-| `--edge-pos` | `#109B62` (tint `#E5F6EE`) | model likes it (positive edge / over / favorite covers) |
-| `--edge-neg` | `#DE4A3A` (tint `#FCE9E6`) | model fades it |
+| `--edge-pos` | `#0B7A4C` (tint `#E5F6EE`) | model likes it (positive edge / over / favorite covers) |
+| `--edge-neg` | `#B8342A` (tint `#FCE9E6`) | model fades it |
 | `--edge-flat` | `--muted-foreground` | |edge| below threshold |
-| `--warn` | `#B26B00` | stale run, check warning, injury override active |
-| `--line` | `#2F6BFF` (tint `#EEF3FF`) | market line / market side of any comparison |
+| `--warn` | `#9A5A00` | stale run, check warning, injury override active |
+| `--line` | `#1F56D9` (tint `#EEF3FF`) | market line / market side of any comparison |
 | `--model` | `--foreground` | model side of any comparison |
 
 All semantic colors are ≥ 4.5:1 on `--card` and `--background`. Tinted backgrounds for chips use the semantic color at 10% opacity.
 
 Rule: model values are neutral foreground; **market** values are `--line` blue; the **difference** is the only thing that goes green/red. Never color a raw projection.
 
-Edge intensity: opacity ramps with |edge|. 0–1% flat; 1–3% color at 70%; >3% color at 100% and weight 600. This is the "conditional emphasis" rule made concrete.
+Edge intensity: weight ramps with |edge|. 0–1% flat (`--muted-foreground`); 1–3% color at weight 500; >3% color at weight 600. Opacity is never used to fade readable numbers (it drops contrast below 4.5:1).
 
 ### Typography
 
@@ -60,7 +60,7 @@ Plus Jakarta Sans throughout (Google Fonts), fallback `system-ui`. No second fam
 | Sentence copy (verdicts, callouts) | 14/21 | 400, key facts in 700 |
 | Body, table cell | 13/18 | 500 |
 | Column header | 11/16 | 600, uppercase, 0.04em |
-| Caption | 11–12 | 400–500, `--dim` |
+| Caption | 11–12 | 500, `--muted-foreground` |
 
 Numbers: `tabular-nums`, weight 600–700, right-aligned in tables. Signs always shown (`+3.4`, `−7`). Probabilities as `61%`.
 
@@ -142,7 +142,7 @@ Same tokens and components; `DistributionSpark` becomes a full-width histogram i
 ## Accessibility
 
 - Color never carries meaning alone: every colored difference also has a sign character, and `CheckStatus` has a label on hover and in the DOM.
-- Contrast: all text ≥ 4.5:1 on its surface (semantic colors chosen for that).
+- Contrast: all text ≥ 4.5:1 on its surface. Player names, team abbreviations, and primary numbers are `--foreground` at 600. `--muted-foreground` is labels only. `--dim` is decorative only. The test suite fails the build on any readable pair below 4.5:1.
 - Keyboard: `j/k` row navigation, `Enter` opens drawer, `Esc` closes, `/` focuses player search, `[` `]` change week.
 - Drawer is a `Sheet` with focus trap and `aria-labelledby` set to the matchup or lineup id.
 

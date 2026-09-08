@@ -88,8 +88,8 @@ export function EdgeDiff({
         dir === "flat" && "text-edge-flat font-medium",
         dir === "pos" && "text-edge-pos",
         dir === "neg" && "text-edge-neg",
-        inten === "mid" && "opacity-70 font-medium",
-        inten === "strong" && "opacity-100 font-semibold",
+        inten === "mid" && "font-medium",
+        inten === "strong" && "font-semibold",
         className,
       )}
       data-edge={dir}

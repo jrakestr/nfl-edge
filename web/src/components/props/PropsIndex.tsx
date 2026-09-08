@@ -19,7 +19,7 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
           <TableHeader className="bg-muted">
             <TableRow className="hover:bg-transparent">
               {COLS.map((c) => (
-                <TableHead key={c} className="t-colhead text-dim">
+                <TableHead key={c} className="t-colhead text-muted-foreground">
                   {c}
                 </TableHead>
               ))}
@@ -38,18 +38,18 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
                   <TableCell>
                     <Link
                       href={`/props/${e.game_id ?? "unknown"}/${e.player_id}`}
-                      className="underline-offset-2 hover:underline"
+                      className="font-semibold text-foreground underline-offset-2 hover:underline"
                     >
                       {e.player_name}
                     </Link>
                   </TableCell>
-                  <TableCell className="t-caption">
+                  <TableCell className="t-body font-semibold text-foreground">
                     {e.away && e.home ? `${e.away} @ ${e.home}` : e.game_id ?? "—"}
                   </TableCell>
                   <TableCell className="t-caption">{STAT_LABELS[e.stat] ?? e.stat}</TableCell>
-                  <TableCell className="tnum">{e.line}</TableCell>
-                  <TableCell className="tnum">{pct(e.p_over)}</TableCell>
-                  <TableCell className="tnum">{signedPct(e.edge)}</TableCell>
+                  <TableCell className="tnum font-semibold text-foreground">{e.line}</TableCell>
+                  <TableCell className="tnum font-semibold text-foreground">{pct(e.p_over)}</TableCell>
+                  <TableCell className="tnum font-semibold text-foreground">{signedPct(e.edge)}</TableCell>
                 </TableRow>
               ))
             )}
