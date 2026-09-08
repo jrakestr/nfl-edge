@@ -5,8 +5,8 @@ import { gameById, playerById } from "@/lib/queries/players";
 import {
   matchupRows,
   playerCorrs,
+  playerFairProps,
   playerLog,
-  playerPropEdges,
   propHistogram,
   propTimeline,
 } from "@/lib/queries/props";
@@ -28,12 +28,12 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
   const runs = await runsForWeek(CURRENT_SEASON, week);
   const run = runs[0] ?? null;
   const [header, ctx] = await Promise.all([playerById(player), gameById(game)]);
-  const edges = run ? await playerPropEdges(run.run_id, player) : [];
+  const fairs = run ? await playerFairProps(run.run_id, player) : [];
   const log = await playerLog(player, 20);
   const corrs = run ? await playerCorrs(run.run_id, player) : [];
   const opp = ctx && header?.latest_team ? (header.latest_team === ctx.home ? ctx.away : ctx.home) : null;
   const matchup = await matchupRows(header?.latest_team ?? null, opp);
-  const stats = edges.map((e) => e.stat);
+  const stats = fairs.map((e) => e.stat);
   const histByStat: Record<string, Hist | null> = {};
   if (run) {
     await Promise.all(
@@ -42,16 +42,17 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
       }),
     );
   }
+  const first = fairs[0];
   const timeline =
-    edges[0] && ctx
-      ? await propTimeline(ctx.season, ctx.week, player, edges[0].stat)
+    first && ctx
+      ? await propTimeline(ctx.season, ctx.week, player, first.stat)
       : [];
   return (
     <PropDetail
       player={header}
       game={ctx}
       playerId={player}
-      edges={edges}
+      fairs={fairs}
       log={log}
       corrs={corrs}
       matchup={matchup}

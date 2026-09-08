@@ -75,6 +75,36 @@ Sunday AM (final)
 12. `nfl-edge dk-salaries --season 2026 --week W --slate main`
 13. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
 
+### Week 1 lock windows
+
+`DATABASE_URL` unset. Drop the DK export in `data/dk/` first (gitignored). `dk-salaries` runs after `ingest` and before `sim` so Status O/D/Q/OUT/IR hit priors, not only the optimizer. Boutte: leave unmatched; no alias.
+
+Wednesday 2026-09-09 ~15:00 MST (before NE@SEA lock, 20:20 ET / 18:20 MST)
+
+1. Re-export TNF showdown from DK → `data/dk/DKSalaries_2026_wk01_showdown.csv`
+2. `nfl-edge ingest --season 2026 --week 1`
+3. `nfl-edge dk-salaries --season 2026 --week 1 --slate showdown`
+4. `nfl-edge sim --season 2026 --week 1 --draws 20000 --note wed-final`
+5. `nfl-edge lines --season 2026 --week 1`
+6. `nfl-edge props --season 2026 --week 1 --file data/props/props_2026_wk01.csv`
+7. `nfl-edge dfs --season 2026 --week 1 --site dk --slate showdown --lineups 150 --field 20000`
+8. `cd web && vercel` (preview, not `--prod`)
+
+Report: `run_id`, invariants, override delta vs `output/overrides_2026_wk01_pre_wed.csv` (202 rows at bf9a11f4: 127 out / 75 Q), upload path `data/dfs/<run_id>/dk/showdown/dk_upload.csv`.
+
+Sunday 2026-09-13 ~09:00 MST (before the early-window lock)
+
+1. Re-export DK Main and Full → `data/dk/DKSalaries_2026_wk01_main.csv` and `…_full.csv`
+2. `nfl-edge ingest --season 2026 --week 1`
+3. `nfl-edge dk-salaries --season 2026 --week 1 --slate main`
+4. `nfl-edge dk-salaries --season 2026 --week 1 --slate full`
+5. `nfl-edge sim --season 2026 --week 1 --draws 20000 --note sun-final`
+6. `nfl-edge lines --season 2026 --week 1`
+7. `nfl-edge props --season 2026 --week 1 --file data/props/props_2026_wk01.csv`
+8. `nfl-edge dfs --season 2026 --week 1 --site dk --slate main --lineups 150 --field 20000`
+9. `nfl-edge dfs --season 2026 --week 1 --site dk --slate full --lineups 150 --field 20000`
+10. `cd web && vercel` (preview, not `--prod`)
+
 Between those, the LaunchAgent keeps snapshotting. After a new snapshot, `nfl-edge lines --season 2026 --week W` writes edges without a re-sim.
 
 ## Injury overrides CSV

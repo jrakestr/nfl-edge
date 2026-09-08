@@ -7,9 +7,9 @@ import { PositionPill } from "@/components/ui/PositionPill";
 import { DataTable } from "@/components/ui/DataTable";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { STAT_LABELS, corrLabel, weeklyValue } from "@/lib/prop-stats";
+import { STAT_LABELS, STAT_ORDER, corrLabel, weeklyValue } from "@/lib/prop-stats";
 import { price, signedPct } from "@/lib/edge";
-import type { CorrPair, GameContext, Hist, MatchupRow, PlayerHeader, PlayerWeek, PropEdge, PropSnap } from "@/lib/types";
+import type { CorrPair, FairProp, GameContext, Hist, MatchupRow, PlayerHeader, PlayerWeek, PropSnap } from "@/lib/types";
 import { PropCallout } from "./PropCallout";
 import { StatBars } from "./StatBars";
 
@@ -74,7 +74,7 @@ export function PropDetail({
   player,
   game,
   playerId,
-  edges,
+  fairs,
   log,
   corrs,
   matchup,
@@ -84,7 +84,7 @@ export function PropDetail({
   player: PlayerHeader | null;
   game: GameContext | null;
   playerId: string;
-  edges: PropEdge[];
+  fairs: FairProp[];
   log: PlayerWeek[];
   corrs: CorrPair[];
   matchup: MatchupRow[];
@@ -93,10 +93,14 @@ export function PropDetail({
 }) {
   const found = player != null;
   const name = found ? player.display_name : "Player not found";
-  const stats = edges.map((e) => e.stat);
-  const [stat, setStat] = useState(stats[0] ?? "rush_yds");
+  const stats = STAT_ORDER.filter((s) => fairs.some((f) => f.stat === s));
+  const [stat, setStat] = useState<string>(stats[0] ?? "rush_yds");
   const [win, setWin] = useState<(typeof WINDOWS)[number]>("L10");
-  const edge = edges.find((e) => e.stat === stat) ?? edges[0] ?? null;
+  const fair = fairs.find((f) => f.stat === stat) ?? fairs[0] ?? null;
+  const line = fair?.market_line ?? fair?.fair_line ?? null;
+  const sentence = fair?.market_sentence ?? fair?.sentence;
+  const lean = fair?.market_line != null ? fair.lean : null;
+  const pOver = fair?.market_p_over ?? fair?.p_over ?? null;
   const n = windowN(win);
   const shownLog = useMemo(() => {
     if (win === "H2H" && game) {
@@ -140,12 +144,12 @@ export function PropDetail({
             <span className="t-colhead text-muted-foreground">Entered line</span>
             <Input
               readOnly
-              value={edge ? String(edge.line) : ""}
+              value={fair?.market_line != null ? String(fair.market_line) : ""}
               placeholder="No line entered"
               aria-describedby="prop-line-help"
             />
             <span id="prop-line-help" className="t-caption">
-              Lines come from the props CSV. The web app does not recompute P(over).
+              Enter a line on the Props board. Until then we use our fair line.
             </span>
           </label>
           <Tabs value={stat} onValueChange={setStat}>
@@ -171,16 +175,16 @@ export function PropDetail({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          <PropCallout sentence={edge?.sentence} lean={edge?.lean} />
+          <PropCallout sentence={sentence} lean={lean} />
         </header>
         <StatBars
           log={shownLog}
-          stat={edge?.stat ?? stat}
-          line={edge?.line ?? null}
-          overOdds={edge?.over_odds}
-          underOdds={edge?.under_odds}
-          typical={edge?.typical}
-          pOver={edge?.p_over}
+          stat={fair?.stat ?? stat}
+          line={line}
+          overOdds={fair?.over_odds}
+          underOdds={fair?.under_odds}
+          typical={fair?.mean}
+          pOver={pOver}
         />
         <DataTable
           data={shownLog}
@@ -282,12 +286,12 @@ export function PropDetail({
             {
               id: "vs",
               header: "Vs line",
-              sortValue: (g) => (edge ? weeklyValue(g.stats, edge.stat) : null),
+              sortValue: (g) => (fair ? weeklyValue(g.stats, fair.stat) : null),
               cell: (g) => {
-                const vs = edge ? weeklyValue(g.stats, edge.stat) : null;
+                const vs = fair ? weeklyValue(g.stats, fair.stat) : null;
                 return (
                   <span className="tnum font-semibold text-foreground">
-                    {vs == null || edge == null ? "—" : vs > edge.line ? "Over" : vs < edge.line ? "Under" : "Push"}
+                    {vs == null || line == null ? "—" : vs > line ? "Over" : vs < line ? "Under" : "Push"}
                   </span>
                 );
               },
@@ -296,7 +300,7 @@ export function PropDetail({
         />
       </div>
       <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-[340px]">
-        <HistRail hist={histByStat[edge?.stat ?? stat] ?? null} line={edge?.line ?? null} />
+        <HistRail hist={histByStat[fair?.stat ?? stat] ?? null} line={line} />
         <section className="card p-4">
           <h2 className="t-body font-semibold">How the line has moved</h2>
           {timeline.length === 0 ? (

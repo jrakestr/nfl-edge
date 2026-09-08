@@ -118,3 +118,55 @@ def test_lean_uses_flat_then_sign_of_over_edge():
     assert P.lean(0.004, 0.01) == "flat"
     assert P.lean(0.04, 0.01) == "over"
     assert P.lean(-0.04, 0.01) == "under"
+
+
+def test_round_to_half_always_lands_on_x5():
+    assert P.round_to_half(83.0) == 83.5
+    assert P.round_to_half(83.2) == 83.5
+    assert P.round_to_half(83.9) == 83.5
+    assert P.round_to_half(0.0) == 0.5
+    assert P.round_to_half(1.0) == 1.5
+
+
+def test_fair_line_is_median_rounded_to_half():
+    vals = np.array([70.0, 80.0, 83.0, 90.0, 100.0])
+    assert P.fair_line(vals) == 83.5
+
+
+def test_anytime_td_is_prob_of_at_least_one():
+    rush = np.array([0, 1, 0, 0])
+    rec = np.array([0, 0, 1, 0])
+    assert P.anytime_td_prob(rush, rec) == pytest.approx(0.5)
+    assert P.anytime_td_prob(np.zeros(4), np.zeros(4)) == pytest.approx(0.0)
+    assert P.anytime_td_prob(np.ones(4), np.zeros(4)) == pytest.approx(1.0)
+
+
+def test_p_over_at_fair_line_matches_parquet_draws():
+    vals = np.array([70.0, 80.0, 83.0, 90.0, 100.0])
+    line = P.fair_line(vals)
+    assert line == 83.5
+    assert P.p_over_at(vals, line) == pytest.approx(float((vals > line).mean()))
+    assert P.p_over_at(vals, line) == pytest.approx(0.4)
+
+
+def test_fair_row_anytime_td_stores_probability_at_half_line():
+    rush = np.array([0, 0, 1, 1, 0])
+    rec = np.array([0, 0, 0, 1, 0])
+    row = P.fair_row("anytime_td", rush, rec=rec)
+    assert row["fair_line"] == 0.5
+    assert row["p_over"] == pytest.approx(0.4)
+    assert row["p_over"] == pytest.approx(P.p_over_at(rush + rec, 0.5))
+
+
+def test_fair_callout_uses_our_line_when_no_market():
+    s = P.fair_callout("rush_yds", 78.5, mean=76.2, p10=42.1, p90=118.4)
+    assert "Our line is 78.5" in s
+    assert "typical game lands at 76" in s
+    assert "one in ten under 42" in s
+    assert "one in ten over 118" in s
+
+
+def test_fair_callout_anytime_td_is_american_price():
+    s = P.fair_callout("anytime_td", 0.5, mean=0.6, p10=0.0, p90=2.0, p_over=0.40)
+    assert "+" in s or "\u2212" in s
+    assert "78.5" not in s

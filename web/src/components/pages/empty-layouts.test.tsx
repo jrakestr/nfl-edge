@@ -14,8 +14,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/props",
   useSearchParams: () => new URLSearchParams(),
 }));
+vi.mock("@/lib/actions/save-market-line", () => ({
+  saveMarketLine: async () => ({ ok: true }),
+}));
 import { PlayersList } from "@/components/players/PlayersList";
-import { PropsIndex } from "@/components/props/PropsIndex";
+import { FairPropsIndex } from "@/components/props/FairPropsIndex";
 import { GradingPage } from "@/components/grading/GradingPage";
 import { LineupReview } from "@/components/dfs/LineupReview";
 
@@ -35,11 +38,11 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByText("No projections listed yet")).toBeInTheDocument();
   });
 
-  it("Props index: empty list", () => {
-    render(<PropsIndex />);
+  it("Props index: empty fair list", () => {
+    render(<FairPropsIndex />);
     expect(screen.getByRole("heading", { name: "Props" })).toBeInTheDocument();
-    expect(screen.getByText("No prop edges yet")).toBeInTheDocument();
-    expect(screen.getByText("Chance of over")).toBeInTheDocument();
+    expect(screen.getByText("No fair lines yet")).toBeInTheDocument();
+    expect(screen.getByText("Our line")).toBeInTheDocument();
   });
 
   it("Lineups: site/slate chrome and empty list for unknown ids", () => {

@@ -14,7 +14,7 @@ import {
 } from "@/lib/contrast";
 import { GamesList } from "@/components/games/GamesList";
 import { PlayersList } from "@/components/players/PlayersList";
-import { PropsIndex } from "@/components/props/PropsIndex";
+import { FairPropsIndex } from "@/components/props/FairPropsIndex";
 import { GradingPage } from "@/components/grading/GradingPage";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { WeekBoard, type WeekBoardProps } from "@/components/board/WeekBoard";
@@ -32,8 +32,11 @@ vi.mock("next/link", () => ({
 vi.mock("@/lib/actions/dfs-export", () => ({
   exportSelectedLineups: async () => "",
 }));
+vi.mock("@/lib/actions/save-market-line", () => ({
+  saveMarketLine: async () => ({ ok: true }),
+}));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/week/1",
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -255,7 +258,7 @@ describe("page audit: readable text ≥ 4.5:1", () => {
   });
 
   it("Props empty", () => {
-    const { container } = render(<PropsIndex />);
+    const { container } = render(<FairPropsIndex />);
     audit(container, "props");
   });
 
@@ -275,7 +278,7 @@ describe("page audit: readable text ≥ 4.5:1", () => {
         player={null}
         game={null}
         playerId="nobody"
-        edges={[]}
+        fairs={[]}
         log={[]}
         corrs={[]}
         matchup={[]}

@@ -4,6 +4,8 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import polars as pl
+
 from ..db import execute, read_sql
 from ..market.edge import decimal_odds
 from .dfs_grade import scores_published
@@ -16,6 +18,9 @@ WEEKLY = {
     "rec_yds": "receiving_yards",
     "rec": "receptions",
     "pass_td": "passing_tds",
+    "rush_td": "rushing_tds",
+    "rec_td": "receiving_tds",
+    "int": "interceptions",
 }
 
 
@@ -31,11 +36,23 @@ def actual_stat(stats: dict | None, stat: str) -> float | None:
         if a is None and b is None:
             return None
         return float(a or 0) + float(b or 0)
+    if stat == "int":
+        v = raw.get("interceptions")
+        if v is None:
+            v = raw.get("passing_interceptions")
+        return None if v is None else float(v)
     key = WEEKLY.get(stat)
     if not key:
         return None
     v = raw.get(key)
     return None if v is None else float(v)
+
+
+def fair_over_hit(line: float, actual: float) -> int | None:
+    line, actual = float(line), float(actual)
+    if actual == line:
+        return None
+    return 1 if actual > line else 0
 
 
 def prop_outcome(side: str, line: float, actual: float) -> int | None:
@@ -68,7 +85,9 @@ def _weekly_count(season: int, week: int) -> int:
 
 def run(season: int, week: int, run_id: str | None = None) -> dict:
     if not scores_published(_weekly_count(season, week)):
-        return skip_unpublished(season, week)
+        skipped = skip_unpublished(season, week)
+        skipped["fair"] = skip_unpublished(season, week)
+        return skipped
     params: tuple
     if run_id:
         sql = """
@@ -91,7 +110,8 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
         params = (season, week)
     edges = read_sql(sql, params)
     if edges.is_empty():
-        return {"skipped": False, "reason": None, "season": season, "week": week, "n_rows": 0}
+        fair = grade_fair_props(season, week, run_id=run_id)
+        return {"skipped": False, "reason": None, "season": season, "week": week, "n_rows": 0, "fair": fair}
     pids = edges["player_id"].unique().to_list()
     weekly = read_sql(
         "select player_id, stats from raw.player_stats_weekly "
@@ -116,4 +136,66 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
             (actual, oc, pn, now, row["run_id"], row["market_prop_id"], row["side"]),
         )
         n += 1
-    return {"skipped": False, "reason": None, "season": season, "week": week, "n_rows": n}
+    fair = grade_fair_props(season, week, run_id=run_id)
+    return {"skipped": False, "reason": None, "season": season, "week": week, "n_rows": n, "fair": fair}
+
+
+def grade_fair_props(season: int, week: int, run_id: str | None = None) -> dict:
+    """Calibration set: actual vs our fair line, hit rate by P(over) bucket. Separate from edges."""
+    if not scores_published(_weekly_count(season, week)):
+        return skip_unpublished(season, week)
+    if run_id:
+        sql = """
+            select f.run_id::text, f.player_id, f.stat, f.fair_line::float8 as fair_line,
+                   f.p_over::float8 as p_over
+            from model.fair_props f
+            where f.run_id = %s
+        """
+        params: tuple = (run_id,)
+    else:
+        sql = """
+            select f.run_id::text, f.player_id, f.stat, f.fair_line::float8 as fair_line,
+                   f.p_over::float8 as p_over
+            from model.fair_props f
+            join model.sim_runs r on r.run_id = f.run_id
+            where r.season = %s and r.week = %s
+        """
+        params = (season, week)
+    rows = read_sql(sql, params)
+    if rows.is_empty():
+        return {"skipped": False, "reason": None, "season": season, "week": week, "n_rows": 0, "buckets": []}
+    pids = rows["player_id"].unique().to_list()
+    weekly = read_sql(
+        "select player_id, stats from raw.player_stats_weekly "
+        "where season = %s and week = %s and player_id = any(%s)",
+        (season, week, pids),
+    )
+    by_pid = {r["player_id"]: r.get("stats") or {} for r in weekly.to_dicts()}
+    now = datetime.now(ET)
+    n = 0
+    hits = []
+    for row in rows.to_dicts():
+        actual = actual_stat(by_pid.get(row["player_id"]), row["stat"])
+        if actual is None:
+            continue
+        hit = fair_over_hit(float(row["fair_line"]), actual)
+        execute(
+            """
+            update model.fair_props
+            set actual = %s, over_hit = %s, graded_at = %s
+            where run_id = %s and player_id = %s and stat = %s
+            """,
+            (actual, hit, now, row["run_id"], row["player_id"], row["stat"]),
+        )
+        n += 1
+        if hit is not None:
+            hits.append({"p_over": float(row["p_over"]), "over_hit": hit, "result": 1, "push": False})
+    buckets = []
+    if hits:
+        from .calibration import calibration_buckets
+        b = calibration_buckets(pl.DataFrame(hits), col="p_over", hit="over_hit")
+        buckets = b.to_dicts()
+    return {
+        "skipped": False, "reason": None, "season": season, "week": week,
+        "n_rows": n, "buckets": buckets,
+    }

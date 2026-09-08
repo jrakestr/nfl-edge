@@ -3,8 +3,8 @@
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
 
 ## Web v2 — Checkpoint A (2026-09-07)
-- Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable on the `edges` API (fair-props board stays uncommitted).
-- Preview (Deployment Protection on): https://nfl-edge-6en8urxow-transit-trends.vercel.app — `/week/1`, `/week/1/dfs/dk/main`, `/week/1/players/dk/main`, `/props`, `/week/1/optimize/dk/main`. `npm run a11y` (axe via Playwright) found no `color-contrast` violations on those five pages.
+- Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable (`syncUrl={false}`).
+- Preview (Deployment Protection on): https://nfl-edge-e7zp5ltd1-transit-trends.vercel.app — `/week/1`, `/week/1/dfs/dk/main`, `/week/1/players/dk/main`, `/props`, `/week/1/optimize/dk/main`. `npm run a11y` (axe via Playwright) found no `color-contrast` violations on those five pages.
 - Session-pooler `EMAXCONNSESSION` (pool_size 15) can 500 preview pages under parallel hits; a11y runs one worker with retries. Player library and browser ILP are Part B.
 
 ## Phase 2 — DFS (2026-09-06)
@@ -15,12 +15,14 @@ Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress);
 ### Checkpoint 2
 - 150 Week 1 DK Main lineups in `model.dfs_lineups` with win%/ROI; DK upload CSV produced; lineup review and games page render locally and on the preview URL above.
 
-## Phase 3 — props (2026-09-06)
-- `nfl-edge props --season 2026 --week 1 --file data/props/props_2026_wk01.csv`: 2 `market_props` rows, 4 `prop_edges` (over+under) on run `e7a5ff4e`. Gibbs rush 83.5 P(over) 22.5% lean under; St. Brown rec 77.5 P(over) 24.9% lean under. P(over) from parquet. `nfl-edge grade` skips props until `player_stats_weekly` exists (`props: skipped (scores unpublished)`).
-- Showdown on run `bf9a11f4` (neff-split, 20k): `data/dk/DKSalaries_2026_wk01_showdown.csv` → `2026_01_showdown` (136 rows, 108 matched; Boutte unmatched OUT, no alias). 150 CPT+FLEX lineups, 34 exposure. GPP sim uses `config/dfs/dk_showdown_contest.csv` (field 20k, generated ~19.8k + our 150). Win% 0–0.46% (none at 100%). Upload `data/dfs/bf9a11f4-…/dk/showdown/dk_upload.csv`. CPT slot on `/week/1/dfs/dk/showdown`.
+## Phase 3 — props (2026-09-08)
+- `model.fair_props` on run `bf9a11f4` (neff-split, 20k): 4140 rows (460 players × 9 stats). Fair line = parquet median on a hook; P(over) from parquet. Anytime TD is P(rush_td+rec_td ≥ 1) stored as probability, shown as American. `nfl-edge lines` writes fair_props then prop_edges.
+- Market overlay: 2 `market_props` / 4 `prop_edges` (Gibbs rush 83.5, St. Brown rec 77.5). CSV is optional; `/props` reads `fair_props`. Enter-a-line inserts `market_props` (web_reader INSERT grant in 0011). Edge fills on next `nfl-edge lines`.
+- `nfl-edge grade` grades fair_props as a calibration set vs `player_stats_weekly`, separate from market edges; still `props: skipped (scores unpublished)` until Tue 2026-09-15.
+- Showdown on the same run: `data/dk/DKSalaries_2026_wk01_showdown.csv` → `2026_01_showdown` (136 rows, 108 matched; Boutte unmatched OUT, no alias). 150 CPT+FLEX lineups. Upload `data/dfs/bf9a11f4-…/dk/showdown/dk_upload.csv`.
 
 ### Checkpoint 3
-- Two Week 1 props (CSV has 2 rows; third never entered) show P(over), edge, and PropCallout on `/props`. TNF showdown lineups in lineup review locally and on preview https://nfl-edge-56byuj1hm-transit-trends.vercel.app (run `bf9a11f4`). Phase 4 waits for `nfl-edge grade --season 2026 --week 1` on Tue 2026-09-15.
+- `/props` is the model-props board (FairPropsIndex): DK pts default sort, STAT_ORDER, Enter a line. Detail uses persisted fair `sentence` until a market line exists. Preview https://nfl-edge-e7zp5ltd1-transit-trends.vercel.app (run `bf9a11f4`). Phase 4 waits for `nfl-edge grade --season 2026 --week 1` on Tue 2026-09-15.
 
 ## Phase 1 — web app (2026-09-06)
 - Linked `web/` to Vercel project `transit-trends/nfl-edge`. `DATABASE_URL` is the session pooler (IPv4) on Production and Preview. Direct `db.*.supabase.co` does not resolve on Vercel.

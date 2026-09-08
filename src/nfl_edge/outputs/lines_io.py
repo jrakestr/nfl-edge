@@ -81,6 +81,9 @@ def build(season: int, week: int, run_id: str | None = None, recompute: bool = F
     """Compute missing edges, then the week's verdicts. Returns (verdicts, edge-run stats)."""
     run = resolve_run(season, week, run_id)
     stats = edge.run(run["run_id"], recompute=recompute)
+    from . import props as props_out
+    stats["fair_props"] = props_out.fair_props(run["run_id"])
+    stats["prop_edges"] = props_out.run(run["season"], run["week"], run_id=run["run_id"])
     w = lines.build_week(
         run["season"], run["week"], run["run_id"], int(run["draws_per_game"] or 0),
         load_games(run["run_id"]), load_edges(run["run_id"]), load_checks(run["run_id"]),

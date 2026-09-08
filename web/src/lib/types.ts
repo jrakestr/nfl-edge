@@ -240,6 +240,36 @@ export const HistSchema = z.object({
 });
 export type Hist = z.infer<typeof HistSchema>;
 
+export const FairPropSchema = z.object({
+  player_id: z.string(),
+  player_name: z.string(),
+  position: z.string().nullable(),
+  team: z.string().nullable(),
+  opponent: z.string().nullable(),
+  game_id: z.string().nullable(),
+  home: z.string().nullable(),
+  away: z.string().nullable(),
+  stat: z.string(),
+  fair_line: num,
+  p_over: num,
+  p10: numOrNull,
+  p25: numOrNull,
+  p75: numOrNull,
+  p90: numOrNull,
+  mean: numOrNull,
+  sentence: z.string().nullable(),
+  fpts_dk_mean: numOrNull,
+  hist: HistSchema.nullable(),
+  market_line: numOrNull,
+  market_p_over: numOrNull,
+  edge: numOrNull,
+  lean: z.enum(["over", "under", "flat"]).nullable(),
+  over_odds: z.number().int().nullable(),
+  under_odds: z.number().int().nullable(),
+  market_sentence: z.string().nullable(),
+});
+export type FairProp = z.infer<typeof FairPropSchema>;
+
 export const PropEdgeSchema = z.object({
   market_prop_id: z.number().int(),
   player_id: z.string(),

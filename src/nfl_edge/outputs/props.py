@@ -6,6 +6,8 @@ at the offered price. PropCallout copy is persisted on model.prop_edges.
 """
 from __future__ import annotations
 
+import math
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -18,17 +20,24 @@ from ..market.edge import (
     devig_two_way,
     kelly,
     outcome_probs,
+    prob_to_american,
 )
 from ..outputs.lines_io import resolve_run
 
 STAT_LABELS = {
     "pass_yds": "passing yards",
-    "rush_yds": "rushing yards",
-    "rec_yds": "receiving yards",
-    "rec": "receptions",
     "pass_td": "passing TDs",
+    "int": "interceptions",
+    "rush_yds": "rushing yards",
+    "rush_td": "rushing TDs",
+    "rec": "receptions",
+    "rec_yds": "receiving yards",
+    "rec_td": "receiving TDs",
     "anytime_td": "anytime TDs",
 }
+FAIR_STATS = (
+    "pass_yds", "pass_td", "int", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td", "anytime_td",
+)
 MINUS = "\u2212"
 
 
@@ -43,6 +52,56 @@ def last_name(display_name: str) -> str:
     if len(parts) >= 2 and parts[-2].rstrip(".").lower() in {"st", "de", "la", "van", "von"}:
         return " ".join(parts[-2:])
     return parts[-1]
+
+
+def round_to_half(x: float) -> float:
+    """Always a hook: median 83.0 and 83.9 both become 83.5."""
+    return math.floor(float(x)) + 0.5
+
+
+def fair_line(values: np.ndarray) -> float:
+    return round_to_half(float(np.median(np.asarray(values, dtype=float))))
+
+
+def p_over_at(values: np.ndarray, line: float) -> float:
+    return float((np.asarray(values, dtype=float) > float(line)).mean())
+
+
+def anytime_td_prob(rush_td: np.ndarray, rec_td: np.ndarray) -> float:
+    return float((np.asarray(rush_td, dtype=float) + np.asarray(rec_td, dtype=float) >= 1).mean())
+
+
+def _quantiles(values: np.ndarray) -> dict[str, float]:
+    q = np.percentile(np.asarray(values, dtype=float), [10, 25, 75, 90])
+    return {"p10": float(q[0]), "p25": float(q[1]), "p75": float(q[2]), "p90": float(q[3])}
+
+
+def fair_row(stat: str, values: np.ndarray, rec: np.ndarray | None = None) -> dict:
+    if stat == "anytime_td":
+        combo = np.asarray(values, dtype=float) + np.asarray(rec if rec is not None else 0, dtype=float)
+        q = _quantiles(combo)
+        return {
+            "stat": stat, "fair_line": 0.5, "p_over": float((combo >= 1).mean()),
+            **q, "mean": float(combo.mean()),
+        }
+    arr = np.asarray(values, dtype=float)
+    line = fair_line(arr)
+    return {
+        "stat": stat, "fair_line": line, "p_over": p_over_at(arr, line),
+        **_quantiles(arr), "mean": float(arr.mean()),
+    }
+
+
+def fair_callout(stat: str, fair_line: float, mean: float, p10: float, p90: float,
+                 p_over: float | None = None) -> str:
+    if stat == "anytime_td":
+        p = min(0.99, max(0.01, float(p_over or 0.0)))
+        amer = round(float(prob_to_american(p)))
+        return f"Our fair price is {_price_str(amer)}."
+    return (
+        f"Our line is {float(fair_line):g}; the typical game lands at {mean:.0f}; "
+        f"one in ten under {p10:.0f}, one in ten over {p90:.0f}"
+    )
 
 
 def _price_str(a: int) -> str:
@@ -232,3 +291,60 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
     rows, skipped = compute(rid, props, names, draws_n, paths, games, cfg())
     n = persist(rid, rows)
     return {"run_id": rid, "n_props": len(props), "n_edges": n, "skipped": skipped}
+
+
+def persist_fair(run_id: str, rows: list[dict]) -> int:
+    execute("delete from model.fair_props where run_id = %s", (run_id,))
+    if not rows:
+        return 0
+    cols = [
+        "run_id", "player_id", "stat", "fair_line", "p_over", "p10", "p25", "p75", "p90", "mean", "sentence",
+    ]
+    frame = pl.DataFrame([{k: r.get(k) for k in cols} for r in rows])
+    return insert(frame, "model.fair_props")
+
+
+def fair_props(run_id: str) -> dict:
+    """Median-hook fair line for every offensive player-stat on the run. From parquet, not the hist."""
+    loc = read_sql(
+        "select player_id, game_id, position, draws_path from model.proj_players where run_id = %s",
+        (run_id,),
+    )
+    if loc.is_empty():
+        persist_fair(run_id, [])
+        return {"run_id": run_id, "n_rows": 0, "by_stat": {}}
+    by_path: dict[str, list[dict]] = {}
+    for r in loc.to_dicts():
+        if r.get("position") == "DST" or not r.get("draws_path"):
+            continue
+        by_path.setdefault(r["draws_path"], []).append(r)
+    need = ["player_id", "pass_yds", "pass_td", "int", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td"]
+    out: list[dict] = []
+    for path, plist in by_path.items():
+        pq = ROOT / path
+        if not pq.exists():
+            continue
+        wanted = [r["player_id"] for r in plist]
+        df = pl.read_parquet(pq, columns=need).filter(pl.col("player_id").is_in(wanted))
+        if df.is_empty():
+            continue
+        for part in df.partition_by("player_id"):
+            pid = str(part["player_id"][0])
+            rush = part["rush_td"].to_numpy()
+            rec_td = part["rec_td"].to_numpy()
+            for stat in FAIR_STATS:
+                if stat == "anytime_td":
+                    row = fair_row(stat, rush, rec=rec_td)
+                else:
+                    row = fair_row(stat, part[stat].to_numpy())
+                row.update({
+                    "run_id": run_id,
+                    "player_id": pid,
+                    "sentence": fair_callout(
+                        stat, row["fair_line"], row["mean"], row["p10"], row["p90"], row["p_over"],
+                    ),
+                })
+                out.append(row)
+    n = persist_fair(run_id, out)
+    by_stat = dict(Counter(r["stat"] for r in out))
+    return {"run_id": run_id, "n_rows": n, "by_stat": by_stat}

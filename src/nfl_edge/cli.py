@@ -207,6 +207,16 @@ def lines(
     typer.echo(w.summary)
     typer.echo(f"(edges: {stats.get('edges', 0)} new of {stats.get('rows', 0)} across {stats.get('snapshots', 0)} "
                f"snapshots, parity {stats.get('parity')}; verdicts: {n_verdicts} new)\n")
+    fair = stats.get("fair_props") or {}
+    if fair:
+        by = fair.get("by_stat") or {}
+        parts = " ".join(f"{k}={by[k]}" for k in (
+            "pass_yds", "pass_td", "int", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td", "anytime_td",
+        ) if k in by)
+        typer.echo(f"fair_props run {fair.get('run_id')}: {fair.get('n_rows', 0)} rows" + (f" ({parts})" if parts else ""))
+    pe = stats.get("prop_edges") or {}
+    if pe.get("n_edges"):
+        typer.echo(f"prop_edges: {pe['n_edges']} rows from {pe.get('n_props', 0)} market lines")
     for g in w.games:
         flag = "" if g.status == "ok" else f"  [{g.status.upper()}]"
         typer.echo(f"{g.away} @ {g.home}  {g.kickoff or ''}{flag}")
@@ -301,26 +311,25 @@ def dfs(
 def props(
     week: int = typer.Option(...),
     season: int = typer.Option(2026),
-    file: str = typer.Option(..., "--file", help="CSV: player, stat, line, over_odds, under_odds"),
+    file: str = typer.Option(None, "--file", help="Optional CSV: player, stat, line, over_odds, under_odds"),
     run: str = typer.Option(None, help="run_id (default: newest sim for the week)"),
 ):
-    """Load manual prop lines, compute P(over) from parquet draws, persist model.prop_edges."""
+    """Optional CSV ingest, then P(over) from parquet for any market_props on the week."""
     from pathlib import Path
 
     from .market import props_manual
     from .outputs import props as props_out
 
-    loaded = props_manual.run(season, week, Path(file))
-    typer.echo(
-        f"props {loaded['season']} wk{loaded['week']}: {loaded['written']} written / {loaded['rows']} rows"
-    )
-    for u in loaded["unmatched"]:
+    if file:
+        loaded = props_manual.run(season, week, Path(file))
         typer.echo(
-            f"  {u.get('reason', 'unmatched')}: {u.get('player')} stat={u.get('stat')} "
-            f"team={u.get('team')} pos={u.get('position')}"
+            f"props {loaded['season']} wk{loaded['week']}: {loaded['written']} written / {loaded['rows']} rows"
         )
-    if loaded["written"] == 0:
-        return
+        for u in loaded["unmatched"]:
+            typer.echo(
+                f"  {u.get('reason', 'unmatched')}: {u.get('player')} stat={u.get('stat')} "
+                f"team={u.get('team')} pos={u.get('position')}"
+            )
     edges = props_out.run(season, week, run_id=run)
     typer.echo(
         f"prop_edges run {edges['run_id']}: {edges['n_edges']} rows from {edges['n_props']} lines"
@@ -374,6 +383,11 @@ def grade(
         typer.echo(f"props: skipped ({props.get('reason')})")
     elif props.get("n_rows"):
         typer.echo(f"props: {props['n_rows']} edges graded")
+    fair = (props.get("fair") or {})
+    if fair.get("skipped"):
+        typer.echo(f"fair_props: skipped ({fair.get('reason')})")
+    elif fair.get("n_rows"):
+        typer.echo(f"fair_props: {fair['n_rows']} rows graded")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
 import { sql } from "@/lib/db";
 import {
   CorrPairSchema,
+  FairPropSchema,
   HistSchema,
   PlayerWeekSchema,
   PropEdgeSchema,
   PropSnapSchema,
   type CorrPair,
+  type FairProp,
   type Hist,
   type MatchupRow,
   type PlayerWeek,
@@ -17,6 +19,63 @@ function histFrom(raw: unknown): Hist | null {
   if (!raw || typeof raw !== "object") return null;
   const parsed = HistSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
+}
+
+/** One row per player-stat on the run. Market columns are null until a line is entered. */
+export async function fairProps(runId: string): Promise<FairProp[]> {
+  const rows = await sql()`
+    with run as (
+      select season, week from model.sim_runs where run_id = ${runId}::uuid
+    ),
+    mkt as (
+      select distinct on (mp.player_id, mp.stat)
+             mp.id, mp.player_id, mp.stat, mp.line::float8 as line, mp.over_odds, mp.under_odds
+      from model.market_props mp
+      join run on mp.season = run.season and mp.week = run.week
+      where mp.player_id is not null
+      order by mp.player_id, mp.stat, mp.captured_at desc, mp.id desc
+    )
+    select f.player_id,
+           coalesce(pl.display_name, f.player_id) as player_name,
+           pp.position,
+           pp.team,
+           case when pp.team = s.home_team then s.away_team else s.home_team end as opponent,
+           pp.game_id,
+           s.home_team as home,
+           s.away_team as away,
+           f.stat,
+           f.fair_line::float8 as fair_line,
+           f.p_over::float8 as p_over,
+           f.p10::float8 as p10,
+           f.p25::float8 as p25,
+           f.p75::float8 as p75,
+           f.p90::float8 as p90,
+           f.mean::float8 as mean,
+           f.sentence,
+           pp.fpts_dk_mean::float8 as fpts_dk_mean,
+           case when f.stat = 'anytime_td' then null else pp.stat_summary -> f.stat -> 'hist' end as hist,
+           m.line::float8 as market_line,
+           e.p_over::float8 as market_p_over,
+           e.edge::float8 as edge,
+           e.lean,
+           m.over_odds,
+           m.under_odds,
+           e.sentence as market_sentence
+    from model.fair_props f
+    join model.proj_players pp on pp.run_id = f.run_id and pp.player_id = f.player_id
+    left join raw.players pl on pl.gsis_id = f.player_id
+    left join raw.schedules s on s.game_id = pp.game_id
+    left join mkt m on m.player_id = f.player_id and m.stat = f.stat
+    left join model.prop_edges e
+      on e.run_id = f.run_id and e.player_id = f.player_id and e.stat = f.stat
+     and e.side = 'over' and e.market_prop_id = m.id
+    where f.run_id = ${runId}::uuid
+    order by pp.fpts_dk_mean desc nulls last, coalesce(pl.display_name, f.player_id), f.stat`;
+  return rows.map((r) => FairPropSchema.parse({ ...r, hist: histFrom(r.hist) }));
+}
+
+export async function playerFairProps(runId: string, playerId: string): Promise<FairProp[]> {
+  return (await fairProps(runId)).filter((r) => r.player_id === playerId);
 }
 
 /** Newest-run over-side prop edges, sorted by |edge|. */
