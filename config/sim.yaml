@@ -16,7 +16,7 @@ priors:
   qb_att_share_prior: 0.97   # starter share of team pass attempts, shrunk toward this
   shrink_k_qb_share: 3       # pseudo-games for qb_att_share
   cold_start_frac: 0.6       # depth-chart-only players get frac * rank_factor * positional mean share
-  cold_start_rank_factor: {1: 1.0, 2: 0.6, 3: 0.35}
+  cold_start_rank_factor: {1: 1.0, 2: 0.6, 3: 0.35, 4: 0.20, 5: 0.12}
 team:
   plays_per_game_sd: 6
   pass_rate_sd: 0.03        # per-draw noise around the script-adjusted pass rate

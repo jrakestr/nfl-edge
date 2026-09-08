@@ -61,15 +61,15 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
 
     team_weeks = g.unique(subset=["season", "week", "team"])
     team = team_weeks.group_by("team").agg(
-        pl.col("w").sum().alias("n_eff"),
+        common.n_eff_weighted().alias("n_eff"),
         common.weighted_ratio("team_pass_yds", "team_attempts").alias("_ypa"),
     ).with_columns(
         common.shrink(pl.col("_ypa"), pl.col("n_eff"), league_ypa, float(c["shrink_k_team"])).alias("team_ypa")
     ).select(["team", "team_ypa"])
 
     per_qb = g.with_columns((pl.col("attempts") / pl.col("team_attempts")).alias("_share")).group_by("player_id").agg(
-        (pl.col("w") * pl.col("attempts")).sum().alias("n_att"),
-        pl.col("w").filter(pl.col("attempts") >= 10).sum().alias("n_starts"),
+        pl.col("attempts").sum().alias("n_att"),
+        (pl.col("attempts") >= 10).sum().alias("n_starts"),
         common.weighted_ratio("pass_yds", "attempts").alias("_ypa"),
         ((pl.col("w") * pl.col("_share")).filter(pl.col("attempts") >= 10).sum()
          / pl.col("w").filter(pl.col("attempts") >= 10).sum()).alias("_share"),

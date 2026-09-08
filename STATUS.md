@@ -148,8 +148,13 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - [x] 3 — two Week 1 props on `/props`; TNF showdown lineups on run `bf9a11f4` `/week/1/dfs/dk/showdown` (local + preview https://nfl-edge-56byuj1hm-transit-trends.vercel.app). Third prop row never entered. Phase 4 waits for Tue 2026-09-15 live grade.
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
+## props-refine (2026-09-07)
+- Prior-season week 18 is excluded in `history_where` / `drop_prior_week18`. Usage/efficiency shrink with unweighted `n_eff`; team channel keeps recency-weighted `sum(w)`. Live Week 1 run `bf9a11f4` already used this; do not rebuild until after Tue 2026-09-15 grade.
+- Announced starters: `schedules.home_qb_id` / `away_qb_id` still 0/16 for 2026 week 1. Re-ingest Wed 2026-09-09 (TNF) and Sat so the QB channel picks them up. No ingest today.
+- Depth-chart cold start now ranks 1–5 (`0.20` / `0.12` at 4/5). Rank 6+ with no history still excluded. Takes effect on the next sim, not the live run.
+
 ## Open items for the next plan (lines/edge, DFS export)
 - Populate `raw.player_overrides` weekly via `nfl-edge overrides` and DK Status on salary ingest — 156 Week 1 rows from the DK Main CSV (101 out, 55 Q); leftover unmatched names stay in `output/dk_salaries_*.txt`.
-- Depth-chart cold start covers ranks 1–3 only; deeper players with no history are still excluded.
+- Depth-chart cold start ranks 6+ with no history are still excluded.
 - OT is a one-drive resolution (0.4% ties); margin/total sd run ~0.5–1 point wide of NFL history — revisit once P(cover) is graded against real bets.
 - Supabase `statement_timeout` is 2 minutes for the `postgres` role. Any future query over `raw.depth_charts` daily rows (1.24M and growing ~3k/day) should filter on `(season, week, club_code)` (the only index) or add an index on `(season, dt)` in the next migration.

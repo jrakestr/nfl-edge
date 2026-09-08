@@ -239,3 +239,25 @@ def test_player_arrays_shape_and_dtype(home_players):
         assert arr.shape == (n_players, N) and np.issubdtype(arr.dtype, np.integer), name
     for name in ("pass_yds", "rush_yds", "rec_yds"):
         assert getattr(p, name).shape == (n_players, N), name
+
+
+def test_allocate_survives_pass_tds_beyond_target_headroom():
+    """capped_split may park residual TDs on one player; binomial n must stay non-negative."""
+    n = 16
+    t = game.TeamDraws(
+        team="HOME",
+        drives=np.full(n, 11, dtype=np.int64),
+        plays_per_drive=np.full(n, 5.7),
+        plays=np.full(n, 63, dtype=np.int64),
+        pass_att=np.full(n, 3, dtype=np.int64),
+        rush_att=np.full(n, 20, dtype=np.int64),
+        sacks=np.zeros(n, dtype=np.int64),
+        td=np.full(n, 6, dtype=np.int64),
+        pass_td=np.full(n, 6, dtype=np.int64),
+        rush_td=np.zeros(n, dtype=np.int64),
+        fg=np.zeros(n, dtype=np.int64),
+        pts=np.full(n, 36, dtype=np.int64),
+        int=np.zeros(n, dtype=np.int64),
+    )
+    p = players.allocate(t, _usage("HOME"), _efficiency("HOME"), CFG, np.random.default_rng(0))
+    assert (p.rec_td.sum(0) == t.pass_td).all()

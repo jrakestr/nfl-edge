@@ -100,7 +100,7 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
     """
     g = common.with_weights(pw, season, week, c)
     raw = g.group_by("player_id").agg(
-        pl.col("w").sum().alias("n_eff"),
+        common.n_games().alias("n_eff"),
         pl.col("position").last(),
         common.weighted_ratio("targets", "team_targets").alias("_target_share"),
         common.weighted_ratio("carries", "team_carries").alias("_carry_share"),
@@ -131,7 +131,7 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
     # cold start: rostered players without history but on the depth chart enter at a rank-scaled
     # positional mean share (they still get renormalized with everyone else)
     if depth is not None and not depth.is_empty():
-        rf = {int(k_): float(v) for k_, v in c.get("cold_start_rank_factor", {1: 1.0, 2: 0.6, 3: 0.35}).items()}
+        rf = {int(k_): float(v) for k_, v in c.get("cold_start_rank_factor", {1: 1.0, 2: 0.6, 3: 0.35, 4: 0.20, 5: 0.12}).items()}
         frac = float(c.get("cold_start_frac", 0.6))
         cold = (
             ros.join(out.select("player_id"), on="player_id", how="anti")

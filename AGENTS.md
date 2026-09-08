@@ -19,3 +19,25 @@ Read docs/purpose.md before planning any change. docs/architecture.md is the des
 - Do not edit the plan file. If scope must change, stop and report; the decision is mine.
 - Start a new conversation at each checkpoint. Carry state through the plan file and STATUS.md, not chat history.
 - Never print or paste .env contents or DATABASE_URL. Verify the DB connection with `nfl-edge db counts`.
+
+## Learned User Preferences
+
+- On first pull of each nflverse dataset, print the actual column names before writing ingest code. If a planned column is missing, stop and report; do not guess.
+- Do not start plan execution until the user explicitly says to execute. Plan mode, a mode switch, and CreatePlan are not a go signal. Do not re-send a plan the user already has.
+- Never add dark mode. Follow docs/design-system.md for the web app.
+- Treat Flat ROI as the headline until there are ten graded weeks. Do not treat single-week Kelly ROI or one-week Brier as evidence the model beats the market.
+- Persist Python-generated copy (verdicts, PropCallout) in Postgres. The web app is read-only; do not reimplement those generators in TypeScript.
+- Web todos also need `npm run lint && npm run typecheck && npm test && npm run build` green.
+- Treat star underprojection vs posted prop lines as a model-miss warning, not an under lean; books set lines near the median, so a sound model should land ~40-60% on posted lines.
+- Do not ship Sunday DFS/prop leans from a run that systematically underprojects stars; if a priors correctness fix worsens backtest MAE beyond noise, stop before rebuilding the live week.
+
+## Learned Workspace Facts
+
+- GitHub remote is jrakestr/nfl-edge (private).
+- `.env` DATABASE_URL is Supabase; unset it to use the local Postgres container (port 5433, database `nfl_edge`, not default `postgres`) for 2025 backtests.
+- Market spread/total never enter `sim/game.py` or `sim/players.py`; `slate.py` loads them only for P(cover)/P(over) summaries.
+- The web app lives in `web/`. The Edge board reads `model.verdicts_latest` and `model.edges_latest`; do not fall back to verdict payload `edges[]`.
+- Displayed spread/total use `mean_spread`/`mean_total`; median stays for P(cover)/P(over).
+- DK salary CSVs live in gitignored `data/dk/`. Player-ID joins go through `raw.players`.
+- Calibration monotone against the close is a season-long grading target, not a sim build gate.
+- Recency weights belong on the prior rate only. Shrinkage `n_eff` is unweighted game/touch count for usage and efficiency; team strength uses recency-weighted `sum(w)`. Do not use recency weight as usage/efficiency shrink sample size.

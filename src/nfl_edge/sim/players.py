@@ -87,7 +87,7 @@ def _dirichlet_split(total: np.ndarray, share: np.ndarray, conc: float,
 
 
 def _capped_split(total: np.ndarray, weight: np.ndarray, cap: np.ndarray,
-                  rng: np.random.Generator, max_iter: int = 12) -> np.ndarray:
+                  rng: np.random.Generator, max_iter: int = 64) -> np.ndarray:
     """(P, n) multinomial split of `total` (n,) by `weight` (P, n), with out[p] <= cap[p].
 
     Excess over a player's cap is redistributed among players with headroom. If a draw has no
@@ -122,9 +122,18 @@ def _capped_split(total: np.ndarray, weight: np.ndarray, cap: np.ndarray,
         # players at cap drop out of the weighting
         w = np.where(out >= cap, 0.0, w)
     if remaining.any():
-        # no headroom anywhere: put the residual on the highest-weight player so sums still tie
-        idx = np.argmax(weight, axis=0)
-        out[idx[remaining > 0], np.where(remaining > 0)[0]] += remaining[remaining > 0]
+        # Prefer players with headroom. Only park on the highest-weight player when team TDs
+        # exceed total targets (pass_td can exceed pass_att because they are drawn separately).
+        cols = np.where(remaining > 0)[0]
+        for j in cols:
+            left = int(remaining[j])
+            while left > 0:
+                head = (cap[:, j] - out[:, j]) > 0
+                if not head.any():
+                    out[int(np.argmax(weight[:, j])), j] += left
+                    break
+                out[int(np.argmax(np.where(head, weight[:, j], -1.0))), j] += 1
+                left -= 1
     return out
 
 
@@ -166,8 +175,9 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
     targets = _dirichlet_split(team.pass_att, tgt_share, conc, rng)
     # RZ share is the prior for who scores; the count only gates eligibility (no target, no TD)
     rec_td = _capped_split(team.pass_td, rz_t[:, None] * (targets > 0), targets, rng)
-    # unbiased catch rate on the non-TD targets: E[rec] stays targets * catch_rate
-    rest = targets - rec_td
+    # unbiased catch rate on the non-TD targets: E[rec] stays targets * catch_rate.
+    # capped_split may leave rec_td > targets when team TDs exceed headroom; rest must stay >= 0.
+    rest = np.maximum(targets - rec_td, 0)
     cr_adj = np.clip((catch_rate * targets - rec_td) / np.maximum(rest, 1), 0.0, 1.0)
     rec = rec_td + rng.binomial(rest, cr_adj)
     rec_yds = _gamma_yards(rec, ypr, rec_shape, rng)
@@ -196,9 +206,10 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
         if qb2_mask.any() and att_share < 1.0:
             q2 = int(np.argmax(qb2_mask))
             t2 = rng.binomial(targets, 1.0 - att_share)                          # QB2 targets per receiver
-            r2 = rng.hypergeometric(t2, np.maximum(targets - t2, 0), rec)         # QB2 receptions
+            rec_pool = np.minimum(rec, targets)                                  # rec may exceed targets if TDs overflow
+            r2 = rng.hypergeometric(t2, np.maximum(targets - t2, 0), rec_pool)
             y2 = np.where(rec > 0, np.round(rec_yds * r2 / np.maximum(rec, 1)), 0).astype(np.int64)
-            d2 = rng.hypergeometric(r2, np.maximum(rec - r2, 0), rec_td)          # QB2 TDs
+            d2 = rng.hypergeometric(r2, np.maximum(rec_pool - r2, 0), np.minimum(rec_td, rec_pool))
             a2, c2, yy2, td2 = t2.sum(0), r2.sum(0), y2.sum(0), d2.sum(0)
             i2 = rng.binomial(tot_int, np.where(tot_att > 0, a2 / np.maximum(tot_att, 1), 0.0))
             pass_att[q2], cmp_[q2], pass_yds[q2], pass_td[q2], ints[q2] = a2, c2, yy2, td2, i2

@@ -60,7 +60,7 @@ def build(games: pl.DataFrame, season: int, week: int, c: dict) -> TeamPriors:
     league = {m: float(g.select(common.league_ratio(n, d)).item()) for m, (n, d) in RATIOS.items()}
     k = float(c["shrink_k_team"])
     per_team = g.group_by("team").agg(
-        pl.col("w").sum().alias("n_eff"),
+        common.n_eff_weighted().alias("n_eff"),
         *[common.weighted_ratio(n, d).alias(f"_{m}") for m, (n, d) in RATIOS.items()],
     )
     per_team = per_team.with_columns(
