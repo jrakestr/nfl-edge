@@ -1,6 +1,11 @@
 # Status
 
-Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below).
+Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
+
+## Web v2 — Checkpoint A (2026-09-07)
+- Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable on the `edges` API (fair-props board stays uncommitted).
+- Preview (Deployment Protection on): https://nfl-edge-6en8urxow-transit-trends.vercel.app — `/week/1`, `/week/1/dfs/dk/main`, `/week/1/players/dk/main`, `/props`, `/week/1/optimize/dk/main`. `npm run a11y` (axe via Playwright) found no `color-contrast` violations on those five pages.
+- Session-pooler `EMAXCONNSESSION` (pool_size 15) can 500 preview pages under parallel hits; a11y runs one worker with retries. Player library and browser ILP are Part B.
 
 ## Phase 2 — DFS (2026-09-06)
 - Week 1 DK Main + Full on run `e7a5ff4e` (histograms, 20k): 150 lineups each with win%/ROI in `model.dfs_lineups` / `dfs_exposure`. Upload CSVs at `data/dfs/e7a5ff4e-…/dk/{main,full}/dk_upload.csv`.
