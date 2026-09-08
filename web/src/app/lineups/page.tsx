@@ -1,6 +1,6 @@
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { dfsExposure, dfsLineups, salaryTeams, slateId, stackCorrelations } from "@/lib/queries/dfs";
+import { dfsExposure, dfsLineups, salaryLookup, salaryPositions, slateId, stackCorrelations } from "@/lib/queries/dfs";
 import { newestWeek, runsForWeek } from "@/lib/queries/runs";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +11,15 @@ export default async function Page() {
   const runs = await runsForWeek(CURRENT_SEASON, week);
   const run = runs[0] ?? null;
   const sid = slateId(CURRENT_SEASON, week, "main");
-  const [lineups, exposure, teams, correlations] = run
+  const [lineups, exposure, lookup, correlations] = run
     ? await Promise.all([
         dfsLineups(run.run_id, "dk", sid),
         dfsExposure(run.run_id, "dk", sid),
-        salaryTeams("dk", sid),
+        salaryLookup("dk", sid),
         stackCorrelations(run.run_id, "dk", sid),
       ])
     : [[], [], {}, []];
+  const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
   return (
     <LineupReview
       week={String(week)}
@@ -29,6 +30,7 @@ export default async function Page() {
       lineups={lineups}
       exposure={exposure}
       teams={teams}
+      positions={salaryPositions(lookup)}
       correlations={correlations}
     />
   );

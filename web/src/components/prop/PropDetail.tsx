@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Matchup } from "@/components/board/TeamDot";
+import { PositionPill } from "@/components/ui/PositionPill";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { STAT_LABELS, corrLabel, weeklyValue } from "@/lib/prop-stats";
@@ -120,11 +121,7 @@ export function PropDetail({
             <div className="min-w-0 flex-1">
               <h1 className="t-title">{name}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 t-caption">
-                {player?.position ? (
-                  <span className="rounded-md bg-accent px-1.5 py-0.5 t-caption text-foreground">
-                    {player.position}
-                  </span>
-                ) : null}
+                {player?.position ? <PositionPill position={player.position} /> : null}
                 {game ? (
                   <span className="inline-flex items-center gap-1.5">
                     <Matchup home={game.home} away={game.away} />

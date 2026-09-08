@@ -56,6 +56,16 @@
   --color-line: var(--line);
   --color-line-tint: var(--line-tint);
   --color-model: var(--foreground);
+  --color-pos-qb: var(--pos-qb);
+  --color-pos-qb-tint: var(--pos-qb-tint);
+  --color-pos-rb: var(--pos-rb);
+  --color-pos-rb-tint: var(--pos-rb-tint);
+  --color-pos-wr: var(--pos-wr);
+  --color-pos-wr-tint: var(--pos-wr-tint);
+  --color-pos-te: var(--pos-te);
+  --color-pos-te-tint: var(--pos-te-tint);
+  --color-pos-dst: var(--pos-dst);
+  --color-pos-dst-tint: var(--pos-dst-tint);
 
   /* radius: 6 pills/segmented, 8 buttons/sidebar items, 12 cards */
   --radius-sm: 6px;
@@ -116,6 +126,18 @@
   --warn: #9a5a00;
   --line: #1f56d9;
   --line-tint: #eef3ff;
+
+  /* position identity — not edge */
+  --pos-qb: #2c4a8c;
+  --pos-qb-tint: #e6e9f1;
+  --pos-rb: #1a5f52;
+  --pos-rb-tint: #e4ecea;
+  --pos-wr: #8a4b0a;
+  --pos-wr-tint: #f1e9e2;
+  --pos-te: #5a3d8a;
+  --pos-te-tint: #ebe8f1;
+  --pos-dst: #4a5564;
+  --pos-dst-tint: #e9ebec;
 
   /* motion */
   --dur-1: 120ms;

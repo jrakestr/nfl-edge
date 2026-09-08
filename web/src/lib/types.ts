@@ -244,6 +244,7 @@ export const PropEdgeSchema = z.object({
   market_prop_id: z.number().int(),
   player_id: z.string(),
   player_name: z.string(),
+  position: z.string().nullable().optional(),
   game_id: z.string().nullable(),
   home: z.string().nullable(),
   away: z.string().nullable(),

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { displayValue, homeLine, maxEdge, pct } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
 import { slot as kickoffSlot } from "@/lib/teams";
+import type { DrawerPlayer } from "@/lib/queries/players";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";
@@ -25,6 +26,7 @@ export function BoardTable({
   draws,
   filters,
   initialOpen,
+  playersByGame = {},
 }: {
   rows: BoardRow[];
   checks: Record<string, GameChecks>;
@@ -32,6 +34,7 @@ export function BoardTable({
   draws: number | null;
   filters: Filters;
   initialOpen?: string | null;
+  playersByGame?: Record<string, DrawerPlayer[]>;
 }) {
   const visible = useMemo(
     () => applyFilters(rows, filters, (r) => kickoffSlot(r.gameday, r.gametime)),
@@ -186,6 +189,7 @@ export function BoardTable({
         row={openRowData}
         verdict={openId ? verdicts[openId] ?? null : null}
         checks={openId ? checks[openId] ?? null : null}
+        players={openId ? playersByGame[openId] ?? [] : []}
         open={openId != null}
         onOpenChange={(o) => {
           if (!o) openRow(null);

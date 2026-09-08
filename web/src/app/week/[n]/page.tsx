@@ -7,6 +7,7 @@ import type { View } from "@/components/board/WeekHeader";
 import { CURRENT_SEASON } from "@/lib/config";
 import { boardRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
+import { topPlayersByGame } from "@/lib/queries/players";
 import { trackRecord } from "@/lib/queries/results";
 import { newerRunExists, runsForWeek, weeksWithRuns } from "@/lib/queries/runs";
 import { verdictsForRun } from "@/lib/queries/verdicts";
@@ -49,9 +50,14 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
   const [weeks, runs, track] = await Promise.all([weeksWithRuns(season), runsForWeek(season, week), trackRecord(season)]);
   const run = runs.length ? (pinned ? runs.find((r) => r.run_id === pinned) ?? runs[0] : runs[0]) : null;
 
-  const [verdicts, rows, checks] = run
-    ? await Promise.all([verdictsForRun(run.run_id), boardRows(run.run_id), checksForRun(run.run_id)])
-    : [[], [], new Map<string, GameChecks>()];
+  const [verdicts, rows, checks, playersByGame] = run
+    ? await Promise.all([
+        verdictsForRun(run.run_id),
+        boardRows(run.run_id),
+        checksForRun(run.run_id),
+        topPlayersByGame(run.run_id),
+      ])
+    : [[], [], new Map<string, GameChecks>(), {}];
 
   return (
     <WeekBoard
@@ -67,6 +73,7 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
       rows={rows}
       checks={Object.fromEntries(checks)}
       track={track}
+      playersByGame={playersByGame}
     />
   );
 }

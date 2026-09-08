@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { displayValue, homeLine, line } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
+import type { DrawerPlayer } from "@/lib/queries/players";
 
 const COLS = ["Matchup", "Kickoff", "Sim score", "Fair spread", "Fair total"] as const;
 
@@ -26,11 +27,13 @@ export function GamesList({
   rows = [],
   verdicts = {},
   checks = {},
+  playersByGame = {},
 }: {
   week?: number;
   rows?: BoardRow[];
   verdicts?: Record<string, VerdictPayload>;
   checks?: Record<string, GameChecks>;
+  playersByGame?: Record<string, DrawerPlayer[]>;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = rows.find((r) => r.game_id === openId) ?? null;
@@ -92,6 +95,7 @@ export function GamesList({
         row={open}
         verdict={open ? (verdicts[open.game_id] ?? null) : null}
         checks={open ? (checks[open.game_id] ?? null) : null}
+        players={open ? (playersByGame[open.game_id] ?? []) : []}
         open={open != null}
         onOpenChange={(v) => {
           if (!v) setOpenId(null);

@@ -34,6 +34,7 @@ export function LineupReview({
   lineups = [],
   exposure = [],
   teams = {},
+  positions = {},
   correlations = [],
 }: {
   week: string;
@@ -44,6 +45,7 @@ export function LineupReview({
   lineups?: DfsLineup[];
   exposure?: DfsExposure[];
   teams?: Record<string, string>;
+  positions?: Record<string, string>;
   correlations?: CorrPair[];
 }) {
   const [sort, setSort] = useState<SortKey>("win");
@@ -210,6 +212,7 @@ export function LineupReview({
                 slate={slateKey}
                 lineup={lu}
                 teams={teams}
+                positions={positions}
                 selected={selected.has(lu.lineup_id)}
                 onToggle={() =>
                   setSelected((prev) => {

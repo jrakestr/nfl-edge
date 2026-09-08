@@ -15,6 +15,16 @@ export const TOKENS = {
   warn: "#9A5A00",
   line: "#1F56D9",
   lineTint: "#EEF3FF",
+  posQb: "#2C4A8C",
+  posQbTint: "#E6E9F1",
+  posRb: "#1A5F52",
+  posRbTint: "#E4ECEA",
+  posWr: "#8A4B0A",
+  posWrTint: "#F1E9E2",
+  posTe: "#5A3D8A",
+  posTeTint: "#EBE8F1",
+  posDst: "#4A5564",
+  posDstTint: "#E9EBEC",
 } as const;
 
 export type TokenHex = (typeof TOKENS)[keyof typeof TOKENS];
@@ -72,6 +82,11 @@ export const READABLE: Record<string, string> = {
   edgeNeg: TOKENS.edgeNeg,
   warn: TOKENS.warn,
   line: TOKENS.line,
+  posQb: TOKENS.posQb,
+  posRb: TOKENS.posRb,
+  posWr: TOKENS.posWr,
+  posTe: TOKENS.posTe,
+  posDst: TOKENS.posDst,
 };
 
 export const CLASS_TO_FG: Record<string, string> = {
@@ -83,6 +98,11 @@ export const CLASS_TO_FG: Record<string, string> = {
   "text-edge-flat": TOKENS.mutedForeground,
   "text-warn": TOKENS.warn,
   "text-line": TOKENS.line,
+  "text-pos-qb": TOKENS.posQb,
+  "text-pos-rb": TOKENS.posRb,
+  "text-pos-wr": TOKENS.posWr,
+  "text-pos-te": TOKENS.posTe,
+  "text-pos-dst": TOKENS.posDst,
 };
 
 export const CLASS_TO_BG: Record<string, string> = {
@@ -93,6 +113,11 @@ export const CLASS_TO_BG: Record<string, string> = {
   "bg-edge-pos-tint": TOKENS.edgePosTint,
   "bg-edge-neg-tint": TOKENS.edgeNegTint,
   "bg-line-tint": TOKENS.lineTint,
+  "bg-pos-qb-tint": TOKENS.posQbTint,
+  "bg-pos-rb-tint": TOKENS.posRbTint,
+  "bg-pos-wr-tint": TOKENS.posWrTint,
+  "bg-pos-te-tint": TOKENS.posTeTint,
+  "bg-pos-dst-tint": TOKENS.posDstTint,
   card: TOKENS.card,
 };
 

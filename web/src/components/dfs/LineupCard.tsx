@@ -1,4 +1,5 @@
 import { StackChip, type Stack } from "./StackChip";
+import { PositionPill } from "@/components/ui/PositionPill";
 import { pct as fmtPct } from "@/lib/edge";
 import type { DfsLineup } from "@/lib/types";
 
@@ -29,12 +30,14 @@ export function stacksFromPlayers(
 export function LineupCard({
   lineup,
   teams = {},
+  positions = {},
   selected = false,
   onToggle,
   slate,
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
+  positions?: Record<string, string>;
   selected?: boolean;
   onToggle?: () => void;
   slate?: string;
@@ -59,6 +62,7 @@ export function LineupCard({
           <div className="flex flex-wrap items-center gap-1">
             {order.map((slot) => {
               const p = bySlot.get(slot);
+              const pos = p ? positions[p.name.toLowerCase()] : undefined;
               const label = p
                 ? slot === "CPT"
                   ? `CPT ${lastToken(p.name)}`
@@ -68,8 +72,9 @@ export function LineupCard({
                 <span
                   key={slot}
                   title={p?.name ?? slot}
-                  className="inline-flex h-8 min-w-9 items-center justify-center rounded-sm bg-muted px-1.5 t-body font-semibold text-foreground"
+                  className="inline-flex h-8 min-w-9 items-center justify-center gap-1 rounded-sm bg-muted px-1.5 t-body font-semibold text-foreground"
                 >
+                  {p ? <PositionPill position={pos} /> : null}
                   {label}
                 </span>
               );

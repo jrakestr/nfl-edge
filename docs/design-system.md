@@ -7,7 +7,7 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 ## Principles
 
 1. **Plain English first, numbers second.** Every screen leads with a sentence a normal person can read ("Detroit is favored to beat New Orleans by 10.4 points. The book has them by 7."). Numbers support the sentence as chips and columns; a Plain English / Table toggle exposes the dense view. Column headers say what the number means ("Cleared it, last 10", "Chance of over"), never the abbreviation.
-2. **Signal only.** Color means one thing: edge and its direction. Nothing else is colored. Team colors appear only as an 8px dot next to an abbreviation.
+2. **Signal only.** Color means one thing: **edge and its direction**, plus **position identity**. Position is a small filled pill next to the name (one token per real position: QB, RB, WR, TE, DST). FLEX slots show the player's actual position, never a FLEX chip. Team colors appear only as an 8px dot next to an abbreviation.
 3. **One typeface, no monospace.** Plus Jakarta Sans for everything. Numbers use `font-variant-numeric: tabular-nums` at weight 600–700 so columns align without a mono face.
 4. **The summary screams, the table whispers.** One number per screen at display size. Player names, team abbreviations, and every primary number are `--foreground` at weight 600. Labels and column headers use `--muted-foreground`. `--dim` is never used for anything a person needs to read.
 5. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
@@ -44,6 +44,18 @@ Four-step elevation: background → card → muted → accent. Cards get one sha
 | `--model` | `--foreground` | model side of any comparison |
 
 All semantic colors are ≥ 4.5:1 on `--card` and `--background`. Tinted backgrounds for chips use the semantic color at 10% opacity.
+
+### Color — position (identity, not edge)
+
+| Token | Fill / tint | Use |
+|---|---|---|
+| `--pos-qb` | `#2C4A8C` / `#E6E9F1` | QB pill |
+| `--pos-rb` | `#1A5F52` / `#E4ECEA` | RB pill |
+| `--pos-wr` | `#8A4B0A` / `#F1E9E2` | WR pill |
+| `--pos-te` | `#5A3D8A` / `#EBE8F1` | TE pill |
+| `--pos-dst` | `#4A5564` / `#E9EBEC` | DST pill |
+
+`PositionPill`: `h-5`, radius 6, abbreviation, `aria-label`. Text is the position color on the tint. FLEX never has its own token.
 
 Rule: model values are neutral foreground; **market** values are `--line` blue; the **difference** is the only thing that goes green/red. Never color a raw projection.
 

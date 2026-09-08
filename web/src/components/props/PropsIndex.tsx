@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PositionPill } from "@/components/ui/PositionPill";
 import { pct, signedPct } from "@/lib/edge";
 import { STAT_LABELS } from "@/lib/prop-stats";
 import type { PropEdge } from "@/lib/types";
@@ -36,12 +37,15 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
               edges.map((e) => (
                 <TableRow key={`${e.player_id}-${e.stat}`}>
                   <TableCell>
-                    <Link
-                      href={`/props/${e.game_id ?? "unknown"}/${e.player_id}`}
-                      className="font-semibold text-foreground underline-offset-2 hover:underline"
-                    >
-                      {e.player_name}
-                    </Link>
+                    <span className="inline-flex items-center gap-1.5">
+                      <PositionPill position={e.position} />
+                      <Link
+                        href={`/props/${e.game_id ?? "unknown"}/${e.player_id}`}
+                        className="font-semibold text-foreground underline-offset-2 hover:underline"
+                      >
+                        {e.player_name}
+                      </Link>
+                    </span>
                   </TableCell>
                   <TableCell className="t-body font-semibold text-foreground">
                     {e.away && e.home ? `${e.away} @ ${e.home}` : e.game_id ?? "—"}

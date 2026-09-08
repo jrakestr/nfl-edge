@@ -1,4 +1,5 @@
 import type { TrackRecord } from "@/lib/queries/results";
+import type { DrawerPlayer } from "@/lib/queries/players";
 import type { BoardRow, GameChecks, VerdictRow } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
@@ -23,6 +24,7 @@ export type WeekBoardProps = {
   rows: BoardRow[]; // sorted by |max edge| desc
   checks: Record<string, GameChecks>;
   track: TrackRecord;
+  playersByGame?: Record<string, DrawerPlayer[]>;
 };
 
 /** The Edge board, pure over its props (the page loads them; the route test feeds a fixture). */
@@ -83,6 +85,7 @@ export function WeekBoard(p: WeekBoardProps) {
                 verdicts={byGame}
                 draws={p.run.draws_per_game}
                 filters={p.filters}
+                playersByGame={p.playersByGame}
               />
             </div>
           )}

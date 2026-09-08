@@ -84,3 +84,34 @@ export async function weekPlayers(runId: string): Promise<WeekPlayer[]> {
     return WeekPlayerSchema.parse({ ...r, hist });
   });
 }
+
+export type DrawerPlayer = {
+  display_name: string;
+  position: string | null;
+  fpts_dk_mean: number | null;
+};
+
+/** Top 10 DK projections per game for the edge-board drawer. */
+export async function topPlayersByGame(runId: string): Promise<Record<string, DrawerPlayer[]>> {
+  const rows = await sql()`
+    select pp.game_id,
+           coalesce(p.display_name, pp.player_id) as display_name,
+           pp.position,
+           pp.fpts_dk_mean::float8 as fpts_dk_mean
+    from model.proj_players pp
+    left join raw.players p on p.gsis_id = pp.player_id
+    where pp.run_id = ${runId}::uuid
+    order by pp.game_id, pp.fpts_dk_mean desc nulls last`;
+  const out: Record<string, DrawerPlayer[]> = {};
+  for (const r of rows) {
+    const gid = String(r.game_id);
+    const list = out[gid] ?? (out[gid] = []);
+    if (list.length >= 10) continue;
+    list.push({
+      display_name: String(r.display_name),
+      position: r.position != null ? String(r.position) : null,
+      fpts_dk_mean: r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null,
+    });
+  }
+  return out;
+}

@@ -86,12 +86,36 @@ export async function stackCorrelations(
 }
 
 export async function salaryTeams(site: string, slateId: string): Promise<Record<string, string>> {
-  const rows = await sql()`
-    select name, team from raw.dk_salaries
-    where site = ${site} and slate_id = ${slateId} and name is not null and team is not null`;
+  const lookup = await salaryLookup(site, slateId);
   const out: Record<string, string> = {};
+  for (const [name, row] of Object.entries(lookup)) out[name] = row.team;
+  return out;
+}
+
+export type SalaryLookup = { team: string; position: string };
+
+/** Name → team + real position. Prefers the non-FLEX roster row when DK duplicates a player. */
+export async function salaryLookup(site: string, slateId: string): Promise<Record<string, SalaryLookup>> {
+  const rows = await sql()`
+    select distinct on (lower(name)) name, team, position
+    from raw.dk_salaries
+    where site = ${site} and slate_id = ${slateId} and name is not null
+    order by lower(name), case when roster_position = 'FLEX' then 1 else 0 end`;
+  const out: Record<string, SalaryLookup> = {};
   for (const r of rows) {
-    if (r.name && r.team) out[String(r.name).toLowerCase()] = String(r.team);
+    if (!r.name) continue;
+    out[String(r.name).toLowerCase()] = {
+      team: r.team != null ? String(r.team) : "",
+      position: r.position != null ? String(r.position) : "",
+    };
+  }
+  return out;
+}
+
+export function salaryPositions(lookup: Record<string, SalaryLookup>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, row] of Object.entries(lookup)) {
+    if (row.position) out[name] = row.position;
   }
   return out;
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { CURRENT_SEASON } from "@/lib/config";
-import { dfsExposure, dfsLineups, salaryTeams, slateId, stackCorrelations } from "@/lib/queries/dfs";
+import { dfsExposure, dfsLineups, salaryLookup, salaryPositions, slateId, stackCorrelations } from "@/lib/queries/dfs";
 import { runsForWeek } from "@/lib/queries/runs";
 
 export const dynamic = "force-dynamic";
@@ -35,14 +35,15 @@ export default async function Page({
   const run = runs.length ? (pinned ? (runs.find((r) => r.run_id === pinned) ?? runs[0]) : runs[0]) : null;
   const sid = weekOk ? slateId(season, week, slate) : "";
 
-  const [lineups, exposure, teams, correlations] = run
+  const [lineups, exposure, lookup, correlations] = run
     ? await Promise.all([
         dfsLineups(run.run_id, siteKey, sid),
         dfsExposure(run.run_id, siteKey, sid),
-        salaryTeams(siteKey, sid),
+        salaryLookup(siteKey, sid),
         stackCorrelations(run.run_id, siteKey, sid),
       ])
     : [[], [], {}, []];
+  const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
 
   return (
     <LineupReview
@@ -54,6 +55,7 @@ export default async function Page({
       lineups={lineups}
       exposure={exposure}
       teams={teams}
+      positions={salaryPositions(lookup)}
       correlations={correlations}
     />
   );

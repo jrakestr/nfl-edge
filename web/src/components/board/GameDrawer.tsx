@@ -5,11 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { direction, intensity, pct, price, signedPct } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
+import type { DrawerPlayer } from "@/lib/queries/players";
 import { CheckStatus } from "./CheckStatus";
 import { EdgeDiff } from "./EdgeCell";
 import { MarketPill, TotalPill } from "./MarketPill";
 import { Matchup } from "./TeamDot";
 import { emphasize } from "./emphasize";
+import { PositionPill } from "@/components/ui/PositionPill";
 
 const SIDE_LABEL: Record<keyof BoardRow["edges"], (r: BoardRow) => string> = {
   spread_home: (r) => `${r.home} spread`,
@@ -29,12 +31,14 @@ export function GameDrawer({
   row,
   verdict,
   checks,
+  players = [],
   open,
   onOpenChange,
 }: {
   row: BoardRow | null;
   verdict: VerdictPayload | null;
   checks: GameChecks | null;
+  players?: DrawerPlayer[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -126,18 +130,37 @@ export function GameDrawer({
                 )}
               </section>
 
-              <section aria-label="Coming with the draws API" className="flex flex-col gap-2">
-                {["Score distribution", "Fair vs market history", "Top-10 player projections", "Correlation strip"].map(
-                  (t) => (
-                    <div
-                      key={t}
-                      className="flex h-12 items-center justify-between rounded-md border border-dashed border-border px-3"
-                    >
-                      <span className="t-body text-muted-foreground">{t}</span>
-                      <span className="t-caption">coming with the draws API</span>
-                    </div>
-                  ),
+              <section aria-label="Top player projections" className="flex flex-col gap-2">
+                <h4 className="t-colhead text-muted-foreground">Top-10 player projections</h4>
+                {players.length === 0 ? (
+                  <p className="t-caption">No player projections on this run.</p>
+                ) : (
+                  <ul className="flex flex-col gap-1">
+                    {players.map((p) => (
+                      <li key={p.display_name} className="flex items-center justify-between gap-2">
+                        <span className="inline-flex min-w-0 items-center gap-1.5">
+                          <PositionPill position={p.position} />
+                          <span className="truncate font-semibold text-foreground">{p.display_name}</span>
+                        </span>
+                        <span className="tnum font-semibold text-foreground">
+                          {p.fpts_dk_mean != null ? p.fpts_dk_mean.toFixed(1) : "—"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
+              </section>
+
+              <section aria-label="Coming with the draws API" className="flex flex-col gap-2">
+                {["Score distribution", "Fair vs market history", "Correlation strip"].map((t) => (
+                  <div
+                    key={t}
+                    className="flex h-12 items-center justify-between rounded-md border border-dashed border-border px-3"
+                  >
+                    <span className="t-body text-muted-foreground">{t}</span>
+                    <span className="t-caption">coming with the draws API</span>
+                  </div>
+                ))}
               </section>
             </div>
           </>

@@ -25,6 +25,7 @@ export async function propEdges(runId: string): Promise<PropEdge[]> {
     select e.market_prop_id::int,
            e.player_id,
            coalesce(pl.display_name, mp.player_name) as player_name,
+           coalesce(pp.position, pl.position) as position,
            e.game_id,
            s.home_team as home,
            s.away_team as away,

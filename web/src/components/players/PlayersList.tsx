@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PositionPill } from "@/components/ui/PositionPill";
 import type { WeekPlayer } from "@/lib/types";
 
-const COLS = ["Player", "Pos", "Team", "DK pts", "Typical game"] as const;
+const COLS = ["Player", "Team", "DK pts", "Typical game"] as const;
 
 /** Search → prop detail. Rows from model.proj_players. */
 export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
@@ -61,15 +62,17 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
               filtered.map((p) => (
                 <TableRow key={p.player_id}>
                   <TableCell>
-                    <Link
-                      href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
-                      className="font-semibold text-foreground underline-offset-2 hover:underline"
-                    >
-                      {p.display_name}
-                    </Link>
+                    <span className="inline-flex items-center gap-1.5">
+                      <PositionPill position={p.position} />
+                      <Link
+                        href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
+                        className="font-semibold text-foreground underline-offset-2 hover:underline"
+                      >
+                        {p.display_name}
+                      </Link>
+                    </span>
                   </TableCell>
-                  <TableCell className="t-body text-foreground font-semibold">{p.position ?? "—"}</TableCell>
-                  <TableCell className="t-body text-foreground font-semibold">{p.team ?? "—"}</TableCell>
+                  <TableCell className="t-body font-semibold text-foreground">{p.team ?? "—"}</TableCell>
                   <TableCell className="tnum font-semibold text-foreground">
                     {p.fpts_dk_mean != null ? p.fpts_dk_mean.toFixed(1) : "—"}
                   </TableCell>

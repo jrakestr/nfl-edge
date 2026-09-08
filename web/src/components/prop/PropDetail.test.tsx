@@ -65,6 +65,7 @@ describe("props-web surfaces", () => {
   it("Players search filters and links to prop detail", () => {
     render(<PlayersList players={[PLAYER]} />);
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+    expect(screen.getByLabelText("RB")).toBeInTheDocument();
     expect(screen.getByText("22.3")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Name or team"), { target: { value: "zzz" } });
     expect(screen.getByText("No projections listed yet")).toBeInTheDocument();

@@ -69,6 +69,13 @@ describe("LineupCard", () => {
     expect(screen.getByText("DET 7")).toBeInTheDocument();
   });
 
+  it("FLEX shows the player's real position", () => {
+    render(<LineupCard lineup={SAMPLE} positions={{ "bijan robinson": "RB" }} />);
+    const flex = screen.getByTitle("Bijan Robinson");
+    expect(flex).toHaveTextContent("RB");
+    expect(flex).toHaveTextContent("Robinson");
+  });
+
   it("labels the captain slot on showdown", () => {
     render(<LineupCard slate="showdown" lineup={SHOWDOWN} />);
     expect(screen.getByText("CPT Smith-Njigba")).toBeInTheDocument();

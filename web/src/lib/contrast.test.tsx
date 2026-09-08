@@ -142,6 +142,11 @@ describe("token contrast ≥ 4.5:1", () => {
     expect(cssToken(css, "edge-neg")).toBe(TOKENS.edgeNeg.toLowerCase());
     expect(cssToken(css, "warn")).toBe(TOKENS.warn.toLowerCase());
     expect(cssToken(css, "line")).toBe(TOKENS.line.toLowerCase());
+    expect(cssToken(css, "pos-qb")).toBe(TOKENS.posQb.toLowerCase());
+    expect(cssToken(css, "pos-rb")).toBe(TOKENS.posRb.toLowerCase());
+    expect(cssToken(css, "pos-wr")).toBe(TOKENS.posWr.toLowerCase());
+    expect(cssToken(css, "pos-te")).toBe(TOKENS.posTe.toLowerCase());
+    expect(cssToken(css, "pos-dst")).toBe(TOKENS.posDst.toLowerCase());
     expect(css).toMatch(/\.t-caption[\s\S]*?color:\s*var\(--muted-foreground\)/);
     expect(css).not.toMatch(/\.t-caption[\s\S]{0,80}var\(--dim\)/);
   });
@@ -156,6 +161,11 @@ describe("token contrast ≥ 4.5:1", () => {
     expect(contrastRatio(TOKENS.edgePos, TOKENS.edgePosTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(TOKENS.edgeNeg, TOKENS.edgeNegTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(TOKENS.line, TOKENS.lineTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(TOKENS.posQb, TOKENS.posQbTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(TOKENS.posRb, TOKENS.posRbTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(TOKENS.posWr, TOKENS.posWrTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(TOKENS.posTe, TOKENS.posTeTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(TOKENS.posDst, TOKENS.posDstTint)).toBeGreaterThanOrEqual(AA);
   });
 
   it("70% edge color would fail, so opacity is not used for readable numbers", () => {

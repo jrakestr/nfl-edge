@@ -45,6 +45,9 @@ vi.mock("@/lib/queries/checks", () => ({
 vi.mock("@/lib/queries/results", () => ({
   trackRecord: async () => NO_TRACK,
 }));
+vi.mock("@/lib/queries/players", () => ({
+  topPlayersByGame: async () => ({}),
+}));
 
 import WeekPage from "@/app/week/[n]/page";
 
