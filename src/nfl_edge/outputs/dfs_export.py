@@ -187,6 +187,7 @@ def write_export(
     player_ids: list[dict],
     config: dict,
     report: list[dict] | None = None,
+    showdown: bool = False,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "projections.csv").open("w", newline="") as f:
@@ -198,7 +199,8 @@ def write_export(
         w.writeheader()
         w.writerows(player_ids)
     (out_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
-    structure = CONFIG_DIR / "dfs" / "contest_structure.csv"
+    fname = "dk_showdown_contest.csv" if showdown else "contest_structure.csv"
+    structure = CONFIG_DIR / "dfs" / fname
     if structure.exists():
         (out_dir / "contest_structure.csv").write_text(structure.read_text())
     lines = [
@@ -252,7 +254,7 @@ def run(run_id: str, site: str = "dk", slate: str = "main") -> dict:
     ids = build_player_ids(slate_rows)
     cfg = build_config(corr, names, showdown=showdown)
     out = export_dir(run_id, site, slate)
-    write_export(out, projections, ids, cfg, report)
+    write_export(out, projections, ids, cfg, report, showdown=showdown)
     unmatched = [r for r in slate_rows if not r.get("player_id")]
     summary = {
         "run_id": run_id,

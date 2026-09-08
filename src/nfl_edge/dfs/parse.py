@@ -31,12 +31,14 @@ def split_cell(raw: str) -> tuple[str, str | None]:
 def _pct(raw: object) -> float | None:
     if raw is None or str(raw).strip() == "":
         return None
-    t = str(raw).strip().replace("%", "")
+    s = str(raw).strip()
+    had_pct = "%" in s
+    t = s.replace("%", "")
     try:
         v = float(t)
     except ValueError:
         return None
-    return v / 100.0 if v > 1.0 or t.endswith("%") else v
+    return v / 100.0 if had_pct or v > 1.0 else v
 
 
 def parse_opto_csv(path: Path) -> list[dict]:

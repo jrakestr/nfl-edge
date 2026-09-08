@@ -90,7 +90,9 @@ export function LineupCard({
             </span>
             <span>
               Win %{" "}
-              <span className="tnum text-foreground">{fmtPct(lineup.sim_win_pct)}</span>
+              <span className="tnum text-foreground">
+                {fmtPct(lineup.sim_win_pct, Math.abs((lineup.sim_win_pct ?? 0) * 100) < 1 ? 1 : 0)}
+              </span>
             </span>
             <span>
               ROI{" "}

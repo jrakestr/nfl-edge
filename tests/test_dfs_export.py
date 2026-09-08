@@ -155,6 +155,14 @@ def test_showdown_config_uses_showdown_json():
     assert cfg["stack_rules"]["pair"] == []
 
 
+def test_showdown_export_uses_20k_contest(tmp_path: Path):
+    D.write_export(tmp_path, [], [], D.build_config([], {}, showdown=True), [], showdown=True)
+    header, row = (tmp_path / "contest_structure.csv").read_text().splitlines()[:2]
+    assert "Field Size" in header
+    assert "20000" in row
+    assert "150" not in row.split(",")
+
+
 def test_write_export_three_files(tmp_path: Path):
     proj, report = D.build_projections(SLATE, PROJ, site="dk")
     ids = D.build_player_ids(SLATE)

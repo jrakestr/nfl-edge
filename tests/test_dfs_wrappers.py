@@ -74,6 +74,13 @@ def test_parse_showdown_gpp_skips_type_column(tmp_path: Path):
     assert row["roi"] == 0.22
 
 
+def test_pct_sub_one_percent_keeps_percent_scale():
+    assert P._pct("0.46%") == pytest.approx(0.0046)
+    assert P._pct("0.09%") == pytest.approx(0.0009)
+    assert P._pct("12.5%") == pytest.approx(0.125)
+    assert P._pct("12.5") == pytest.approx(0.125)
+
+
 SD_EXPOSURE = """Player,Roster Position,Position,Team,Win%,Top10%,Sim. Own%,Proj. Own%,Avg. Return
 Jaxon Smith-Njigba,CPT,WR,SEA,10.0,2.0,20.0,8.0,0.5
 Jaxon Smith-Njigba,FLEX,WR,SEA,12.0,3.0,30.0,16.0,0.4

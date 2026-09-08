@@ -12,10 +12,10 @@ Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress);
 
 ## Phase 3 — props (2026-09-06)
 - `nfl-edge props --season 2026 --week 1 --file data/props/props_2026_wk01.csv`: 2 `market_props` rows, 4 `prop_edges` (over+under) on run `e7a5ff4e`. Gibbs rush 83.5 P(over) 22.5% lean under; St. Brown rec 77.5 P(over) 24.9% lean under. P(over) from parquet. `nfl-edge grade` skips props until `player_stats_weekly` exists (`props: skipped (scores unpublished)`).
-- Showdown **landed** on run `bf9a11f4` (neff-split, 20k): `data/dk/DKSalaries_2026_wk01_showdown.csv` ingested as `2026_01_showdown` (136 rows, 108 matched). 150 CPT+FLEX lineups in `model.dfs_lineups` / 17 `dfs_exposure`. Upload `data/dfs/bf9a11f4-…/dk/showdown/dk_upload.csv`. Lineup review CPT slot verified locally at `/week/1/dfs/dk/showdown`. Win%/ROI use the shared 150-entry `contest_structure.csv` (field = our 150 lineups), so headline win% is not a GPP read.
+- Showdown on run `bf9a11f4` (neff-split, 20k): `data/dk/DKSalaries_2026_wk01_showdown.csv` → `2026_01_showdown` (136 rows, 108 matched; Boutte unmatched OUT, no alias). 150 CPT+FLEX lineups, 34 exposure. GPP sim uses `config/dfs/dk_showdown_contest.csv` (field 20k, generated ~19.8k + our 150). Win% 0–0.46% (none at 100%). Upload `data/dfs/bf9a11f4-…/dk/showdown/dk_upload.csv`. CPT slot on `/week/1/dfs/dk/showdown`.
 
 ### Checkpoint 3
-- Two Week 1 props (CSV still has 2 rows, not three) show P(over), edge, and PropCallout on `/props`. TNF showdown lineups **are** in local lineup review; preview URL below is stale until redeploy. Preview: https://nfl-edge-n4faw0t6y-transit-trends.vercel.app
+- Two Week 1 props (CSV has 2 rows; third never entered) show P(over), edge, and PropCallout on `/props`. TNF showdown lineups in lineup review locally and on preview https://nfl-edge-56byuj1hm-transit-trends.vercel.app (run `bf9a11f4`). Phase 4 waits for `nfl-edge grade --season 2026 --week 1` on Tue 2026-09-15.
 
 ## Phase 1 — web app (2026-09-06)
 - Linked `web/` to Vercel project `transit-trends/nfl-edge`. `DATABASE_URL` is the session pooler (IPv4) on Production and Preview. Direct `db.*.supabase.co` does not resolve on Vercel.
@@ -145,7 +145,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - [x] C — `nfl-edge lines --season 2026 --week 1` prints 16 verdicts from a 20k run and `model.verdicts` holds 16 rows, on Supabase (run `5823f735`) and on local Postgres (run `3d4fe1c7`).
 - [x] D — `nfl-edge grade --season 2025 --week 10` on local Postgres: 7 runs, 588 `model.results` rows, picks ~50%, CLV 0 by construction; 2026 wk1 verdicts on Supabase carry structured chip/call fields. First live grade Tue 2026-09-15.
 - [x] 2 — 150 Week 1 DK Main lineups + upload CSV; `/lineups` and `/games` on preview https://nfl-edge-902bjznuh-transit-trends.vercel.app (run `e7a5ff4e`).
-- [ ] 3 — two Week 1 props on `/props` (CSV still 2 rows); TNF showdown lineups local on run `bf9a11f4` `/week/1/dfs/dk/showdown`. Preview not redeployed: https://nfl-edge-n4faw0t6y-transit-trends.vercel.app
+- [x] 3 — two Week 1 props on `/props`; TNF showdown lineups on run `bf9a11f4` `/week/1/dfs/dk/showdown` (local + preview https://nfl-edge-56byuj1hm-transit-trends.vercel.app). Third prop row never entered. Phase 4 waits for Tue 2026-09-15 live grade.
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## Open items for the next plan (lines/edge, DFS export)

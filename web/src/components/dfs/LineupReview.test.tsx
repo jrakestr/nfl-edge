@@ -75,6 +75,17 @@ describe("LineupCard", () => {
     expect(screen.getByText("Maye")).toBeInTheDocument();
     expect(screen.queryByText("QB")).not.toBeInTheDocument();
   });
+
+  it("shows one decimal on sub-1% win rates", () => {
+    render(
+      <LineupCard
+        slate="showdown"
+        lineup={{ ...SHOWDOWN, sim_win_pct: 0.0046 }}
+      />,
+    );
+    expect(screen.getByText("0.5%")).toBeInTheDocument();
+    expect(screen.queryByText("100%")).not.toBeInTheDocument();
+  });
 });
 
 describe("stacksFromPlayers", () => {
