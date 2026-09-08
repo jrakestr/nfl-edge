@@ -12,7 +12,7 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 4. **The summary screams, the table whispers.** One number per screen at display size. Player names, team abbreviations, and every primary number are `--foreground` at weight 600. Labels and column headers use `--muted-foreground`. `--dim` is never used for anything a person needs to read.
 5. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
 6. **Every number has a run.** A `run_id` badge is visible on every screen. Stale runs are marked; two runs can be compared.
-7. **Light, app-shaped.** Light is the only theme. Cool grey field (`#F4F5F7`), white cards with a 1px `#E6E8EC` border and 12px radius, a 216px white sidebar (64px collapsed icon rail, remembered in `localStorage`), a 52px top bar with breadcrumb, search and actions. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
+7. **Light, app-shaped.** Light is the only theme. Cool-to-warm field gradient (`#E8ECF2` → `#F4F5F7` → `#F3F1EC`). White cards with a 1px `#E6E8EC` border and 12px radius. Sidebar (216px / 64px collapsed), top bar, and drawers use `--glass` (white at 72% plus 12px blur). Cards stay solid `--card`; no blur under a table. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
 
 ## Tokens (`globals.css`, shadcn variable names where they exist)
 
@@ -20,8 +20,10 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 
 | Token | Value | Use |
 |---|---|---|
-| `--background` | `#F4F5F7` | app field |
-| `--card` | `#FFFFFF` | sidebar, top bar, cards |
+| `--background` | `#F4F5F7` | mid-tone fill; field is a cool-to-warm gradient |
+| `--glass` | `rgb(255 255 255 / 0.72)` | sidebar, top bar, Sheet, optimizer settings shell |
+| `--glass-border` | `#E6E8EC` | hairline on glass shells |
+| `--card` | `#FFFFFF` | cards and any table surface (never glass) |
 | `--muted` | `#FAFBFC` | table header |
 | `--accent` | `#F7F8FA` | hover row |
 | `--border` | `#E6E8EC` | card and bar borders |
@@ -130,7 +132,7 @@ Invariant/warning results for a run: green dot = all invariants passed; `--warn`
 ## Patterns
 
 ### App shell
-Sidebar (216px expanded / 64px collapsed; Edge board, Games, Players, Optimize, Props, Lineups, Grading; `RunBadge` pinned at bottom) + top bar (breadcrumb, search with `/`, page actions). Breadcrumbs use `›` and product labels (`Week 1 › Lineups › DK Main`); nested week routes skip a redundant “Edge board” prefix; the current page is weight 600, not a link. Players and Optimize point at `/week/{n}/players|optimize/dk/main` via `/players` and `/optimize` redirects. Content is a 16px-gapped grid inside 20px padding.
+Sidebar (216px expanded / 64px collapsed glass rail; Edge board, Games, Players, Optimize, Props, Lineups, Grading; `RunBadge` pinned at bottom) + glass top bar (breadcrumb, search with `/`, page actions). Breadcrumbs use `›` and product labels (`Week 1 › Lineups › DK Main`); nested week routes skip a redundant “Edge board” prefix; the current page is weight 600, not a link. Players and Optimize point at `/week/{n}/players|optimize/dk/main` via `/players` and `/optimize` redirects. Drawers are glass shells; tables inside sit on solid `--card`. Content is a 16px-gapped grid inside 20px padding.
 
 ### Edge board (`/week/[n]`)
 - Week summary sentence card with Plain English / Table toggle.
@@ -163,4 +165,4 @@ Same tokens and components; `DistributionSpark` becomes a full-width histogram i
 
 ## Not in the system
 
-Dark mode, team-color themes, headshots, animated odds tickers, gradient cards, pure-white backgrounds, and anything that colors a number that isn't a difference against the market.
+Dark mode, team-color themes, headshots, animated odds tickers, gradient cards, a pure-white app field, and anything that colors a number that isn't a difference against the market. A field gradient is allowed; glass is the shell only.

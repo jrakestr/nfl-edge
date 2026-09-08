@@ -47,6 +47,8 @@
   /* project tokens */
   --color-border-soft: var(--border-soft);
   --color-dim: var(--dim);
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
   --color-edge-pos: var(--edge-pos);
   --color-edge-pos-tint: var(--edge-pos-tint);
   --color-edge-neg: var(--edge-neg);
@@ -103,6 +105,8 @@
   --input: #e6e8ec;
   --ring: #a0a6b1;
   --dim: #a0a6b1;
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-border: #e6e8ec;
   --radius: 12px;
   --sidebar: #ffffff;
   --sidebar-foreground: #111318;
@@ -163,7 +167,10 @@
     color-scheme: light;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: var(--background);
+    background-image: linear-gradient(180deg, #e8ecf2 0%, #f4f5f7 42%, #f3f1ec 100%);
+    background-attachment: fixed;
     font-size: 13px;
     line-height: 18px;
   }
@@ -217,5 +224,12 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: var(--shadow-card);
+  }
+  /* Shell only. Never on a surface that holds a table. */
+  .glass {
+    background: var(--glass);
+    border-color: var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 }

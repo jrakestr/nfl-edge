@@ -149,6 +149,15 @@ describe("token contrast ≥ 4.5:1", () => {
     expect(cssToken(css, "pos-dst")).toBe(TOKENS.posDst.toLowerCase());
     expect(css).toMatch(/\.t-caption[\s\S]*?color:\s*var\(--muted-foreground\)/);
     expect(css).not.toMatch(/\.t-caption[\s\S]{0,80}var\(--dim\)/);
+    expect(css).toMatch(/--glass:\s*rgb\(255 255 255 \/ 0\.72\)/);
+    expect(css).toMatch(/\.glass[\s\S]*?backdrop-filter:\s*blur\(12px\)/);
+    expect(css).toMatch(/body[\s\S]*?#e8ecf2[\s\S]*?#f4f5f7[\s\S]*?#f3f1ec/i);
+    expect(css).toMatch(/\.card[\s\S]*?background:\s*var\(--card\)/);
+    expect(css).not.toMatch(/\.card[\s\S]{0,180}backdrop-filter/);
+  });
+
+  it("glass composite is white 0.72 over the cool field stop", () => {
+    expect(TOKENS.glass).toBe(blend("#FFFFFF", TOKENS.fieldCool, 0.72).toUpperCase());
   });
 
   it.each(Object.entries(READABLE))("%s on every surface", (_name, fg) => {
@@ -215,6 +224,12 @@ describe("source scan: --dim is decorative only", () => {
   it("EdgeDiff does not fade readable color with opacity", () => {
     const src = readFileSync(join(SRC, "components/board/EdgeCell.tsx"), "utf8");
     expect(src).not.toMatch(/opacity-70/);
+  });
+
+  it("DataTable sits on solid card, never glass or backdrop-blur", () => {
+    const src = readFileSync(join(SRC, "components/ui/DataTable.tsx"), "utf8");
+    expect(src).toMatch(/className="card /);
+    expect(src).not.toMatch(/backdrop-blur|className="glass|\.glass/);
   });
 });
 

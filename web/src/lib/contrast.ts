@@ -2,7 +2,11 @@
 
 export const TOKENS = {
   background: "#F4F5F7",
+  fieldCool: "#E8ECF2",
+  fieldWarm: "#F3F1EC",
   card: "#FFFFFF",
+  /** White 0.72 over the cool field stop — worst-case glass composite. */
+  glass: "#F9FAFB",
   muted: "#FAFBFC",
   accent: "#F7F8FA",
   foreground: "#111318",
@@ -69,9 +73,12 @@ export function blend(fg: string, bg: string, opacity: number): string {
 
 export const SURFACES = {
   background: TOKENS.background,
+  fieldCool: TOKENS.fieldCool,
+  fieldWarm: TOKENS.fieldWarm,
   card: TOKENS.card,
   muted: TOKENS.muted,
   accent: TOKENS.accent,
+  glass: TOKENS.glass,
 } as const;
 
 /** Text roles that a person must be able to read. --dim is not in this list. */
@@ -110,6 +117,7 @@ export const CLASS_TO_BG: Record<string, string> = {
   "bg-card": TOKENS.card,
   "bg-muted": TOKENS.muted,
   "bg-accent": TOKENS.accent,
+  glass: TOKENS.glass,
   "bg-edge-pos-tint": TOKENS.edgePosTint,
   "bg-edge-neg-tint": TOKENS.edgeNegTint,
   "bg-line-tint": TOKENS.lineTint,

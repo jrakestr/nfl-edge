@@ -22,7 +22,7 @@ export function Sidebar({
   const registered = useSidebarFooter();
   return (
     <aside
-      className="sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r border-border bg-card transition-[width] duration-[var(--dur-2)] ease-[var(--ease)]"
+      className="glass sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r transition-[width] duration-[var(--dur-2)] ease-[var(--ease)]"
       aria-label="Primary"
     >
       <div

@@ -12,7 +12,7 @@ export function TopBar() {
   const items = crumbs(pathname);
   const actions = usePageActions();
   return (
-    <header className="sticky top-0 z-10 flex h-[var(--topbar-height)] items-center gap-4 border-b border-border bg-card px-5">
+    <header className="glass sticky top-0 z-10 flex h-[var(--topbar-height)] items-center gap-4 border-b px-5">
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 t-body">
         {items.length === 0 ? (
           <span className="text-foreground">Home</span>
