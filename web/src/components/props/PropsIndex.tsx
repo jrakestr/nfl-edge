@@ -1,12 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PositionPill } from "@/components/ui/PositionPill";
+import { DataTable } from "@/components/ui/DataTable";
 import { pct, signedPct } from "@/lib/edge";
-import { MetricLabel } from "@/lib/icons";
 import { STAT_LABELS } from "@/lib/prop-stats";
 import type { PropEdge } from "@/lib/types";
 
-const COLS = ["Player", "Game", "Market", "Line", "Chance of over", "Edge"] as const;
+function gameLabel(e: PropEdge): string {
+  return e.away && e.home ? `${e.away} @ ${e.home}` : e.game_id ?? "—";
+}
 
 /** List-by-|edge|. Detail is /props/[game]/[player]. */
 export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
@@ -16,51 +19,75 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
         <h1 className="t-title">Props</h1>
         <p className="mt-1 t-caption">Sorted by |edge|. Open a player at /props/[game]/[player].</p>
       </header>
-      <section className="card overflow-x-auto" aria-label="Prop edges">
-        <Table>
-          <TableHeader className="bg-muted">
-            <TableRow className="hover:bg-transparent">
-              {COLS.map((c) => (
-                <TableHead key={c} className="t-colhead text-muted-foreground">
-                  {c === "Edge" ? <MetricLabel metric="edge">{c}</MetricLabel> : c}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {edges.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={COLS.length} className="py-6 text-center t-caption">
-                  No prop edges yet
-                </TableCell>
-              </TableRow>
-            ) : (
-              edges.map((e) => (
-                <TableRow key={`${e.player_id}-${e.stat}`}>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-1.5">
-                      <PositionPill position={e.position} />
-                      <Link
-                        href={`/props/${e.game_id ?? "unknown"}/${e.player_id}`}
-                        className="font-semibold text-foreground underline-offset-2 hover:underline"
-                      >
-                        {e.player_name}
-                      </Link>
-                    </span>
-                  </TableCell>
-                  <TableCell className="t-body font-semibold text-foreground">
-                    {e.away && e.home ? `${e.away} @ ${e.home}` : e.game_id ?? "—"}
-                  </TableCell>
-                  <TableCell className="t-caption">{STAT_LABELS[e.stat] ?? e.stat}</TableCell>
-                  <TableCell className="tnum font-semibold text-foreground">{e.line}</TableCell>
-                  <TableCell className="tnum font-semibold text-foreground">{pct(e.p_over)}</TableCell>
-                  <TableCell className="tnum font-semibold text-foreground">{signedPct(e.edge)}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </section>
+      <DataTable
+        data={edges}
+        getRowId={(e) => `${e.player_id}-${e.stat}`}
+        empty="No prop edges yet"
+        ariaLabel="Prop edges"
+        searchPlaceholder="Name, team, or stat"
+        defaultSort={{ id: "edge", dir: "desc" }}
+        filters={{
+          search: (e, q) =>
+            e.player_name.toLowerCase().includes(q) ||
+            (e.home ?? "").toLowerCase().includes(q) ||
+            (e.away ?? "").toLowerCase().includes(q) ||
+            (STAT_LABELS[e.stat] ?? e.stat).toLowerCase().includes(q),
+          position: (e) => e.position,
+          game: (e) => gameLabel(e),
+        }}
+        columns={[
+          {
+            id: "player",
+            header: "Player",
+            sortValue: (e) => e.player_name,
+            cell: (e) => (
+              <span className="inline-flex items-center gap-1.5">
+                <PositionPill position={e.position} />
+                <Link
+                  href={`/props/${e.game_id ?? "unknown"}/${e.player_id}`}
+                  className="font-semibold text-foreground underline-offset-2 hover:underline"
+                >
+                  {e.player_name}
+                </Link>
+              </span>
+            ),
+          },
+          {
+            id: "game",
+            header: "Game",
+            sortValue: (e) => gameLabel(e),
+            cell: (e) => <span className="t-body font-semibold text-foreground">{gameLabel(e)}</span>,
+          },
+          {
+            id: "market",
+            header: "Market",
+            sortValue: (e) => e.stat,
+            cell: (e) => <span className="t-caption">{STAT_LABELS[e.stat] ?? e.stat}</span>,
+          },
+          {
+            id: "line",
+            header: "Line",
+            align: "right",
+            sortValue: (e) => e.line,
+            cell: (e) => <span className="tnum font-semibold text-foreground">{e.line}</span>,
+          },
+          {
+            id: "pOver",
+            header: "Chance of over",
+            align: "right",
+            sortValue: (e) => e.p_over,
+            cell: (e) => <span className="tnum font-semibold text-foreground">{pct(e.p_over)}</span>,
+          },
+          {
+            id: "edge",
+            header: "Edge",
+            metric: "edge",
+            align: "right",
+            sortValue: (e) => Math.abs(e.edge ?? 0),
+            cell: (e) => <span className="tnum font-semibold text-foreground">{signedPct(e.edge)}</span>,
+          },
+        ]}
+      />
     </div>
   );
 }

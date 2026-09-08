@@ -1,15 +1,7 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MetricLabel, type Metric } from "@/lib/icons";
+"use client";
 
-const COLS = [
-  "Matchup",
-  "Spread",
-  "Total",
-  "Home wins",
-  "Covers the book line",
-  "Market",
-  "Actual",
-] as const;
+import { DataTable } from "@/components/ui/DataTable";
+import { MetricLabel, type Metric } from "@/lib/icons";
 
 function Tile({
   metric,
@@ -33,6 +25,8 @@ function Tile({
   );
 }
 
+type GradeRow = { id: string };
+
 /** Edge-board table plus Actual. Track record and calibration fill in with grade-web. */
 export function GradingPage() {
   return (
@@ -50,26 +44,21 @@ export function GradingPage() {
         <Tile label="Sides" value="—" />
         <Tile label="Totals" value="—" />
       </div>
-      <section className="card overflow-x-auto" aria-label="Graded edges">
-        <Table>
-          <TableHeader className="bg-muted">
-            <TableRow className="hover:bg-transparent">
-              {COLS.map((c) => (
-                <TableHead key={c} className={c === "Matchup" || c === "Market" ? "t-colhead text-muted-foreground" : "t-colhead text-right text-muted-foreground"}>
-                  {c}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell colSpan={COLS.length} className="py-6 text-center t-caption">
-                No graded weeks yet
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </section>
+      <DataTable
+        data={[] as GradeRow[]}
+        getRowId={(r) => r.id}
+        empty="No graded weeks yet"
+        ariaLabel="Graded edges"
+        columns={[
+          { id: "matchup", header: "Matchup", cell: () => null },
+          { id: "spread", header: "Spread", align: "right", cell: () => null },
+          { id: "total", header: "Total", align: "right", cell: () => null },
+          { id: "ml", header: "Home wins", align: "right", cell: () => null },
+          { id: "cover", header: "Covers the book line", align: "right", cell: () => null },
+          { id: "market", header: "Market", sortable: false, cell: () => null },
+          { id: "actual", header: "Actual", align: "right", cell: () => null },
+        ]}
+      />
       <section className="card p-4">
         <h2 className="t-body font-semibold">Calibration</h2>
         <div className="relative mt-3 h-40 rounded-md bg-muted">

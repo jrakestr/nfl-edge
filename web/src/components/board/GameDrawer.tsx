@@ -1,7 +1,7 @@
 "use client";
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable } from "@/components/ui/DataTable";
 import { direction, intensity, pct, price, signedPct } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
@@ -77,47 +77,78 @@ export function GameDrawer({
 
               <section aria-label="Edges">
                 <h4 className="t-colhead mb-2 text-muted-foreground">Model vs market at the newest line</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="t-colhead h-8 px-2 text-muted-foreground">Side</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Model</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Market</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">
-                        <MetricLabel metric="edge">Edge</MetricLabel>
-                      </TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Price</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">¼ Kelly</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(Object.keys(SIDE_LABEL) as (keyof BoardRow["edges"])[]).map((k) => {
-                      const e = row.edges[k];
-                      return (
-                        <TableRow key={k} className="h-10">
-                          <TableCell className="t-body px-2">{SIDE_LABEL[k](row)}</TableCell>
-                          <TableCell className="tnum px-2 text-right font-semibold">{e ? pct(e.model_prob) : "—"}</TableCell>
-                          <TableCell className="tnum px-2 text-right font-semibold text-line">
-                            {e ? pct(e.market_prob) : "—"}
-                          </TableCell>
-                          <TableCell className="px-2 text-right">
-                            {e ? (
-                              <EdgeDiff dir={direction(e.edge)} inten={intensity(e.edge)}>
-                                {signedPct(e.edge)}
-                              </EdgeDiff>
-                            ) : (
-                              "—"
-                            )}
-                          </TableCell>
-                          <TableCell className="tnum px-2 text-right font-semibold text-foreground">{e ? price(e.price) : "—"}</TableCell>
-                          <TableCell className="tnum px-2 text-right font-semibold text-foreground">
-                            {e ? `${(e.kelly_fraction * 100).toFixed(1)}%` : "—"}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <DataTable
+                  data={(Object.keys(SIDE_LABEL) as (keyof BoardRow["edges"])[]).map((k) => ({
+                    id: k,
+                    label: SIDE_LABEL[k](row),
+                    e: row.edges[k],
+                  }))}
+                  getRowId={(r) => r.id}
+                  empty="—"
+                  ariaLabel="Edges"
+                  syncUrl={false}
+                  defaultSort={{ id: "edge", dir: "desc" }}
+                  rowProps={() => ({ className: "h-10" })}
+                  columns={[
+                    {
+                      id: "side",
+                      header: "Side",
+                      sortValue: (r) => r.label,
+                      cell: (r) => <span className="t-body">{r.label}</span>,
+                    },
+                    {
+                      id: "model",
+                      header: "Model",
+                      align: "right",
+                      sortValue: (r) => r.e?.model_prob,
+                      cell: (r) => <span className="tnum font-semibold">{r.e ? pct(r.e.model_prob) : "—"}</span>,
+                    },
+                    {
+                      id: "market",
+                      header: "Market",
+                      align: "right",
+                      sortValue: (r) => r.e?.market_prob,
+                      cell: (r) => (
+                        <span className="tnum font-semibold text-line">{r.e ? pct(r.e.market_prob) : "—"}</span>
+                      ),
+                    },
+                    {
+                      id: "edge",
+                      header: "Edge",
+                      metric: "edge",
+                      align: "right",
+                      sortValue: (r) => r.e?.edge,
+                      cell: (r) =>
+                        r.e ? (
+                          <EdgeDiff dir={direction(r.e.edge)} inten={intensity(r.e.edge)}>
+                            {signedPct(r.e.edge)}
+                          </EdgeDiff>
+                        ) : (
+                          "—"
+                        ),
+                    },
+                    {
+                      id: "price",
+                      header: "Price",
+                      align: "right",
+                      sortValue: (r) => r.e?.price,
+                      cell: (r) => (
+                        <span className="tnum font-semibold text-foreground">{r.e ? price(r.e.price) : "—"}</span>
+                      ),
+                    },
+                    {
+                      id: "kelly",
+                      header: "¼ Kelly",
+                      align: "right",
+                      sortValue: (r) => r.e?.kelly_fraction,
+                      cell: (r) => (
+                        <span className="tnum font-semibold text-foreground">
+                          {r.e ? `${(r.e.kelly_fraction * 100).toFixed(1)}%` : "—"}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
               </section>
 
               <section aria-label="Checks" className="flex flex-col gap-1">
