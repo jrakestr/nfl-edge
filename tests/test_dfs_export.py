@@ -107,6 +107,54 @@ def test_correlations_keyed_by_dk_name():
     assert "missing" not in json.dumps(out)
 
 
+SHOWDOWN_SLATE = [
+    {"name": "Jaxon Smith-Njigba", "player_dk_id": "43782097", "position": "WR",
+     "roster_position": "CPT", "team": "SEA", "salary": 15900,
+     "game_info": "NE@SEA 09/09/2026 08:20PM ET", "player_id": "00-jsn"},
+    {"name": "Jaxon Smith-Njigba", "player_dk_id": "43782034", "position": "WR",
+     "roster_position": "FLEX", "team": "SEA", "salary": 10600,
+     "game_info": "NE@SEA 09/09/2026 08:20PM ET", "player_id": "00-jsn"},
+    {"name": "Seahawks", "player_dk_id": "43782117", "position": "DST",
+     "roster_position": "CPT", "team": "SEA", "salary": 6600,
+     "game_info": "NE@SEA 09/09/2026 08:20PM ET", "player_id": "SEA_DST"},
+    {"name": "Seahawks", "player_dk_id": "43782050", "position": "DST",
+     "roster_position": "FLEX", "team": "SEA", "salary": 4400,
+     "game_info": "NE@SEA 09/09/2026 08:20PM ET", "player_id": "SEA_DST"},
+]
+SHOWDOWN_PROJ = {
+    "00-jsn": {"fpts_dk_mean": 20.0, "fpts_dk_sd": 6.0, "fpts_fd_mean": 18.0, "fpts_fd_sd": 5.0},
+    "SEA_DST": {"fpts_dk_mean": 8.0, "fpts_dk_sd": 4.0, "fpts_fd_mean": 7.0, "fpts_fd_sd": 3.0},
+}
+
+
+def test_showdown_projections_one_row_flex_salary_unmultiplied():
+    rows, _ = D.build_projections(SHOWDOWN_SLATE, SHOWDOWN_PROJ, site="dk", showdown=True)
+    by = by_name(rows)
+    assert set(by) == {"Jaxon Smith-Njigba", "Seahawks"}
+    assert by["Jaxon Smith-Njigba"]["Salary"] == 10600
+    assert by["Jaxon Smith-Njigba"]["Fpts"] == 20.0
+    assert by["Jaxon Smith-Njigba"]["Position"] == "WR"
+    assert by["Seahawks"]["Salary"] == 4400
+    assert D.captain_fpts(20.0, "dk") == 30.0
+
+
+def test_showdown_player_ids_keep_cpt_and_flex():
+    ids = D.build_player_ids(SHOWDOWN_SLATE)
+    assert len(ids) == 4
+    jsn = [r for r in ids if r["Name"] == "Jaxon Smith-Njigba"]
+    assert {r["Roster Position"] for r in jsn} == {"CPT", "FLEX"}
+    assert {r["ID"] for r in jsn} == {"43782097", "43782034"}
+
+
+def test_showdown_config_uses_showdown_json():
+    cfg = D.build_config([], {}, showdown=True)
+    assert cfg["global_team_limit"] == 5
+    assert cfg["min_lineup_salary"] == 0
+    assert cfg["allow_qb_vs_dst"] is True
+    assert cfg["allow_def_vs_qb_cpt"] is True
+    assert cfg["stack_rules"]["pair"] == []
+
+
 def test_write_export_three_files(tmp_path: Path):
     proj, report = D.build_projections(SLATE, PROJ, site="dk")
     ids = D.build_player_ids(SLATE)

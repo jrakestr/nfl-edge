@@ -190,6 +190,7 @@ export function LineupReview({
           {sorted.length === 0 ? (
             <>
               <LineupCard
+                slate={slateKey}
                 lineup={{
                   lineup_id: "empty",
                   salary_used: null,
@@ -206,6 +207,7 @@ export function LineupReview({
             sorted.map((lu) => (
               <LineupCard
                 key={lu.lineup_id}
+                slate={slateKey}
                 lineup={lu}
                 teams={teams}
                 selected={selected.has(lu.lineup_id)}

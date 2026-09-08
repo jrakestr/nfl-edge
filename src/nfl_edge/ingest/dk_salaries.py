@@ -46,6 +46,7 @@ def _cell(raw: dict, key: str) -> str | None:
 
 def parse_dk_csv(path: Path) -> list[dict]:
     df = pl.read_csv(path, infer_schema_length=None)
+    df = df.rename({c: str(c).lstrip("\ufeff") for c in df.columns})
     cols = {c.lower().strip(): c for c in df.columns}
     for need in ("name", "id"):
         if need not in cols:
@@ -62,6 +63,11 @@ def parse_dk_csv(path: Path) -> list[dict]:
             salary_i = None if salary is None or str(salary).strip() == "" else int(salary)
         except (TypeError, ValueError):
             salary_i = None
+        avg_raw = raw.get("avgpointspergame")
+        try:
+            avg_points = None if avg_raw is None or str(avg_raw).strip() == "" else float(avg_raw)
+        except (TypeError, ValueError):
+            avg_points = None
         status = raw.get("status")
         status_s = None if status is None or str(status).strip() == "" else str(status).strip()
         out.append({
@@ -71,6 +77,7 @@ def parse_dk_csv(path: Path) -> list[dict]:
             "team": _cell(raw, "teamabbrev"),
             "game_info": _cell(raw, "game info"),
             "salary": salary_i,
+            "avg_points": avg_points,
             "position": _cell(raw, "position"),
             "status": status_s,
         })
@@ -92,6 +99,7 @@ def attach_ids(rows: list[dict], catalog: pl.DataFrame, aliases: dict[str, str],
 
 def overrides_from_status(rows: list[dict]) -> tuple[list[dict], list[dict]]:
     ov, skipped = [], []
+    seen: set[str] = set()
     for row in rows:
         mapped = map_dk_status(row.get("status"))
         raw = row.get("status")
@@ -103,8 +111,12 @@ def overrides_from_status(rows: list[dict]) -> tuple[list[dict], list[dict]]:
         if not row.get("player_id"):
             skipped.append({**row, "reason": row.get("match_reason") or "unmatched"})
             continue
+        pid = row["player_id"]
+        if pid in seen:
+            continue
+        seen.add(pid)
         ov.append({
-            "player_id": row["player_id"],
+            "player_id": pid,
             "status": status,
             "usage_multiplier": mult,
             "note": f"dk {raw}",
@@ -117,7 +129,7 @@ def salary_frame(rows: list[dict], site: str, slate_id: str, slate_type: str) ->
         "site": pl.Utf8, "slate_id": pl.Utf8, "slate_type": pl.Utf8,
         "player_dk_id": pl.Utf8, "name": pl.Utf8, "position": pl.Utf8,
         "roster_position": pl.Utf8, "team": pl.Utf8, "salary": pl.Int64,
-        "game_info": pl.Utf8, "player_id": pl.Utf8,
+        "avg_points": pl.Float64, "game_info": pl.Utf8, "player_id": pl.Utf8,
     }
     recs = [{
         "site": site,
@@ -129,6 +141,7 @@ def salary_frame(rows: list[dict], site: str, slate_id: str, slate_type: str) ->
         "roster_position": r.get("roster_position") or "",
         "team": r.get("team"),
         "salary": r.get("salary"),
+        "avg_points": r.get("avg_points"),
         "game_info": r.get("game_info"),
         "player_id": r.get("player_id"),
     } for r in rows]
@@ -178,7 +191,8 @@ def run(season: int, week: int, path: Path, site: str = "dk", slate: str = "main
             "update raw.players p set dk_id = s.player_dk_id "
             "from raw.dk_salaries s "
             "where s.site = %s and s.slate_id = %s and s.player_id = p.gsis_id "
-            "and (p.dk_id is null or p.dk_id = '')",
+            "and (p.dk_id is null or p.dk_id = '') "
+            "and s.roster_position <> 'CPT'",
             (site, slate_id),
         )
     ov_rows, ov_skipped = overrides_from_status(rows)

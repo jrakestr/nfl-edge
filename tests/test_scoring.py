@@ -66,6 +66,12 @@ def test_dst_points_allowed_brackets(pts_allowed, expected):
     assert scoring.score_dst(stats, RULES)[0] == pytest.approx(expected)
 
 
+def test_captain_uses_yaml_multiplier():
+    pts = np.array([20.0, 10.0])
+    assert scoring.captain(pts, RULES, "dk").tolist() == pytest.approx([30.0, 15.0])
+    assert RULES["dk"]["showdown_captain_multiplier"] == 1.5
+
+
 def test_dst_full_line():
     stats = {"pts_allowed": np.array([17]), "sacks": np.array([3]), "int": np.array([2]),
              "fum_rec": np.array([1]), "td": np.array([1]), "safety": np.array([0]),

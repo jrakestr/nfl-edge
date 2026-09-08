@@ -44,12 +44,36 @@ const TEAMS = {
   lions: "DET",
 };
 
+const SHOWDOWN: DfsLineup = {
+  lineup_id: "1",
+  salary_used: 49800,
+  stack: "SEA 4",
+  proj_fpts: 90.1,
+  sim_win_pct: 0.18,
+  sim_roi: 0.22,
+  players: [
+    { slot: "CPT", name: "Jaxon Smith-Njigba", dk_id: "43782097" },
+    { slot: "FLEX", name: "Drake Maye", dk_id: "43782035" },
+    { slot: "FLEX2", name: "A.J. Brown", dk_id: "43782036" },
+    { slot: "FLEX3", name: "Sam Darnold", dk_id: "43782037" },
+    { slot: "FLEX4", name: "Rhamondre Stevenson", dk_id: "43782038" },
+    { slot: "FLEX5", name: "Seahawks", dk_id: "43782050" },
+  ],
+};
+
 describe("LineupCard", () => {
   it("shows last names, win%, and DET stack", () => {
     render(<LineupCard lineup={SAMPLE} teams={TEAMS} />);
     expect(screen.getByText("Gibbs")).toBeInTheDocument();
     expect(screen.getByText("31%")).toBeInTheDocument();
     expect(screen.getByText("DET 7")).toBeInTheDocument();
+  });
+
+  it("labels the captain slot on showdown", () => {
+    render(<LineupCard slate="showdown" lineup={SHOWDOWN} />);
+    expect(screen.getByText("CPT Smith-Njigba")).toBeInTheDocument();
+    expect(screen.getByText("Maye")).toBeInTheDocument();
+    expect(screen.queryByText("QB")).not.toBeInTheDocument();
   });
 });
 

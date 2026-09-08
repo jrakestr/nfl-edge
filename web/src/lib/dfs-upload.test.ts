@@ -21,6 +21,23 @@ const SAMPLE: DfsLineup = {
   ],
 };
 
+const SHOWDOWN: DfsLineup = {
+  lineup_id: "0",
+  salary_used: 49800,
+  stack: "SEA 4",
+  proj_fpts: 90.1,
+  sim_win_pct: 0.18,
+  sim_roi: 0.22,
+  players: [
+    { slot: "CPT", name: "Jaxon Smith-Njigba", dk_id: "43782097" },
+    { slot: "FLEX", name: "Drake Maye", dk_id: "43782035" },
+    { slot: "FLEX2", name: "A.J. Brown", dk_id: "43782036" },
+    { slot: "FLEX3", name: "Sam Darnold", dk_id: "43782037" },
+    { slot: "FLEX4", name: "Rhamondre Stevenson", dk_id: "43782038" },
+    { slot: "FLEX5", name: "Seahawks", dk_id: "43782050" },
+  ],
+};
+
 describe("formatUploadCsv", () => {
   it("stamps run_id and keeps this slate's IDs", () => {
     const text = formatUploadCsv("abc-run", "2026_01_full", [SAMPLE]);
@@ -28,5 +45,12 @@ describe("formatUploadCsv", () => {
     expect(text).toContain("2026_01_full");
     expect(text).toContain("666");
     expect(text).not.toContain("0001");
+  });
+
+  it("uses the CPT header for showdown lineups", () => {
+    const text = formatUploadCsv("run-sd", "2026_01_showdown", [SHOWDOWN]);
+    expect(text.split("\n")[1]).toBe("CPT,FLEX,FLEX,FLEX,FLEX,FLEX");
+    expect(text).toContain("43782097");
+    expect(text).not.toContain("QB,RB,RB");
   });
 });

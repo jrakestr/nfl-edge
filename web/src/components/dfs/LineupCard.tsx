@@ -3,6 +3,7 @@ import { pct as fmtPct } from "@/lib/edge";
 import type { DfsLineup } from "@/lib/types";
 
 const SLOT_ORDER = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as const;
+const SHOWDOWN_ORDER = ["CPT", "FLEX", "FLEX2", "FLEX3", "FLEX4", "FLEX5"] as const;
 
 function lastToken(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -30,14 +31,18 @@ export function LineupCard({
   teams = {},
   selected = false,
   onToggle,
+  slate,
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
   selected?: boolean;
   onToggle?: () => void;
+  slate?: string;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
+  const showdown = slate === "showdown" || lineup.players.some((p) => p.slot === "CPT");
+  const order = showdown ? SHOWDOWN_ORDER : SLOT_ORDER;
   return (
     <article className="card flex flex-col gap-2 p-4" aria-label={`Lineup ${lineup.lineup_id}`}>
       <div className="flex items-start gap-3">
@@ -52,15 +57,20 @@ export function LineupCard({
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-1">
-            {SLOT_ORDER.map((slot) => {
+            {order.map((slot) => {
               const p = bySlot.get(slot);
+              const label = p
+                ? slot === "CPT"
+                  ? `CPT ${lastToken(p.name)}`
+                  : lastToken(p.name)
+                : slot;
               return (
                 <span
                   key={slot}
                   title={p?.name ?? slot}
                   className="inline-flex h-8 min-w-9 items-center justify-center rounded-sm bg-muted px-1.5 t-caption"
                 >
-                  {p ? lastToken(p.name) : slot}
+                  {label}
                 </span>
               );
             })}

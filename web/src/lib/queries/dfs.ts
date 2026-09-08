@@ -47,7 +47,12 @@ export async function dfsExposure(runId: string, site: string, slateId: string):
     from model.dfs_exposure e
     left join raw.players p on p.gsis_id = e.player_id
     left join model.proj_players pp on pp.run_id = e.run_id and pp.player_id = e.player_id
-    left join raw.dk_salaries s
+    left join (
+      select distinct on (site, slate_id, player_id) site, slate_id, player_id, team
+      from raw.dk_salaries
+      where site = ${site} and slate_id = ${slateId}
+      order by site, slate_id, player_id, (roster_position = 'FLEX') desc
+    ) s
       on s.site = e.site and s.slate_id = e.slate_id and s.player_id = e.player_id
     where e.run_id = ${runId}::uuid and e.site = ${site} and e.slate_id = ${slateId}
     order by e.leverage desc nulls last, e.sim_own desc nulls last`;

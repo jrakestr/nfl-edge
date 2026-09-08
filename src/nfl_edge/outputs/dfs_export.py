@@ -17,8 +17,11 @@ import csv
 import json
 from pathlib import Path
 
-from ..config import CONFIG_DIR, DATA_DIR
+import numpy as np
+
+from ..config import CONFIG_DIR, DATA_DIR, load_yaml
 from ..db import read_sql
+from ..sim import scoring
 
 PROJ_COLS = ["Name", "Position", "Team", "Salary", "Fpts", "Own%", "StdDev"]
 PLAYER_ID_COLS = [
@@ -26,6 +29,12 @@ PLAYER_ID_COLS = [
 ]
 # Matches config/dfs/dk_classic.json. Optimizer skips Fpts below this except DST.
 PROJECTION_MINIMUM = 5.0
+
+
+def captain_fpts(fpts: float, site: str = "dk") -> float:
+    """CPT points from scoring.yaml. The showdown optimizer applies this itself; do not pre-multiply export Fpts."""
+    rules = load_yaml("scoring.yaml")
+    return float(scoring.captain(np.array([fpts], dtype=float), rules, site)[0])
 
 
 def own_pct_v1(salary_rank: int, proj_rank: int, n: int) -> float:
@@ -73,12 +82,25 @@ def _unique_slate(slate: list[dict]) -> list[dict]:
     return out
 
 
+def _flex_slate(slate: list[dict]) -> list[dict]:
+    """One projection row per person. Prefer FLEX salary; the tool multiplies CPT 1.5×."""
+    by_key: dict[str, dict] = {}
+    for row in slate:
+        key = str(row.get("player_id") or "") or f"{row.get('name')}|{row.get('team')}"
+        rp = (row.get("roster_position") or "").strip().upper()
+        prev = by_key.get(key)
+        if prev is None or (rp == "FLEX" and (prev.get("roster_position") or "").strip().upper() != "FLEX"):
+            by_key[key] = row
+    return list(by_key.values())
+
+
 def build_projections(
     slate: list[dict], proj: dict[str, dict], site: str = "dk",
+    showdown: bool = False,
 ) -> tuple[list[dict], list[dict]]:
     mean_key = "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
     sd_key = "fpts_fd_sd" if site == "fd" else "fpts_dk_sd"
-    players = _unique_slate(slate)
+    players = _flex_slate(slate) if showdown else _unique_slate(slate)
     n = len(players)
     fpts = []
     for row in players:
@@ -152,8 +174,9 @@ def build_correlations(corr: list[dict], names: dict[str, str]) -> dict[str, dic
     return out
 
 
-def build_config(corr: list[dict], names: dict[str, str]) -> dict:
-    cfg = json.loads((CONFIG_DIR / "dfs" / "dk_classic.json").read_text())
+def build_config(corr: list[dict], names: dict[str, str], showdown: bool = False) -> dict:
+    fname = "dk_showdown.json" if showdown else "dk_classic.json"
+    cfg = json.loads((CONFIG_DIR / "dfs" / fname).read_text())
     cfg["custom_correlations"] = build_correlations(corr, names)
     return cfg
 
@@ -224,9 +247,10 @@ def run(run_id: str, site: str = "dk", slate: str = "main") -> dict:
         (run_id,),
     ).to_dicts()
     names = {r["player_id"]: r["name"] for r in slate_rows if r.get("player_id") and r.get("name")}
-    projections, report = build_projections(slate_rows, proj, site=site)
+    showdown = slate.strip().lower() == "showdown"
+    projections, report = build_projections(slate_rows, proj, site=site, showdown=showdown)
     ids = build_player_ids(slate_rows)
-    cfg = build_config(corr, names)
+    cfg = build_config(corr, names, showdown=showdown)
     out = export_dir(run_id, site, slate)
     write_export(out, projections, ids, cfg, report)
     unmatched = [r for r in slate_rows if not r.get("player_id")]

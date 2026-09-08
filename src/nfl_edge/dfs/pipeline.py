@@ -67,9 +67,10 @@ def run(
         "select player_id, name, player_dk_id from raw.dk_salaries where site = %s and slate_id = %s",
         (site, slate_id),
     ).to_dicts()
-    opto = run_optimizer.run(export_dir, site=site, lineups=lineups)
+    showdown = slate_type_for(slate) == "showdown"
+    opto = run_optimizer.run(export_dir, site=site, lineups=lineups, showdown=showdown)
     sim = run_sim.run(export_dir, site=site, field=field, lineups_csv=Path(opto["path"]),
-                      slate_rows=salaries)
+                      slate_rows=salaries, showdown=showdown)
     merged = parse.merge_sim_stats(opto["lineups"], sim["lineups"])
     written = persist(rid, site, slate_id, slate_type_for(slate), merged, sim["exposure"])
     upload = parse.upload_csv(merged, rid, slate_id)

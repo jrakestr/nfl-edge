@@ -40,6 +40,7 @@ def test_parse_dk_csv_sample():
     by_name = {r["name"]: r for r in rows}
     assert by_name["Patrick Mahomes"]["salary"] == 8000
     assert by_name["Patrick Mahomes"]["player_dk_id"] == "43727001"
+    assert by_name["Patrick Mahomes"]["avg_points"] == 24.1
     assert by_name["Patrick Mahomes"]["roster_position"] == "QB"
     assert by_name["Ja'Marr Chase"]["status"] == "Q"
     assert by_name["Ghost Player"]["status"] == "O"
@@ -81,14 +82,44 @@ def test_overrides_from_status():
     assert "Patrick Mahomes" not in skipped_names
 
 
+def test_overrides_from_status_dedupes_cpt_flex():
+    rows = [
+        {"name": "Zach Charbonnet", "player_id": "00-z", "status": "OUT", "match_reason": "ok"},
+        {"name": "Zach Charbonnet", "player_id": "00-z", "status": "OUT", "match_reason": "ok"},
+        {"name": "TreVeyon Henderson", "player_id": "00-h", "status": "Q", "match_reason": "ok"},
+        {"name": "TreVeyon Henderson", "player_id": "00-h", "status": "Q", "match_reason": "ok"},
+    ]
+    ov, skipped = D.overrides_from_status(rows)
+    assert skipped == []
+    by_id = {r["player_id"]: r for r in ov}
+    assert set(by_id) == {"00-z", "00-h"}
+    assert by_id["00-z"]["status"] == "out"
+    assert by_id["00-h"]["status"] == "questionable"
+
+
 def test_salary_frame_keeps_unmatched():
     rows = D.attach_ids(D.parse_dk_csv(FIXTURE), CATALOG, {}, TEAMS)
     frame = D.salary_frame(rows, site="dk", slate_id="2026_01_main", slate_type="classic")
     assert frame.height == 7
+    assert frame.filter(pl.col("name") == "Patrick Mahomes")["avg_points"].to_list() == [24.1]
     assert frame.filter(pl.col("name") == "Ghost Player")["player_id"].to_list() == [None]
     assert set(frame["player_dk_id"].to_list()) == {
         "43727001", "43727002", "43727003", "43727004", "43727005", "43727006", "43727007",
     }
+
+
+def test_parse_dk_csv_strips_bom(tmp_path: Path):
+    p = tmp_path / "bom.csv"
+    p.write_text(
+        "\ufeffPosition,Name,ID,Roster Position,Salary,TeamAbbrev\n"
+        "WR,Jaxon Smith-Njigba,43782034,FLEX,10600,SEA\n",
+        encoding="utf-8",
+    )
+    rows = D.parse_dk_csv(p)
+    assert len(rows) == 1
+    assert rows[0]["name"] == "Jaxon Smith-Njigba"
+    assert rows[0]["roster_position"] == "FLEX"
+    assert rows[0]["player_dk_id"] == "43782034"
 
 
 def test_slate_type_full_is_classic():

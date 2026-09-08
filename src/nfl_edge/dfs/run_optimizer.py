@@ -64,10 +64,15 @@ def _newest(tools: Path, prefix: str) -> Path:
     return files[0]
 
 
-def run(export_dir: Path, site: str = "dk", lineups: int = 150, uniques: int = 1) -> dict:
+def run(export_dir: Path, site: str = "dk", lineups: int = 150, uniques: int = 1,
+        showdown: bool = False) -> dict:
     tools = stage(export_dir, site)
-    _run(tools, [site, "opto", str(lineups), str(uniques)])
-    out = _newest(tools, f"{site}_optimal_lineups_*.csv")
+    if showdown:
+        _run(tools, [site, "sd_opto", str(lineups), str(uniques)])
+        out = _newest(tools, f"{site}_sd_optimal_lineups_*.csv")
+    else:
+        _run(tools, [site, "opto", str(lineups), str(uniques)])
+        out = _newest(tools, f"{site}_optimal_lineups_*.csv")
     shutil.copy2(out, export_dir / "optimal_lineups.csv")
     parsed = parse_opto_csv(out)
     return {"path": str(export_dir / "optimal_lineups.csv"), "lineups": parsed, "n": len(parsed)}

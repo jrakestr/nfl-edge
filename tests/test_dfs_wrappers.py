@@ -1,6 +1,8 @@
 """Parse NFL-DFS-Tools optimizer/GPP output. No subprocess, no database."""
 from pathlib import Path
 
+import pytest
+
 from nfl_edge.dfs import parse as P
 
 OPTO = """QB,RB,RB,WR,WR,WR,TE,FLEX,DST,Salary,Fpts Proj,Fpts Used,Ceiling,Own. Sum,Own. Product,STDDEV,Stack
@@ -28,6 +30,15 @@ SLATE = [
 ]
 
 
+SD_OPTO = """CPT,FLEX,FLEX,FLEX,FLEX,FLEX,Salary,Fpts Proj,Fpts Used,Ceiling,Own. Product,Own. Sum,STDDEV,Stack Type
+Jaxon Smith-Njigba (43782097),Drake Maye (43782035),A.J. Brown (43782036),Sam Darnold (43782037),Rhamondre Stevenson (43782038),Seahawks (43782050),49800,90.1,89.9,120,0.01,80,40,SEA 4
+"""
+
+SD_GPP = """Type,CPT,FLEX,FLEX,FLEX,FLEX,FLEX,Salary,Fpts Proj,Field Fpts Proj,Ceiling,Primary Stack,Secondary Stack,Players vs DST,Win %,Top 10%,Cash %,Proj. Own. Product,Proj. Own. Sum,ROI%,ROI$,Num Dupes
+opto,Jaxon Smith-Njigba (43782097),Drake Maye (43782035),A.J. Brown (43782036),Sam Darnold (43782037),Rhamondre Stevenson (43782038),Seahawks (43782050),49800,90.1,90,120,SEA,NE,0,18.0,40.0,50.0,0.01,80,22.0,1.1,1
+"""
+
+
 def test_parse_opto_keeps_cell_ids(tmp_path: Path):
     p = tmp_path / "opto.csv"
     p.write_text(OPTO)
@@ -38,6 +49,62 @@ def test_parse_opto_keeps_cell_ids(tmp_path: Path):
     assert rows[0]["dk_ids"][8] == "999"
     assert rows[0]["salary_used"] == 50000
     assert rows[0]["stack"] == "DET 3"
+
+
+def test_parse_showdown_opto_six_slots(tmp_path: Path):
+    p = tmp_path / "sd_opto.csv"
+    p.write_text(SD_OPTO)
+    rows = P.parse_opto_csv(p)
+    assert len(rows) == 1
+    assert rows[0]["slots"][0] == "CPT"
+    assert rows[0]["slots"][1:] == ["FLEX", "FLEX2", "FLEX3", "FLEX4", "FLEX5"]
+    assert rows[0]["dk_ids"][0] == "43782097"
+    assert rows[0]["salary_used"] == 49800
+    assert rows[0]["proj_fpts"] == 90.1
+
+
+def test_parse_showdown_gpp_skips_type_column(tmp_path: Path):
+    p = tmp_path / "sd_gpp.csv"
+    p.write_text(SD_GPP)
+    row = P.parse_gpp_csv(p)[0]
+    assert row["names"][0] == "Jaxon Smith-Njigba"
+    assert row["dk_ids"][0] == "43782097"
+    assert len(row["dk_ids"]) == 6
+    assert row["win_pct"] == 0.18
+    assert row["roi"] == 0.22
+
+
+SD_EXPOSURE = """Player,Roster Position,Position,Team,Win%,Top10%,Sim. Own%,Proj. Own%,Avg. Return
+Jaxon Smith-Njigba,CPT,WR,SEA,10.0,2.0,20.0,8.0,0.5
+Jaxon Smith-Njigba,FLEX,WR,SEA,12.0,3.0,30.0,16.0,0.4
+"""
+
+SD_SLATE = [
+    {"name": "Jaxon Smith-Njigba", "player_dk_id": "43782097", "player_id": "00-jsn"},
+    {"name": "Jaxon Smith-Njigba", "player_dk_id": "43782034", "player_id": "00-jsn"},
+]
+
+
+def test_showdown_exposure_collapses_cpt_and_flex(tmp_path: Path):
+    e = tmp_path / "sd_exp.csv"
+    e.write_text(SD_EXPOSURE)
+    exp = P.parse_exposure_csv(e, SD_SLATE)
+    assert len(exp) == 1
+    assert exp[0]["player_id"] == "00-jsn"
+    assert exp[0]["sim_own"] == pytest.approx(0.50)
+    assert exp[0]["proj_own"] == pytest.approx(0.16)
+    assert abs(exp[0]["leverage"] - 0.34) < 1e-9
+
+
+def test_showdown_upload_header():
+    p_rows = [{
+        "names": ["Jaxon Smith-Njigba", "Drake Maye"],
+        "dk_ids": ["43782097", "43782035"],
+        "slots": ["CPT", "FLEX"],
+    }]
+    text = P.upload_csv(p_rows, run_id="run-sd", slate_id="2026_01_showdown")
+    assert text.splitlines()[1] == "CPT,FLEX,FLEX,FLEX,FLEX,FLEX"
+    assert "43782097" in text
 
 
 def test_upload_csv_uses_slate_ids_not_another_slate(tmp_path: Path):
