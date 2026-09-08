@@ -150,6 +150,10 @@
   --topbar-height: 52px;
 }
 
+[data-sidebar-collapsed="true"] {
+  --sidebar-width: 64px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

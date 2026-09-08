@@ -12,7 +12,7 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 4. **The summary screams, the table whispers.** One number per screen at display size. Player names, team abbreviations, and every primary number are `--foreground` at weight 600. Labels and column headers use `--muted-foreground`. `--dim` is never used for anything a person needs to read.
 5. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
 6. **Every number has a run.** A `run_id` badge is visible on every screen. Stale runs are marked; two runs can be compared.
-7. **Light, app-shaped.** Light is the only theme. Cool grey field (`#F4F5F7`), white cards with a 1px `#E6E8EC` border and 12px radius, a 216px white sidebar, a 52px top bar with breadcrumb, search and actions. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
+7. **Light, app-shaped.** Light is the only theme. Cool grey field (`#F4F5F7`), white cards with a 1px `#E6E8EC` border and 12px radius, a 216px white sidebar (64px collapsed icon rail, remembered in `localStorage`), a 52px top bar with breadcrumb, search and actions. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
 
 ## Tokens (`globals.css`, shadcn variable names where they exist)
 
@@ -90,7 +90,7 @@ shadcn primitives used as-is: `Table`, `Sheet` (drawer), `Badge`, `Tabs`, `Toggl
 Custom, built on top:
 
 ### `MetricIcon`
-Lucide only, 14px, `strokeWidth={1.5}`. Map in `web/src/lib/icons.ts`: projection `Target`, salary `CircleDollarSign`, value `Ratio`, ownership `Users`, leverage `UnfoldVertical`, win% `Trophy`, ROI `Percent`, edge `Crosshair`, stack `Layers`, lock `Lock`, exclude `CircleSlash`. Sits immediately before the matching column header or tile label. Never emoji. Nav icons wait for the sidebar.
+Lucide only, 14px, `strokeWidth={1.5}`. Map in `web/src/lib/icons.ts`: projection `Target`, salary `CircleDollarSign`, value `Ratio`, ownership `Users`, leverage `UnfoldVertical`, win% `Trophy`, ROI `Percent`, edge `Crosshair`, stack `Layers`, lock `Lock`, exclude `CircleSlash`. Sits immediately before the matching column header or tile label. Never emoji. Sidebar nav: Edge board `LayoutDashboard`, Games `Calendar`, Players `Users`, Optimize `Wand2`, Props `Crosshair`, Lineups `Layers`, Grading `ClipboardCheck`.
 
 ### `VerdictCard`
 One game on the edge board in Plain English mode. Three lines generated from `proj_games` + `market_lines`: (1) who is favored and by how much vs the book, (2) whether the market side covers often enough to pay (needs ~52% at −110), (3) expected total vs line with over/under hit rate. Right column: `Side`, `Total`, `Home wins` chips. Grammar handles plural nicknames ("The Rams are").
@@ -130,7 +130,7 @@ Invariant/warning results for a run: green dot = all invariants passed; `--warn`
 ## Patterns
 
 ### App shell
-Sidebar (Edge board, Games, Players, Props, Lineups, Grading; `RunBadge` pinned at bottom) + top bar (breadcrumb, search with `/`, page actions). Content is a 16px-gapped grid inside 20px padding.
+Sidebar (216px expanded / 64px collapsed; Edge board, Games, Players, Optimize, Props, Lineups, Grading; `RunBadge` pinned at bottom) + top bar (breadcrumb, search with `/`, page actions). Breadcrumbs use `›` and product labels (`Week 1 › Lineups › DK Main`); nested week routes skip a redundant “Edge board” prefix; the current page is weight 600, not a link. Players and Optimize point at `/week/{n}/players|optimize/dk/main` via `/players` and `/optimize` redirects. Content is a 16px-gapped grid inside 20px padding.
 
 ### Edge board (`/week/[n]`)
 - Week summary sentence card with Plain English / Table toggle.

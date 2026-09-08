@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { LineupCard } from "@/components/dfs/LineupCard";
 import { SummaryTiles } from "@/components/board/SummaryTiles";
-import { METRIC_KEYS, METRICS } from "@/lib/icons";
+import { METRIC_KEYS, METRICS, NAV_ICONS } from "@/lib/icons";
 import { NO_TRACK } from "@/test/fixture";
 import type { DfsLineup } from "@/lib/types";
 
@@ -37,6 +37,9 @@ describe("icons", () => {
     for (const key of METRIC_KEYS) {
       expect(METRICS[key]).toBeTypeOf("object");
     }
+    expect(Object.keys(NAV_ICONS).sort()).toEqual(
+      ["board", "games", "grading", "lineups", "optimize", "players", "props"].sort(),
+    );
   });
 
   it("LineupCard renders svg, not emoji", () => {

@@ -3,35 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
+import { crumbs } from "@/lib/breadcrumbs";
 import { SearchBox } from "./SearchBox";
 import { usePageActions } from "./PageActions";
-
-const LABELS: Record<string, string> = {
-  week: "Edge board",
-  games: "Games",
-  players: "Players",
-  props: "Props",
-  lineups: "Lineups",
-  grading: "Grading",
-  dfs: "Lineups",
-  dk: "DraftKings",
-  fd: "FanDuel",
-  main: "Main",
-  full: "Full",
-  showdown: "Showdown",
-};
-
-function crumbs(pathname: string): { href: string; label: string }[] {
-  const parts = pathname.split("/").filter(Boolean);
-  const out: { href: string; label: string }[] = [];
-  parts.forEach((p, i) => {
-    const href = "/" + parts.slice(0, i + 1).join("/");
-    let label = LABELS[p] ?? decodeURIComponent(p);
-    if (parts[i - 1] === "week" && /^\d+$/.test(p)) label = `Week ${p}`;
-    out.push({ href, label });
-  });
-  return out;
-}
 
 export function TopBar() {
   const pathname = usePathname() ?? "/";
@@ -46,8 +20,8 @@ export function TopBar() {
           items.map((c, i) => {
             const last = i === items.length - 1;
             return (
-              <Fragment key={c.href}>
-                {i > 0 && <span className="text-dim">/</span>}
+              <Fragment key={`${c.href}:${c.label}`}>
+                {i > 0 && <span className="text-dim">›</span>}
                 {last ? (
                   <span className="truncate text-foreground font-semibold" aria-current="page">
                     {c.label}
