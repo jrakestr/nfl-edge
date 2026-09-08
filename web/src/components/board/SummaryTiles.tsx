@@ -1,4 +1,5 @@
 import { STRONG, signedPct } from "@/lib/edge";
+import { MetricLabel, type Metric } from "@/lib/icons";
 import type { TrackRecord } from "@/lib/queries/results";
 import type { VerdictPayload } from "@/lib/types";
 
@@ -16,9 +17,10 @@ export function SummaryTiles({ payloads, track }: { payloads: VerdictPayload[]; 
   return (
     <div className="grid grid-cols-4 gap-4" role="list" aria-label="Week summary tiles">
       <Tile label="Games with a line" value={`${c.withLine}`} sub={c.withLine < c.games ? `of ${c.games}` : undefined} />
-      <Tile label="Sides clearing 3%" value={`${c.sides}`} sub={`of ${c.withLine}`} />
-      <Tile label="Totals clearing 3%" value={`${c.totals}`} sub={`of ${c.withLine}`} />
+      <Tile metric="edge" label="Sides clearing 3%" value={`${c.sides}`} sub={`of ${c.withLine}`} />
+      <Tile metric="edge" label="Totals clearing 3%" value={`${c.totals}`} sub={`of ${c.withLine}`} />
       <Tile
+        metric="roi"
         label="Track record"
         value={graded ? `${track.wins}-${track.losses}-${track.pushes}` : "—"}
         sub={
@@ -31,10 +33,22 @@ export function SummaryTiles({ payloads, track }: { payloads: VerdictPayload[]; 
   );
 }
 
-function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Tile({
+  metric,
+  label,
+  value,
+  sub,
+}: {
+  metric?: Metric;
+  label: string;
+  value: string;
+  sub?: string;
+}) {
   return (
     <div className="card flex flex-col gap-1 p-4" role="listitem">
-      <span className="t-colhead text-muted-foreground">{label}</span>
+      <span className="t-colhead text-muted-foreground">
+        {metric ? <MetricLabel metric={metric}>{label}</MetricLabel> : label}
+      </span>
       <span className="t-tile tnum">{value}</span>
       {sub ? <span className="t-caption">{sub}</span> : null}
     </div>

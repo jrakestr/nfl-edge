@@ -1,4 +1,5 @@
 import { EdgeCell } from "@/components/board/EdgeCell";
+import { MetricLabel } from "@/lib/icons";
 
 function width(v: number | null | undefined): string {
   if (v == null || v <= 0) return "0%";
@@ -30,7 +31,9 @@ export function ExposureBar({
           <span className="block h-1 rounded-sm bg-line" style={{ width: width(field) }} />
         </span>
       </div>
-      <span className="t-caption">Mine · field</span>
+        <span className="t-caption">
+          <MetricLabel metric="leverage">Mine · field</MetricLabel>
+        </span>
     </div>
   );
 }

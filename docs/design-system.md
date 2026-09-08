@@ -89,6 +89,9 @@ shadcn primitives used as-is: `Table`, `Sheet` (drawer), `Badge`, `Tabs`, `Toggl
 
 Custom, built on top:
 
+### `MetricIcon`
+Lucide only, 14px, `strokeWidth={1.5}`. Map in `web/src/lib/icons.ts`: projection `Target`, salary `CircleDollarSign`, value `Ratio`, ownership `Users`, leverage `UnfoldVertical`, win% `Trophy`, ROI `Percent`, edge `Crosshair`, stack `Layers`, lock `Lock`, exclude `CircleSlash`. Sits immediately before the matching column header or tile label. Never emoji. Nav icons wait for the sidebar.
+
 ### `VerdictCard`
 One game on the edge board in Plain English mode. Three lines generated from `proj_games` + `market_lines`: (1) who is favored and by how much vs the book, (2) whether the market side covers often enough to pay (needs ~52% at −110), (3) expected total vs line with over/under hit rate. Right column: `Side`, `Total`, `Home wins` chips. Grammar handles plural nicknames ("The Rams are").
 

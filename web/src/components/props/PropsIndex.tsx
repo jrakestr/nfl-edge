@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { pct, signedPct } from "@/lib/edge";
+import { MetricLabel } from "@/lib/icons";
 import { STAT_LABELS } from "@/lib/prop-stats";
 import type { PropEdge } from "@/lib/types";
 
@@ -21,7 +22,7 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
             <TableRow className="hover:bg-transparent">
               {COLS.map((c) => (
                 <TableHead key={c} className="t-colhead text-muted-foreground">
-                  {c}
+                  {c === "Edge" ? <MetricLabel metric="edge">{c}</MetricLabel> : c}
                 </TableHead>
               ))}
             </TableRow>

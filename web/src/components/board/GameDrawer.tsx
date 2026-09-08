@@ -12,6 +12,7 @@ import { MarketPill, TotalPill } from "./MarketPill";
 import { Matchup } from "./TeamDot";
 import { emphasize } from "./emphasize";
 import { PositionPill } from "@/components/ui/PositionPill";
+import { MetricLabel } from "@/lib/icons";
 
 const SIDE_LABEL: Record<keyof BoardRow["edges"], (r: BoardRow) => string> = {
   spread_home: (r) => `${r.home} spread`,
@@ -82,7 +83,9 @@ export function GameDrawer({
                       <TableHead className="t-colhead h-8 px-2 text-muted-foreground">Side</TableHead>
                       <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Model</TableHead>
                       <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Market</TableHead>
-                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Edge</TableHead>
+                      <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">
+                        <MetricLabel metric="edge">Edge</MetricLabel>
+                      </TableHead>
                       <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">Price</TableHead>
                       <TableHead className="t-colhead h-8 px-2 text-right text-muted-foreground">¼ Kelly</TableHead>
                     </TableRow>
@@ -131,7 +134,9 @@ export function GameDrawer({
               </section>
 
               <section aria-label="Top player projections" className="flex flex-col gap-2">
-                <h4 className="t-colhead text-muted-foreground">Top-10 player projections</h4>
+                <h4 className="t-colhead text-muted-foreground">
+                  <MetricLabel metric="projection">Top-10 player projections</MetricLabel>
+                </h4>
                 {players.length === 0 ? (
                   <p className="t-caption">No player projections on this run.</p>
                 ) : (

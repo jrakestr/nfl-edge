@@ -1,6 +1,7 @@
 import { StackChip, type Stack } from "./StackChip";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { pct as fmtPct } from "@/lib/edge";
+import { MetricLabel } from "@/lib/icons";
 import type { DfsLineup } from "@/lib/types";
 
 const SLOT_ORDER = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as const;
@@ -81,28 +82,27 @@ export function LineupCard({
             })}
           </div>
           <div className="flex flex-wrap items-center gap-3 t-caption">
-            <span>
+            <MetricLabel metric="salary">
               Salary used{" "}
               <span className="tnum font-semibold text-foreground">
                 {lineup.salary_used != null ? lineup.salary_used.toLocaleString("en-US") : "—"}
               </span>
-            </span>
-            <span>
+            </MetricLabel>
+            <MetricLabel metric="projection">
               Proj{" "}
               <span className="tnum font-semibold text-foreground">
                 {lineup.proj_fpts != null ? lineup.proj_fpts.toFixed(1) : "—"}
               </span>
-            </span>
-            <span>
+            </MetricLabel>
+            <MetricLabel metric="winPct">
               Win %{" "}
               <span className="tnum font-semibold text-foreground">
                 {fmtPct(lineup.sim_win_pct, Math.abs((lineup.sim_win_pct ?? 0) * 100) < 1 ? 1 : 0)}
               </span>
-            </span>
-            <span>
-              ROI{" "}
-              <span className="tnum font-semibold text-foreground">{fmtPct(lineup.sim_roi)}</span>
-            </span>
+            </MetricLabel>
+            <MetricLabel metric="roi">
+              ROI <span className="tnum font-semibold text-foreground">{fmtPct(lineup.sim_roi)}</span>
+            </MetricLabel>
             {stacks.length ? stacks.map((s) => <StackChip key={s.team} {...s} />) : <StackChip />}
           </div>
         </div>

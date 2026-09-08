@@ -5,9 +5,15 @@ import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PositionPill } from "@/components/ui/PositionPill";
+import { MetricLabel, type Metric } from "@/lib/icons";
 import type { WeekPlayer } from "@/lib/types";
 
-const COLS = ["Player", "Team", "DK pts", "Typical game"] as const;
+const COLS: { label: string; metric?: Metric }[] = [
+  { label: "Player" },
+  { label: "Team" },
+  { label: "DK pts", metric: "projection" },
+  { label: "Typical game" },
+];
 
 /** Search → prop detail. Rows from model.proj_players. */
 export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
@@ -45,8 +51,8 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
           <TableHeader className="bg-muted">
             <TableRow className="hover:bg-transparent">
               {COLS.map((c) => (
-                <TableHead key={c} className="t-colhead text-muted-foreground">
-                  {c}
+                <TableHead key={c.label} className="t-colhead text-muted-foreground">
+                  {c.metric ? <MetricLabel metric={c.metric}>{c.label}</MetricLabel> : c.label}
                 </TableHead>
               ))}
             </TableRow>

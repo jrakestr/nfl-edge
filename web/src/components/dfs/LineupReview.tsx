@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ExposureBar } from "./ExposureBar";
 import { LineupCard, stacksFromPlayers } from "./LineupCard";
 import { StackChip } from "./StackChip";
+import { MetricLabel } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
 const SETTINGS = ["Randomness —", "Stacks % —", "Max exposure —"] as const;
@@ -176,7 +177,13 @@ export function LineupReview({
                 variant={sort === k ? "secondary" : "outline"}
                 onClick={() => setSort(k)}
               >
-                {k === "win" ? "Win %" : k === "proj" ? "Proj" : "ROI"}
+                {k === "win" ? (
+                  <MetricLabel metric="winPct">Win %</MetricLabel>
+                ) : k === "proj" ? (
+                  <MetricLabel metric="projection">Proj</MetricLabel>
+                ) : (
+                  <MetricLabel metric="roi">ROI</MetricLabel>
+                )}
               </Button>
             ))}
           </div>
@@ -228,7 +235,9 @@ export function LineupReview({
         </section>
         <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-[340px]">
           <section className="card flex flex-col gap-3 p-4">
-            <h2 className="t-body font-semibold">Exposure vs field</h2>
+            <h2 className="t-body font-semibold">
+              <MetricLabel metric="ownership">Exposure vs field</MetricLabel>
+            </h2>
             {exposure.length === 0 ? (
               <>
                 <ExposureBar name="—" />
@@ -241,7 +250,9 @@ export function LineupReview({
             )}
           </section>
           <section className="card flex flex-col gap-2 p-4">
-            <h2 className="t-body font-semibold">Team stacks</h2>
+            <h2 className="t-body font-semibold">
+              <MetricLabel metric="stack">Team stacks</MetricLabel>
+            </h2>
             {stackDist.length === 0 ? (
               <StackChip />
             ) : (
@@ -268,7 +279,9 @@ export function LineupReview({
             ) : null}
           </section>
           <section className="card p-4">
-            <h2 className="t-body font-semibold">Salary used</h2>
+            <h2 className="t-body font-semibold">
+              <MetricLabel metric="salary">Salary used</MetricLabel>
+            </h2>
             {lineups.length === 0 ? (
               <>
                 <div className="mt-2 h-16 rounded-md bg-muted" aria-hidden />

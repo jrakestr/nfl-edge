@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MetricLabel, type Metric } from "@/lib/icons";
 
 const COLS = [
   "Matchup",
@@ -10,10 +11,22 @@ const COLS = [
   "Actual",
 ] as const;
 
-function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Tile({
+  metric,
+  label,
+  value,
+  sub,
+}: {
+  metric?: Metric;
+  label: string;
+  value: string;
+  sub?: string;
+}) {
   return (
     <div className="card flex flex-col gap-1 p-4" role="listitem">
-      <span className="t-colhead text-muted-foreground">{label}</span>
+      <span className="t-colhead text-muted-foreground">
+        {metric ? <MetricLabel metric={metric}>{label}</MetricLabel> : label}
+      </span>
       <span className="t-tile tnum">{value}</span>
       {sub ? <span className="t-caption">{sub}</span> : null}
     </div>
@@ -33,7 +46,7 @@ export function GradingPage() {
       </header>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4" role="list" aria-label="Track record">
         <Tile label="Record" value="—" sub="No graded weeks yet" />
-        <Tile label="Flat ROI" value="—" sub="Headline until ten weeks" />
+        <Tile metric="roi" label="Flat ROI" value="—" sub="Headline until ten weeks" />
         <Tile label="Sides" value="—" />
         <Tile label="Totals" value="—" />
       </div>
