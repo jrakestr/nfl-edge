@@ -203,6 +203,7 @@ export const DfsSlotSchema = z.object({
   slot: z.string(),
   name: z.string(),
   dk_id: z.string().nullable().optional(),
+  player_id: z.string().nullable().optional(),
 });
 export type DfsSlot = z.infer<typeof DfsSlotSchema>;
 
@@ -327,6 +328,22 @@ export const WeekPlayerSchema = z.object({
   hist: HistSchema.nullable(),
 });
 export type WeekPlayer = z.infer<typeof WeekPlayerSchema>;
+
+/** One person on a DK/FD salary slate, joined to this run's projection. */
+export const SlatePlayerSchema = z.object({
+  player_id: z.string(),
+  dk_id: z.string(),
+  display_name: z.string(),
+  position: z.string().nullable(),
+  team: z.string().nullable(),
+  salary: z.number().int().nullable(),
+  game_info: z.string().nullable(),
+  game_id: z.string().nullable(),
+  fpts_dk_mean: numOrNull,
+  fpts_dk_sd: numOrNull,
+  typical_dk: numOrNull,
+});
+export type SlatePlayer = z.infer<typeof SlatePlayerSchema>;
 
 export type MatchupRow = { label: string; value: string };
 

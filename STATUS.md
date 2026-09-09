@@ -1,11 +1,16 @@
 # Status
 
-Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
+Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint B.
+
+## Web v2 — Checkpoint B (2026-09-09)
+- Player library `/week/[n]/players/dk/main`: DataTable with lock / exclude / add-to-stack on every row; pool state in the URL (`lock`, `x`, `st`, `qb`, `bb`).
+- Browser optimizer `/week/[n]/optimize/dk/main` builds around those locks with a DET-style QB + 2 WR/TE stack, one bring-back, salary 49200–50000, team limit 4, exposure cap, and randomness. Sim 150 tab can lock a weekly sim nine via “Start from this lineup”. Export uses that slate’s DK IDs (`formatUploadCsv`).
+- Checkpoint B (Week 1 DK Main fixture, seed 7): 5 lineups, Gibbs + St. Brown locked, Montgomery excluded, Goff + ≥2 DET WR/TE, ≥1 NO skill, export IDs `43791002` / `43791004`. Real `data/dk/DKSalaries_2026_wk01_main.csv` is gitignored and was not on this VM; the same ID check no-ops locally and will match on a machine that has the CSV.
+- Preview: GitHub PR https://github.com/jrakestr/nfl-edge/pull/2. Vercel Git deploy failed instantly (`dpl_848sMk1MTMQxERrWzDWmVA4CFbz8`, inspector https://vercel.com/transit-trends/nfl-edge/848sMk1MTMQxERrWzDWmVA4CFbz8). Local `npm run build` in `web/` succeeded. The Vercel GitHub comment payload had `rootDirectory: null`; ops.md still says Root Directory = `web` and `cd web && vercel` for a CLI preview. Rest of Part A (icons/glass/sidebar) already on `main`; this work used DataTable + contrast tokens only.
 
 ## Web v2 — Checkpoint A (2026-09-07)
 - Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable (`syncUrl={false}`).
 - Preview (Deployment Protection on): https://nfl-edge-e7zp5ltd1-transit-trends.vercel.app — `/week/1`, `/week/1/dfs/dk/main`, `/week/1/players/dk/main`, `/props`, `/week/1/optimize/dk/main`. `npm run a11y` (axe via Playwright) found no `color-contrast` violations on those five pages.
-- Session-pooler `EMAXCONNSESSION` (pool_size 15) can 500 preview pages under parallel hits; a11y runs one worker with retries. Player library and browser ILP are Part B.
 
 ## Phase 2 — DFS (2026-09-06)
 - Week 1 DK Main + Full on run `e7a5ff4e` (histograms, 20k): 150 lineups each with win%/ROI in `model.dfs_lineups` / `dfs_exposure`. Upload CSVs at `data/dfs/e7a5ff4e-…/dk/{main,full}/dk_upload.csv`.
@@ -153,6 +158,7 @@ Rows per season (2020 / 2021 / 2022 / 2023 / 2024 / 2025):
 - [x] D — `nfl-edge grade --season 2025 --week 10` on local Postgres: 7 runs, 588 `model.results` rows, picks ~50%, CLV 0 by construction; 2026 wk1 verdicts on Supabase carry structured chip/call fields. First live grade Tue 2026-09-15.
 - [x] 2 — 150 Week 1 DK Main lineups + upload CSV; `/lineups` and `/games` on preview https://nfl-edge-902bjznuh-transit-trends.vercel.app (run `e7a5ff4e`).
 - [x] 3 — two Week 1 props on `/props`; TNF showdown lineups on run `bf9a11f4` `/week/1/dfs/dk/showdown` (local + preview https://nfl-edge-56byuj1hm-transit-trends.vercel.app). Third prop row never entered. Phase 4 waits for Tue 2026-09-15 live grade.
+- [x] Web B — Week 1 DK Main library + browser optimizer: lock Gibbs + St. Brown, DET QB stack + one NO bring-back, exclude Montgomery, 5 lineups, export IDs `43791002` / `43791004` (fixture; real DK CSV gitignored on this VM). PR https://github.com/jrakestr/nfl-edge/pull/2; Vercel Git preview failed instantly (inspect `dpl_848sMk1MTMQxERrWzDWmVA4CFbz8`).
 - Cover-calibration monotonicity vs the close is retired as a build gate (decision, 2026-09-04): a public-data model is not expected to beat the closing line at build time. It is a season-long grading target (Checkpoint D: Brier sim 0.2319 vs close 0.2365 on 2025 wk10). Honest baseline every refinement must beat: sim-vs-result MAE 10.31 against the close's 9.72.
 
 ## props-refine (2026-09-07)

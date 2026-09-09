@@ -1,5 +1,12 @@
 import { sql } from "@/lib/db";
-import { WeekPlayerSchema, type GameContext, type PlayerHeader, type WeekPlayer } from "@/lib/types";
+import {
+  SlatePlayerSchema,
+  WeekPlayerSchema,
+  type GameContext,
+  type PlayerHeader,
+  type SlatePlayer,
+  type WeekPlayer,
+} from "@/lib/types";
 
 /** Player header from the crosswalk; null when the id does not resolve. */
 export async function playerById(gsisId: string): Promise<PlayerHeader | null> {
@@ -114,4 +121,31 @@ export async function topPlayersByGame(runId: string): Promise<Record<string, Dr
     });
   }
   return out;
+}
+
+/** One row per DK/FD person on this slate, joined to this run's projection. */
+export async function slatePlayers(runId: string, site: string, slateId: string): Promise<SlatePlayer[]> {
+  const rows = await sql()`
+    with sal as (
+      select distinct on (s.player_dk_id)
+             s.player_id, s.player_dk_id, s.name, s.position, s.team, s.salary,
+             s.game_info, s.avg_points
+      from raw.dk_salaries s
+      where s.site = ${site} and s.slate_id = ${slateId}
+      order by s.player_dk_id,
+               case when s.roster_position in ('FLEX', 'CPT') then 1 else 0 end
+    )
+    select coalesce(s.player_id, s.player_dk_id) as player_id,
+           s.player_dk_id as dk_id,
+           s.name as display_name,
+           s.position, s.team, s.salary, s.game_info,
+           pp.game_id,
+           pp.fpts_dk_mean::float8 as fpts_dk_mean,
+           pp.fpts_dk_sd::float8 as fpts_dk_sd,
+           s.avg_points::float8 as typical_dk
+    from sal s
+    left join model.proj_players pp
+      on pp.run_id = ${runId}::uuid and pp.player_id = s.player_id
+    order by s.salary desc nulls last, s.name`;
+  return rows.map((r) => SlatePlayerSchema.parse(r));
 }
