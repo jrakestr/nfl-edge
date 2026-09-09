@@ -35,7 +35,7 @@ describe("empty sidebar layouts", () => {
     render(<PlayersList />);
     expect(screen.getByRole("heading", { name: "Players" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Name or team")).toBeEnabled();
-    expect(screen.getByText("No projections listed yet")).toBeInTheDocument();
+    expect(screen.getByText("No players on this slate yet")).toBeInTheDocument();
   });
 
   it("Props index: empty fair list", () => {

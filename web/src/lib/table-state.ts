@@ -3,8 +3,24 @@
 import { useCallback, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-/** Board / week keys that table state must never write or delete. */
-export const PRESERVED_PARAMS = ["view", "run", "season", "min", "flat", "slot"] as const;
+/** Board / week / pool keys that table state must never write or delete. */
+export const PRESERVED_PARAMS = [
+  "view",
+  "run",
+  "season",
+  "min",
+  "flat",
+  "slot",
+  "tab",
+  "lock",
+  "x",
+  "st",
+  "qb",
+  "bb",
+  "rand",
+  "exp",
+  "n",
+] as const;
 
 export const TABLE_PARAMS = ["sort", "dir", "q", "pos", "team", "game", "salMin", "salMax", "minProj"] as const;
 
