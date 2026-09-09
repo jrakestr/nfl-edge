@@ -32,7 +32,6 @@ export function WeekBoard(p: WeekBoardProps) {
   const summary = p.verdicts.find((v) => v.payload.week_summary)?.payload.week_summary ?? null;
   const payloads = p.verdicts.map((v) => v.payload);
   const byGame = Object.fromEntries(p.verdicts.map((v) => [v.game_id, v.payload]));
-  const missingVerdicts = p.rows.length - p.verdicts.length;
 
   const caption = p.run
     ? `Run ${shortRun(p.run.run_id)} · ${fmtDraws(p.run.draws_per_game)} draws per game · ${p.rows.length} games`
@@ -59,13 +58,6 @@ export function WeekBoard(p: WeekBoardProps) {
       ) : (
         <>
           <WeekSummaryCard summary={summary} caption={caption} />
-
-          {missingVerdicts > 0 ? (
-            <p className="t-caption text-warn" role="note">
-              {missingVerdicts} of {p.rows.length} games have a newer line than their verdict; run `nfl-edge lines
-              --season {p.season} --week {p.week}` to refresh.
-            </p>
-          ) : null}
 
           {p.view === "plain" ? (
             <div className="flex flex-col gap-3" data-view="plain">
