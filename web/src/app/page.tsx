@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { newestWeek } from "@/lib/queries/runs";
+import { DEFAULT_WEEK } from "@/lib/config";
 
-export const dynamic = "force-dynamic";
-
-export default async function Home() {
-  const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
-  redirect(`/week/${week}`);
+/** Static redirect: do not touch Postgres here. `/` was 500ing the session pooler. */
+export default function Home() {
+  redirect(`/week/${DEFAULT_WEEK}`);
 }

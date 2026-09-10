@@ -49,6 +49,8 @@ cd web && npm install && npm run dev      # http://localhost:3000 -> /week/<newe
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
+`package.json` for the app is in `web/`. From the repo root, `npm run lint` / `test` / `build` forward there. `npx vercel` must be run from `web/` (this VM is `/workspace`, not `~/Development/nfl-edge`).
+
 `web/.env.local` holds `DATABASE_URL` = the Supabase **session pooler** URI (IPv4; the direct host is IPv6-only and Vercel cannot reach it). Never committed. On Vercel the project's Root Directory is `web` and the same variable is set in the project's environment. Spec: [docs/design-system.md](docs/design-system.md).
 
 ## Status

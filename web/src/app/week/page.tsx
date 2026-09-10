@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { newestWeek } from "@/lib/queries/runs";
+import { DEFAULT_WEEK } from "@/lib/config";
 
-export const dynamic = "force-dynamic";
-
-export default async function WeekIndex() {
-  const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
-  redirect(`/week/${week}`);
+/** Same as `/`: no DB. The week page is the only pooler hit for the board. */
+export default function WeekIndex() {
+  redirect(`/week/${DEFAULT_WEEK}`);
 }

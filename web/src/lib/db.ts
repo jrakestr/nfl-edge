@@ -6,8 +6,9 @@
  * and unreachable from Vercel). Session mode keeps server-side prepared statements valid.
  * If it ever becomes the transaction pooler (port 6543), add `prepare: false` below.
  *
- * `max: 3` per instance and force-dynamic pages (16 rows a request) keep the pooler's small connection
- * budget mostly idle. The value of DATABASE_URL is never logged.
+ * `max: 1` per isolate: the session pooler allows 15 clients total. Sidebar prefetch plus
+ * `max: 3` per function blew that cap (`EMAXCONNSESSION`) and 500'd `/` and `/week/1`.
+ * Queries on one request queue on the single connection. The value of DATABASE_URL is never logged.
  */
 import postgres, { type Sql } from "postgres";
 
@@ -20,8 +21,8 @@ export function sql(): Sql {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set (web/.env.local locally, project env on Vercel)");
   const client = postgres(url, {
-    max: 3,
-    idle_timeout: 20,
+    max: 1,
+    idle_timeout: 5,
     connect_timeout: 10,
     ssl: "require",
     // numeric/decimal come back as strings by default; the queries cast to float8 instead.

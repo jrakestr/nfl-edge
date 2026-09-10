@@ -57,6 +57,7 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
               title={item.label}

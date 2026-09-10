@@ -76,8 +76,20 @@ describe("/week/[n] against the Week 1 fixture", () => {
     expect(screen.queryAllByRole("article")).toHaveLength(0);
   });
 
-  it("flags games whose newest line is newer than their verdict", () => {
+  it("does not prompt to run nfl-edge lines when some games lack a verdict at the newest line", () => {
     render(<WeekBoard {...props({ verdicts: sortVerdicts(fixtureVerdicts()).slice(0, 14) })} />);
-    expect(screen.getByRole("note")).toHaveTextContent("2 of 16 games have a newer line");
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    expect(screen.queryByText(/run `nfl-edge lines/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("article")).toHaveLength(16);
+    const pending = screen.getAllByRole("article").filter((c) => c.dataset.status === "pending");
+    expect(pending).toHaveLength(2);
+    expect(pending[0]).toHaveTextContent(/No verdict on the current line snapshot/);
+    expect(screen.queryByText(/nfl-edge lines/)).not.toBeInTheDocument();
+  });
+
+  it("a run with no verdicts does not tell the operator to refresh lines by hand", () => {
+    render(<WeekBoard {...props({ verdicts: [] })} />);
+    expect(screen.getByText("No verdicts for this run yet.")).toBeInTheDocument();
+    expect(screen.queryByText(/run `nfl-edge lines`/)).not.toBeInTheDocument();
   });
 });

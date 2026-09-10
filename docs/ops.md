@@ -1,9 +1,11 @@
 # Operations: line snapshots and the weekly run order
 
 Scheduled on this Mac as LaunchAgent `com.nfl-edge.lines-only`. `com.vix.cron` is not running
-here, so a crontab would never fire. The agent runs `ops/lines-only.sh`, which calls exactly
-`nfl-edge ingest --season 2026 --lines-only` with `DATABASE_URL` unset so `.env` (Supabase) is
-used. Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log`.
+here, so a crontab would never fire. The agent runs `ops/lines-only.sh`, which calls
+`nfl-edge ingest --season 2026 --lines-only` and then immediately
+`nfl-edge lines --season 2026 --week 1` (newest sim run for the week; all games) with
+`DATABASE_URL` unset so `.env` (Supabase) is used. Edges and verdicts follow every snapshot.
+Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log` (both steps).
 
 ## Cadence
 
@@ -16,11 +18,13 @@ used. Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log
 
 ```
 nfl-edge ingest --season 2026 --lines-only
+nfl-edge lines --season 2026 --week 1
 ```
 
-Pulls the nflverse schedule for the whole season and `insert ... on conflict do nothing` into
-`raw.market_lines`. An unchanged pull is a no-op. Games not yet in `raw.schedules` are added;
-existing schedule rows are not touched.
+Ingest pulls the nflverse schedule for the whole season and `insert ... on conflict do nothing`
+into `raw.market_lines`. An unchanged pull is a no-op. Games not yet in `raw.schedules` are
+added; existing schedule rows are not touched. `lines` then writes edges and verdicts against
+the newest complete sim run for week 1 so the board stays current without a re-sim.
 
 ## Install / swap (no snapshot gap)
 
@@ -105,7 +109,10 @@ Sunday 2026-09-13 ~09:00 MST (before the early-window lock)
 9. `nfl-edge dfs --season 2026 --week 1 --site dk --slate full --lineups 150 --field 20000`
 10. `cd web && vercel` (preview, not `--prod`)
 
-Between those, the LaunchAgent keeps snapshotting. After a new snapshot, `nfl-edge lines --season 2026 --week W` writes edges without a re-sim.
+Between those, the LaunchAgent snapshots then runs `nfl-edge lines --season 2026 --week 1` so
+edges and verdicts follow every snapshot. A fresh Sunday sim still needs step 11 because that
+is a new `run_id`; after that, the agent keeps the board current. Do not re-run `lines` by hand
+after a snapshot.
 
 ## Injury overrides CSV
 
@@ -148,10 +155,11 @@ The Next.js app in `web/` reads Supabase directly from server components; it nev
   role is `web_reader.<project_ref>`:
   `postgresql://web_reader.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
 - **Freshness**: every page is `force-dynamic`; a new `sim` / `lines` run shows on the next
-  request with no redeploy. `sim` alone is not enough for the board: `model.verdicts_latest` and
-  `model.edges_latest` key on each game's newest `raw.market_lines` snapshot, so after the
-  LaunchAgent snapshots a new line the board shows a "N of 16 games have a newer line" note until
-  `nfl-edge lines --season S --week W` runs again. Run `lines` last in the weekly order.
+  request with no redeploy. The LaunchAgent runs `ingest --lines-only` then `nfl-edge lines`, so
+  `model.verdicts_latest` and `model.edges_latest` track each game's newest `raw.market_lines`
+  snapshot. Per-game "moved since sim" is the line-move signal; the board does not prompt to
+  re-run `lines` by hand. After a new `sim`, run `lines` once in the weekly order (the agent
+  covers later snapshots).
 - **Connections**: `postgres.js` pool `max: 3` per instance; preview + prod cold starts stay under
   the free pooler's limit.
 - **Deploy**: `cd web && vercel link` (once) → `vercel` for a preview URL → `vercel --prod` only

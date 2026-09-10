@@ -34,10 +34,11 @@ Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress);
 
 ## Phase 0 — operations (2026-09-06)
 - ops-cron (3a21561): LaunchAgent template `ops/com.nfl-edge.lines-only.plist` + `ops/lines-only.sh`. Cadence: every 30 min through 2026-09-13 23:59 PT, every 2 h after (wrapper no-ops off the even-hour grid). Overlap swap: bootstrap `com.nfl-edge.lines-only-swap` before bootout of the old 4h calendar agent, then bootstrap the new label, then bootout the swap. `scripts/` plist removed.
+- ops-lines (this change): `ops/lines-only.sh` runs `nfl-edge ingest --season 2026 --lines-only` then `nfl-edge lines --season 2026 --week 1` (newest sim run, all games). Both steps append to `output/cron-lines.log`. Plist unchanged (`StartInterval` 1800); a `git pull` on the Mac is enough — no overlap swap. The Edge board no longer shows a "run nfl-edge lines to refresh" banner; per-game "moved since sim" stays. Plain English lists every `proj_games` row: verdict cards when a payload exists, pending cards for the rest (no hand `lines` command). Production is https://nfl-edge-tau.vercel.app. Vercel Git: Root Directory `web`, Include files outside Root Directory off. Git deploys were parsing the repo-root `package.json` and then looking for `.next` at `/vercel/path0/.next`.
 - ops-overrides (400fdd4): `nfl-edge overrides --season --week --file` → `raw.player_overrides`. Matcher in `ingest/names.py` (gsis_id, merge_name/display_name + team + position, DST nick/city, `config/dk_aliases.yaml`). CSV documented in `docs/ops.md`. Weekly runbook is an ordered command list.
 
 ### Checkpoint 0
-- LaunchAgent `com.nfl-edge.lines-only`: `run interval = 1800 seconds`, `runs = 1`, `last exit code = 0` (RunAtLoad ingest at 2026-09-06 12:33:57 MST, `line_snapshots: 0` — nflverse unchanged). Next fire ~12:33:57+1800s = **13:03:57 MST**.
+- LaunchAgent `com.nfl-edge.lines-only`: `run interval = 1800 seconds`. Plist path and interval unchanged, so the next fire is last completion + 1800s (confirm with `launchctl print gui/$(id -u)/com.nfl-edge.lines-only`). After `git pull`, that fire runs ingest then `lines`. Through 2026-09-13 23:59 PT every 30 min; 2 h after.
 - Two-row fixture `tests/fixtures/overrides_two_row.csv` against Supabase: wrote Mahomes `00-0033873` out (usage_multiplier 0) and Gibbs `00-0039139` questionable (1.0). Test rows deleted after the select so Week 1 priors are not zeroed. `raw.player_overrides` count 0. `raw.market_lines` 1820.
 
 ## Step 4 — game lines and edge (2026-09-04)

@@ -9,7 +9,8 @@ import { SummaryTiles } from "./SummaryTiles";
 import { VerdictCard } from "./VerdictCard";
 import { WeekHeader, type View } from "./WeekHeader";
 import { WeekSummaryCard } from "./WeekSummaryCard";
-import { draws as fmtDraws, shortRun } from "@/lib/format";
+import { draws as fmtDraws, kickoffLabel, shortRun } from "@/lib/format";
+import { Matchup } from "./TeamDot";
 
 export type WeekBoardProps = {
   season: number;
@@ -32,7 +33,6 @@ export function WeekBoard(p: WeekBoardProps) {
   const summary = p.verdicts.find((v) => v.payload.week_summary)?.payload.week_summary ?? null;
   const payloads = p.verdicts.map((v) => v.payload);
   const byGame = Object.fromEntries(p.verdicts.map((v) => [v.game_id, v.payload]));
-  const missingVerdicts = p.rows.length - p.verdicts.length;
 
   const caption = p.run
     ? `Run ${shortRun(p.run.run_id)} · ${fmtDraws(p.run.draws_per_game)} draws per game · ${p.rows.length} games`
@@ -60,20 +60,22 @@ export function WeekBoard(p: WeekBoardProps) {
         <>
           <WeekSummaryCard summary={summary} caption={caption} />
 
-          {missingVerdicts > 0 ? (
-            <p className="t-caption text-warn" role="note">
-              {missingVerdicts} of {p.rows.length} games have a newer line than their verdict; run `nfl-edge lines
-              --season {p.season} --week {p.week}` to refresh.
-            </p>
-          ) : null}
-
           {p.view === "plain" ? (
             <div className="flex flex-col gap-3" data-view="plain">
               {p.verdicts.map((v) => (
-                <VerdictCard key={v.game_id} payload={v.payload} failedChecks={p.checks[v.game_id]?.failed ?? []} />
+                <VerdictCard
+                  key={v.game_id}
+                  payload={v.payload}
+                  failedChecks={p.checks[v.game_id]?.failed ?? []}
+                />
               ))}
-              {p.verdicts.length === 0 ? (
-                <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>
+              {p.rows
+                .filter((row) => !byGame[row.game_id])
+                .map((row) => (
+                  <PendingVerdict key={row.game_id} row={row} />
+                ))}
+              {p.rows.length === 0 ? (
+                <EmptyState title="No games">No games on this run.</EmptyState>
               ) : null}
             </div>
           ) : (
@@ -92,5 +94,28 @@ export function WeekBoard(p: WeekBoardProps) {
         </>
       )}
     </>
+  );
+}
+
+function PendingVerdict({ row }: { row: BoardRow }) {
+  return (
+    <article
+      className="card flex gap-4 p-4"
+      data-game={row.game_id}
+      data-status="pending"
+      aria-labelledby={`pending-${row.game_id}`}
+    >
+      <div className="min-w-0 flex-1">
+        <header className="mb-2 flex items-center gap-3">
+          <h3 id={`pending-${row.game_id}`} className="t-body">
+            <Matchup home={row.home} away={row.away} />
+          </h3>
+          <span className="t-caption">{kickoffLabel(row.gameday, row.gametime)}</span>
+        </header>
+        <p className="t-caption text-warn">
+          No verdict on the current line snapshot. The snapshot job writes edges on the next fire.
+        </p>
+      </div>
+    </article>
   );
 }

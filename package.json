@@ -1,0 +1,13 @@
+{
+  "name": "nfl-edge",
+  "private": true,
+  "description": "Repo root. The Next.js app is in web/. npm scripts here forward there. Vercel Git Root Directory must stay web/; a root package.json otherwise makes Git deploys look for .next at the repo root.",
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "lint": "npm --prefix web run lint",
+    "typecheck": "npm --prefix web run typecheck",
+    "test": "npm --prefix web test",
+    "build": "npm --prefix web run build",
+    "a11y": "npm --prefix web run a11y"
+  }
+}
