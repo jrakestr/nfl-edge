@@ -80,7 +80,11 @@ describe("/week/[n] against the Week 1 fixture", () => {
     render(<WeekBoard {...props({ verdicts: sortVerdicts(fixtureVerdicts()).slice(0, 14) })} />);
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
     expect(screen.queryByText(/run `nfl-edge lines/)).not.toBeInTheDocument();
-    expect(screen.getAllByRole("article")).toHaveLength(14);
+    expect(screen.getAllByRole("article")).toHaveLength(16);
+    const pending = screen.getAllByRole("article").filter((c) => c.dataset.status === "pending");
+    expect(pending).toHaveLength(2);
+    expect(pending[0]).toHaveTextContent(/No verdict on the current line snapshot/);
+    expect(screen.queryByText(/nfl-edge lines/)).not.toBeInTheDocument();
   });
 
   it("a run with no verdicts does not tell the operator to refresh lines by hand", () => {
