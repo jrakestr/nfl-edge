@@ -12,6 +12,21 @@ export function slateId(season: number, week: number, slate: string): string {
   return `${season}_${String(week).padStart(2, "0")}_${slate}`;
 }
 
+/** Distinct ingested slate keys for the week (main first). Not a hardcoded trio. */
+export async function slatesForWeek(season: number, week: number, site: string): Promise<string[]> {
+  const rows = await sql()`
+    select slate from (
+      select distinct substring(slate_id from '^[0-9]+_[0-9]+_(.+)$') as slate
+      from raw.dk_salaries
+      where site = ${site}
+        and split_part(slate_id, '_', 1)::int = ${season}
+        and split_part(slate_id, '_', 2)::int = ${week}
+    ) s
+    where slate is not null
+    order by case when slate = 'main' then 0 else 1 end, slate`;
+  return rows.map((r) => String(r.slate));
+}
+
 export async function dfsLineups(runId: string, site: string, slateId: string): Promise<DfsLineup[]> {
   const rows = await sql()`
     select lineup_id, salary_used, stack,
