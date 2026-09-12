@@ -167,6 +167,51 @@ def test_snapshot_edges_skips_markets_without_a_line():
     assert not any(r["market_type"] == "total" for r in rows)
 
 
+# ----------------------------------------------------------------------------- line grid
+GRID_MARGIN = np.array([10, 7, 7, 3, 0, -3, -7], dtype=float)
+GRID_TOTAL = np.array([38, 42, 44, 45, 48, 51, 55], dtype=float)
+
+
+def test_line_grid_lookup_matches_outcome_probs_at_half_points():
+    grid = E.build_line_grid(GRID_MARGIN, GRID_TOTAL)
+    for line in np.arange(E.SPREAD_LO, E.SPREAD_HI + 0.5, 0.5):
+        got = E.lookup_spread(grid, float(line))
+        assert got is not None
+        assert got == pytest.approx(E.outcome_probs(GRID_MARGIN, float(line)))
+    for line in np.arange(E.TOTAL_LO, E.TOTAL_HI + 0.5, 0.5):
+        got = E.lookup_total(grid, float(line))
+        assert got is not None
+        assert got == pytest.approx(E.outcome_probs(GRID_TOTAL, float(line)))
+
+
+def test_line_grid_out_of_range_is_none():
+    grid = E.build_line_grid(GRID_MARGIN, GRID_TOTAL)
+    assert E.lookup_spread(grid, -30.5) is None
+    assert E.lookup_spread(grid, 30.5) is None
+    assert E.lookup_total(grid, 19.5) is None
+    assert E.lookup_total(grid, 80.5) is None
+
+
+def test_moneyline_is_the_grid_at_spread_zero():
+    grid = E.build_line_grid(GRID_MARGIN, GRID_TOTAL)
+    win, push, lose = E.lookup_spread(grid, 0.0)
+    assert (win, push, lose) == pytest.approx(E.outcome_probs(GRID_MARGIN, 0.0))
+    assert E.conditional_prob(win, push) == pytest.approx(win / (win + lose))
+    # half-push home_win_prob would count the tie as 0.5; moneyline does not
+    assert E.conditional_prob(win, push) != pytest.approx(E.half_push_prob(win, push))
+
+
+def test_grid_snapshot_matches_draw_snapshot_edges():
+    d = pl.DataFrame({"home_pts": GRID_MARGIN * 0 + 24 + GRID_MARGIN, "away_pts": np.full(7, 24.0)})
+    # home - away == GRID_MARGIN; totals are not GRID_TOTAL, so only check spread + ML
+    grid = E.build_line_grid(GRID_MARGIN, GRID_TOTAL)
+    rows = {(r["market_type"], r["side"]): r for r in E.snapshot_edges(d, SNAP, CFG)}
+    win, push, _ = E.lookup_spread(grid, 7.0)
+    assert rows[("spread", "home")]["model_prob"] == pytest.approx(E.conditional_prob(win, push))
+    win0, push0, _ = E.lookup_spread(grid, 0.0)
+    assert rows[("moneyline", "home")]["model_prob"] == pytest.approx(E.conditional_prob(win0, push0))
+
+
 def test_snapshot_edges_favors_the_stronger_home_team():
     rows = {(r["market_type"], r["side"]): r for r in E.snapshot_edges(_draws(), SNAP, CFG)}
     # home mean 27 vs away 21 -> fair margin ~6, book says 7: home cover prob just under a half

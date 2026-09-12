@@ -74,6 +74,53 @@ def half_push_prob(win: float, push: float) -> float:
     return win + 0.5 * push
 
 
+# Integer histograms cover at least these ranges so a half-point lookup never needs parquet.
+SPREAD_LO, SPREAD_HI = -30, 30
+TOTAL_LO, TOTAL_HI = 20, 80
+
+
+def _int_hist(values: np.ndarray, lo: int, hi: int) -> dict:
+    keys = np.rint(np.asarray(values, dtype=float)).astype(int)
+    if keys.size:
+        lo = int(min(lo, keys.min()))
+        hi = int(max(hi, keys.max()))
+    counts = [(keys == k).sum().item() for k in range(lo, hi + 1)]
+    return {"lo": lo, "counts": counts}
+
+
+def build_line_grid(margin: np.ndarray, total: np.ndarray) -> dict:
+    """Compact integer histograms for live P(cover)/P(over) at any half-point line."""
+    return {"margin": _int_hist(margin, SPREAD_LO, SPREAD_HI), "total": _int_hist(total, TOTAL_LO, TOTAL_HI)}
+
+
+def lookup_line(hist: dict, line: float, spec_lo: float, spec_hi: float) -> tuple[float, float, float] | None:
+    """(win, push, lose) matching outcome_probs. None when `line` is outside the published grid."""
+    if line < spec_lo or line > spec_hi:
+        return None
+    counts = hist["counts"]
+    n = sum(counts)
+    if n == 0:
+        return None
+    win = push = 0
+    lo = int(hist["lo"])
+    for i, c in enumerate(counts):
+        k = lo + i
+        if k > line:
+            win += c
+        elif k == line:
+            push += c
+    win_p, push_p = win / n, push / n
+    return win_p, push_p, 1.0 - win_p - push_p
+
+
+def lookup_spread(grid: dict, line: float) -> tuple[float, float, float] | None:
+    return lookup_line(grid["margin"], line, SPREAD_LO, SPREAD_HI)
+
+
+def lookup_total(grid: dict, line: float) -> tuple[float, float, float] | None:
+    return lookup_line(grid["total"], line, TOTAL_LO, TOTAL_HI)
+
+
 def kelly(model_prob: float, push: float, price: float, mult: float) -> float:
     """Kelly fraction at the offered price, clipped at zero and scaled by `mult`.
 
