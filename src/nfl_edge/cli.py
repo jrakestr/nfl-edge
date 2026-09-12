@@ -145,19 +145,30 @@ def sim(
     """Run the correlated game simulator for a week: parquet draws + model.* summaries + checks."""
     import polars as pl
 
+    from .rebuild import prune_draws, sim_lock
     from .sim import slate
 
-    r = slate.run(season, week, draws=draws, seed=seed, note=note, persist=not no_persist)
-    typer.echo(r.summary())
-    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=160, float_precision=2):
-        typer.echo(str(r.proj_games.select(["game_id", "fair_spread", "market_spread", "fair_total",
-                                            "market_total", "home_win_prob", "p_home_cover_market",
-                                            "p_over_market"])))
-        failed = r.checks.filter(~pl.col("passed"))
-        if not failed.is_empty():
-            typer.echo("checks not passed:")
-            typer.echo(str(failed.select(["severity", "check_name", "game_id", "team", "value",
-                                          "threshold", "detail"])))
+    try:
+        with sim_lock(season, week):
+            r = slate.run(season, week, draws=draws, seed=seed, note=note, persist=not no_persist)
+            typer.echo(r.summary())
+            with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=160, float_precision=2):
+                typer.echo(str(r.proj_games.select(["game_id", "fair_spread", "market_spread",
+                                                    "fair_total", "market_total", "home_win_prob",
+                                                    "p_home_cover_market", "p_over_market"])))
+                failed = r.checks.filter(~pl.col("passed"))
+                if not failed.is_empty():
+                    typer.echo("checks not passed:")
+                    typer.echo(str(failed.select(["severity", "check_name", "game_id", "team",
+                                                  "value", "threshold", "detail"])))
+            if not no_persist:
+                for line in prune_draws():
+                    typer.echo(line)
+    except RuntimeError as e:
+        if "already running" in str(e):
+            typer.echo(str(e))
+            raise typer.Exit(code=1) from e
+        raise
 
 
 def _parse_weeks(spec: str) -> list[int]:
@@ -264,13 +275,13 @@ def slate_count_cmd(season: int = typer.Option(2026), week: int = typer.Option(.
 
 @app.command("newest-run")
 def newest_run_cmd(season: int = typer.Option(2026), week: int = typer.Option(...)):
-    """Print `run_id n_games` for the newest sim of the week."""
+    """Print `run_id n_games n_player_games` for the newest sim of the week."""
     from .rebuild import newest_run
 
     row = newest_run(season, week)
     if row is None:
         raise typer.Exit(code=1)
-    typer.echo(f"{row[0]} {row[1]}")
+    typer.echo(f"{row[0]} {row[1]} {row[2]}")
 
 
 @app.command("drop-incomplete")
@@ -287,6 +298,23 @@ def drop_incomplete_cmd(
     ts = datetime.fromisoformat(after)
     n = drop_incomplete(season, week, ts)
     typer.echo(n)
+
+
+@app.command("prune-draws")
+def prune_draws_cmd(
+    season: int | None = typer.Option(None),
+    week: int | None = typer.Option(None),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+):
+    """Delete extra parquet after a week is graded. Keeps sim_runs rows; nulls draws_path."""
+    from .rebuild import prune_draws
+
+    lines = prune_draws(season=season, week=week, dry_run=dry_run)
+    if not lines:
+        typer.echo("nothing to prune")
+        return
+    for line in lines:
+        typer.echo(line)
 
 
 @app.command()
@@ -428,6 +456,8 @@ def props(
     typer.echo(
         f"prop_edges run {edges['run_id']}: {edges['n_edges']} rows from {edges['n_props']} lines"
     )
+    if any(s.get("reason") == "draws_pruned" for s in edges["skipped"]):
+        typer.echo("draws pruned for this run")
     for s in edges["skipped"]:
         typer.echo(
             f"  {s.get('reason')}: {s.get('player_name')} {s.get('stat')} {s.get('line')}"
@@ -487,6 +517,10 @@ def grade(
         typer.echo(f"fair_props: skipped ({fair.get('reason')})")
     elif fair.get("n_rows"):
         typer.echo(f"fair_props: {fair['n_rows']} rows graded")
+    from .rebuild import prune_draws
+
+    for line in prune_draws(season=season, week=week):
+        typer.echo(line)
 
 
 @app.command("score-actuals")

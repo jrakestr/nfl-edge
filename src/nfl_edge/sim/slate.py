@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import uuid
 import zlib
@@ -231,11 +232,11 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
         factor, att_share = qb_channel(priors, t.team)
         usage = priors.usage.filter(pl.col("team") == t.team).with_columns(pl.lit(att_share).alias("qb_att_share"))
         eff = qb_adjusted_efficiency(priors.efficiency.filter(pl.col("player_id").is_in(usage["player_id"])), factor)
-        p = pp.allocate(t, usage, eff, cfg, rng) if not usage.is_empty() else None
+        if usage.is_empty():
+            raise ValueError(f"{game_id}: no usage priors for {t.team}")
+        p = pp.allocate(t, usage, eff, cfg, rng)
         pdraws[t.team] = p
         checks += _team_checks(t, p, usage, d, side, prior, game_id, cfg)
-        if p is None:
-            continue
         fp = {"dk": np.empty_like(p.rec_yds, dtype=float), "fd": np.empty_like(p.rec_yds, dtype=float),
               "ppr": np.empty_like(p.rec_yds, dtype=float)}
         for i, pid in enumerate(p.player_ids):
@@ -349,28 +350,49 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
     out_dir = DRAWS_ROOT / str(season) / str(week) / run_id
 
     pg, ppl, chk, corrs = [], [], [], []
-    for g in games.iter_rows(named=True):
-        a, b, c, d = simulate_one(g, priors, cfg, rules, n, seed, out_dir)
-        pg.append(a)
-        ppl += b
-        chk += c
-        corrs.append(d)
-    proj_games = pl.DataFrame(pg).with_columns(pl.lit(run_id).alias("run_id"))
-    proj_players = pl.DataFrame(ppl).with_columns(
-        pl.lit(run_id).alias("run_id"), pl.col("stat_summary").map_elements(json.dumps, return_dtype=pl.Utf8)
-    )
-    checks = pl.DataFrame(chk, schema={"game_id": pl.Utf8, "team": pl.Utf8, "check_name": pl.Utf8,
-                                       "value": pl.Float64, "threshold": pl.Float64, "passed": pl.Boolean,
-                                       "severity": pl.Utf8, "detail": pl.Utf8}) \
-        .with_columns(pl.lit(run_id).alias("run_id"))
-    corr = pl.concat(corrs).with_columns(pl.lit(run_id).alias("run_id"))
+    try:
+        for g in games.iter_rows(named=True):
+            a, b, c, d = simulate_one(g, priors, cfg, rules, n, seed, out_dir)
+            pg.append(a)
+            ppl += b
+            chk += c
+            corrs.append(d)
+        slate_n = games.height
+        game_ids = games["game_id"].to_list()
+        n_game_files = sum(1 for gid in game_ids if (out_dir / f"{gid}.game.parquet").is_file())
+        n_player_files = sum(1 for gid in game_ids if (out_dir / f"{gid}.parquet").is_file())
+        off_games = {row["game_id"] for row in ppl if row.get("position") != "DST"}
+        n_player_games = len(off_games)
+        chk.append({"game_id": None, "team": None, "check_name": "games_complete",
+                    "value": float(n_game_files), "threshold": float(slate_n),
+                    "passed": n_game_files == slate_n, "severity": "invariant",
+                    "detail": f"{n_game_files}/{slate_n} game parquet files"})
+        chk.append({"game_id": None, "team": None, "check_name": "players_complete",
+                    "value": float(n_player_games), "threshold": float(slate_n),
+                    "passed": n_player_games == slate_n and n_player_files == slate_n,
+                    "severity": "invariant",
+                    "detail": f"{n_player_games}/{slate_n} games with non-DST players; "
+                              f"{n_player_files} player parquet files"})
+        proj_games = pl.DataFrame(pg).with_columns(pl.lit(run_id).alias("run_id"))
+        proj_players = pl.DataFrame(ppl).with_columns(
+            pl.lit(run_id).alias("run_id"), pl.col("stat_summary").map_elements(json.dumps, return_dtype=pl.Utf8)
+        )
+        checks = pl.DataFrame(chk, schema={"game_id": pl.Utf8, "team": pl.Utf8, "check_name": pl.Utf8,
+                                           "value": pl.Float64, "threshold": pl.Float64, "passed": pl.Boolean,
+                                           "severity": pl.Utf8, "detail": pl.Utf8}) \
+            .with_columns(pl.lit(run_id).alias("run_id"))
+        corr = pl.concat(corrs).with_columns(pl.lit(run_id).alias("run_id"))
 
-    if persist:
-        insert(pl.DataFrame({"run_id": [run_id], "season": [season], "week": [week],
-                             "config_hash": [_config_hash()], "git_sha": [_git_sha()],
-                             "draws_per_game": [n], "note": [note]}), "model.sim_runs")
-        insert(proj_games, "model.proj_games")
-        insert(proj_players, "model.proj_players")
-        insert(corr, "model.player_correlations")
-        insert(checks, "model.sim_checks")
-    return RunResult(run_id, season, week, n, proj_games, proj_players, checks, corr)
+        if persist:
+            insert(pl.DataFrame({"run_id": [run_id], "season": [season], "week": [week],
+                                 "config_hash": [_config_hash()], "git_sha": [_git_sha()],
+                                 "draws_per_game": [n], "note": [note]}), "model.sim_runs")
+            insert(proj_games, "model.proj_games")
+            insert(proj_players, "model.proj_players")
+            insert(corr, "model.player_correlations")
+            insert(checks, "model.sim_checks")
+        return RunResult(run_id, season, week, n, proj_games, proj_players, checks, corr)
+    except Exception:
+        if out_dir.exists():
+            shutil.rmtree(out_dir, ignore_errors=True)
+        raise

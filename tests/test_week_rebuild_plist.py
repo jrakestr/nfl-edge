@@ -18,6 +18,21 @@ def test_script_sunday_deadline_is_sim_only():
     assert "08:50" in text
     assert "09:30" in text
     assert "sun-inactives: sim not complete by 08:50, Saturday run kept" in text
+    assert "sun-inactives: sim failed, Saturday run left intact" in text
+    fail_at = text.index("sun-inactives: sim failed, Saturday run left intact")
+    assert "keep_saturday" in text
+    assert text.index('"$sim_code" -eq 124') < fail_at
+    assert "keep_saturday" not in text[fail_at : fail_at + 200]
+    assert "n_player_games" in text
     assert "--slate main" in text
     assert "--slate full" in text
     assert "current-week" in text
+
+
+def test_script_reapplies_overrides_after_dk_salaries_before_sim():
+    text = SH.read_text()
+    full = text.index("--slate full")
+    ov = text.index('"$NFL" overrides')
+    sim = text.index('"$NFL" sim')
+    assert full < ov < sim
+    assert "data/overrides/" in text[full:ov]

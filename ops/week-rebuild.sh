@@ -93,6 +93,11 @@ capture /usr/bin/env -u DATABASE_URL "$NFL" ingest --season "$SEASON" --week "$W
 capture /usr/bin/env -u DATABASE_URL "$NFL" dk-salaries --season "$SEASON" --week "$WEEK" --slate main
 capture /usr/bin/env -u DATABASE_URL "$NFL" dk-salaries --season "$SEASON" --week "$WEEK" --slate full
 
+OV_CSV="$ROOT/data/overrides/${SEASON}_wk${WW}.csv"
+if [ -f "$OV_CSV" ]; then
+  capture /usr/bin/env -u DATABASE_URL "$NFL" overrides --season "$SEASON" --week "$WEEK" --file "$OV_CSV"
+fi
+
 if is_sunday && [ "$(date +%s)" -ge "$(phx_at "08:50:00")" ]; then
   echo "sun-inactives: sim not complete by 08:50, Saturday run kept"
   exit 0
@@ -117,6 +122,7 @@ if is_sunday; then
       exit 0
     fi
     printf '%s\n' "$out"
+    echo "sun-inactives: sim failed, Saturday run left intact"
     exit "$sim_code"
   fi
   cat "$sim_log"
@@ -127,13 +133,15 @@ else
 fi
 
 newest=$(capture /usr/bin/env -u DATABASE_URL "$NFL" newest-run --season "$SEASON" --week "$WEEK")
-n_games=${newest##* }
+set -- $newest
+n_games=$2
+n_player_games=$3
 expect=$(capture /usr/bin/env -u DATABASE_URL "$NFL" slate-count --season "$SEASON" --week "$WEEK")
-if [ "$n_games" != "$expect" ]; then
+if [ "$n_games" != "$expect" ] || [ "$n_player_games" != "$expect" ]; then
   if is_sunday; then
     keep_saturday
   fi
-  echo "sim proj_games $n_games != slate $expect"
+  echo "sim proj_games $n_games player_games $n_player_games != slate $expect"
   exit 1
 fi
 
