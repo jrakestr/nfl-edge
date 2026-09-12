@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { PlayersList } from "./PlayersList";
+import { PLAYER_CELL, PlayersList } from "./PlayersList";
 import type { WeekPlayer } from "@/lib/types";
 import { REBUILD_PENDING } from "@/lib/injury-status";
 import { slateStorageKey } from "@/lib/slate-picks";
@@ -176,9 +176,16 @@ describe("PlayersList slate rows", () => {
     expect(screen.getByRole("complementary", { name: "Pick summary" })).toHaveTextContent(
       "Locked 1 · Excluded 1 · Stacked 1",
     );
-    expect(screen.getByRole("row", { name: /jahmyr gibbs/i })).toHaveAttribute("data-locked", "true");
-    expect(screen.getByRole("row", { name: /jahmyr gibbs/i })).toHaveAttribute("data-stacked", "true");
-    expect(screen.getByRole("row", { name: /main only/i })).toHaveAttribute("data-excluded", "true");
+    const locked = screen.getByRole("row", { name: /jahmyr gibbs/i });
+    const unlocked = screen.getByRole("row", { name: /main only/i });
+    expect(locked).toHaveAttribute("data-locked", "true");
+    expect(locked).toHaveAttribute("data-stacked", "true");
+    expect(unlocked).toHaveAttribute("data-excluded", "true");
+    expect(unlocked).not.toHaveAttribute("data-locked");
+    expect(locked.querySelector("td")).toHaveClass(PLAYER_CELL);
+    expect(screen.getByRole("button", { name: "Lock Jahmyr Gibbs" })).toHaveClass("bg-edge-pos-tint");
+    expect(screen.getByRole("button", { name: "Add Jahmyr Gibbs to stack" })).toHaveClass("bg-line-tint");
+    expect(screen.getByRole("button", { name: "Exclude Main Only" })).toHaveClass("bg-edge-neg-tint");
     expect(screen.getByRole("link", { name: "Build lineups with these →" }).getAttribute("href")).toContain(
       "lock=111",
     );

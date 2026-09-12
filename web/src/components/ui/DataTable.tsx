@@ -24,6 +24,7 @@ export type DataColumn<T> = {
   sortValue?: (row: T) => string | number | null | undefined;
   cell: (row: T) => React.ReactNode;
   className?: string;
+  headClassName?: string;
 };
 
 export type FilterAccess<T> = {
@@ -229,6 +230,7 @@ function DataTableInner<T extends object>({
                       className={cn(
                         "t-colhead text-muted-foreground",
                         col?.align === "right" && "text-right",
+                        col?.headClassName,
                       )}
                     >
                       {sortable ? (

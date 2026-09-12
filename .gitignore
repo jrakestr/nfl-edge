@@ -14,3 +14,4 @@ data/draws/
 .cursor/hooks/state/
 output/
 *.parquet
+.vercel

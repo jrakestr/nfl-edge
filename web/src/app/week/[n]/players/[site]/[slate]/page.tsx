@@ -56,7 +56,14 @@ export default async function Page({
       slate={slate}
       fallbackFrom={fallbackFrom}
       toolbar={
-        <SlateSelector week={week} site={siteKey} page="players" slate={slate} slates={available} />
+        <SlateSelector
+          key="slate"
+          week={week}
+          site={siteKey}
+          page="players"
+          slate={slate}
+          slates={available}
+        />
       }
     />
   );

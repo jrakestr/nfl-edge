@@ -28,6 +28,16 @@ function ownPct(v: number | null | undefined): string {
   return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
 }
 
+const PRESSED: Partial<Record<Metric, string>> = {
+  lock: "bg-edge-pos-tint text-edge-pos hover:bg-edge-pos-tint hover:text-edge-pos",
+  exclude: "bg-edge-neg-tint text-edge-neg hover:bg-edge-neg-tint hover:text-edge-neg",
+  stack: "bg-line-tint text-line hover:bg-line-tint hover:text-line",
+};
+
+export const PLAYER_CELL =
+  "sticky left-0 z-10 bg-card border-r border-border-soft [[data-locked]_&]:shadow-[inset_3px_0_0_0_var(--edge-pos)]";
+const PLAYER_HEAD = "sticky left-0 z-20 bg-muted border-r border-border-soft";
+
 function PickButton({
   metric,
   label,
@@ -49,6 +59,7 @@ function PickButton({
       aria-label={label}
       aria-pressed={pressed}
       disabled={disabled}
+      className={cn(pressed && PRESSED[metric], pressed && "[&_svg]:stroke-2")}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -132,6 +143,8 @@ export function PlayersList({
           {
             id: "player",
             header: "Player",
+            className: PLAYER_CELL,
+            headClassName: PLAYER_HEAD,
             sortValue: (p) => p.display_name,
             cell: (p) => {
               const id = p.player_dk_id;
