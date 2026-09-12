@@ -38,6 +38,7 @@ export function GamesList({
   scoreboard,
   toolbar,
   fallbackFrom,
+  runCreatedAt,
 }: {
   week?: number;
   rows?: BoardRow[];
@@ -49,6 +50,7 @@ export function GamesList({
   scoreboard?: WeekScoreboardData;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
+  runCreatedAt?: string | null;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const ordered = useMemo(() => sortBoardRows(rows), [rows]);
@@ -176,6 +178,7 @@ export function GamesList({
         verdict={open ? (verdicts[open.game_id] ?? null) : null}
         checks={open ? (checks[open.game_id] ?? null) : null}
         players={open ? (playersByGame[open.game_id] ?? []) : []}
+        runCreatedAt={runCreatedAt}
         open={open != null}
         onOpenChange={(v) => {
           if (!v) setOpenId(null);

@@ -77,6 +77,7 @@ export default async function Page({
       playersByGame={playersByGame}
       scoreboard={scoreboard}
       fallbackFrom={fallbackFrom}
+      runCreatedAt={run ? run.created_at.toISOString() : null}
       toolbar={
         <SlateSelector week={week} site="dk" page="games" slate={slate} slates={available} />
       }

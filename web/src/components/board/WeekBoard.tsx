@@ -1,8 +1,12 @@
 import type { TrackRecord, WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import type { DrawerPlayer } from "@/lib/queries/players";
+import { groupFailedChecks } from "@/lib/queries/checks";
 import type { BoardRow, GameChecks, VerdictRow } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
+import { ChecksPanel } from "./ChecksPanel";
+import { GameOpenShell } from "./GameOpenShell";
+import { OpenGameTrigger } from "./OpenGameTrigger";
 import { type Filters } from "./filters";
 import { type RunOption } from "./RunBadge";
 import { SummaryTiles } from "./SummaryTiles";
@@ -27,6 +31,7 @@ export type WeekBoardProps = {
   track: TrackRecord;
   scoreboard: WeekScoreboardData;
   playersByGame?: Record<string, DrawerPlayer[]>;
+  openGameId?: string | null;
 };
 
 /** The Edge board, pure over its props (the page loads them; the route test feeds a fixture). */
@@ -98,37 +103,50 @@ export function WeekBoard(p: WeekBoardProps) {
             </p>
           ) : null}
 
-          {p.view === "plain" ? (
-            <div className="flex flex-col gap-3" data-view="plain">
-              {verdicts.map((v) => {
-                const row = p.rows.find((r) => r.game_id === v.game_id);
-                return (
-                  <VerdictCard
-                    key={v.game_id}
-                    payload={v.payload}
-                    row={row}
-                    liveEdges={row?.has_started ? undefined : row?.edges}
-                    failedChecks={p.checks[v.game_id]?.failed ?? []}
-                  />
-                );
-              })}
-              {verdicts.length === 0 ? (
-                <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4" data-view="table">
-              <SummaryTiles payloads={payloads} track={p.track} />
-              <BoardTable
-                rows={p.rows}
-                checks={p.checks}
-                verdicts={byGame}
-                draws={p.run.draws_per_game}
-                filters={p.filters}
-                playersByGame={p.playersByGame}
-              />
-            </div>
-          )}
+          <ChecksPanel
+            groups={groupFailedChecks(p.checks, p.rows)}
+            runCreatedAt={p.run.created_at}
+          />
+
+          <GameOpenShell
+            openId={p.openGameId ?? null}
+            row={p.openGameId ? (rowOf[p.openGameId] ?? null) : null}
+            verdict={p.openGameId ? (byGame[p.openGameId] ?? null) : null}
+            checks={p.openGameId ? (p.checks[p.openGameId] ?? null) : null}
+            players={p.openGameId ? (p.playersByGame?.[p.openGameId] ?? []) : []}
+            runCreatedAt={p.run.created_at}
+          >
+            {p.view === "plain" ? (
+              <div className="flex flex-col gap-3" data-view="plain">
+                {verdicts.map((v) => {
+                  const row = p.rows.find((r) => r.game_id === v.game_id);
+                  return (
+                    <OpenGameTrigger key={v.game_id} gameId={v.game_id}>
+                      <VerdictCard
+                        payload={v.payload}
+                        row={row}
+                        liveEdges={row?.has_started ? undefined : row?.edges}
+                        failedChecks={p.checks[v.game_id]?.failed ?? []}
+                      />
+                    </OpenGameTrigger>
+                  );
+                })}
+                {verdicts.length === 0 ? (
+                  <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4" data-view="table">
+                <SummaryTiles payloads={payloads} track={p.track} />
+                <BoardTable
+                  rows={p.rows}
+                  checks={p.checks}
+                  draws={p.run.draws_per_game}
+                  filters={p.filters}
+                />
+              </div>
+            )}
+          </GameOpenShell>
         </>
       )}
     </>

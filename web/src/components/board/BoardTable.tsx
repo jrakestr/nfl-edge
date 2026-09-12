@@ -6,61 +6,49 @@ import { displayValue, homeLine, maxEdge, pct } from "@/lib/edge";
 import { sortBoardRows } from "@/lib/board-sort";
 import { kickoffLabel } from "@/lib/format";
 import { slot as kickoffSlot } from "@/lib/teams";
-import type { DrawerPlayer } from "@/lib/queries/players";
-import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
+import type { BoardRow, GameChecks } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";
 import { EdgeCell } from "./EdgeCell";
-import { GameDrawer } from "./GameDrawer";
 import { GameOutcome } from "./GameOutcome";
 import { MarketPill } from "./MarketPill";
 import { Matchup } from "./TeamDot";
 import { type Filters, applyFilters } from "./filters";
+import { useGameOpen } from "./useGameOpen";
 
 /**
  * Dense table, one row per game (44px), sorted by |max edge| desc. Row click / Enter opens the
- * drawer; j/k move the cursor. Filters come from the URL via <BoardFilters>.
+ * drawer via `?game=`; j/k move the cursor. Filters come from the URL via <BoardFilters>.
  */
 export function BoardTable({
   rows,
   checks,
-  verdicts,
   draws,
   filters,
-  initialOpen,
-  playersByGame = {},
 }: {
   rows: BoardRow[];
   checks: Record<string, GameChecks>;
-  verdicts: Record<string, VerdictPayload>;
   draws: number | null;
   filters: Filters;
-  initialOpen?: string | null;
-  playersByGame?: Record<string, DrawerPlayer[]>;
 }) {
   const visible = useMemo(() => {
     const next = applyFilters(rows, filters, (r) => kickoffSlot(r.gameday, r.gametime));
     return sortBoardRows(next);
   }, [rows, filters]);
   const [cursor, setCursor] = useState<number>(-1);
-  const [openId, setOpenId] = useState<string | null>(initialOpen ?? null);
-
-  const openRow = useCallback((id: string | null) => setOpenId(id), []);
+  const openRow = useGameOpen();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-      if (openId) return;
       if (e.key === "j") setCursor((c) => Math.min(visible.length - 1, c + 1));
       else if (e.key === "k") setCursor((c) => Math.max(0, c - 1));
       else if (e.key === "Enter" && cursor >= 0 && visible[cursor]) openRow(visible[cursor].game_id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visible, cursor, openId, openRow]);
-
-  const openRowData = openId ? (rows.find((r) => r.game_id === openId) ?? null) : null;
+  }, [visible, cursor, openRow]);
 
   return (
     <>
@@ -212,16 +200,6 @@ export function BoardTable({
             },
           },
         ]}
-      />
-      <GameDrawer
-        row={openRowData}
-        verdict={openId ? (verdicts[openId] ?? null) : null}
-        checks={openId ? (checks[openId] ?? null) : null}
-        players={openId ? (playersByGame[openId] ?? []) : []}
-        open={openId != null}
-        onOpenChange={(o) => {
-          if (!o) openRow(null);
-        }}
       />
     </>
   );

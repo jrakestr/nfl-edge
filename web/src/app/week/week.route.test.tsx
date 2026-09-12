@@ -49,9 +49,13 @@ vi.mock("@/lib/queries/board", async (importOriginal) => {
     boardRows: async () => rows().sort((a, b) => me(b) - me(a)),
   };
 });
-vi.mock("@/lib/queries/checks", () => ({
-  checksForRun: async () => new Map(Object.entries(fixtureChecks())),
-}));
+vi.mock("@/lib/queries/checks", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@/lib/queries/checks")>();
+  return {
+    ...orig,
+    checksForRun: async () => new Map(Object.entries(fixtureChecks())),
+  };
+});
 vi.mock("@/lib/queries/results", () => ({
   trackRecord: async () => NO_TRACK,
   weekScoreboard: async () => NO_SCOREBOARD,

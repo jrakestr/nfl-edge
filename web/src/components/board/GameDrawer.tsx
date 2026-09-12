@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { DataTable } from "@/components/ui/DataTable";
 import { direction, intensity, pct, price, signedPct } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
+import { formatFailedLine } from "@/lib/queries/checks";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
 import { CheckStatus } from "./CheckStatus";
@@ -34,6 +35,7 @@ export function GameDrawer({
   verdict,
   checks,
   players = [],
+  runCreatedAt,
   open,
   onOpenChange,
 }: {
@@ -41,6 +43,7 @@ export function GameDrawer({
   verdict: VerdictPayload | null;
   checks: GameChecks | null;
   players?: DrawerPlayer[];
+  runCreatedAt?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -51,7 +54,7 @@ export function GameDrawer({
           <>
             <SheetHeader className="border-b border-border-soft p-6 pb-4">
               <SheetTitle className="t-title flex items-center gap-3">
-                <Matchup home={row.home} away={row.away} />
+                <Matchup home={row.home} away={row.away} variant="logo" />
               </SheetTitle>
               <SheetDescription className="t-caption flex flex-wrap items-center gap-2">
                 <span>{kickoffLabel(row.gameday, row.gametime)} ET</span>
@@ -159,11 +162,26 @@ export function GameDrawer({
               <section aria-label="Checks" className="flex flex-col gap-1">
                 <h4 className="t-colhead text-muted-foreground">Checks</h4>
                 {checks ? (
-                  <p className="t-body text-muted-foreground">
-                    {checks.invariants} invariant{checks.invariants === 1 ? "" : "s"}, {checks.warnings} warning
-                    {checks.warnings === 1 ? "" : "s"}
-                    {checks.failed.length ? ` · failed: ${checks.failed.join(", ")}` : " · all passed"}
-                  </p>
+                  <>
+                    <p className="t-body text-muted-foreground">
+                      {checks.invariants} invariant{checks.invariants === 1 ? "" : "s"}, {checks.warnings} warning
+                      {checks.warnings === 1 ? "" : "s"}
+                      {checks.failedRows.length === 0 ? " · all passed" : ""}
+                    </p>
+                    {checks.failedRows.length ? (
+                      <ul className="flex flex-col gap-0.5">
+                        {checks.failedRows.map((r) => (
+                          <li key={`${r.check_name}-${r.team ?? ""}`} className="t-body text-foreground">
+                            {r.check_name}
+                            {" · "}
+                            {runCreatedAt
+                              ? formatFailedLine(row.away, row.home, r, runCreatedAt)
+                              : `${row.away}@${row.home} ${r.value == null ? "—" : r.value.toFixed(1)} (limit ${r.threshold == null ? "—" : r.threshold.toFixed(1)})`}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="t-body text-muted-foreground">No game-level checks recorded.</p>
                 )}

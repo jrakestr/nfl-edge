@@ -38,6 +38,24 @@ function props(over: Partial<WeekBoardProps> = {}): WeekBoardProps {
 }
 
 describe("/week/[n] against the Week 1 fixture", () => {
+  it("lists failing games on the checks panel with the run-stored gap", () => {
+    const checks = fixtureChecks();
+    const warnId = Object.keys(checks).find((id) => checks[id]!.status === "warn")!;
+    const row = fixtureRows().find((r) => r.game_id === warnId)!;
+    checks[warnId] = {
+      ...checks[warnId]!,
+      failed: ["spread_gap_vs_market"],
+      failedRows: [
+        { check_name: "spread_gap_vs_market", value: 7.5, threshold: 4, team: null, severity: "warning" },
+      ],
+    };
+    render(<WeekBoard {...props({ checks })} />);
+    const panel = screen.getByRole("region", { name: "Checks" });
+    expect(panel).toHaveTextContent("spread_gap_vs_market");
+    expect(panel).toHaveTextContent(`${row.away}@${row.home} 7.5 (limit 4.0)`);
+    expect(panel).toHaveTextContent("at run");
+  });
+
   it("plain english: the week summary and one card per game, biggest edge first", () => {
     render(<WeekBoard {...props()} />);
     expect(screen.getByRole("region", { name: "Week summary" })).toHaveTextContent(fixtureSummary.replace(/\s+/g, " "));

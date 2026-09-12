@@ -82,6 +82,7 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
       track={track}
       scoreboard={scoreboard}
       playersByGame={playersByGame}
+      openGameId={one(sp.game) ?? null}
     />
   );
 }
