@@ -203,7 +203,7 @@ export function PropDetail({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          <PropCallout sentence={sentence} lean={lean} />
+          <PropCallout sentence={sentence} lean={lean} oneSided={Boolean(fair?.one_sided)} />
         </header>
         <StatBars
           log={shownLog}

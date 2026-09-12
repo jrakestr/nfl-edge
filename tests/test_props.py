@@ -92,6 +92,78 @@ def test_half_point_line_has_no_push():
     assert row["model_prob"] == pytest.approx(0.5)
 
 
+def test_edge_row_skips_when_both_prices_missing():
+    vals = np.array([1.0, 2.0, 3.0, 4.0])
+    assert P.edge_row(vals, 2.5, over_odds=None, under_odds=None, cfg=CFG) is None
+
+
+def test_edge_row_one_sided_floor_is_model_minus_raw_implied():
+    vals = np.array([1.0, 2.0, 3.0, 4.0])
+    implied = E.american_to_prob(-170)
+    row = P.edge_row(vals, 2.5, over_odds=None, under_odds=-170, cfg=CFG)
+    assert row["one_sided"] is True
+    assert row["side"] == "under"
+    assert row["price"] == -170
+    assert row["market_prob"] == pytest.approx(implied)
+    assert row["model_prob"] == pytest.approx(0.5)
+    assert row["edge"] is None
+    assert row["edge_floor"] == pytest.approx(0.5 - implied)
+    assert row["kelly_fraction"] == 0.0
+    assert row["hold"] is None
+    assert row["lean"] == "flat"
+    assert "under" not in row
+
+
+def test_edge_row_one_sided_leans_only_when_floor_clears_flat():
+    vals = np.array([0.0, 0.0, 0.0, 3.0])  # P(over 2.5) = 0.25, P(under) = 0.75
+    row = P.edge_row(vals, 2.5, over_odds=None, under_odds=-170, cfg=CFG)
+    implied = E.american_to_prob(-170)
+    assert row["model_prob"] == pytest.approx(0.75)
+    assert row["edge_floor"] == pytest.approx(0.75 - implied)
+    assert row["edge_floor"] > CFG["flat_edge"]
+    assert row["lean"] == "under"
+    over = P.edge_row(vals, 2.5, over_odds=150, under_odds=None, cfg=CFG)
+    assert over["side"] == "over"
+    assert over["lean"] == "flat"
+    assert over["kelly_fraction"] == 0.0
+
+
+def test_compute_writes_one_sided_floor_and_keeps_two_sided(tmp_path: Path):
+    pq = tmp_path / "g.parquet"
+    pl.DataFrame({
+        "player_id": ["00-0036259", "00-0039139"],
+        "rec": [1.0, 6.0],
+        "rush_yds": [0.0, 80.0],
+    }).write_parquet(pq)
+    props = [
+        {"id": 1, "player_id": "00-0036259", "player_name": "Jauan Jennings",
+         "stat": "rec", "line": 2.5, "over_odds": None, "under_odds": -170},
+        {"id": 2, "player_id": "00-0039139", "player_name": "Jahmyr Gibbs",
+         "stat": "rush_yds", "line": 83.5, "over_odds": -110, "under_odds": -110},
+    ]
+    paths = {"00-0036259": str(pq), "00-0039139": str(pq)}
+    names = {"00-0036259": "Jauan Jennings", "00-0039139": "Jahmyr Gibbs"}
+    games = {"00-0036259": "g1", "00-0039139": "g2"}
+    rows, skipped = P.compute("run", props, names, 4, paths, games, CFG)
+    assert skipped == []
+    jenn = [r for r in rows if r["player_id"] == "00-0036259"]
+    assert len(jenn) == 1
+    assert jenn[0]["side"] == "under"
+    assert jenn[0]["one_sided"] is True
+    assert jenn[0]["edge"] is None
+    assert jenn[0]["kelly_fraction"] == 0.0
+    assert "one-sided price, conservative" in jenn[0]["sentence"]
+    gibbs = [r for r in rows if r["player_id"] == "00-0039139"]
+    assert {r["side"] for r in gibbs} == {"over", "under"}
+    assert all(r["one_sided"] is False for r in gibbs)
+    assert all(r["edge"] is not None for r in gibbs)
+    frame = pl.DataFrame(rows, infer_schema_length=None)
+    assert frame["edge_floor"].dtype == pl.Float64
+    assert frame["edge"].dtype == pl.Float64
+    assert frame["hold"].dtype == pl.Float64
+    assert frame["one_sided"].dtype == pl.Boolean
+
+
 def test_callout_sentence_names_the_line_and_the_book():
     s = P.callout(
         display_name="Jahmyr Gibbs",
@@ -130,6 +202,20 @@ def test_skip_report_counts_unknown_stats():
     )
     assert P.skip_report(skipped) == "skipped 14 market_props: pass_rush 9, total_yds 5"
     assert P.skip_report([{"stat": "rush_yds", "reason": "no_draws"}]) is None
+
+
+def test_skip_report_includes_single_sided():
+    skipped = (
+        [{"stat": "rec", "reason": "single_sided"}] * 72
+        + [{"stat": "pass_rush", "reason": "bad_stat"}] * 9
+        + [{"stat": "rush_yds", "reason": "no_draws"}]
+    )
+    assert P.skip_report(skipped) == (
+        "skipped 81 market_props: single_sided 72, pass_rush 9"
+    )
+    assert P.skip_report([{"stat": "rec", "reason": "single_sided"}] * 2) == (
+        "skipped 2 market_props: single_sided 2"
+    )
 
 
 def test_player_cols_unknown_stat_raises(tmp_path: Path):

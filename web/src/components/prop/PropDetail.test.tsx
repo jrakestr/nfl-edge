@@ -1,15 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
 import { PropsIndex } from "@/components/props/PropsIndex";
+import { FairPropsIndex } from "@/components/props/FairPropsIndex";
 import { PropCallout } from "@/components/prop/PropCallout";
 import { PropDetail } from "@/components/prop/PropDetail";
 import { PlayersList } from "@/components/players/PlayersList";
-import type { PropEdge, WeekPlayer } from "@/lib/types";
+import type { FairProp, PropEdge, WeekPlayer } from "@/lib/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
   ),
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/props",
+  useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock("@/lib/actions/save-market-line", () => ({
+  saveMarketLine: async () => ({ ok: true }),
 }));
 
 const EDGE: PropEdge = {
@@ -61,6 +70,55 @@ describe("props-web surfaces", () => {
     render(<PropCallout sentence={EDGE.sentence} lean="under" />);
     expect(screen.getByText(/Gibbs goes over 83.5/)).toBeInTheDocument();
     expect(screen.getByText("Lean under")).toBeInTheDocument();
+    expect(screen.queryByText("one-sided price, conservative")).toBeNull();
+  });
+
+  it("PropCallout labels a one-sided conservative floor", () => {
+    render(
+      <PropCallout
+        sentence="Jennings goes under 2.5 receptions in 50% of our 4 simulated games. Floor −13% (one-sided price, conservative)."
+        lean="flat"
+        oneSided
+      />,
+    );
+    expect(screen.getAllByText(/one-sided price, conservative/).length).toBeGreaterThan(0);
+  });
+
+  it("Fair props board labels a one-sided floor, not an edge", () => {
+    const row: FairProp = {
+      player_id: "00-0036259",
+      player_name: "Jauan Jennings",
+      position: "WR",
+      team: "MIN",
+      opponent: "SF",
+      game_id: "2026_01_SF_MIN",
+      home: "MIN",
+      away: "SF",
+      stat: "rec",
+      fair_line: 3.5,
+      p_over: 0.4,
+      p10: 1,
+      p25: 2,
+      p75: 5,
+      p90: 7,
+      mean: 3.2,
+      sentence: "Our line is 3.5",
+      fpts_dk_mean: 8,
+      hist: null,
+      market_line: 2.5,
+      market_p_over: 0.5,
+      edge: null,
+      lean: "flat",
+      over_odds: null,
+      under_odds: -170,
+      market_sentence: "Floor −13% (one-sided price, conservative).",
+      one_sided: true,
+      edge_floor: -0.13,
+    };
+    render(<FairPropsIndex rows={[row]} />);
+    expect(screen.getByText("Jauan Jennings")).toBeInTheDocument();
+    expect(screen.getByText("−13.0%")).toBeInTheDocument();
+    expect(screen.getByText("one-sided price, conservative")).toBeInTheDocument();
   });
 
   it("Players search filters and links to prop detail", () => {

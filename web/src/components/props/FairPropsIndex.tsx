@@ -121,7 +121,8 @@ export function FairPropsIndex({
       <header className="flex flex-col gap-3">
         <h1 className="t-title">Props</h1>
         <p className="t-caption">
-          Our line is the sim median on a hook. Market and edge appear after you enter a line.
+          Our line is the sim median on a hook. Two-sided books show a de-vigged edge.
+          A one-sided price shows a floor (model minus the vigged implied), not an edge.
         </p>
         <label className="flex w-fit flex-col gap-1">
           <span className="t-colhead text-muted-foreground">Stat</span>
@@ -236,9 +237,14 @@ export function FairPropsIndex({
             header: "Edge",
             metric: "edge",
             align: "right",
-            sortValue: (r) => r.edge,
+            sortValue: (r) => (r.one_sided ? r.edge_floor : r.edge),
             cell: (r) =>
-              r.edge != null ? (
+              r.one_sided ? (
+                <span className="flex flex-col items-end">
+                  <span className="tnum font-semibold text-foreground">{signedPct(r.edge_floor)}</span>
+                  <span className="t-caption text-muted-foreground">one-sided price, conservative</span>
+                </span>
+              ) : r.edge != null ? (
                 <EdgeDiff dir={direction(r.edge)} inten={intensity(r.edge)}>
                   {signedPct(r.edge)}
                 </EdgeDiff>

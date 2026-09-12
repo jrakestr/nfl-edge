@@ -2,7 +2,9 @@
 
 Histogram in proj_players.stat_summary is display-only. Edge math matches market/edge.py:
 model_prob is P(win | no push), market_prob is the two-way de-vig, Kelly is quarter-Kelly
-at the offered price. PropCallout copy is persisted on model.prop_edges.
+at the offered price. Single-sided market_props do not invent the opposite price: market_prob
+is the raw implied, edge is null, edge_floor = model_prob − raw implied, kelly is 0.
+PropCallout copy is persisted on model.prop_edges.
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ from ..config import ROOT, load_yaml
 from ..db import execute, insert, read_sql
 from ..ingest.names import last_name
 from ..market.edge import (
+    american_to_prob,
     conditional_prob,
     devig_two_way,
     kelly,
@@ -114,6 +117,21 @@ def lean(over_edge: float, flat: float) -> str:
     return "over" if over_edge > 0 else "under"
 
 
+def lean_onesided(floor: float, side: str, flat: float) -> str:
+    """Lean the priced side only when the floor clears flat. Never invent the other side."""
+    if floor < flat:
+        return "flat"
+    return side
+
+
+def _signed_pct(x: float) -> str:
+    pct = float(x) * 100.0
+    if abs(pct) < 0.05:
+        return "0%"
+    sign = "+" if pct > 0 else MINUS
+    return f"{sign}{abs(pct):.0f}%"
+
+
 def callout(display_name: str, stat: str, line: float, p_over: float,
             over_odds: int, market_prob: float, draws: int) -> str:
     name = last_name(display_name)
@@ -126,14 +144,47 @@ def callout(display_name: str, stat: str, line: float, p_over: float,
     )
 
 
-def _odds(v, default: int) -> int:
-    return default if v is None else int(v)
+def callout_onesided(display_name: str, stat: str, line: float, side: str,
+                     model_prob: float, price: int, implied: float, floor: float,
+                     draws: int) -> str:
+    name = last_name(display_name)
+    label = STAT_LABELS.get(stat, stat.replace("_", " "))
+    n = f"{int(draws):,}"
+    return (
+        f"{name} goes {side} {line:g} {label} in {model_prob:.0%} of our {n} simulated games. "
+        f"At {_price_str(price)} the vigged book is a {implied:.0%} shot. "
+        f"Floor {_signed_pct(floor)} (one-sided price, conservative)."
+    )
 
 
 def edge_row(values: np.ndarray, line: float, over_odds: int | None, under_odds: int | None,
-             cfg: dict) -> dict:
-    default = int(cfg["default_price"])
-    pr_over, pr_under = _odds(over_odds, default), _odds(under_odds, default)
+             cfg: dict) -> dict | None:
+    if over_odds is None and under_odds is None:
+        return None
+    if over_odds is None or under_odds is None:
+        side = "over" if over_odds is not None else "under"
+        price = int(over_odds if side == "over" else under_odds)
+        win, push, lose = outcome_probs(values, float(line))
+        p_over_cond = conditional_prob(win, push)
+        p_under_cond = conditional_prob(lose, push)
+        model = p_over_cond if side == "over" else p_under_cond
+        implied = american_to_prob(price)
+        floor = model - implied
+        return {
+            "one_sided": True,
+            "side": side,
+            "p_over": win,
+            "p_push": push,
+            "model_prob": model,
+            "market_prob": implied,
+            "edge": None,
+            "edge_floor": floor,
+            "kelly_fraction": 0.0,
+            "price": price,
+            "hold": None,
+            "lean": lean_onesided(floor, side, float(cfg["flat_edge"])),
+        }
+    pr_over, pr_under = int(over_odds), int(under_odds)
     win, push, lose = outcome_probs(values, float(line))
     p_over_cond = conditional_prob(win, push)
     p_under_cond = conditional_prob(lose, push)
@@ -143,11 +194,13 @@ def edge_row(values: np.ndarray, line: float, over_odds: int | None, under_odds:
     e_over = p_over_cond - m_over
     e_under = p_under_cond - m_under
     return {
+        "one_sided": False,
         "p_over": win,
         "p_push": push,
         "model_prob": p_over_cond,
         "market_prob": m_over,
         "edge": e_over,
+        "edge_floor": None,
         "kelly_fraction": kelly(p_over_cond, push, pr_over, mult),
         "price": pr_over,
         "hold": hold,
@@ -202,10 +255,10 @@ def compute(run_id: str, props: list[dict], names: dict[str, str], draws_n: int,
             skipped.append({**p, "reason": "bad_stat"})
             continue
         er = edge_row(vals, float(p["line"]), p.get("over_odds"), p.get("under_odds"), c)
+        if er is None:
+            skipped.append({**p, "reason": "single_sided"})
+            continue
         display = names.get(pid) or p.get("player_name") or pid
-        sentence = callout(
-            display, stat, float(p["line"]), er["p_over"], er["price"], er["market_prob"], draws_n,
-        )
         base = {
             "run_id": run_id,
             "market_prop_id": p["id"],
@@ -216,9 +269,24 @@ def compute(run_id: str, props: list[dict], names: dict[str, str], draws_n: int,
             "p_over": er["p_over"],
             "p_push": er["p_push"],
             "hold": er["hold"],
-            "sentence": sentence,
             "lean": er["lean"],
         }
+        if er.get("one_sided"):
+            sentence = callout_onesided(
+                display, stat, float(p["line"]), er["side"], er["model_prob"],
+                er["price"], er["market_prob"], er["edge_floor"], draws_n,
+            )
+            rows.append({
+                **base, "side": er["side"], "sentence": sentence,
+                "model_prob": er["model_prob"], "market_prob": er["market_prob"],
+                "edge": None, "edge_floor": er["edge_floor"],
+                "kelly_fraction": 0.0, "price": er["price"], "one_sided": True,
+            })
+            continue
+        sentence = callout(
+            display, stat, float(p["line"]), er["p_over"], er["price"], er["market_prob"], draws_n,
+        )
+        base = {**base, "sentence": sentence, "one_sided": False, "edge_floor": None}
         rows.append({
             **base, "side": "over",
             "model_prob": er["model_prob"], "market_prob": er["market_prob"],
@@ -234,15 +302,20 @@ def compute(run_id: str, props: list[dict], names: dict[str, str], draws_n: int,
 
 
 def skip_report(skipped: list[dict]) -> str | None:
-    """Count unknown-stat skips so they are visible instead of absorbed."""
+    """Count skips the LaunchAgent log must see: single-sided prices and unknown stats."""
+    onesided = [s for s in skipped if s.get("reason") == "single_sided"]
     bad = [s for s in skipped if s.get("reason") == "bad_stat"]
-    if not bad:
+    if not onesided and not bad:
         return None
-    counts = Counter(str(s.get("stat") or "?") for s in bad)
-    parts = ", ".join(
-        f"{stat} {n}" for stat, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-    )
-    return f"skipped {len(bad)} market_props: {parts}"
+    parts = []
+    if onesided:
+        parts.append(f"single_sided {len(onesided)}")
+    if bad:
+        counts = Counter(str(s.get("stat") or "?") for s in bad)
+        parts.extend(
+            f"{stat} {n}" for stat, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        )
+    return f"skipped {len(onesided) + len(bad)} market_props: {', '.join(parts)}"
 
 
 def persist(run_id: str, rows: list[dict]) -> int:
@@ -251,10 +324,15 @@ def persist(run_id: str, rows: list[dict]) -> int:
         return 0
     cols = [
         "run_id", "market_prop_id", "player_id", "game_id", "stat", "line", "side",
-        "model_prob", "p_over", "p_push", "market_prob", "edge", "kelly_fraction",
-        "price", "hold", "sentence", "lean",
+        "model_prob", "p_over", "p_push", "market_prob", "edge", "edge_floor",
+        "kelly_fraction", "price", "hold", "sentence", "lean", "one_sided",
     ]
-    frame = pl.DataFrame([{k: r.get(k) for k in cols} for r in rows])
+    # Two-sided rows leave edge_floor null; one-sided leave edge/hold null.
+    # infer_schema_length=None so the first row does not lock those columns as Null.
+    frame = pl.DataFrame(
+        [{k: r.get(k) for k in cols} for r in rows],
+        infer_schema_length=None,
+    )
     return insert(frame, "model.prop_edges")
 
 

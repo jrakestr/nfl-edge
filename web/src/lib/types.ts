@@ -149,6 +149,13 @@ export const EdgeSideSchema = z.object({
 });
 export type EdgeSide = z.infer<typeof EdgeSideSchema>;
 
+export const GradedMarketSchema = z.object({
+  side: z.string(),
+  outcome: z.number().int().nullable(), // 1 win, 0 loss, null push
+  clv: z.number().nullable(),
+});
+export type GradedMarket = z.infer<typeof GradedMarketSchema>;
+
 /** One table row on the Edge board: proj_games ⨝ schedules ⨝ edges_latest ⨝ latest snapshot. */
 export const BoardRowSchema = z.object({
   game_id: z.string(),
@@ -156,6 +163,21 @@ export const BoardRowSchema = z.object({
   away: z.string(),
   gameday: z.string(), // 'YYYY-MM-DD'
   gametime: z.string().nullable(), // 'HH:MM' ET
+  location: z.string().nullable().default(null),
+  home_score: z.number().int().nullable().default(null),
+  away_score: z.number().int().nullable().default(null),
+  result: numOrNull.default(null),
+  is_final: z.boolean().default(false),
+  has_started: z.boolean().default(false),
+  graded_run_id: z.string().nullable().default(null),
+  graded: z
+    .object({
+      spread: GradedMarketSchema.nullable(),
+      total: GradedMarketSchema.nullable(),
+      moneyline: GradedMarketSchema.nullable(),
+    })
+    .nullable()
+    .default(null),
   fair_spread: numOrNull,
   fair_total: numOrNull,
   mean_spread: numOrNull,
@@ -274,6 +296,7 @@ export const FairPropSchema = z.object({
   market_side: z.string().nullable().optional(),
   sportsbook: z.string().nullable().optional(),
   one_sided: z.boolean().nullable().optional(),
+  edge_floor: numOrNull.optional(),
 });
 export type FairProp = z.infer<typeof FairPropSchema>;
 
@@ -298,6 +321,8 @@ export const PropEdgeSchema = z.object({
   sentence: z.string().nullable(),
   lean: z.enum(["over", "under", "flat"]).nullable(),
   typical: numOrNull,
+  one_sided: z.boolean().nullable().optional(),
+  edge_floor: numOrNull.optional(),
 });
 export type PropEdge = z.infer<typeof PropEdgeSchema>;
 

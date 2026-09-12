@@ -61,7 +61,11 @@ export async function fairProps(runId: string): Promise<FairProp[]> {
            e.lean,
            m.over_odds,
            m.under_odds,
-           e.sentence as market_sentence
+           e.sentence as market_sentence,
+           e.price as market_price,
+           e.side as market_side,
+           e.one_sided,
+           e.edge_floor::float8 as edge_floor
     from model.fair_props f
     join model.proj_players pp on pp.run_id = f.run_id and pp.player_id = f.player_id
     left join raw.players pl on pl.gsis_id = f.player_id
@@ -69,7 +73,8 @@ export async function fairProps(runId: string): Promise<FairProp[]> {
     left join mkt m on m.player_id = f.player_id and m.stat = f.stat
     left join model.prop_edges e
       on e.run_id = f.run_id and e.player_id = f.player_id and e.stat = f.stat
-     and e.side = 'over' and e.market_prop_id = m.id
+     and e.market_prop_id = m.id
+     and e.side = case when m.over_odds is null then 'under' else 'over' end
     where f.run_id = ${runId}::uuid
     order by pp.fpts_dk_mean desc nulls last, coalesce(pl.display_name, f.player_id), f.stat`;
   return rows.map((r) => FairPropSchema.parse({ ...r, hist: histFrom(r.hist) }));
@@ -101,14 +106,17 @@ export async function propEdges(runId: string): Promise<PropEdge[]> {
            mp.under_odds,
            e.sentence,
            e.lean,
-           (pp.stat_summary -> e.stat -> 'mean')::float8 as typical
+           (pp.stat_summary -> e.stat -> 'mean')::float8 as typical,
+           e.one_sided,
+           e.edge_floor::float8 as edge_floor
     from model.prop_edges e
     join model.market_props mp on mp.id = e.market_prop_id
     left join raw.players pl on pl.gsis_id = e.player_id
     left join raw.schedules s on s.game_id = e.game_id
     left join model.proj_players pp on pp.run_id = e.run_id and pp.player_id = e.player_id
-    where e.run_id = ${runId}::uuid and e.side = 'over'
-    order by abs(e.edge) desc nulls last, e.player_id`;
+    where e.run_id = ${runId}::uuid
+      and (e.side = 'over' or e.one_sided)
+    order by abs(coalesce(e.edge, e.edge_floor)) desc nulls last, e.player_id`;
   return rows.map((r) => PropEdgeSchema.parse(r));
 }
 

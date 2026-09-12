@@ -17,7 +17,9 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
     <div className="flex flex-col gap-4">
       <header>
         <h1 className="t-title">Props</h1>
-        <p className="mt-1 t-caption">Sorted by |edge|. Open a player at /props/[game]/[player].</p>
+        <p className="mt-1 t-caption">
+          Sorted by |edge| or |floor|. One-sided prices show a conservative floor, not a de-vigged edge.
+        </p>
       </header>
       <DataTable
         data={edges}
@@ -83,8 +85,16 @@ export function PropsIndex({ edges = [] }: { edges?: PropEdge[] }) {
             header: "Edge",
             metric: "edge",
             align: "right",
-            sortValue: (e) => Math.abs(e.edge ?? 0),
-            cell: (e) => <span className="tnum font-semibold text-foreground">{signedPct(e.edge)}</span>,
+            sortValue: (e) => Math.abs((e.one_sided ? e.edge_floor : e.edge) ?? 0),
+            cell: (e) =>
+              e.one_sided ? (
+                <span className="flex flex-col items-end">
+                  <span className="tnum font-semibold text-foreground">{signedPct(e.edge_floor)}</span>
+                  <span className="t-caption text-muted-foreground">one-sided price, conservative</span>
+                </span>
+              ) : (
+                <span className="tnum font-semibold text-foreground">{signedPct(e.edge)}</span>
+              ),
           },
         ]}
       />
