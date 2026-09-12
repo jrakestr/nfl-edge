@@ -133,3 +133,11 @@ def test_attach_ids_dk_lar_to_nflverse_la():
     by_name = {r["name"]: r for r in rows}
     assert by_name["Puka Nacua"]["team"] == "LAR"
     assert by_name["Puka Nacua"]["player_id"] == "00-0037837"
+
+
+def test_attach_ids_uses_persisted_crosswalk():
+    rows = D.attach_ids(
+        [{"name": "Ghost Player", "team": "CHI", "position": "QB", "player_dk_id": "99"}],
+        CATALOG, {}, TEAMS, existing={"99": "00-0033873"},
+    )
+    assert rows[0]["player_id"] == "00-0033873"

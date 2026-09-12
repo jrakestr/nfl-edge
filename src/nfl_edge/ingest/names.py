@@ -131,8 +131,6 @@ def prepare_catalog(catalog: pl.DataFrame) -> pl.DataFrame:
     return catalog.with_columns(
         pl.col("merge_name").fill_null("").map_elements(merge_key, return_dtype=pl.Utf8).alias("_mn"),
         pl.col("display_name").fill_null("").map_elements(merge_key, return_dtype=pl.Utf8).alias("_dn"),
-        pl.col("display_name").fill_null("").map_elements(last_name, return_dtype=pl.Utf8)
-        .map_elements(merge_key, return_dtype=pl.Utf8).alias("_ln"),
         team.alias("_team"),
         pl.col("position").fill_null("").str.to_uppercase().alias("_pos"),
     )

@@ -7,6 +7,7 @@ import polars as pl
 
 from ..config import DATA_DIR, ROOT
 from ..db import execute, read_sql, upsert
+from . import dk_crosswalk as X
 from . import names as N
 from .overrides import write_overrides
 
@@ -86,15 +87,11 @@ def parse_dk_csv(path: Path) -> list[dict]:
 
 
 def attach_ids(rows: list[dict], catalog: pl.DataFrame, aliases: dict[str, str],
-               teams: dict) -> list[dict]:
-    catalog = N.prepare_catalog(catalog)
-    out = []
-    for row in rows:
-        m = N.match_one(
-            {"player": row["name"], "team": row.get("team"), "position": row.get("position")},
-            catalog, aliases, teams,
-        )
-        out.append({**row, "player_id": m.player_id, "match_reason": m.reason})
+               teams: dict, existing: dict[str, str] | None = None,
+               recent_ids: set[str] | None = None) -> list[dict]:
+    out, _ = X.apply_to_rows(
+        rows, catalog, teams, existing=existing, aliases=aliases, recent_ids=recent_ids,
+    )
     return out
 
 
@@ -182,7 +179,12 @@ def _write_report(path: Path, summary: dict) -> None:
 def run(season: int, week: int, path: Path, site: str = "dk", slate: str = "main") -> dict:
     slate_id = f"{season}_{week:02d}_{slate}"
     slate_type = slate_type_for(slate)
-    rows = attach_ids(parse_dk_csv(path), load_catalog(), N.load_aliases(), N.load_teams())
+    existing = X.load_existing()
+    rows, new_xwalk = X.apply_to_rows(
+        parse_dk_csv(path), load_catalog(), N.load_teams(),
+        existing=existing, aliases=N.load_aliases(), recent_ids=X.load_recent_ids(),
+    )
+    X.persist_new(new_xwalk, skip_ids=X.load_manual_ids())
     frame = salary_frame(rows, site=site, slate_id=slate_id, slate_type=slate_type)
     written = 0
     if not frame.is_empty():

@@ -106,14 +106,17 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
       order by s.player_dk_id, case when s.roster_position = 'FLEX' then 1 else 0 end
     ),
     mapped as (
-      select player_dk_id, player_id, name, position, salary, avg_points, game_info,
-             case upper(coalesce(team, ''))
+      select s.player_dk_id,
+             coalesce(s.player_id, x.gsis_id) as player_id,
+             s.name, s.position, s.salary, s.avg_points, s.game_info,
+             case upper(coalesce(s.team, ''))
                when 'LAR' then 'LA'
                when 'JAC' then 'JAX'
                when 'WSH' then 'WAS'
-               else team
+               else s.team
              end as nfl_team
-      from sal
+      from sal s
+      left join raw.dk_player_crosswalk x on x.player_dk_id = s.player_dk_id
     )
     select coalesce(mapped.player_id, mapped.player_dk_id) as player_id,
            mapped.player_dk_id,
