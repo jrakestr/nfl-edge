@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
 import { PropsIndex } from "@/components/props/PropsIndex";
 import { PropCallout } from "@/components/prop/PropCallout";
+import { PropDetail } from "@/components/prop/PropDetail";
 import { PlayersList } from "@/components/players/PlayersList";
 import type { PropEdge, WeekPlayer } from "@/lib/types";
 
@@ -69,5 +70,102 @@ describe("props-web surfaces", () => {
     expect(screen.getByText("22.3")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Name or team"), { target: { value: "zzz" } });
     expect(screen.getByText("No projections listed yet")).toBeInTheDocument();
+  });
+});
+
+const HEADER = {
+  gsis_id: "00-0039139",
+  display_name: "Jahmyr Gibbs",
+  position: "RB",
+  latest_team: "DET",
+};
+
+const emptyDetail = {
+  game: null as null,
+  playerId: "00-0039139",
+  fairs: [],
+  log: [],
+  corrs: [],
+  matchup: [],
+  timeline: [],
+  histByStat: {},
+  currentSeason: 2026,
+};
+
+describe("realized DK on the player card", () => {
+  it("labels the source season and games played", () => {
+    render(
+      <PropDetail
+        {...emptyDetail}
+        player={HEADER}
+        actualRows={[
+          {
+            season: 2025,
+            week: 1,
+            opponent: "GB",
+            gameday: "2025-09-07",
+            fpts_dk: 18.4,
+            had_opportunity: true,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByLabelText("Realized DK points")).toHaveTextContent("2025 DK · 18.4 /g · 1 gp");
+  });
+
+  it("switches to current season when those games exist", () => {
+    render(
+      <PropDetail
+        {...emptyDetail}
+        player={HEADER}
+        actualRows={[
+          {
+            season: 2026,
+            week: 1,
+            opponent: "NO",
+            gameday: "2026-09-13",
+            fpts_dk: 22.0,
+            had_opportunity: true,
+          },
+          {
+            season: 2025,
+            week: 18,
+            opponent: "CHI",
+            gameday: "2026-01-04",
+            fpts_dk: 10.0,
+            had_opportunity: true,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByLabelText("Realized DK points")).toHaveTextContent("2026 DK");
+    expect(screen.queryByText(/2025 DK/)).toBeNull();
+  });
+
+  it("says no prior-season data when the id misses", () => {
+    render(<PropDetail {...emptyDetail} player={HEADER} playerId="43727325" actualRows={[]} />);
+    expect(screen.getByRole("status")).toHaveTextContent("No prior-season data");
+    expect(screen.queryByLabelText("Realized DK points")).toBeNull();
+  });
+
+  it("omits realized DK on DST cards", () => {
+    render(
+      <PropDetail
+        {...emptyDetail}
+        player={{ ...HEADER, display_name: "Lions", position: "DST" }}
+        actualRows={[
+          {
+            season: 2025,
+            week: 1,
+            opponent: "GB",
+            gameday: "2025-09-07",
+            fpts_dk: 8,
+            had_opportunity: true,
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByLabelText("Realized DK points")).toBeNull();
+    expect(screen.queryByText(/No prior-season data/)).toBeNull();
   });
 });

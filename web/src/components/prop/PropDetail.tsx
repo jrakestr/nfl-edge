@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { STAT_LABELS, STAT_ORDER, corrLabel, weeklyValue } from "@/lib/prop-stats";
 import { price, signedPct } from "@/lib/edge";
+import { summarizeActuals, type PlayerActualWeek } from "@/lib/player-actuals";
 import type { CorrPair, FairProp, GameContext, Hist, MatchupRow, PlayerHeader, PlayerWeek, PropSnap } from "@/lib/types";
 import { PropCallout } from "./PropCallout";
 import { StatBars } from "./StatBars";
@@ -80,6 +81,8 @@ export function PropDetail({
   matchup,
   timeline,
   histByStat,
+  actualRows = [],
+  currentSeason,
 }: {
   player: PlayerHeader | null;
   game: GameContext | null;
@@ -90,6 +93,8 @@ export function PropDetail({
   matchup: MatchupRow[];
   timeline: PropSnap[];
   histByStat: Record<string, Hist | null>;
+  actualRows?: PlayerActualWeek[];
+  currentSeason: number;
 }) {
   const found = player != null;
   const name = found ? player.display_name : "Player not found";
@@ -102,6 +107,7 @@ export function PropDetail({
   const lean = fair?.market_line != null ? fair.lean : null;
   const pOver = fair?.market_p_over ?? fair?.p_over ?? null;
   const n = windowN(win);
+  const realized = summarizeActuals(actualRows, currentSeason, player?.position, playerId);
   const shownLog = useMemo(() => {
     if (win === "H2H" && game) {
       const opp = player?.latest_team === game.home ? game.away : game.home;
@@ -138,6 +144,28 @@ export function PropDetail({
                   <span>Unknown game</span>
                 )}
               </div>
+              {realized.kind === "ok" ? (
+                <div className="mt-2" aria-label="Realized DK points">
+                  <p className="t-body tnum font-semibold text-foreground">
+                    {realized.season} DK · {realized.ppg.toFixed(1)} /g · {realized.gp} gp
+                  </p>
+                  <ul className="mt-1 flex flex-col gap-0.5">
+                    {realized.games.map((g) => (
+                      <li key={`${g.season}-${g.week}`} className="flex justify-between gap-3 t-caption">
+                        <span>
+                          {g.gameday ?? `wk${g.week}`}
+                          {g.opponent ? ` · ${g.opponent}` : ""}
+                        </span>
+                        <span className="tnum font-semibold text-foreground">{g.fpts_dk.toFixed(1)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : realized.kind === "none" ? (
+                <p className="mt-2 t-caption" role="status">
+                  No prior-season data
+                </p>
+              ) : null}
             </div>
           </div>
           <label className="flex max-w-xs flex-col gap-1">

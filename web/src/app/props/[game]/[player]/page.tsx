@@ -6,6 +6,7 @@ import {
   matchupRows,
   playerCorrs,
   playerFairProps,
+  playerFptsActual,
   playerLog,
   propHistogram,
   propTimeline,
@@ -28,7 +29,7 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
   const run = await runForWeek(CURRENT_SEASON, week);
   const [header, ctx] = await Promise.all([playerById(player), gameById(game)]);
   const fairs = run ? await playerFairProps(run.run_id, player) : [];
-  const log = await playerLog(player, 20);
+  const [log, actualRows] = await Promise.all([playerLog(player, 20), playerFptsActual(player)]);
   const corrs = run ? await playerCorrs(run.run_id, player) : [];
   const opp = ctx && header?.latest_team ? (header.latest_team === ctx.home ? ctx.away : ctx.home) : null;
   const matchup = await matchupRows(header?.latest_team ?? null, opp);
@@ -57,6 +58,8 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
       matchup={matchup}
       timeline={timeline}
       histByStat={histByStat}
+      actualRows={actualRows}
+      currentSeason={CURRENT_SEASON}
     />
   );
 }

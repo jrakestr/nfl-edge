@@ -290,6 +290,7 @@ describe("page audit: readable text ≥ 4.5:1", () => {
         matchup={[]}
         timeline={[]}
         histByStat={{}}
+        currentSeason={2026}
       />,
     );
     audit(container, "prop-detail");

@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import type { PlayerActualWeek } from "@/lib/player-actuals";
 import {
   CorrPairSchema,
   FairPropSchema,
@@ -149,6 +150,27 @@ export async function playerLog(playerId: string, limit = 20): Promise<PlayerWee
     order by p.season desc, p.week desc
     limit ${limit}`;
   return rows.map((r) => PlayerWeekSchema.parse({ ...r, stats: r.stats ?? {} }));
+}
+
+export async function playerFptsActual(playerId: string): Promise<PlayerActualWeek[]> {
+  const rows = await sql()`
+    select a.season, a.week, a.opponent, a.fpts_dk::float8 as fpts_dk,
+           a.had_opportunity, to_char(s.gameday, 'YYYY-MM-DD') as gameday
+    from model.player_fpts_actual a
+    left join raw.schedules s
+      on s.season = a.season and s.week = a.week
+     and (s.home_team = a.team or s.away_team = a.team)
+     and s.game_type = 'REG'
+    where a.player_id = ${playerId}
+    order by a.season desc, a.week desc`;
+  return rows.map((r) => ({
+    season: Number(r.season),
+    week: Number(r.week),
+    opponent: r.opponent != null ? String(r.opponent) : null,
+    gameday: r.gameday != null ? String(r.gameday) : null,
+    fpts_dk: Number(r.fpts_dk),
+    had_opportunity: Boolean(r.had_opportunity),
+  }));
 }
 
 export async function playerCorrs(runId: string, playerId: string): Promise<CorrPair[]> {
