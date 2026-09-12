@@ -215,10 +215,20 @@ export type BoardRow = z.infer<typeof BoardRowSchema>;
 export const CheckStatusValue = z.enum(["ok", "warn", "fail"]);
 export type CheckStatusValue = z.infer<typeof CheckStatusValue>;
 
+export const FailedCheckSchema = z.object({
+  check_name: z.string(),
+  value: numOrNull,
+  threshold: numOrNull,
+  team: z.string().nullable(),
+  severity: z.string(),
+});
+export type FailedCheck = z.infer<typeof FailedCheckSchema>;
+
 export const GameChecksSchema = z.object({
   game_id: z.string(),
   status: CheckStatusValue,
   failed: z.array(z.string()), // check names, invariants first
+  failedRows: z.array(FailedCheckSchema).default([]),
   invariants: z.number().int(),
   warnings: z.number().int(),
 });

@@ -67,7 +67,17 @@ export function fixtureChecks(): Record<string, GameChecks> {
   return Object.fromEntries(
     fixturePayloads().map((p) => [
       p.game_id,
-      { game_id: p.game_id, status: p.status, failed: p.status === "ok" ? [] : ["market_gap"], invariants: 0, warnings: p.status === "ok" ? 0 : 1 },
+      {
+        game_id: p.game_id,
+        status: p.status,
+        failed: p.status === "ok" ? [] : ["market_gap"],
+        failedRows:
+          p.status === "ok"
+            ? []
+            : [{ check_name: "market_gap", value: 5, threshold: 4, team: null, severity: "warning" }],
+        invariants: 0,
+        warnings: p.status === "ok" ? 0 : 1,
+      },
     ]),
   );
 }
