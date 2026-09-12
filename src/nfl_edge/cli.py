@@ -228,6 +228,15 @@ def lines(
         typer.echo(str(lines_io.edge_table(w, min_edge)))
 
 
+@app.command("stale-weeks")
+def stale_weeks(season: int = typer.Option(2026)):
+    """Print weeks whose newest run has a snapshot newer than its verdicts (one week per line)."""
+    from .outputs import lines_io
+
+    for week in lines_io.stale_weeks(season):
+        typer.echo(week)
+
+
 @app.command()
 def overrides(
     season: int = typer.Option(...),

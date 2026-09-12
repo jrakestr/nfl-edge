@@ -78,6 +78,40 @@ def load_checks(run_id: str) -> list[dict]:
     ).to_dicts()
 
 
+def stale_weeks(season: int) -> list[int]:
+    """Weeks whose newest sim run has a latest snapshot without a matching verdict."""
+    df = read_sql(
+        """
+        with latest_run as (
+          select distinct on (week) week, run_id
+          from model.sim_runs
+          where season = %s
+          order by week, created_at desc
+        )
+        select lr.week
+        from latest_run lr
+        join model.proj_games p on p.run_id = lr.run_id
+        left join raw.market_lines latest on latest.id = (
+          select m.id from raw.market_lines m
+          where m.game_id = p.game_id
+          order by m.captured_at desc, m.id desc
+          limit 1
+        )
+        left join model.verdicts v
+          on v.run_id = lr.run_id and v.game_id = p.game_id
+         and v.market_line_id = latest.id
+        where latest.id is not null
+        group by lr.week
+        having count(*) filter (where v.game_id is null) > 0
+        order by lr.week
+        """,
+        (season,),
+    )
+    if df.is_empty():
+        return []
+    return [int(w) for w in df["week"].to_list()]
+
+
 def backfill_line_grids(run_id: str) -> int:
     """Write line_grid from parquet for games that do not have one yet (current live run)."""
     from psycopg.types.json import Jsonb

@@ -1,9 +1,11 @@
 # Operations: line snapshots and the weekly run order
 
 Scheduled on this Mac as LaunchAgent `com.nfl-edge.lines-only`. `com.vix.cron` is not running
-here, so a crontab would never fire. The agent runs `ops/lines-only.sh`, which calls exactly
-`nfl-edge ingest --season 2026 --lines-only` with `DATABASE_URL` unset so `.env` (Supabase) is
-used. Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log`.
+here, so a crontab would never fire. The agent runs `ops/lines-only.sh`, which calls
+`nfl-edge ingest --season 2026 --lines-only` and then `nfl-edge lines` for each stale week
+(`nfl-edge stale-weeks`). `DATABASE_URL` is unset so `.env` (Supabase) is used. If the database
+or github.com is unreachable (Mac asleep or off Wi-Fi) the job logs `unreachable, skipped` and
+exits 0. Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log`.
 
 ## Cadence
 
@@ -133,7 +135,11 @@ stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `co
 
 ## Web
 
-The Next.js app in `web/` reads Supabase directly from server components; it never writes.
+The Next.js app in `web/` reads Supabase from server components. It does not generate verdicts.
+The one write is a typed insert into `model.market_props`. Numbers on the Edge board that are
+ahead of the last `lines` run come from `proj_games.line_grid` (a lookup, not a new projection).
+Sentences stay on the last `nfl-edge lines` write, which this Mac's LaunchAgent runs after each
+snapshot when a week is stale.
 
 - **Vercel project** `nfl-edge`, linked to `github.com/jrakestr/nfl-edge`, **Root Directory = `web`**,
   framework Next.js, Node 22. Previews per branch/PR, production from `main`.
@@ -148,10 +154,10 @@ The Next.js app in `web/` reads Supabase directly from server components; it nev
   role is `web_reader.<project_ref>`:
   `postgresql://web_reader.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
 - **Freshness**: every page is `force-dynamic`; a new `sim` / `lines` run shows on the next
-  request with no redeploy. `sim` alone is not enough for the board: `model.verdicts_latest` and
-  `model.edges_latest` key on each game's newest `raw.market_lines` snapshot, so after the
-  LaunchAgent snapshots a new line the board shows a "N of 16 games have a newer line" note until
-  `nfl-edge lines --season S --week W` runs again. Run `lines` last in the weekly order.
+  request with no redeploy. After a snapshot the board looks up P(cover)/P(over) from
+  `line_grid` against the current line. The RunBadge shows `lines as of` / `verdicts as of` in
+  the viewer's local timezone; a drift warning means this Mac's `lines` step has not caught up.
+  Run `lines` last in the weekly order.
 - **Connections**: `postgres.js` pool `max: 3` per instance; preview + prod cold starts stay under
   the free pooler's limit.
 - **Deploy**: `cd web && vercel link` (once) → `vercel` for a preview URL → `vercel --prod` only
