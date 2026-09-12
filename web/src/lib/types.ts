@@ -184,6 +184,9 @@ export const BoardRowSchema = z.object({
     ml_home: EdgeSideSchema.nullable(),
     ml_away: EdgeSideSchema.nullable(),
   }),
+  ngs_home_pts: numOrNull.optional(),
+  ngs_away_pts: numOrNull.optional(),
+  ngs_p_home_win: numOrNull.optional(),
 });
 export type BoardRow = z.infer<typeof BoardRowSchema>;
 
@@ -267,6 +270,10 @@ export const FairPropSchema = z.object({
   over_odds: z.number().int().nullable(),
   under_odds: z.number().int().nullable(),
   market_sentence: z.string().nullable(),
+  market_price: z.number().int().nullable().optional(),
+  market_side: z.string().nullable().optional(),
+  sportsbook: z.string().nullable().optional(),
+  one_sided: z.boolean().nullable().optional(),
 });
 export type FairProp = z.infer<typeof FairPropSchema>;
 
@@ -325,17 +332,17 @@ export const WeekPlayerSchema = z.object({
   fpts_dk_mean: numOrNull,
   typical_dk: numOrNull,
   hist: HistSchema.nullable(),
+  player_dk_id: z.string().nullable().optional(),
+  salary: z.number().int().nullable().optional(),
+  opponent: z.string().nullable().optional(),
+  kickoff: z.string().nullable().optional(),
+  floor: numOrNull.optional(),
+  ceiling: numOrNull.optional(),
+  proj_own: numOrNull.optional(),
+  value: numOrNull.optional(),
   override_status: z.string().nullable().optional(),
-  override_updated_at: z
-    .union([z.date(), z.string()])
-    .nullable()
-    .optional()
-    .transform((d) => (d == null ? null : typeof d === "string" ? d : d.toISOString())),
-  run_created_at: z
-    .union([z.date(), z.string()])
-    .nullable()
-    .optional()
-    .transform((d) => (d == null ? null : typeof d === "string" ? d : d.toISOString())),
+  override_updated_at: z.union([z.date(), z.string()]).nullable().optional(),
+  run_created_at: z.union([z.date(), z.string()]).nullable().optional(),
 });
 export type WeekPlayer = z.infer<typeof WeekPlayerSchema>;
 

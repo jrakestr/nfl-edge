@@ -4,9 +4,11 @@ import Link from "next/link";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { DataTable } from "@/components/ui/DataTable";
+import { fallbackNotice } from "@/lib/slate";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
+import type { ComponentProps, ReactNode } from "react";
 
 function rowFlags(p: WeekPlayer) {
   const stale = staleInjury(p.override_status, p.override_updated_at, p.run_created_at);
@@ -14,28 +16,51 @@ function rowFlags(p: WeekPlayer) {
   return { stale, inPool };
 }
 
-/** Search → prop detail. Rows from model.proj_players. */
-export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
+function num(v: number | null | undefined, digits = 1): string {
+  return v != null ? v.toFixed(digits) : "—";
+}
+
+function ownPct(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
+}
+
+/** Slate player library. Rows from raw.dk_salaries ⨝ proj_players for this slate. */
+export function PlayersList({
+  players = [],
+  toolbar,
+  fallbackFrom,
+}: {
+  players?: WeekPlayer[];
+  toolbar?: ReactNode;
+  fallbackFrom?: string | null;
+}) {
   return (
     <div className="flex flex-col gap-4">
-      <header>
+      <header className="flex flex-col gap-3">
         <h1 className="t-title">Players</h1>
+        {toolbar}
+        {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
       </header>
       <DataTable
         data={players}
-        getRowId={(p) => p.player_id}
+        getRowId={(p) => p.player_dk_id ?? p.player_id}
         empty="No projections listed yet"
         ariaLabel="Players"
-        rowProps={(p) => ({ "data-in-pool": String(rowFlags(p).inPool) })}
+        rowProps={(p) =>
+          ({ "data-in-pool": String(rowFlags(p).inPool) }) as ComponentProps<"tr">
+        }
         searchPlaceholder="Name or team"
         filters={{
           search: (p, q) =>
             p.display_name.toLowerCase().includes(q) ||
             (p.team ?? "").toLowerCase().includes(q) ||
-            (p.position ?? "").toLowerCase().includes(q),
+            (p.position ?? "").toLowerCase().includes(q) ||
+            (p.player_dk_id ?? "").includes(q),
           position: (p) => p.position,
           team: (p) => p.team,
           minProj: (p) => p.fpts_dk_mean,
+          salary: (p) => p.salary,
         }}
         columns={[
           {
@@ -45,7 +70,6 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
             cell: (p) => (
               <span className="inline-flex items-center gap-1.5">
                 <PositionPill position={p.position} />
-                <StatusPill status={p.override_status} />
                 <Link
                   href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
                   className="font-semibold text-foreground underline-offset-2 hover:underline"
@@ -60,6 +84,36 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
             header: "Team",
             sortValue: (p) => p.team ?? "",
             cell: (p) => <span className="t-body font-semibold text-foreground">{p.team ?? "—"}</span>,
+          },
+          {
+            id: "opp",
+            header: "Opp",
+            sortValue: (p) => p.opponent ?? "",
+            cell: (p) => <span className="t-body font-semibold text-foreground">{p.opponent ?? "—"}</span>,
+          },
+          {
+            id: "kickoff",
+            header: "Kickoff",
+            sortValue: (p) => p.kickoff ?? "",
+            cell: (p) => <span className="t-caption">{p.kickoff ?? "—"}</span>,
+          },
+          {
+            id: "dkid",
+            header: "DK ID",
+            sortValue: (p) => p.player_dk_id ?? "",
+            cell: (p) => <span className="tnum font-semibold text-foreground">{p.player_dk_id ?? "—"}</span>,
+          },
+          {
+            id: "salary",
+            header: "Salary",
+            metric: "salary",
+            align: "right",
+            sortValue: (p) => p.salary,
+            cell: (p) => (
+              <span className="tnum font-semibold text-foreground">
+                {p.salary != null ? p.salary.toLocaleString("en-US") : "—"}
+              </span>
+            ),
           },
           {
             id: "proj",
@@ -77,7 +131,7 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
                       stale ? "text-muted-foreground" : "text-foreground",
                     )}
                   >
-                    {p.fpts_dk_mean != null ? p.fpts_dk_mean.toFixed(1) : "—"}
+                    {num(p.fpts_dk_mean)}
                   </span>
                   {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
                 </span>
@@ -85,15 +139,44 @@ export function PlayersList({ players = [] }: { players?: WeekPlayer[] }) {
             },
           },
           {
+            id: "floor",
+            header: "Floor / ceil",
+            align: "right",
+            sortValue: (p) => p.ceiling,
+            cell: (p) => (
+              <span className="tnum font-semibold text-foreground">
+                {p.floor == null && p.ceiling == null ? "—" : `${num(p.floor)}–${num(p.ceiling)}`}
+              </span>
+            ),
+          },
+          {
+            id: "own",
+            header: "Own",
+            metric: "ownership",
+            align: "right",
+            sortValue: (p) => p.proj_own,
+            cell: (p) => <span className="tnum font-semibold text-foreground">{ownPct(p.proj_own)}</span>,
+          },
+          {
+            id: "value",
+            header: "Value",
+            metric: "value",
+            align: "right",
+            sortValue: (p) => p.value,
+            cell: (p) => <span className="tnum font-semibold text-foreground">{num(p.value, 2)}</span>,
+          },
+          {
+            id: "injury",
+            header: "Injury",
+            sortValue: (p) => p.override_status ?? "",
+            cell: (p) => <StatusPill status={p.override_status} />,
+          },
+          {
             id: "typical",
             header: "Typical game",
             align: "right",
             sortValue: (p) => p.typical_dk,
-            cell: (p) => (
-              <span className="tnum font-semibold text-foreground">
-                {p.typical_dk != null ? p.typical_dk.toFixed(1) : "—"}
-              </span>
-            ),
+            cell: (p) => <span className="tnum font-semibold text-foreground">{num(p.typical_dk)}</span>,
           },
         ]}
       />

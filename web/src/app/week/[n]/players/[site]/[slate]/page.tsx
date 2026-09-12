@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { PlayersList } from "@/components/players/PlayersList";
 import { CURRENT_SEASON } from "@/lib/config";
-import { weekPlayers } from "@/lib/queries/players";
+import { slateId, slatesForWeek } from "@/lib/queries/dfs";
+import { slatePlayers } from "@/lib/queries/players";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
+import { requestedSlate, resolveSlate } from "@/lib/slate";
 
 export const dynamic = "force-dynamic";
 
@@ -17,22 +19,32 @@ function one(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-/** Week-wide projections until the slate library lands. Unknown week still renders chrome. */
+/** Slate player library. Unknown week still renders chrome. */
 export default async function Page({
   params,
   searchParams,
 }: PageProps<"/week/[n]/players/[site]/[slate]">) {
-  const { n } = await params;
+  const { n, site, slate: pathSlate } = await params;
   const sp = await searchParams;
   const week = Number(n);
   const seasonParam = Number(one(sp.season));
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
   const weekOk = Number.isInteger(week) && week >= 1 && week <= 22;
+  const siteKey = site === "fd" ? "fd" : "dk";
   const pinned = one(sp.run);
-  const [runs, slateGames] = weekOk
-    ? await Promise.all([runsForWeek(season, week), slateGameCount(season, week)])
-    : [[], 0];
+  const [runs, slateGames, available] = weekOk
+    ? await Promise.all([
+        runsForWeek(season, week),
+        slateGameCount(season, week),
+        slatesForWeek(season, week, siteKey),
+      ])
+    : [[], 0, [] as string[]];
+  const requested = requestedSlate(pathSlate, one(sp.slate));
+  const resolved = resolveSlate(requested, available);
+  const fallbackFrom = resolved.fallback && requested !== "main" ? requested : null;
+  const slate = resolved.slate;
   const run = pickDefaultRun(runs, slateGames, pinned);
-  const players = run ? await weekPlayers(run.run_id) : [];
-  return <PlayersList players={players} />;
+  const sid = weekOk ? slateId(season, week, slate) : "";
+  const players = run && sid ? await slatePlayers(run.run_id, siteKey, sid) : [];
+  return <PlayersList players={players} fallbackFrom={fallbackFrom} />;
 }

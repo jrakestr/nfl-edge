@@ -45,6 +45,94 @@ const qAfter: WeekPlayer = {
   run_created_at: RUN,
 };
 
+const MAIN: WeekPlayer[] = [
+  {
+    player_id: "00-gibbs",
+    player_dk_id: "111",
+    display_name: "Jahmyr Gibbs",
+    position: "RB",
+    team: "DET",
+    opponent: "NO",
+    kickoff: "Sun 1:00 PM",
+    game_id: "g1",
+    salary: 8000,
+    fpts_dk_mean: 18.2,
+    floor: 10,
+    ceiling: 28,
+    proj_own: 0.22,
+    value: 2.275,
+    typical_dk: 20,
+    hist: null,
+  },
+  {
+    player_id: "00-main-only",
+    player_dk_id: "222",
+    display_name: "Main Only",
+    position: "WR",
+    team: "KC",
+    opponent: "LAC",
+    kickoff: "Sun 1:00 PM",
+    game_id: "g2",
+    salary: 5000,
+    fpts_dk_mean: 9.1,
+    floor: 4,
+    ceiling: 16,
+    proj_own: 0.05,
+    value: 1.82,
+    typical_dk: 8,
+    hist: null,
+  },
+];
+
+const FULL: WeekPlayer[] = [
+  {
+    ...MAIN[0]!,
+    player_dk_id: "999",
+    salary: 8100,
+    value: 2.247,
+  },
+  {
+    player_id: "00-full-only",
+    player_dk_id: "333",
+    display_name: "Full Only",
+    position: "TE",
+    team: "BUF",
+    opponent: "BAL",
+    kickoff: "Sun 1:00 PM",
+    game_id: "g3",
+    salary: 4200,
+    fpts_dk_mean: 8.4,
+    floor: 3,
+    ceiling: 15,
+    proj_own: 0.04,
+    value: 2.0,
+    typical_dk: 7,
+    hist: null,
+  },
+];
+
+describe("PlayersList slate rows", () => {
+  it("shows a notice when the slate fell back to main", () => {
+    render(<PlayersList players={MAIN} fallbackFrom="nope" />);
+    expect(screen.getByText(/Unknown slate “nope”; showing Main/)).toBeInTheDocument();
+  });
+
+  it("switching Main to Full changes the player count and DK IDs", () => {
+    const { rerender } = render(<PlayersList players={MAIN} />);
+    expect(screen.getByText("111")).toBeInTheDocument();
+    expect(screen.getByText("222")).toBeInTheDocument();
+    expect(screen.queryByText("333")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(3); // header + 2
+
+    rerender(<PlayersList players={FULL} />);
+    expect(screen.getByText("999")).toBeInTheDocument();
+    expect(screen.queryByText("111")).not.toBeInTheDocument();
+    expect(screen.getByText("333")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(3);
+    expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+  });
+});
+
 describe("PlayersList injury status", () => {
   it("greys a post-run OUT and excludes him from the optimizer pool", () => {
     render(<PlayersList players={[staleOut]} />);
