@@ -61,3 +61,24 @@ export function slateHref(args: {
 export function fallbackNotice(requested: string): string {
   return `Unknown slate “${requested}”; showing Main.`;
 }
+
+export function slatePairKey(away: string, home: string): string {
+  return `${away}@${home}`;
+}
+
+/** Keep board rows whose (away, home) appear in this slate's DK game_info values. */
+export function filterGamesForSlate<T extends { away: string; home: string }>(
+  rows: T[],
+  gameInfos: readonly string[],
+): T[] {
+  const pairs = new Set<string>();
+  for (const raw of gameInfos) {
+    const parsed = parseGameInfo(raw);
+    if (parsed) pairs.add(slatePairKey(parsed.away, parsed.home));
+  }
+  return rows.filter((r) => pairs.has(slatePairKey(r.away, r.home)));
+}
+
+export function slateGameCountLabel(visible: number, weekTotal: number): string {
+  return `${visible} of ${weekTotal} games on this slate.`;
+}

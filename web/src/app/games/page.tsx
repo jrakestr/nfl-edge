@@ -1,32 +1,16 @@
-import { GamesList } from "@/components/games/GamesList";
+import { redirect } from "next/navigation";
 import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { boardRows } from "@/lib/queries/board";
-import { checksForRun } from "@/lib/queries/checks";
-import { topPlayersByGame } from "@/lib/queries/players";
-import { newestWeek, runForWeek } from "@/lib/queries/runs";
-import { verdictsForRun } from "@/lib/queries/verdicts";
+import { newestWeek } from "@/lib/queries/runs";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Games" };
 
-export default async function Page() {
+function one(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+export default async function Page({ searchParams }: PageProps<"/games">) {
+  const sp = await searchParams;
   const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
-  const run = await runForWeek(CURRENT_SEASON, week);
-  const [rows, verdicts, checks, playersByGame] = run
-    ? await Promise.all([
-        boardRows(run.run_id),
-        verdictsForRun(run.run_id),
-        checksForRun(run.run_id),
-        topPlayersByGame(run.run_id),
-      ])
-    : [[], [], new Map(), {}];
-  return (
-    <GamesList
-      week={week}
-      rows={rows}
-      verdicts={Object.fromEntries(verdicts.map((v) => [v.game_id, v.payload]))}
-      checks={Object.fromEntries(checks)}
-      playersByGame={playersByGame}
-    />
-  );
+  const slate = one(sp.slate) || "main";
+  redirect(`/week/${week}/games?slate=${slate}`);
 }

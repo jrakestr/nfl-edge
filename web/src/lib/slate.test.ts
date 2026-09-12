@@ -1,4 +1,12 @@
-import { parseGameInfo, requestedSlate, resolveSlate, slateHref, slateKey } from "@/lib/slate";
+import {
+  filterGamesForSlate,
+  parseGameInfo,
+  requestedSlate,
+  resolveSlate,
+  slateGameCountLabel,
+  slateHref,
+  slateKey,
+} from "@/lib/slate";
 import { PRESERVED_PARAMS, parseTableState, tableStateToParams } from "@/lib/table-state";
 
 describe("parseGameInfo", () => {
@@ -73,6 +81,29 @@ describe("slateHref", () => {
     expect(slateHref({ page: "games", week: 1, site: "dk", slate: "full" })).toBe(
       "/week/1/games?slate=full",
     );
+  });
+});
+
+describe("filterGamesForSlate", () => {
+  const rows = [
+    { away: "KC", home: "LAC", game_id: "main-game" },
+    { away: "BUF", home: "BAL", game_id: "full-only" },
+  ];
+
+  it("hides a Full-only game under Main", () => {
+    const main = filterGamesForSlate(rows, ["KC@LAC 09/13/2026 01:00PM ET"]);
+    expect(main.map((r) => r.game_id)).toEqual(["main-game"]);
+    const full = filterGamesForSlate(rows, [
+      "KC@LAC 09/13/2026 01:00PM ET",
+      "BUF@BAL 09/13/2026 01:00PM ET",
+    ]);
+    expect(full.map((r) => r.game_id)).toEqual(["main-game", "full-only"]);
+  });
+});
+
+describe("slateGameCountLabel", () => {
+  it("reads 12 of 16", () => {
+    expect(slateGameCountLabel(12, 16)).toBe("12 of 16 games on this slate.");
   });
 });
 

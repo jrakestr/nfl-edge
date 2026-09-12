@@ -27,6 +27,15 @@ export async function slatesForWeek(season: number, week: number, site: string):
   return rows.map((r) => String(r.slate));
 }
 
+/** Distinct DK game_info strings for this slate (used to filter the week's games). */
+export async function slateGameInfos(site: string, slateId: string): Promise<string[]> {
+  const rows = await sql()`
+    select distinct game_info
+    from raw.dk_salaries
+    where site = ${site} and slate_id = ${slateId} and game_info is not null`;
+  return rows.map((r) => String(r.game_info));
+}
+
 export async function dfsLineups(runId: string, site: string, slateId: string): Promise<DfsLineup[]> {
   const rows = await sql()`
     select lineup_id, salary_used, stack,

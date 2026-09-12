@@ -9,7 +9,7 @@ export const SIDEBAR_COLLAPSED_KEY = "nfl-edge.sidebarCollapsed";
 
 export const NAV = [
   { href: "/week", label: "Edge board", match: /^\/week(?:\/\d+)?$/, icon: "board" },
-  { href: "/games", label: "Games", match: /^\/games/, icon: "games" },
+  { href: "/games", label: "Games", match: /^\/games|\/week\/\d+\/games/, icon: "games" },
   { href: "/players", label: "Players", match: /^\/players|\/week\/\d+\/players/, icon: "players" },
   { href: "/optimize", label: "Optimize", match: /^\/optimize|\/week\/\d+\/optimize/, icon: "optimize" },
   { href: "/props", label: "Props", match: /^\/props/, icon: "props" },
