@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { GamesList } from "@/components/games/GamesList";
+import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { boardRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
@@ -69,6 +70,9 @@ export default async function Page({
       checks={Object.fromEntries(checks)}
       playersByGame={playersByGame}
       fallbackFrom={fallbackFrom}
+      toolbar={
+        <SlateSelector week={week} site="dk" page="games" slate={slate} slates={available} />
+      }
     />
   );
 }

@@ -1,6 +1,6 @@
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { dfsExposure, dfsLineups, salaryLookup, salaryPositions, slateId, stackCorrelations } from "@/lib/queries/dfs";
+import { dfsExposure, dfsLineups, salaryLookup, salaryPositions, slateId, slatesForWeek, stackCorrelations } from "@/lib/queries/dfs";
 import { staleDkIds } from "@/lib/queries/players";
 import { lineupRunForWeek, newestWeek } from "@/lib/queries/runs";
 
@@ -9,6 +9,7 @@ export const metadata = { title: "Lineups" };
 
 export default async function Page() {
   const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
+  const slates = await slatesForWeek(CURRENT_SEASON, week, "dk");
   const sid = slateId(CURRENT_SEASON, week, "main");
   const picked = await lineupRunForWeek(CURRENT_SEASON, week, "dk", sid);
   const run = picked?.run ?? null;
@@ -36,6 +37,7 @@ export default async function Page() {
       correlations={correlations}
       staleDkIds={stale}
       buildInProgress={picked?.buildInProgress ?? false}
+      slates={slates}
     />
   );
 }

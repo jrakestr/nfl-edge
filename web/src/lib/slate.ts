@@ -82,3 +82,36 @@ export function filterGamesForSlate<T extends { away: string; home: string }>(
 export function slateGameCountLabel(visible: number, weekTotal: number): string {
   return `${visible} of ${weekTotal} games on this slate.`;
 }
+
+export function slateLabel(slate: string): string {
+  if (!slate) return "Main";
+  return slate[0]!.toUpperCase() + slate.slice(1);
+}
+
+export function pathContext(
+  pathname: string,
+  querySlate?: string | null,
+): { week: number | null; site: string; slate: string } {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] === "week" && /^\d+$/.test(parts[1] ?? "")) {
+    const week = Number(parts[1]);
+    const site = parts[3] === "fd" ? "fd" : "dk";
+    const pathSlate = parts[2] === "games" ? undefined : parts[4];
+    return { week, site, slate: requestedSlate(pathSlate, querySlate ?? undefined) };
+  }
+  return { week: null, site: "dk", slate: "main" };
+}
+
+/** Sidebar hrefs. Players always newest Main. Other slate pages keep the current key. */
+export function navHref(
+  label: string,
+  ctx: { week: number | null; site: string; slate: string },
+  fallback: string,
+): string {
+  if (label === "Players") return "/players";
+  if (ctx.week == null) return fallback;
+  if (label === "Games") return slateHref({ page: "games", week: ctx.week, site: ctx.site, slate: ctx.slate });
+  if (label === "Lineups") return slateHref({ page: "dfs", week: ctx.week, site: ctx.site, slate: ctx.slate });
+  if (label === "Optimize") return slateHref({ page: "optimize", week: ctx.week, site: ctx.site, slate: ctx.slate });
+  return fallback;
+}

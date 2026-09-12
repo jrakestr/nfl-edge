@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ExposureBar } from "./ExposureBar";
 import { LineupCard, stacksFromPlayers } from "./LineupCard";
 import { StackChip } from "./StackChip";
+import { SlateSelector } from "@/components/shell/SlateSelector";
+import { fallbackNotice } from "@/lib/slate";
 import { MetricLabel } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +41,8 @@ export function LineupReview({
   correlations = [],
   staleDkIds,
   buildInProgress = false,
+  slates = [],
+  fallbackFrom,
 }: {
   week: string;
   site: string;
@@ -52,12 +56,13 @@ export function LineupReview({
   correlations?: CorrPair[];
   staleDkIds?: Set<string>;
   buildInProgress?: boolean;
+  slates?: string[];
+  fallbackFrom?: string | null;
 }) {
   const [sort, setSort] = useState<SortKey>("win");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const siteKey = site === "fd" ? "fd" : "dk";
-  const slateKey = ["main", "full", "showdown"].includes(slate) ? slate : "main";
   const sid = slateId;
 
   const sorted = useMemo(() => {
@@ -147,27 +152,8 @@ export function LineupReview({
               </Link>
             ))}
           </nav>
-          <nav className="flex h-8 items-center gap-1" aria-label="Slate">
-            {(
-              [
-                ["main", "Main"],
-                ["full", "Full"],
-                ["showdown", "Showdown"],
-              ] as const
-            ).map(([id, label]) => (
-              <Link
-                key={id}
-                href={`/week/${week}/dfs/${siteKey}/${id}`}
-                aria-current={slateKey === id ? "page" : undefined}
-                className={cn(
-                  "px-2 t-body",
-                  slateKey === id ? "text-foreground font-semibold" : "text-muted-foreground",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
+          <SlateSelector week={week} site={siteKey} page="dfs" slate={slate} slates={slates} />
+          {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
           <div className="flex flex-wrap gap-1.5">
             {SETTINGS.map((s) => (
               <span key={s} className="rounded-md border border-border px-2 py-1 t-caption">
@@ -208,7 +194,7 @@ export function LineupReview({
           {sorted.length === 0 ? (
             <>
               <LineupCard
-                slate={slateKey}
+                slate={slate}
                 lineup={{
                   lineup_id: "empty",
                   salary_used: null,
@@ -226,7 +212,7 @@ export function LineupReview({
             sorted.map((lu) => (
               <LineupCard
                 key={lu.lineup_id}
-                slate={slateKey}
+                slate={slate}
                 lineup={lu}
                 teams={teams}
                 positions={positions}

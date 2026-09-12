@@ -51,7 +51,7 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByText("No lineups for this slate yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export selected" })).toBeDisabled();
     expect(screen.getByText("DraftKings")).toBeInTheDocument();
-    expect(screen.getByText("Showdown")).toBeInTheDocument();
+    expect(screen.getByLabelText("Slate")).toBeInTheDocument();
   });
 
   it("Showdown empty card shows CPT, not classic slots", () => {
@@ -67,5 +67,6 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByText("Actual")).toBeInTheDocument();
     expect(screen.getByText("Chart fills in with grade-web")).toBeInTheDocument();
     expect(screen.getByText("Flat ROI")).toBeInTheDocument();
+    expect(screen.getByText("vs benchmarks")).toBeInTheDocument();
   });
 });

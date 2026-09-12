@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
-import { slateId } from "@/lib/queries/dfs";
+import { slateId, slatesForWeek } from "@/lib/queries/dfs";
 import { lineupRunForWeek } from "@/lib/queries/runs";
+import { fallbackNotice, requestedSlate, resolveSlate } from "@/lib/slate";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +23,27 @@ export default async function Page({
   params,
   searchParams,
 }: PageProps<"/week/[n]/optimize/[site]/[slate]">) {
-  const { n, site, slate } = await params;
+  const { n, site, slate: pathSlate } = await params;
   const sp = await searchParams;
   const week = Number(n);
   const seasonParam = Number(one(sp.season));
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
   const siteKey = site === "fd" ? "fd" : "dk";
   const weekOk = Number.isInteger(week) && week >= 1 && week <= 22;
+  const available = weekOk ? await slatesForWeek(season, week, siteKey) : [];
+  const requested = requestedSlate(pathSlate, one(sp.slate));
+  const resolved = resolveSlate(requested, available);
+  const fallbackFrom = resolved.fallback && requested !== "main" ? requested : null;
+  const slate = resolved.slate;
   const sid = weekOk ? slateId(season, week, slate) : "";
   const picked = weekOk ? await lineupRunForWeek(season, week, siteKey, sid, one(sp.run)) : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <header>
+      <header className="flex flex-col gap-3">
         <h1 className="t-title">Optimize</h1>
+        <SlateSelector week={week} site={siteKey} page="optimize" slate={slate} slates={available} />
+        {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
         {picked?.buildInProgress ? (
           <p className="t-caption text-warn" role="note">
             Sunday build in progress

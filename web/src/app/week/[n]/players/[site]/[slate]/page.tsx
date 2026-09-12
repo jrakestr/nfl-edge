@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PlayersList } from "@/components/players/PlayersList";
+import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { slateId, slatesForWeek } from "@/lib/queries/dfs";
 import { slatePlayers } from "@/lib/queries/players";
@@ -46,5 +47,14 @@ export default async function Page({
   const run = pickDefaultRun(runs, slateGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
   const players = run && sid ? await slatePlayers(run.run_id, siteKey, sid) : [];
-  return <PlayersList players={players} fallbackFrom={fallbackFrom} />;
+  return (
+    <PlayersList
+      players={players}
+      slateId={sid}
+      fallbackFrom={fallbackFrom}
+      toolbar={
+        <SlateSelector week={week} site={siteKey} page="players" slate={slate} slates={available} />
+      }
+    />
+  );
 }

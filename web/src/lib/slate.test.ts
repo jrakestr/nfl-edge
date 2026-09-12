@@ -1,6 +1,8 @@
 import {
   filterGamesForSlate,
+  navHref,
   parseGameInfo,
+  pathContext,
   requestedSlate,
   resolveSlate,
   slateGameCountLabel,
@@ -107,12 +109,49 @@ describe("slateGameCountLabel", () => {
   });
 });
 
+describe("navHref", () => {
+  const ctx = { week: 1, site: "dk", slate: "full" };
+
+  it("keeps slate on Games, Lineups, Optimize", () => {
+    expect(navHref("Games", ctx, "/games")).toBe("/week/1/games?slate=full");
+    expect(navHref("Lineups", ctx, "/lineups")).toBe("/week/1/dfs/dk/full");
+    expect(navHref("Optimize", ctx, "/optimize")).toBe("/week/1/optimize/dk/full");
+  });
+
+  it("Players always goes to newest Main", () => {
+    expect(navHref("Players", ctx, "/players")).toBe("/players");
+  });
+
+  it("falls back when not on a week route", () => {
+    expect(navHref("Games", { week: null, site: "dk", slate: "full" }, "/games")).toBe("/games");
+  });
+});
+
+describe("pathContext", () => {
+  it("reads slate from the players path", () => {
+    expect(pathContext("/week/1/players/dk/full")).toEqual({ week: 1, site: "dk", slate: "full" });
+  });
+
+  it("reads slate from the games query", () => {
+    expect(pathContext("/week/1/games", "showdown")).toEqual({
+      week: 1,
+      site: "dk",
+      slate: "showdown",
+    });
+  });
+});
+
 describe("PRESERVED_PARAMS", () => {
-  it("keeps slate when table state writes sort", () => {
-    expect(PRESERVED_PARAMS).toContain("slate");
-    const base = new URLSearchParams("slate=full&run=abc&season=2026");
+  it("keeps slate and pick keys when table state writes sort", () => {
+    expect(PRESERVED_PARAMS).toEqual(
+      expect.arrayContaining(["slate", "lock", "excl", "stack"]),
+    );
+    const base = new URLSearchParams("slate=full&run=abc&season=2026&lock=111&excl=222&stack=333");
     const next = tableStateToParams({ ...parseTableState(base), sort: "proj", dir: "asc" }, base);
     expect(next.get("slate")).toBe("full");
     expect(next.get("run")).toBe("abc");
+    expect(next.get("lock")).toBe("111");
+    expect(next.get("excl")).toBe("222");
+    expect(next.get("stack")).toBe("333");
   });
 });
