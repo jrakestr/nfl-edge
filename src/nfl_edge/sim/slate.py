@@ -387,6 +387,8 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
             insert(pl.DataFrame({"run_id": [run_id], "season": [season], "week": [week],
                                  "config_hash": [_config_hash()], "git_sha": [_git_sha()],
                                  "draws_per_game": [n], "note": [note]}), "model.sim_runs")
+            from ..outputs.team_inputs import persist_snapshot
+            persist_snapshot(run_id, priors, cfg)
             insert(proj_games, "model.proj_games")
             insert(proj_players, "model.proj_players")
             insert(corr, "model.player_correlations")
