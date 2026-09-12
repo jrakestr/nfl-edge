@@ -18,7 +18,7 @@ export function kickoffFromPayload(kickoff: string): string {
   return kickoffLabel(day, time ?? null);
 }
 
-/** Timestamp → "Sat 06:30" in ET. */
+/** Timestamp → "Sat 06:30" in ET. Kickoff times stay on this clock. */
 export function shortStamp(d: Date | string): string {
   const date = typeof d === "string" ? new Date(d) : d;
   return date.toLocaleString("en-US", {
@@ -28,6 +28,32 @@ export function shortStamp(d: Date | string): string {
     hour12: false,
     timeZone: ET,
   });
+}
+
+/** Timestamp → "Sat 06:30" in the viewer's local timezone (no timeZone option). */
+export function shortStampLocal(d: Date | string): string {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleString("en-US", {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+/** Latest ISO among captured_at values, or null. */
+export function maxIso(values: (string | null | undefined)[]): string | null {
+  let best = -Infinity;
+  let iso: string | null = null;
+  for (const v of values) {
+    if (!v) continue;
+    const t = new Date(v).getTime();
+    if (!Number.isNaN(t) && t > best) {
+      best = t;
+      iso = new Date(t).toISOString();
+    }
+  }
+  return iso;
 }
 
 /** 20000 → "20k"; 5000 → "5k"; 500 → "500". */

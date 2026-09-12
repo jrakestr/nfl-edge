@@ -9,7 +9,7 @@ import { SummaryTiles } from "./SummaryTiles";
 import { VerdictCard } from "./VerdictCard";
 import { WeekHeader, type View } from "./WeekHeader";
 import { WeekSummaryCard } from "./WeekSummaryCard";
-import { draws as fmtDraws, shortRun } from "@/lib/format";
+import { draws as fmtDraws, maxIso, shortRun } from "@/lib/format";
 
 export type WeekBoardProps = {
   season: number;
@@ -33,6 +33,8 @@ export function WeekBoard(p: WeekBoardProps) {
   const payloads = p.verdicts.map((v) => v.payload);
   const byGame = Object.fromEntries(p.verdicts.map((v) => [v.game_id, v.payload]));
   const missingVerdicts = p.rows.length - p.verdicts.length;
+  const linesAsOf = maxIso(p.rows.map((r) => r.captured_at));
+  const verdictsAsOf = maxIso(p.verdicts.map((v) => v.payload.market?.captured_at));
 
   const caption = p.run
     ? `Run ${shortRun(p.run.run_id)} · ${fmtDraws(p.run.draws_per_game)} draws per game · ${p.rows.length} games`
@@ -49,6 +51,8 @@ export function WeekBoard(p: WeekBoardProps) {
         run={p.run}
         runs={p.runs}
         stale={p.stale}
+        linesAsOf={linesAsOf}
+        verdictsAsOf={verdictsAsOf}
       />
 
       {!p.run ? (

@@ -26,6 +26,8 @@ export function WeekHeader({
   run,
   runs,
   stale,
+  linesAsOf = null,
+  verdictsAsOf = null,
 }: {
   season: number;
   week: number;
@@ -35,6 +37,8 @@ export function WeekHeader({
   run: RunOption | null;
   runs: RunOption[];
   stale: boolean;
+  linesAsOf?: string | null;
+  verdictsAsOf?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -94,7 +98,11 @@ export function WeekHeader({
         </div>
       </PageActions>
       <SidebarFooter>
-        {run ? <RunBadge run={run} runs={runs} stale={stale} /> : <span className="t-caption">no run for week {week}</span>}
+        {run ? (
+          <RunBadge run={run} runs={runs} stale={stale} linesAsOf={linesAsOf} verdictsAsOf={verdictsAsOf} />
+        ) : (
+          <span className="t-caption">no run for week {week}</span>
+        )}
       </SidebarFooter>
 
       <div className="flex flex-wrap items-center gap-3">
