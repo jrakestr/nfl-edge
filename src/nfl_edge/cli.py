@@ -445,5 +445,30 @@ def grade(
         typer.echo(f"fair_props: {fair['n_rows']} rows graded")
 
 
+@app.command("score-actuals")
+def score_actuals(season: int = typer.Option(...)):
+    """Score REG skill weekly lines into model.player_fpts_actual. Idempotent."""
+    from .results import actuals as A
+
+    out = A.persist(season)
+    types = " ".join(f"{k}={v}" for k, v in sorted(out["season_types"].items()))
+    rec = out["reconcile"]
+    typer.echo(f"season_type {season}: {types}")
+    typer.echo(f"ppr reconcile: within {rec['within']}  outside {rec['outside']}")
+    for w in rec["worst"]:
+        typer.echo(
+            f"  wk{w['week']} {w['position']} {w['player_name']} "
+            f"ours={w['ours']:.2f} nfl={w['theirs']:.2f} diff={w['diff']:+.2f} "
+            f"st_td={w['special_teams_tds']}"
+        )
+    if out["blocked"]:
+        typer.echo("blocked: PPR outside the gate; table not written")
+        raise typer.Exit(code=1)
+    typer.echo(
+        f"player_fpts_actual {season}: {out['written']} rows "
+        f"({out['opportunity']} with opportunity)"
+    )
+
+
 if __name__ == "__main__":
     app()

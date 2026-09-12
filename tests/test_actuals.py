@@ -87,3 +87,65 @@ def test_reconcile_ppr_skips_postseason_and_nonskill():
     }
     report = A.reconcile_ppr([skill_reg, skill_post, dst], RULES)
     assert report["within"] + report["outside"] == 1
+
+
+def test_actual_rows_are_reg_skill_with_opportunity_flag():
+    rows = [
+        {
+            "season": 2025,
+            "week": 1,
+            "player_id": "00-rb",
+            "player_name": "Back",
+            "position": "RB",
+            "team": "DET",
+            "opponent_team": "GB",
+            "stats": {
+                "season_type": "REG",
+                "carries": 12,
+                "rushing_yards": 80,
+                "fantasy_points_ppr": 8.0,
+            },
+        },
+        {
+            "season": 2025,
+            "week": 1,
+            "player_id": "00-scratch",
+            "player_name": "Scratch",
+            "position": "WR",
+            "team": "DET",
+            "opponent_team": "GB",
+            "stats": {"season_type": "REG", "targets": 0, "fantasy_points_ppr": 0.0},
+        },
+        {
+            "season": 2025,
+            "week": 19,
+            "player_id": "00-rb",
+            "player_name": "Back",
+            "position": "RB",
+            "team": "DET",
+            "opponent_team": "GB",
+            "stats": {"season_type": "POST", "carries": 15, "rushing_yards": 90},
+        },
+        {
+            "season": 2025,
+            "week": 1,
+            "player_id": "00-dst",
+            "player_name": "Lions",
+            "position": "DEF",
+            "team": "DET",
+            "opponent_team": "GB",
+            "stats": {"season_type": "REG"},
+        },
+    ]
+    built = A.actual_rows(rows, RULES)
+    assert [r["player_id"] for r in built] == ["00-rb", "00-scratch"]
+    assert built[0]["had_opportunity"] is True
+    assert built[1]["had_opportunity"] is False
+    assert built[0]["season_type"] == "REG"
+    assert built[0]["fpts_dk"] == pytest.approx(8.0)
+
+
+def test_ppr_gate_blocks_write_when_outside_exceeds_limit():
+    report = {"within": 100, "outside": 26, "worst": []}
+    assert A.ppr_gate_ok(report) is False
+    assert A.ppr_gate_ok({"within": 100, "outside": 19, "worst": []}) is True

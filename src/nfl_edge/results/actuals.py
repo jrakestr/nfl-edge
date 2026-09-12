@@ -105,3 +105,89 @@ def reconcile_ppr(rows: list[dict[str, Any]], rules: dict, tol: float = 0.1) -> 
             outside_rows.append(rec)
     outside_rows.sort(key=lambda r: abs(r["diff"]), reverse=True)
     return {"within": within, "outside": len(outside_rows), "worst": outside_rows[:10]}
+
+
+PPR_OUTSIDE_LIMIT = 25
+
+
+def ppr_gate_ok(report: dict) -> bool:
+    return int(report.get("outside") or 0) <= PPR_OUTSIDE_LIMIT
+
+
+def actual_rows(weekly: list[dict[str, Any]], rules: dict) -> list[dict]:
+    """REG skill rows only. had_opportunity is attempts+carries+targets >= 1."""
+    out: list[dict] = []
+    for row in weekly:
+        stats = row.get("stats") or {}
+        if not is_skill(row.get("position")) or not is_regular(stats):
+            continue
+        pts = score_weekly(stats, rules)
+        out.append({
+            "season": int(row["season"]),
+            "week": int(row["week"]),
+            "player_id": row["player_id"],
+            "season_type": REG,
+            "team": row.get("team"),
+            "position": row.get("position"),
+            "opponent": row.get("opponent_team"),
+            "fpts_dk": pts["dk"],
+            "fpts_fd": pts["fd"],
+            "fpts_ppr": pts["ppr"],
+            "had_opportunity": had_opportunity(stats),
+        })
+    return out
+
+
+def load_weekly(season: int) -> list[dict]:
+    from ..db import read_sql
+
+    df = read_sql(
+        "select season, week, player_id, player_name, position, team, opponent_team, stats "
+        "from raw.player_stats_weekly where season = %s",
+        (season,),
+    )
+    return df.to_dicts()
+
+
+def season_types(weekly: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in weekly:
+        key = str((row.get("stats") or {}).get("season_type") or "")
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+ACTUALS_KEY = ["season", "week", "player_id", "season_type"]
+
+
+def persist(season: int) -> dict:
+    """Score REG skill rows for a season. Refuse the write if PPR does not tie out."""
+    import polars as pl
+
+    from ..config import load_yaml
+    from ..db import upsert
+
+    rules = load_yaml("scoring.yaml")
+    weekly = load_weekly(season)
+    types = season_types(weekly)
+    report = reconcile_ppr(weekly, rules)
+    if not ppr_gate_ok(report):
+        return {
+            "season": season,
+            "written": 0,
+            "season_types": types,
+            "reconcile": report,
+            "blocked": True,
+        }
+    rows = actual_rows(weekly, rules)
+    n = 0
+    if rows:
+        n = upsert(pl.DataFrame(rows), "model.player_fpts_actual", ACTUALS_KEY)
+    return {
+        "season": season,
+        "written": n,
+        "season_types": types,
+        "reconcile": report,
+        "blocked": False,
+        "opportunity": sum(1 for r in rows if r["had_opportunity"]),
+    }
