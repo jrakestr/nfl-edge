@@ -3,6 +3,11 @@
 INT is passing_interceptions (the interceptions key is absent in stored jsonb).
 fum_lost = rushing + receiving + sack fumbles lost.
 two_pt = passing + rushing + receiving 2-pt conversions.
+
+Return and fumble-recovery TDs are added here after score_offense, not in the sim.
+We do not model return opportunity in draws; inventing one would be worse than omitting
+it. Actuals are what happened, so DK/FD/PPR here include 6 × (special_teams_tds +
+fumble_recovery_tds). Do not "fix" sim/scoring.py to match this path.
 """
 from __future__ import annotations
 
@@ -32,6 +37,8 @@ TWO_PT_KEYS = (
     "receiving_2pt_conversions",
 )
 OPP_KEYS = ("attempts", "carries", "targets")
+RETURN_TD_KEYS = ("special_teams_tds", "fumble_recovery_tds")
+RETURN_TD_PTS = 6.0
 
 
 def _num(raw: dict, key: str) -> float:
@@ -54,11 +61,17 @@ def offense_from_weekly(stats: dict | None) -> dict[str, float]:
     return out
 
 
+def return_td_points(stats: dict | None) -> float:
+    raw = stats or {}
+    return RETURN_TD_PTS * sum(_num(raw, k) for k in RETURN_TD_KEYS)
+
+
 def score_weekly(stats: dict | None, rules: dict) -> dict[str, float]:
     mapped = offense_from_weekly(stats)
     arr = {k: np.array([v], dtype=float) for k, v in mapped.items()}
     scored = scoring.score_offense(arr, rules)
-    return {site: float(scored[site][0]) for site in ("dk", "fd", "ppr")}
+    extra = return_td_points(stats)
+    return {site: float(scored[site][0]) + extra for site in ("dk", "fd", "ppr")}
 
 
 def is_regular(stats: dict | None) -> bool:

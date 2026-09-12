@@ -56,6 +56,21 @@ def test_score_weekly_calls_score_offense():
     assert scored["ppr"] == pytest.approx(float(direct["ppr"][0]))
 
 
+def test_score_weekly_adds_return_and_recovery_tds_after_offense():
+    raw = {
+        "rushing_yards": 10,
+        "special_teams_tds": 1,
+        "fumble_recovery_tds": 1,
+    }
+    mapped = A.offense_from_weekly(raw)
+    direct = scoring.score_offense({k: np.array([v]) for k, v in mapped.items()}, RULES)
+    scored = A.score_weekly(raw, RULES)
+    assert scored["dk"] == pytest.approx(float(direct["dk"][0]) + 12)
+    assert scored["fd"] == pytest.approx(float(direct["fd"][0]) + 12)
+    assert scored["ppr"] == pytest.approx(float(direct["ppr"][0]) + 12)
+    assert A.offense_from_weekly(raw)["rush_td"] == 0
+
+
 def test_regular_season_and_opportunity():
     assert A.is_regular({"season_type": "REG"}) is True
     assert A.is_regular({"season_type": "POST"}) is False
