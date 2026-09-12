@@ -1,11 +1,18 @@
 # Operations: line snapshots and the weekly run order
 
-Scheduled on this Mac as LaunchAgent `com.nfl-edge.lines-only`. `com.vix.cron` is not running
-here, so a crontab would never fire. The agent runs `ops/lines-only.sh`, which calls
-`nfl-edge ingest --season 2026 --lines-only` and then `nfl-edge lines` for each stale week
-(`nfl-edge stale-weeks`). `DATABASE_URL` is unset so `.env` (Supabase) is used. If the database
-or github.com is unreachable (Mac asleep or off Wi-Fi) the job logs `unreachable, skipped` and
-exits 0. Template: `ops/com.nfl-edge.lines-only.plist`. Log: `output/cron-lines.log`.
+Scheduled on this Mac as two LaunchAgents. `com.vix.cron` is not running here, so a crontab
+would never fire.
+
+- `com.nfl-edge.lines-only` runs `ops/lines-only.sh`: `nfl-edge ingest --season 2026 --lines-only`
+  then `nfl-edge lines` for each stale week. Log: `output/cron-lines.log`.
+- `com.nfl-edge.week-rebuild` runs `ops/week-rebuild.sh` Saturday 20:00 and Sunday 08:40 MST
+  (Mac clock = Phoenix). Week comes from `raw.schedules` (`nfl-edge current-week`), not the
+  plist. Saturday `--note sat-final`. Sunday `--note sun-inactives`: sim must finish by 08:50
+  or the Saturday run stays live; lines/props/dfs then run to completion (DFS main before full)
+  with a 09:30 soft-ceiling log. No `RunAtLoad`. Log: `output/cron-rebuild.log`.
+
+`DATABASE_URL` is unset so `.env` (Supabase) is used. If the database or github.com is
+unreachable (Mac asleep or off Wi-Fi) both jobs log `unreachable, skipped` and exit 0.
 
 ## Cadence
 
@@ -48,6 +55,10 @@ launchctl print gui/$UID/com.nfl-edge.lines-only
 Reload after editing the checked-in plist (same overlap swap). Confirm the next fire with
 `launchctl print gui/$(id -u)/com.nfl-edge.lines-only` (`state` and `runs` / next interval).
 
+Install `com.nfl-edge.week-rebuild` the same way (`ops/com.nfl-edge.week-rebuild.plist`).
+Do not set `RunAtLoad`. Confirm both calendar intervals and that `RunAtLoad` is absent:
+`launchctl print gui/$(id -u)/com.nfl-edge.week-rebuild`.
+
 ## Weekly runbook
 
 Replace `W` with the NFL week. Run in this order, on this Mac, with `DATABASE_URL` unset.
@@ -64,18 +75,17 @@ Wednesday / Friday (injury report)
 5. `nfl-edge overrides --season 2026 --week W --file data/props/overrides_W.csv`
 6. Re-sim and re-lines only if an override changed a starter or a usage share: steps 3 then 4.
 
-Saturday
+Saturday 20:00 MST (`com.nfl-edge.week-rebuild`, `--note sat-final`)
 
-7. `nfl-edge dk-salaries --season 2026 --week W --slate main`
-8. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
+Drop Main and Full CSVs in `data/dk/` first. The agent runs ingest → dk-salaries main and
+full → sim 20k → lines → props → dfs main then full.
 
-Sunday AM (final)
+Sunday 08:40 MST (`--note sun-inactives`)
 
-9. `nfl-edge ingest --season 2026 --week W`
-10. `nfl-edge sim --season 2026 --week W --draws 20000`
-11. `nfl-edge lines --season 2026 --week W`
-12. `nfl-edge dk-salaries --season 2026 --week W --slate main`
-13. `nfl-edge dfs --season 2026 --week W --site dk --slate main --lineups 150 --field 20000`
+Same order. Sim must finish by 08:50 or Saturday stays live (`sun-inactives: sim not complete
+by 08:50, Saturday run kept`). lines/props/dfs then run to completion; a line is logged if the
+clock passes 09:30. Lineups/Optimize keep Saturday's lineups and show `Sunday build in progress`
+until the new run has `dfs_lineups`.
 
 ### Week 1 lock windows
 
@@ -94,18 +104,15 @@ Wednesday 2026-09-09 ~15:00 MST (before NE@SEA lock, 20:20 ET / 18:20 MST)
 
 Report: `run_id`, invariants, override delta vs `output/overrides_2026_wk01_pre_wed.csv` (202 rows at bf9a11f4: 127 out / 75 Q), upload path `data/dfs/<run_id>/dk/showdown/dk_upload.csv`.
 
-Sunday 2026-09-13 ~09:00 MST (before the early-window lock)
+Saturday 2026-09-12 20:00 MST (LaunchAgent; `--note sat-final`)
 
-1. Re-export DK Main and Full → `data/dk/DKSalaries_2026_wk01_main.csv` and `…_full.csv`
-2. `nfl-edge ingest --season 2026 --week 1`
-3. `nfl-edge dk-salaries --season 2026 --week 1 --slate main`
-4. `nfl-edge dk-salaries --season 2026 --week 1 --slate full`
-5. `nfl-edge sim --season 2026 --week 1 --draws 20000 --note sun-final`
-6. `nfl-edge lines --season 2026 --week 1`
-7. `nfl-edge props --season 2026 --week 1 --file data/props/props_2026_wk01.csv`
-8. `nfl-edge dfs --season 2026 --week 1 --site dk --slate main --lineups 150 --field 20000`
-9. `nfl-edge dfs --season 2026 --week 1 --site dk --slate full --lineups 150 --field 20000`
-10. `cd web && vercel` (preview, not `--prod`)
+Drop Main and Full CSVs before 20:00. The agent runs the rebuild. No Vercel CLI.
+
+Sunday 2026-09-13 08:40 MST (LaunchAgent; `--note sun-inactives`)
+
+1. Re-export DK Main and Full → `data/dk/DKSalaries_2026_wk01_main.csv` and `…_full.csv` before 08:40
+2. Agent: ingest → dk-salaries main and full → sim 20k (dead at 08:50) → lines → props → dfs main then full
+3. If the sim is not done by 08:50, Saturday stays live. No Vercel CLI.
 
 Between those, the LaunchAgent keeps snapshotting. After a new snapshot, `nfl-edge lines --season 2026 --week W` writes edges without a re-sim.
 

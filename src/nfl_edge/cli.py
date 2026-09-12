@@ -237,6 +237,52 @@ def stale_weeks(season: int = typer.Option(2026)):
         typer.echo(week)
 
 
+@app.command("current-week")
+def current_week_cmd(season: int = typer.Option(2026)):
+    """Print the REG week in raw.schedules that spans today (Saturday before Sunday included)."""
+    from .rebuild import current_week
+
+    week = current_week(season)
+    if week is None:
+        raise typer.Exit(code=1)
+    typer.echo(week)
+
+
+@app.command("slate-count")
+def slate_count_cmd(season: int = typer.Option(2026), week: int = typer.Option(...)):
+    """Print how many games raw.schedules has for the week."""
+    from .rebuild import slate_games
+
+    typer.echo(slate_games(season, week))
+
+
+@app.command("newest-run")
+def newest_run_cmd(season: int = typer.Option(2026), week: int = typer.Option(...)):
+    """Print `run_id n_games` for the newest sim of the week."""
+    from .rebuild import newest_run
+
+    row = newest_run(season, week)
+    if row is None:
+        raise typer.Exit(code=1)
+    typer.echo(f"{row[0]} {row[1]}")
+
+
+@app.command("drop-incomplete")
+def drop_incomplete_cmd(
+    season: int = typer.Option(2026),
+    week: int = typer.Option(...),
+    after: str = typer.Option(..., help="ISO timestamp; delete later incomplete runs"),
+):
+    """Delete sim_runs created after `after` whose proj_games count ≠ the week's slate."""
+    from datetime import datetime
+
+    from .rebuild import drop_incomplete
+
+    ts = datetime.fromisoformat(after)
+    n = drop_incomplete(season, week, ts)
+    typer.echo(n)
+
+
 @app.command()
 def overrides(
     season: int = typer.Option(...),

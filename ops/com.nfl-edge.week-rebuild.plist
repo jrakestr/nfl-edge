@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nfl-edge.week-rebuild</string>
+  <key>WorkingDirectory</key>
+  <string>/Users/home/Development/nfl-edge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/home/Development/nfl-edge/ops/week-rebuild.sh</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/home/Development/nfl-edge/output/cron-rebuild.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/home/Development/nfl-edge/output/cron-rebuild.log</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Weekday</key>
+      <integer>6</integer>
+      <key>Hour</key>
+      <integer>20</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key>
+      <integer>0</integer>
+      <key>Hour</key>
+      <integer>8</integer>
+      <key>Minute</key>
+      <integer>40</integer>
+    </dict>
+  </array>
+</dict>
+</plist>
