@@ -69,9 +69,14 @@ describe("empty sidebar layouts", () => {
     render(<Optimizer week="1" site="dk" slate="main" />);
     expect(screen.getByRole("heading", { name: "Optimize" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
+    expect(screen.getByLabelText("Require stacked group")).toBeChecked();
+    expect(
+      screen.getByText("Max exposure does not apply to locked players or a required stack."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Yours")).toBeInTheDocument();
     expect(screen.getByText("Sim 150")).toBeInTheDocument();
     expect(screen.getByText("No user lineups yet.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Stack suggestions")).not.toBeInTheDocument();
   });
 
   it("Grading: Actual column, tiles, calibration slot", () => {

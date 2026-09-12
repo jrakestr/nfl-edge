@@ -150,12 +150,12 @@ Sidebar (216px expanded / 64px collapsed glass rail; Edge board, Games, Players,
 
 ### Player library (`/week/[n]/players/[site]/[slate]`)
 - `SlateSelector` from ingested slates. Rows from `slatePlayers` (one DK id; real position, never FLEX).
-- Columns: name + `PositionPill` + injury, team, opponent, kickoff, DK id, salary, DK pts, floor/ceil (`fpts_ppr` p10/p90), ownership, value, typical game.
+- Columns: name + `PositionPill` + injury, team, opponent, kickoff, DK id, salary, DK pts, Pts rk, floor, ceiling (`fpts_ppr` p90) + Ceil rk, ownership, value + Val rk, typical game. Ranks are position-relative `tnum` text over the slate, not badges. No Leverage column until `parse_exposure_csv` reads by position.
 - Row actions: Lock, Exclude, Add to stack. Persisted as comma-separated `player_dk_id`s in URL (`lock`, `excl`, `stack`) and `localStorage` key `nfl-edge.slate:{slateId}`. URL wins on load.
 - Stale OUT/D (override after the run) grey the projection and drop from the optimizer pool. Q stays in.
 
 ### Optimizer (`/week/[n]/optimize/[site]/[slate]`)
-- Glass settings panel (no table on glass): lineups 1–20, cap, min salary, max exposure, max per team, randomness, QB+n WR/TE, bring-back, no-QB-vs-DST (default on). Showdown hides stack rules.
+- Glass settings panel (no table on glass): lineups 1–20, cap, min salary, max exposure, max per team, randomness, QB+n WR/TE, bring-back, no-QB-vs-DST (default on). Showdown hides stack rules. With one or more locks, a suggestions panel lists same-game partners ranked by `corr × fpts_dk_sd`. Add-to-stack requires both players in every lineup while Require stacked group is on. Suggestions are additive to `stackN` / `bringBack`.
 - Classic: 1 QB, 2–3 RB, 3–4 WR, 1–2 TE, 1 DST, 9 players. Stack / bring-back / no-QB-vs-DST are per-team (`Σ WR/TE_T ≥ n·QB_T`, `Σ opp_T ≥ k·QB_T`, `QB_T + DST_opp ≤ 1`). Showdown: CPT ≠ FLEX; CPT is 1.5× points and salary.
 - Tabs: **Yours** (`LineupCard` with salary, projection, ownership sum, stack chips; Win%/ROI are —) and **Sim 150** (`model.dfs_lineups`). “Start from this lineup” writes those DK ids into locks.
 - Export selected: `# nfl-edge run_id=… slate_id=… source=user-optimized`. IDs are `player_dk_id` only.

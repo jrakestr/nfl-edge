@@ -8,10 +8,11 @@ import { DataTable } from "@/components/ui/DataTable";
 import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
+import { positionRanks } from "@/lib/players/ranks";
 import { applyPicksToParams, emptyPicks, useSlatePicks, type PickKey } from "@/lib/slate-picks";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
-import type { ComponentProps, ReactNode } from "react";
+import { useMemo, type ComponentProps, type ReactNode } from "react";
 
 function rowFlags(p: WeekPlayer) {
   const stale = staleInjury(p.override_status, p.override_updated_at, p.run_created_at);
@@ -26,6 +27,10 @@ function num(v: number | null | undefined, digits = 1): string {
 function ownPct(v: number | null | undefined): string {
   if (v == null) return "—";
   return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
+}
+
+function rankText(v: number | null | undefined): string {
+  return v != null ? String(v) : "—";
 }
 
 const PRESSED: Partial<Record<Metric, string>> = {
@@ -95,6 +100,20 @@ export function PlayersList({
   const { picks, toggle, setPicks } = useSlatePicks(slateId);
   const buildQs = applyPicksToParams(picks, new URLSearchParams()).toString();
   const buildHref = `/week/${week}/optimize/${site}/${slate}${buildQs ? `?${buildQs}` : ""}`;
+  const ranks = useMemo(() => {
+    const proj = positionRanks(players, (p) => p.position, (p) => p.fpts_dk_mean);
+    const val = positionRanks(players, (p) => p.position, (p) => p.value);
+    const ceil = positionRanks(players, (p) => p.position, (p) => p.ceiling);
+    const m = new Map<string, { proj: number | null; val: number | null; ceil: number | null }>();
+    players.forEach((p, i) => {
+      m.set(p.player_dk_id ?? p.player_id, {
+        proj: proj[i] ?? null,
+        val: val[i] ?? null,
+        ceil: ceil[i] ?? null,
+      });
+    });
+    return m;
+  }, [players]);
 
   function pickAction(key: PickKey, p: WeekPlayer) {
     const id = p.player_dk_id;
@@ -253,13 +272,46 @@ export function PlayersList({
             },
           },
           {
+            id: "projRk",
+            header: "Pts rk",
+            align: "right",
+            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.proj,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {rankText(ranks.get(p.player_dk_id ?? p.player_id)?.proj)}
+              </span>
+            ),
+          },
+          {
             id: "floor",
-            header: "Floor / ceil",
+            header: "Floor",
+            align: "right",
+            sortValue: (p) => p.floor,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(p.floor)}
+              </span>
+            ),
+          },
+          {
+            id: "ceiling",
+            header: "Ceiling",
             align: "right",
             sortValue: (p) => p.ceiling,
             cell: (p) => (
               <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {p.floor == null && p.ceiling == null ? "—" : `${num(p.floor)}–${num(p.ceiling)}`}
+                {num(p.ceiling)}
+              </span>
+            ),
+          },
+          {
+            id: "ceilRk",
+            header: "Ceil rk",
+            align: "right",
+            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.ceil,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {rankText(ranks.get(p.player_dk_id ?? p.player_id)?.ceil)}
               </span>
             ),
           },
@@ -284,6 +336,17 @@ export function PlayersList({
             cell: (p) => (
               <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
                 {num(p.value, 2)}
+              </span>
+            ),
+          },
+          {
+            id: "valRk",
+            header: "Val rk",
+            align: "right",
+            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.val,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {rankText(ranks.get(p.player_dk_id ?? p.player_id)?.val)}
               </span>
             ),
           },

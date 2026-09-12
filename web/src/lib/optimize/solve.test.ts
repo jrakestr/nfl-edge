@@ -1,5 +1,5 @@
 import { formatUploadCsv } from "@/lib/dfs-upload";
-import { flexConstructionError } from "./classic";
+import { classicForcedInError, flexConstructionError } from "./classic";
 import { applySolveControls, parseSolveControls } from "./controls-url";
 import { DEFAULT_CLASSIC, DEFAULT_SHOWDOWN, type OptPlayer, type SolveControls } from "./types";
 import { solveClassic, solveShowdown } from "./solve";
@@ -197,6 +197,19 @@ describe("optimizer control URL", () => {
     const parsed = parseSolveControls(next, false);
     expect(parsed.flexEligible).toEqual({ RB: true, WR: true, TE: false });
     expect(parsed.stackN).toBe(1);
+    expect(parsed.requireStack).toBe(true);
+  });
+
+  it("writes reqStack=0 only when the stacked group is optional", () => {
+    const off = applySolveControls(
+      { ...DEFAULT_CLASSIC, requireStack: false },
+      new URLSearchParams("run=abc"),
+      false,
+    );
+    expect(off.get("reqStack")).toBe("0");
+    expect(parseSolveControls(off, false).requireStack).toBe(false);
+    const on = applySolveControls({ ...DEFAULT_CLASSIC }, new URLSearchParams("reqStack=0"), false);
+    expect(on.get("reqStack")).toBeNull();
   });
 });
 
@@ -228,6 +241,155 @@ describe("showdown ILP", () => {
     const lineups = await solveShowdown(SHOWDOWN, { ...DEFAULT_SHOWDOWN, salaryCap: 50000, lineups: 1 });
     const idsIn = lineups[0]!.players.map((pl) => pl.dk_id);
     expect(new Set(idsIn).size).toBe(6);
+  });
+});
+
+const SHOWDOWN_WIDE: OptPlayer[] = [
+  p("star", "Star", "WR", "SEA", "NE", 11000, 30),
+  p("cheap", "Cheap", "QB", "SEA", "NE", 6000, 20),
+  ...Array.from({ length: 14 }, (_, i) => {
+    const sea = i % 2 === 0;
+    return p(
+      `w${i}`,
+      `Wide${i}`,
+      sea ? "WR" : "RB",
+      sea ? "SEA" : "NE",
+      sea ? "NE" : "SEA",
+      7000,
+      14 - i * 0.3,
+    );
+  }),
+];
+
+describe("require stack and forced-in", () => {
+  it("requireStack on puts stacked teammates in every lineup", async () => {
+    const lineups = await solveClassic(CLASSIC, {
+      ...DEFAULT_CLASSIC,
+      lineups: 5,
+      stackIds: ["gof", "stb"],
+    });
+    expect(lineups).toHaveLength(5);
+    for (const lu of lineups) {
+      const set = ids(lu);
+      expect(set.has("gof")).toBe(true);
+      expect(set.has("stb")).toBe(true);
+    }
+  });
+
+  it("requireStack off keeps stacked players together or omits both", async () => {
+    const lineups = await solveClassic(CLASSIC, {
+      ...DEFAULT_CLASSIC,
+      lineups: 5,
+      requireStack: false,
+      stackIds: ["gof", "stb"],
+    });
+    expect(lineups).toHaveLength(5);
+    for (const lu of lineups) {
+      const set = ids(lu);
+      expect(set.has("gof")).toBe(set.has("stb"));
+    }
+  });
+
+  it("three stacked QBs returns the validation message and no lineups", async () => {
+    const pool = [...CLASSIC, p("bur", "Joe Burrow", "QB", "CIN", "CLE", 7200, 21)];
+    await expect(
+      solveClassic(pool, { ...DEFAULT_CLASSIC, stackIds: ["gof", "mah", "bur"] }),
+    ).rejects.toThrow(/3 quarterbacks selected/);
+    expect(
+      classicForcedInError(pool, { ...DEFAULT_CLASSIC, stackIds: ["gof", "mah", "bur"] }),
+    ).toMatch(/3 quarterbacks selected; a classic lineup has room for 1/);
+  });
+
+  it("stacked salary over the cap returns the salary message", async () => {
+    await expect(
+      solveClassic(CLASSIC, {
+        ...DEFAULT_CLASSIC,
+        stackIds: ["gib", "stb"],
+        salaryCap: 15000,
+        minSalary: 0,
+      }),
+    ).rejects.toThrow(/Forced-in players cost \$15,800/);
+    expect(
+      classicForcedInError(CLASSIC, {
+        ...DEFAULT_CLASSIC,
+        stackIds: ["gib", "stb"],
+        salaryCap: 15000,
+        minSalary: 0,
+      }),
+    ).toMatch(/the cap is \$15,000/);
+  });
+
+  it("locks ignore the 40% cap and appear in all ten lineups", async () => {
+    const extra: OptPlayer[] = [];
+    for (let i = 0; i < 4; i++) {
+      extra.push(p(`qb${i}`, `QB${i}`, "QB", "CHI", "MIN", 5000, 8 - i * 0.1));
+      extra.push(p(`rb${i}`, `RB${i}`, "RB", "MIN", "CHI", 4500, 7 - i * 0.1));
+      extra.push(p(`wr${i}`, `WR${i}`, "WR", "BAL", "BUF", 4200, 6 - i * 0.1));
+      extra.push(p(`te${i}`, `TE${i}`, "TE", "DAL", "PHI", 3800, 5 - i * 0.1));
+      extra.push(p(`dst${i}`, `DST${i}`, "DST", "CHI", "MIN", 2500, 4 - i * 0.1));
+    }
+    const lineups = await solveClassic([...CLASSIC, ...extra], {
+      ...DEFAULT_CLASSIC,
+      lineups: 10,
+      maxExposure: 40,
+      minSalary: 0,
+      maxPerTeam: 8,
+      locks: ["gib", "stb"],
+      stackN: 0,
+      bringBack: 0,
+      noQbVsDst: false,
+    });
+    expect(lineups).toHaveLength(10);
+    const counts = new Map<string, number>();
+    for (const lu of lineups) {
+      const set = ids(lu);
+      expect(set.has("gib")).toBe(true);
+      expect(set.has("stb")).toBe(true);
+      for (const id of set) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    for (const [id, n] of counts) {
+      if (id === "gib" || id === "stb") continue;
+      expect(n).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("eight locks plus uniqueness stop after the first of five lineups", async () => {
+    await expect(
+      solveClassic(CLASSIC, {
+        ...DEFAULT_CLASSIC,
+        lineups: 5,
+        minSalary: 0,
+        stackN: 0,
+        bringBack: 0,
+        noQbVsDst: false,
+        locks: ["gof", "coo", "pac", "wor", "sha", "moe", "and", "lac"],
+      }),
+    ).rejects.toThrow(/Generated 1 of 5 lineups/);
+  });
+});
+
+describe("showdown lock and exposure", () => {
+  it("lock means in the lineup, not CPT, and ignores the 40% cap", async () => {
+    const lineups = await solveShowdown(SHOWDOWN_WIDE, {
+      ...DEFAULT_SHOWDOWN,
+      salaryCap: 50000,
+      lineups: 5,
+      maxExposure: 40,
+      locks: ["star"],
+    });
+    expect(lineups).toHaveLength(5);
+    const counts = new Map<string, number>();
+    for (const lu of lineups) {
+      const set = ids(lu);
+      expect(set.has("star")).toBe(true);
+      expect(lu.players.find((pl) => pl.dk_id === "star")?.slot).not.toBe("CPT");
+      expect(lu.salary_used).toBeLessThanOrEqual(50000);
+      for (const id of set) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    for (const [id, n] of counts) {
+      if (id === "star") continue;
+      expect(n).toBeLessThanOrEqual(2);
+    }
   });
 });
 

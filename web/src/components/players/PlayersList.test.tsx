@@ -135,6 +135,17 @@ describe("PlayersList slate rows", () => {
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
   });
 
+  it("shows ceiling and position ranks and not leverage", () => {
+    render(<PlayersList players={MAIN} />);
+    expect(screen.getByRole("columnheader", { name: "Ceiling" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Pts rk" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Val rk" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Ceil rk" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Leverage" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Floor / ceil" })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Floor" })).toBeInTheDocument();
+  });
+
   it("FLEX row shows the real position, never a FLEX chip", () => {
     render(<PlayersList players={MAIN} />);
     expect(screen.getByLabelText("RB")).toBeInTheDocument();

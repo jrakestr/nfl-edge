@@ -19,6 +19,7 @@ export const CONTROL_PARAMS = [
   "flexRB",
   "flexWR",
   "flexTE",
+  "reqStack",
 ] as const;
 
 export function classicBaseline(): SolveControls {
@@ -54,6 +55,7 @@ export function parseSolveControls(sp: URLSearchParams, showdown: boolean): Solv
       WR: flag(sp.get("flexWR"), true),
       TE: flag(sp.get("flexTE"), true),
     },
+    requireStack: flag(sp.get("reqStack"), base.requireStack),
   };
 }
 
@@ -81,5 +83,6 @@ export function applySolveControls(
   setOrDel("flexRB", flex.RB ? "1" : "0", flex.RB);
   setOrDel("flexWR", flex.WR ? "1" : "0", flex.WR);
   setOrDel("flexTE", flex.TE ? "1" : "0", flex.TE);
+  setOrDel("reqStack", controls.requireStack ? "1" : "0", controls.requireStack === def.requireStack);
   return p;
 }

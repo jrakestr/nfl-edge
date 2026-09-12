@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import type { SlateCorr } from "@/lib/optimize/stack-suggestions";
 import {
   CorrPairSchema,
   DfsExposureSchema,
@@ -134,6 +135,23 @@ export async function salaryLookup(site: string, slateId: string): Promise<Recor
     };
   }
   return out;
+}
+
+/** Same-game pairs where both endpoints are on this slate. One-way storage; caller resolves either column. */
+export async function slateCorrelations(runId: string, playerIds: string[]): Promise<SlateCorr[]> {
+  if (playerIds.length === 0) return [];
+  const rows = await sql()`
+    select c.player_id_a, c.player_id_b, c.corr_dk::float8 as corr_dk
+    from model.player_correlations c
+    where c.run_id = ${runId}::uuid
+      and c.corr_dk is not null
+      and c.player_id_a = any(${playerIds})
+      and c.player_id_b = any(${playerIds})`;
+  return rows.map((r) => ({
+    player_id_a: String(r.player_id_a),
+    player_id_b: String(r.player_id_b),
+    corr_dk: Number(r.corr_dk),
+  }));
 }
 
 export function salaryPositions(lookup: Record<string, SalaryLookup>): Record<string, string> {

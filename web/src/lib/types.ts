@@ -355,6 +355,7 @@ export const WeekPlayerSchema = z.object({
   team: z.string().nullable(),
   game_id: z.string().nullable(),
   fpts_dk_mean: numOrNull,
+  fpts_dk_sd: numOrNull.optional(),
   typical_dk: numOrNull,
   hist: HistSchema.nullable(),
   player_dk_id: z.string().nullable().optional(),

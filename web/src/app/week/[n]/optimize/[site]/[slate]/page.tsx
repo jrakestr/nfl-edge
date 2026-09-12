@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Optimizer } from "@/components/optimize/Optimizer";
 import { CURRENT_SEASON } from "@/lib/config";
-import { dfsLineups, salaryLookup, salaryPositions, slateId, slatesForWeek } from "@/lib/queries/dfs";
+import { dfsLineups, salaryLookup, salaryPositions, slateCorrelations, slateId, slatesForWeek } from "@/lib/queries/dfs";
 import { slatePlayers } from "@/lib/queries/players";
+import { slateCorrIds } from "@/lib/optimize/stack-suggestions";
 import { lineupRunForWeek } from "@/lib/queries/runs";
 import { requestedSlate, resolveSlate } from "@/lib/slate";
 
@@ -46,6 +47,7 @@ export default async function Page({
         salaryLookup(siteKey, sid),
       ])
     : [[], [], {} as Awaited<ReturnType<typeof salaryLookup>>];
+  const pairs = run ? await slateCorrelations(run.run_id, slateCorrIds(players)) : [];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
 
   return (
@@ -57,6 +59,7 @@ export default async function Page({
       slateId={sid}
       runId={run?.run_id ?? null}
       players={players}
+      pairs={pairs}
       simLineups={simLineups}
       teams={teams}
       positions={salaryPositions(lookup)}

@@ -2,6 +2,12 @@
 
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
 
+## Optimizer stack suggestions (2026-09-12)
+
+What changed: Optimize shows same-game partners ranked by `corr × fpts_dk_sd` when anyone is locked; Players gained ceiling and position ranks. Leverage stayed off — `parse_exposure_csv` still shifts columns.
+What was verified: web lint, typecheck, test, build. Require in stack wrote the pair; five generated lineups all contained Allen + Moore; two locked QBs returned "2 quarterbacks selected; a classic lineup has room for 1".
+What was deferred: Leverage column and sort until the exposure parser reads by position.
+
 ## Web v2 — Checkpoint A (2026-09-07)
 - Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable (`syncUrl={false}`).
 - Preview (Deployment Protection on): https://nfl-edge-e7zp5ltd1-transit-trends.vercel.app — `/week/1`, `/week/1/dfs/dk/main`, `/week/1/players/dk/main`, `/props`, `/week/1/optimize/dk/main`. `npm run a11y` (axe via Playwright) found no `color-contrast` violations on those five pages.

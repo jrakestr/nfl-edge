@@ -41,6 +41,7 @@ export type SolveControls = {
   locks: string[];
   excludes: string[];
   stackIds: string[];
+  requireStack: boolean;
 };
 
 export const DEFAULT_CLASSIC: SolveControls = {
@@ -57,6 +58,7 @@ export const DEFAULT_CLASSIC: SolveControls = {
   locks: [],
   excludes: [],
   stackIds: [],
+  requireStack: true,
 };
 
 export const DEFAULT_SHOWDOWN: SolveControls = {

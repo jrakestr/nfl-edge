@@ -42,6 +42,48 @@ export function flexConstructionError(controls: SolveControls): string | null {
   return `FLEX needs 7 skill players; ${parts} need at least ${min}. Lower a position minimum.`;
 }
 
+const SKILL_WORD: Record<FlexPos, string> = {
+  RB: "running backs",
+  WR: "wide receivers",
+  TE: "tight ends",
+};
+
+function usd(n: number): string {
+  return `$${n.toLocaleString("en-US")}`;
+}
+
+/** Locks, plus the stacked group when requireStack is on and the group has 2+ pool members. */
+export function forcedInPlayers(players: OptPlayer[], controls: SolveControls): OptPlayer[] {
+  const want = new Set(controls.locks);
+  const stack = controls.stackIds.filter((id) => players.some((p) => p.player_dk_id === id));
+  if (controls.requireStack && stack.length >= 2) {
+    for (const id of stack) want.add(id);
+  }
+  return players.filter((p) => want.has(p.player_dk_id));
+}
+
+/** Plain-language conflict for an impossible classic pick set. Null if the set can be built. */
+export function classicForcedInError(players: OptPlayer[], controls: SolveControls): string | null {
+  const forced = forcedInPlayers(players, controls);
+  const qbs = forced.filter((p) => p.position === "QB").length;
+  if (qbs > 1) return `${qbs} quarterbacks selected; a classic lineup has room for 1`;
+  const dsts = forced.filter((p) => p.position === "DST").length;
+  if (dsts > 1) return `${dsts} defenses selected; a classic lineup has room for 1`;
+  if (forced.length > 9) return `${forced.length} players selected; a classic lineup has room for 9`;
+  const sal = forced.reduce((s, p) => s + p.salary, 0);
+  if (sal > controls.salaryCap) {
+    return `Forced-in players cost ${usd(sal)}; the cap is ${usd(controls.salaryCap)}`;
+  }
+  for (const pos of ["RB", "WR", "TE"] as FlexPos[]) {
+    const n = forced.filter((p) => p.position === pos).length;
+    const { hi } = posRange(pos, controls);
+    if (n > hi) return `${n} ${SKILL_WORD[pos]} selected; a classic lineup has room for ${hi}`;
+  }
+  const skill = forced.filter((p) => p.position === "RB" || p.position === "WR" || p.position === "TE").length;
+  if (skill > 7) return `${skill} skill players selected; a classic lineup has room for 7`;
+  return null;
+}
+
 export function classicConstraints(
   players: OptPlayer[],
   controls: SolveControls,
@@ -151,6 +193,13 @@ export function classicConstraints(
           { name: x(j), coef: -1 },
         ],
         bound: { kind: "eq", val: 0 },
+      });
+    }
+    if (controls.requireStack) {
+      constraints.push({
+        name: `stk_req_${stack[0]}`,
+        vars: vars([first]),
+        bound: { kind: "eq", val: 1 },
       });
     }
   }

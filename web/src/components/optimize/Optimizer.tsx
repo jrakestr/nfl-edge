@@ -4,17 +4,19 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { LineupCard } from "@/components/dfs/LineupCard";
+import { StackSuggestions } from "@/components/optimize/StackSuggestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatUploadCsv } from "@/lib/dfs-upload";
 import { fallbackNotice } from "@/lib/slate";
 import { useSlatePicks } from "@/lib/slate-picks";
-import { flexConstructionError } from "@/lib/optimize/classic";
+import { classicForcedInError, flexConstructionError } from "@/lib/optimize/classic";
 import { applySolveControls, parseSolveControls } from "@/lib/optimize/controls-url";
 import { poolFromPlayers } from "@/lib/optimize/pool";
 import { solveSlate } from "@/lib/optimize/solve";
 import { type FlexPos, type SolveControls, type SolvedLineup } from "@/lib/optimize/types";
+import type { SlateCorr } from "@/lib/optimize/stack-suggestions";
 import type { DfsLineup, WeekPlayer } from "@/lib/types";
 
 function asDfs(lu: SolvedLineup): DfsLineup {
@@ -63,6 +65,7 @@ export function Optimizer({
   slateId = "",
   runId = null,
   players = [],
+  pairs = [],
   simLineups = [],
   teams = {},
   positions = {},
@@ -76,6 +79,7 @@ export function Optimizer({
   slateId?: string;
   runId?: string | null;
   players?: WeekPlayer[];
+  pairs?: SlateCorr[];
   simLineups?: DfsLineup[];
   teams?: Record<string, string>;
   positions?: Record<string, string>;
@@ -125,8 +129,14 @@ export function Optimizer({
   }
 
   async function generate() {
+    const live = {
+      ...controls,
+      locks: picks.lock,
+      excludes: picks.excl,
+      stackIds: picks.stack,
+    };
     if (!showdown) {
-      const conflict = flexConstructionError(controls);
+      const conflict = flexConstructionError(live) ?? classicForcedInError(pool, live);
       if (conflict) {
         setError(conflict);
         return;
@@ -135,16 +145,7 @@ export function Optimizer({
     setBusy(true);
     setError(null);
     try {
-      const result = await solveSlate(
-        pool,
-        {
-          ...controls,
-          locks: picks.lock,
-          excludes: picks.excl,
-          stackIds: picks.stack,
-        },
-        showdown,
-      );
+      const result = await solveSlate(pool, live, showdown);
       setYours(result);
       setSelected(new Set(result.map((l) => l.lineup_id)));
       setTab("yours");
@@ -232,6 +233,17 @@ export function Optimizer({
               No QB vs opposing DST
             </label>
           ) : null}
+          {!showdown ? (
+            <label className="flex items-center gap-2 pb-1 t-body text-foreground">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={controls.requireStack}
+                onChange={(e) => patch({ requireStack: e.target.checked })}
+              />
+              Require stacked group
+            </label>
+          ) : null}
           <Button type="button" disabled={busy || pool.length === 0} onClick={generate}>
             {busy ? "Solving…" : "Generate"}
           </Button>
@@ -239,6 +251,20 @@ export function Optimizer({
         <p className="mt-3 t-caption">
           Pool {pool.length} · locked {picks.lock.length} · excluded {picks.excl.length}
         </p>
+        <p className="t-caption">Max exposure does not apply to locked players or a required stack.</p>
+        <StackSuggestions
+          players={players}
+          pairs={pairs}
+          locks={picks.lock}
+          excludes={picks.excl}
+          stack={picks.stack}
+          onAdd={(partnerDkId, anchorDkId) => {
+            const next = new Set(picks.stack);
+            next.add(partnerDkId);
+            next.add(anchorDkId);
+            setPicks({ ...picks, stack: [...next] });
+          }}
+        />
         {error ? (
           <p className="mt-2 t-body text-warn" role="status">
             {error}
