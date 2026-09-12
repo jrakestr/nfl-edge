@@ -18,14 +18,17 @@ def test_scores_unpublished_when_no_weekly_rows():
 
 def test_stats_json_maps_nflverse_keys_to_scoring_keys():
     raw = {
-        "passing_yards": 250, "passing_tds": 2, "interceptions": 1,
+        "passing_yards": 250, "passing_tds": 2, "passing_interceptions": 1,
         "rushing_yards": 20, "rushing_tds": 0, "carries": 4,
         "receptions": 0, "receiving_yards": 0, "receiving_tds": 0,
         "rushing_fumbles_lost": 0, "receiving_fumbles_lost": 0, "sack_fumbles_lost": 0,
+        "passing_2pt_conversions": 1,
     }
     s = D.offense_from_weekly(raw)
     pts = scoring.score_offense({k: np.array([v]) for k, v in s.items()}, RULES)
-    assert pts["dk"][0] == pytest.approx(250 * 0.04 + 2 * 4 - 1 + 20 * 0.1)
+    assert s["int"] == 1
+    assert s["two_pt"] == 1
+    assert pts["dk"][0] == pytest.approx(250 * 0.04 + 2 * 4 - 1 + 20 * 0.1 + 2)
 
 
 def test_lineup_dk_points_sums_skill_players():

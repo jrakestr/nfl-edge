@@ -12,17 +12,7 @@ import numpy as np
 from ..config import load_yaml
 from ..db import read_sql
 from ..sim import scoring
-
-WEEKLY_TO_OFF = {
-    "passing_yards": "pass_yds",
-    "passing_tds": "pass_td",
-    "interceptions": "int",
-    "rushing_yards": "rush_yds",
-    "rushing_tds": "rush_td",
-    "receptions": "rec",
-    "receiving_yards": "rec_yds",
-    "receiving_tds": "rec_td",
-}
+from .actuals import offense_from_weekly
 
 
 def scores_published(n_weekly_rows: int) -> bool:
@@ -38,23 +28,6 @@ def skip_unpublished(season: int, week: int) -> dict:
         "n_lineups": 0,
         "lineups": [],
     }
-
-
-def offense_from_weekly(stats: dict | None) -> dict[str, float]:
-    """Map nflverse player_stats_weekly jsonb keys onto scoring.score_offense keys."""
-    raw = stats or {}
-    out = {k: 0.0 for k in scoring.OFF_KEYS}
-    for src, dst in WEEKLY_TO_OFF.items():
-        v = raw.get(src)
-        if v is not None:
-            out[dst] = float(v)
-    fum = 0.0
-    for k in ("rushing_fumbles_lost", "receiving_fumbles_lost", "sack_fumbles_lost"):
-        v = raw.get(k)
-        if v is not None:
-            fum += float(v)
-    out["fum_lost"] = fum
-    return out
 
 
 def lineup_dk_points(player_stats: list[dict | None], rules: dict) -> float | None:
