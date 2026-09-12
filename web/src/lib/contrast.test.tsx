@@ -23,6 +23,7 @@ import { NO_TRACK, fixture, fixtureChecks, fixtureRows, fixtureVerdicts } from "
 import { sortVerdicts } from "@/lib/queries/verdicts";
 import { maxEdge } from "@/lib/edge";
 import { PropDetail } from "@/components/prop/PropDetail";
+import { Optimizer } from "@/components/optimize/Optimizer";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -270,6 +271,11 @@ describe("page audit: readable text ≥ 4.5:1", () => {
   it("Grading empty", () => {
     const { container } = render(<GradingPage />);
     audit(container, "grading");
+  });
+
+  it("Optimize empty", () => {
+    const { container } = render(<Optimizer week="1" site="dk" slate="main" />);
+    audit(container, "optimize");
   });
 
   it("Prop detail empty", () => {

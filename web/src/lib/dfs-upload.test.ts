@@ -39,12 +39,20 @@ const SHOWDOWN: DfsLineup = {
 };
 
 describe("formatUploadCsv", () => {
-  it("stamps run_id and keeps this slate's IDs", () => {
+  it("stamps run_id, slate_id, and source=sim by default", () => {
     const text = formatUploadCsv("abc-run", "2026_01_full", [SAMPLE]);
-    expect(text).toContain("abc-run");
-    expect(text).toContain("2026_01_full");
+    expect(text).toContain("run_id=abc-run");
+    expect(text).toContain("slate_id=2026_01_full");
+    expect(text).toContain("source=sim");
     expect(text).toContain("666");
     expect(text).not.toContain("0001");
+  });
+
+  it("stamps source=user-optimized for browser solves", () => {
+    const text = formatUploadCsv("abc-run", "2026_01_main", [SAMPLE], "user-optimized");
+    expect(text.split("\n")[0]).toBe(
+      "# nfl-edge run_id=abc-run slate_id=2026_01_main source=user-optimized",
+    );
   });
 
   it("uses the CPT header for showdown lineups", () => {

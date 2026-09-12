@@ -21,6 +21,7 @@ import { PlayersList } from "@/components/players/PlayersList";
 import { FairPropsIndex } from "@/components/props/FairPropsIndex";
 import { GradingPage } from "@/components/grading/GradingPage";
 import { LineupReview } from "@/components/dfs/LineupReview";
+import { Optimizer } from "@/components/optimize/Optimizer";
 
 describe("empty sidebar layouts", () => {
   it("Games: table chrome and empty copy", () => {
@@ -58,6 +59,15 @@ describe("empty sidebar layouts", () => {
     render(<LineupReview week="1" site="dk" slate="showdown" />);
     expect(screen.getByText("CPT")).toBeInTheDocument();
     expect(screen.queryByText("QB")).not.toBeInTheDocument();
+  });
+
+  it("Optimize: settings and empty yours tab", () => {
+    render(<Optimizer week="1" site="dk" slate="main" />);
+    expect(screen.getByRole("heading", { name: "Optimize" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
+    expect(screen.getByText("Yours")).toBeInTheDocument();
+    expect(screen.getByText("Sim 150")).toBeInTheDocument();
+    expect(screen.getByText("No user lineups yet.")).toBeInTheDocument();
   });
 
   it("Grading: Actual column, tiles, calibration slot", () => {

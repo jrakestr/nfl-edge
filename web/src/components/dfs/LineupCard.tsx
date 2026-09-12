@@ -37,6 +37,7 @@ export function LineupCard({
   onToggle,
   slate,
   staleDkIds = new Set(),
+  ownershipSum,
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
@@ -45,6 +46,7 @@ export function LineupCard({
   onToggle?: () => void;
   slate?: string;
   staleDkIds?: Set<string>;
+  ownershipSum?: number | null;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
@@ -98,6 +100,14 @@ export function LineupCard({
                 {lineup.proj_fpts != null ? lineup.proj_fpts.toFixed(1) : "—"}
               </span>
             </MetricLabel>
+            {ownershipSum != null ? (
+              <MetricLabel metric="ownership">
+                Own{" "}
+                <span className="tnum font-semibold text-foreground">
+                  {fmtPct(ownershipSum, 1)}
+                </span>
+              </MetricLabel>
+            ) : null}
             <MetricLabel metric="winPct">
               Win %{" "}
               <span className="tnum font-semibold text-foreground">

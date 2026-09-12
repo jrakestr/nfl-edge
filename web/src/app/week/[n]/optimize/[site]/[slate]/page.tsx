@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { SlateSelector } from "@/components/shell/SlateSelector";
+import { Optimizer } from "@/components/optimize/Optimizer";
 import { CURRENT_SEASON } from "@/lib/config";
-import { slateId, slatesForWeek } from "@/lib/queries/dfs";
+import { dfsLineups, salaryLookup, salaryPositions, slateId, slatesForWeek } from "@/lib/queries/dfs";
+import { slatePlayers } from "@/lib/queries/players";
 import { lineupRunForWeek } from "@/lib/queries/runs";
-import { fallbackNotice, requestedSlate, resolveSlate } from "@/lib/slate";
+import { requestedSlate, resolveSlate } from "@/lib/slate";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,6 @@ function one(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-/** Placeholder so NAV and breadcrumbs resolve before the browser ILP. */
 export default async function Page({
   params,
   searchParams,
@@ -37,23 +37,31 @@ export default async function Page({
   const slate = resolved.slate;
   const sid = weekOk ? slateId(season, week, slate) : "";
   const picked = weekOk ? await lineupRunForWeek(season, week, siteKey, sid, one(sp.run)) : null;
+  const run = picked?.run ?? null;
+
+  const [players, simLineups, lookup] = run
+    ? await Promise.all([
+        slatePlayers(run.run_id, siteKey, sid),
+        dfsLineups(run.run_id, siteKey, sid),
+        salaryLookup(siteKey, sid),
+      ])
+    : [[], [], {} as Awaited<ReturnType<typeof salaryLookup>>];
+  const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-3">
-        <h1 className="t-title">Optimize</h1>
-        <SlateSelector week={week} site={siteKey} page="optimize" slate={slate} slates={available} />
-        {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
-        {picked?.buildInProgress ? (
-          <p className="t-caption text-warn" role="note">
-            Sunday build in progress
-          </p>
-        ) : null}
-        <p className="t-body text-muted-foreground">
-          Week {n} · {site.toUpperCase()} · {slate}. Lineups generate here once the browser optimizer is
-          wired.
-        </p>
-      </header>
-    </div>
+    <Optimizer
+      week={n}
+      site={siteKey}
+      slate={slate}
+      slates={available}
+      slateId={sid}
+      runId={run?.run_id ?? null}
+      players={players}
+      simLineups={simLineups}
+      teams={teams}
+      positions={salaryPositions(lookup)}
+      fallbackFrom={fallbackFrom}
+      buildInProgress={picked?.buildInProgress ?? false}
+    />
   );
 }
