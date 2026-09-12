@@ -63,6 +63,10 @@ vi.mock("@/lib/queries/results", () => ({
 vi.mock("@/lib/queries/players", () => ({
   topPlayersByGame: async () => ({}),
 }));
+vi.mock("@/lib/queries/team-inputs", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@/lib/queries/team-inputs")>();
+  return { ...orig, teamInputsForRun: async () => ({}) };
+});
 
 import WeekPage from "@/app/week/[n]/page";
 

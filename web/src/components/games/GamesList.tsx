@@ -15,6 +15,7 @@ import type { WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results
 import { fallbackNotice, slateGameCountLabel } from "@/lib/slate";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
+import { inputsForMatchup, type TeamInput } from "@/lib/team-input";
 import { cn } from "@/lib/utils";
 
 export { simScore } from "@/lib/implied";
@@ -31,6 +32,7 @@ export function GamesList({
   toolbar,
   fallbackFrom,
   runCreatedAt,
+  teamInputs = {},
 }: {
   week?: number;
   rows?: BoardRow[];
@@ -43,6 +45,7 @@ export function GamesList({
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
   runCreatedAt?: string | null;
+  teamInputs?: Record<string, TeamInput>;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const ordered = useMemo(() => sortBoardRows(rows), [rows]);
@@ -171,6 +174,7 @@ export function GamesList({
         checks={open ? (checks[open.game_id] ?? null) : null}
         players={open ? (playersByGame[open.game_id] ?? []) : []}
         runCreatedAt={runCreatedAt}
+        teamInputs={open ? inputsForMatchup(teamInputs, open.away, open.home) : {}}
         open={open != null}
         onOpenChange={(v) => {
           if (!v) setOpenId(null);

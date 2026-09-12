@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { DrawerPlayer } from "@/lib/queries/players";
+import type { TeamInput } from "@/lib/team-input";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import { GameDrawer } from "./GameDrawer";
 import { useGameOpen } from "./useGameOpen";
@@ -17,6 +18,7 @@ export function GameOpenShell({
   checks,
   players = [],
   runCreatedAt,
+  teamInputs = {},
   children,
 }: {
   openId: string | null;
@@ -25,6 +27,7 @@ export function GameOpenShell({
   checks: GameChecks | null;
   players?: DrawerPlayer[];
   runCreatedAt?: string | null;
+  teamInputs?: Record<string, TeamInput>;
   children: ReactNode;
 }) {
   const setGame = useGameOpen();
@@ -37,6 +40,7 @@ export function GameOpenShell({
         checks={checks}
         players={players}
         runCreatedAt={runCreatedAt}
+        teamInputs={teamInputs}
         open={openId != null && row != null}
         onOpenChange={(o) => {
           if (!o) setGame(null);

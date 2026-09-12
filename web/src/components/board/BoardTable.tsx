@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/ui/DataTable";
 import { displayValue, homeLine, maxEdge, pct } from "@/lib/edge";
 import { sortBoardRows } from "@/lib/board-sort";
 import { kickoffLabel } from "@/lib/format";
 import { slot as kickoffSlot } from "@/lib/teams";
-import { marketGapCaptions } from "@/lib/queries/checks";
+import { marketGapCaptions } from "@/lib/check-display";
 import type { BoardRow, GameChecks } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";

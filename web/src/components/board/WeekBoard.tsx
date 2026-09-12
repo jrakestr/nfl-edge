@@ -1,6 +1,7 @@
 import type { TrackRecord, WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import type { DrawerPlayer } from "@/lib/queries/players";
-import { groupFailedChecks, marketGapCaptions } from "@/lib/queries/checks";
+import { groupFailedChecks, marketGapCaptions } from "@/lib/check-display";
+import { inputsForMatchup, type TeamInput } from "@/lib/team-input";
 import type { BoardRow, GameChecks, VerdictRow } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
@@ -32,6 +33,7 @@ export type WeekBoardProps = {
   scoreboard: WeekScoreboardData;
   playersByGame?: Record<string, DrawerPlayer[]>;
   openGameId?: string | null;
+  teamInputs?: Record<string, TeamInput>;
 };
 
 /** The Edge board, pure over its props (the page loads them; the route test feeds a fixture). */
@@ -68,89 +70,93 @@ export function WeekBoard(p: WeekBoardProps) {
   const linesAsOf = maxIso(p.rows.map((r) => r.captured_at));
   const verdictsAsOf = maxIso(p.verdicts.map((v) => v.payload.market?.captured_at));
 
-  const caption = p.run
-    ? `Run ${shortRun(p.run.run_id)} · ${fmtDraws(p.run.draws_per_game)} draws per game · ${remainingRows.length} games`
-    : `No sim run for week ${p.week} yet`;
+  const header = (
+    <WeekHeader
+      season={p.season}
+      week={p.week}
+      weeks={p.weeks}
+      view={p.view}
+      filters={p.filters}
+      run={p.run}
+      runs={p.runs}
+      stale={p.stale}
+      linesAsOf={linesAsOf}
+      verdictsAsOf={verdictsAsOf}
+    />
+  );
 
-  return (
-    <>
-      <WeekHeader
-        season={p.season}
-        week={p.week}
-        weeks={p.weeks}
-        view={p.view}
-        filters={p.filters}
-        run={p.run}
-        runs={p.runs}
-        stale={p.stale}
-        linesAsOf={linesAsOf}
-        verdictsAsOf={verdictsAsOf}
-      />
-
-      {!p.run ? (
+  if (!p.run) {
+    return (
+      <>
+        {header}
         <EmptyState title={`Week ${p.week}`}>
           No simulation for this week yet. Run `nfl-edge sim --season {p.season} --week {p.week}` and then `nfl-edge
           lines`.
         </EmptyState>
-      ) : (
-        <>
-          <WeekScoreboard board={p.scoreboard} />
-          <WeekSummaryCard summary={summary} caption={caption} />
+      </>
+    );
+  }
 
-          {missingVerdicts > 0 ? (
-            <p className="t-caption text-warn" role="note">
-              {missingVerdicts} of {remainingRows.length} games have a newer line than their verdict.
-            </p>
-          ) : null}
+  const run = p.run;
+  const caption = `Run ${shortRun(run.run_id)} · ${fmtDraws(run.draws_per_game)} draws per game · ${remainingRows.length} games`;
+  const openRow = p.openGameId ? (rowOf[p.openGameId] ?? null) : null;
 
-          <ChecksPanel
-            groups={groupFailedChecks(p.checks, p.rows)}
-            runCreatedAt={p.run.created_at}
-          />
+  return (
+    <>
+      {header}
+      <WeekScoreboard board={p.scoreboard} />
+      <WeekSummaryCard summary={summary} caption={caption} />
 
-          <GameOpenShell
-            openId={p.openGameId ?? null}
-            row={p.openGameId ? (rowOf[p.openGameId] ?? null) : null}
-            verdict={p.openGameId ? (byGame[p.openGameId] ?? null) : null}
-            checks={p.openGameId ? (p.checks[p.openGameId] ?? null) : null}
-            players={p.openGameId ? (p.playersByGame?.[p.openGameId] ?? []) : []}
-            runCreatedAt={p.run.created_at}
-          >
-            {p.view === "plain" ? (
-              <div className="flex flex-col gap-3" data-view="plain">
-                {verdicts.map((v) => {
-                  const row = p.rows.find((r) => r.game_id === v.game_id);
-                  return (
-                    <OpenGameTrigger key={v.game_id} gameId={v.game_id}>
-                      <VerdictCard
-                        payload={v.payload}
-                        row={row}
-                        liveEdges={row?.has_started ? undefined : row?.edges}
-                        failedChecks={p.checks[v.game_id]?.failed ?? []}
-                        gapCaptions={marketGapCaptions(p.checks[v.game_id], p.run.created_at)}
-                      />
-                    </OpenGameTrigger>
-                  );
-                })}
-                {verdicts.length === 0 ? (
-                  <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>
-                ) : null}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4" data-view="table">
-                <SummaryTiles payloads={payloads} track={p.track} />
-                <BoardTable
-                  rows={p.rows}
-                  checks={p.checks}
-                  draws={p.run.draws_per_game}
-                  filters={p.filters}
-                  runCreatedAt={p.run.created_at}
-                />
-              </div>
-            )}
-          </GameOpenShell>
-        </>
-      )}
+      {missingVerdicts > 0 ? (
+        <p className="t-caption text-warn" role="note">
+          {missingVerdicts} of {remainingRows.length} games have a newer line than their verdict.
+        </p>
+      ) : null}
+
+      <ChecksPanel groups={groupFailedChecks(p.checks, p.rows)} runCreatedAt={run.created_at} />
+
+      <GameOpenShell
+        openId={p.openGameId ?? null}
+        row={openRow}
+        verdict={p.openGameId ? (byGame[p.openGameId] ?? null) : null}
+        checks={p.openGameId ? (p.checks[p.openGameId] ?? null) : null}
+        players={p.openGameId ? (p.playersByGame?.[p.openGameId] ?? []) : []}
+        runCreatedAt={run.created_at}
+        teamInputs={openRow ? inputsForMatchup(p.teamInputs ?? {}, openRow.away, openRow.home) : {}}
+      >
+        {p.view === "plain" ? (
+          <div className="flex flex-col gap-3" data-view="plain">
+            {verdicts.map((v) => {
+              const row = p.rows.find((r) => r.game_id === v.game_id);
+              return (
+                <OpenGameTrigger key={v.game_id} gameId={v.game_id}>
+                  <VerdictCard
+                    payload={v.payload}
+                    row={row}
+                    liveEdges={row?.has_started ? undefined : row?.edges}
+                    failedChecks={p.checks[v.game_id]?.failed ?? []}
+                    gapCaptions={marketGapCaptions(p.checks[v.game_id], run.created_at)}
+                  />
+                </OpenGameTrigger>
+              );
+            })}
+            {verdicts.length === 0 ? (
+              <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4" data-view="table">
+            <SummaryTiles payloads={payloads} track={p.track} />
+            <BoardTable
+              rows={p.rows}
+              checks={p.checks}
+              draws={run.draws_per_game}
+              filters={p.filters}
+              runCreatedAt={run.created_at}
+            />
+          </div>
+        )}
+      </GameOpenShell>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ChecksPanel } from "./ChecksPanel";
-import type { FailedCheckGroup } from "@/lib/queries/checks";
+import type { FailedCheckGroup } from "@/lib/check-display";
 
 const replace = vi.fn();
 

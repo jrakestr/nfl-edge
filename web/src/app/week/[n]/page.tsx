@@ -8,6 +8,7 @@ import { CURRENT_SEASON } from "@/lib/config";
 import { boardRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { topPlayersByGame } from "@/lib/queries/players";
+import { teamInputsForRun } from "@/lib/queries/team-inputs";
 import { trackRecord, weekScoreboard } from "@/lib/queries/results";
 import { newerRunExists, pickDefaultRun, runsForWeek, slateGameCount, weeksWithRuns } from "@/lib/queries/runs";
 import { verdictsForRun } from "@/lib/queries/verdicts";
@@ -57,14 +58,15 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
   ]);
   const run = pickDefaultRun(runs, slateGames, pinned);
 
-  const [verdicts, rows, checks, playersByGame] = run
+  const [verdicts, rows, checks, playersByGame, teamInputs] = run
     ? await Promise.all([
         verdictsForRun(run.run_id),
         boardRows(run.run_id),
         checksForRun(run.run_id),
         topPlayersByGame(run.run_id),
+        teamInputsForRun(run.run_id),
       ])
-    : [[], [], new Map<string, GameChecks>(), {}];
+    : [[], [], new Map<string, GameChecks>(), {}, {}];
 
   return (
     <WeekBoard
@@ -83,6 +85,7 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
       scoreboard={scoreboard}
       playersByGame={playersByGame}
       openGameId={one(sp.game) ?? null}
+      teamInputs={teamInputs}
     />
   );
 }

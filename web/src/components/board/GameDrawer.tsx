@@ -4,7 +4,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { DataTable } from "@/components/ui/DataTable";
 import { direction, intensity, pct, price, signedPct } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
-import { formatFailedLine } from "@/lib/queries/checks";
+import { formatFailedLine } from "@/lib/check-display";
+import type { TeamInput } from "@/lib/team-input";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
 import { CheckStatus } from "./CheckStatus";
@@ -37,6 +38,7 @@ export function GameDrawer({
   checks,
   players = [],
   runCreatedAt,
+  teamInputs = {},
   open,
   onOpenChange,
 }: {
@@ -45,6 +47,7 @@ export function GameDrawer({
   checks: GameChecks | null;
   players?: DrawerPlayer[];
   runCreatedAt?: string | null;
+  teamInputs?: Record<string, TeamInput>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -160,7 +163,7 @@ export function GameDrawer({
               </section>
               )}
 
-              <GameWhy row={row} runCreatedAt={runCreatedAt} />
+              <GameWhy row={row} runCreatedAt={runCreatedAt} inputs={teamInputs} />
 
               <section aria-label="Checks" className="flex flex-col gap-1">
                 <h4 className="t-colhead text-muted-foreground">Checks</h4>

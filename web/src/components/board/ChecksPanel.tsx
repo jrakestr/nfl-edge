@@ -1,6 +1,6 @@
 "use client";
 
-import { formatFailedLine, type FailedCheckGroup } from "@/lib/queries/checks";
+import { formatFailedLine, type FailedCheckGroup } from "@/lib/check-display";
 import { useGameOpen } from "./useGameOpen";
 
 export function ChecksPanel({

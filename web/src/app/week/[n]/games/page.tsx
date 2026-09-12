@@ -7,6 +7,7 @@ import { checksForRun } from "@/lib/queries/checks";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
 import { ngsByGame } from "@/lib/queries/games";
 import { topPlayersByGame } from "@/lib/queries/players";
+import { teamInputsForRun } from "@/lib/queries/team-inputs";
 import { weekScoreboard } from "@/lib/queries/results";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
 import { requestedSlate, resolveSlate, filterGamesForSlate } from "@/lib/slate";
@@ -48,7 +49,7 @@ export default async function Page({
   const run = pickDefaultRun(runs, weekGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
 
-  const [allRows, verdicts, checks, playersByGame, infos, scoreboard] = run
+  const [allRows, verdicts, checks, playersByGame, infos, scoreboard, teamInputs] = run
     ? await Promise.all([
         boardRows(run.run_id),
         verdictsForRun(run.run_id),
@@ -56,8 +57,9 @@ export default async function Page({
         topPlayersByGame(run.run_id),
         sid ? slateGameInfos("dk", sid) : Promise.resolve([] as string[]),
         weekScoreboard(season, week),
+        teamInputsForRun(run.run_id),
       ])
-    : [[], [], new Map(), {}, [] as string[], undefined];
+    : [[], [], new Map(), {}, [] as string[], undefined, {}];
 
   const slateRows = infos.length ? filterGamesForSlate(allRows, infos) : allRows;
   const onSlate = new Set(slateRows.map((r) => r.game_id));
@@ -78,6 +80,7 @@ export default async function Page({
       scoreboard={scoreboard}
       fallbackFrom={fallbackFrom}
       runCreatedAt={run ? run.created_at.toISOString() : null}
+      teamInputs={teamInputs}
       toolbar={
         <SlateSelector week={week} site="dk" page="games" slate={slate} slates={available} />
       }
