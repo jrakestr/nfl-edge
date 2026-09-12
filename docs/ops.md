@@ -145,6 +145,11 @@ stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `co
 The Next.js app in `web/` reads Supabase from server components. It does not generate verdicts.
 The one write is a typed insert into `model.market_props`. Numbers on the Edge board that are
 ahead of the last `lines` run come from `proj_games.line_grid` (a lookup, not a new projection).
+
+Player library: `/week/[n]/players/dk/{slate}`. Browser optimizer: `/week/[n]/optimize/dk/{slate}`.
+Browser-optimized lineups are **not graded** unless you export the CSV and enter that slate.
+The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Both exports stamp
+`run_id`, `slate_id`, and `source` (`sim` or `user-optimized`).
 Sentences stay on the last `nfl-edge lines` write, which this Mac's LaunchAgent runs after each
 snapshot when a week is stale.
 

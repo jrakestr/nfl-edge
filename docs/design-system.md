@@ -146,7 +146,19 @@ Sidebar (216px expanded / 64px collapsed glass rail; Edge board, Games, Players,
 - Left 2/3: `LineupCard` list, virtualized; sort by proj / win% / ROI; select rows for export.
 - Right 1/3: exposure panel: `ExposureBar` per player, sorted by leverage; team stack distribution; salary histogram.
 - Row click → drawer with per-player `DistributionSpark`, stack correlation, "why this lineup" (top 3 correlations that drove it).
-- Export: DK/FD CSV of selected lineups; the export is stamped with `run_id`.
+- Export: DK/FD CSV of selected lineups; the export is stamped with `run_id`, `slate_id`, and `source=sim`.
+
+### Player library (`/week/[n]/players/[site]/[slate]`)
+- `SlateSelector` from ingested slates. Rows from `slatePlayers` (one DK id; real position, never FLEX).
+- Columns: name + `PositionPill` + injury, team, opponent, kickoff, DK id, salary, DK pts, floor/ceil (`fpts_ppr` p10/p90), ownership, value, typical game.
+- Row actions: Lock, Exclude, Add to stack. Persisted as comma-separated `player_dk_id`s in URL (`lock`, `excl`, `stack`) and `localStorage` key `nfl-edge.slate:{slateId}`. URL wins on load.
+- Stale OUT/D (override after the run) grey the projection and drop from the optimizer pool. Q stays in.
+
+### Optimizer (`/week/[n]/optimize/[site]/[slate]`)
+- Glass settings panel (no table on glass): lineups 1–20, cap, min salary, max exposure, max per team, randomness, QB+n WR/TE, bring-back, no-QB-vs-DST (default on). Showdown hides stack rules.
+- Classic: 1 QB, 2–3 RB, 3–4 WR, 1–2 TE, 1 DST, 9 players. Stack / bring-back / no-QB-vs-DST are per-team (`Σ WR/TE_T ≥ n·QB_T`, `Σ opp_T ≥ k·QB_T`, `QB_T + DST_opp ≤ 1`). Showdown: CPT ≠ FLEX; CPT is 1.5× points and salary.
+- Tabs: **Yours** (`LineupCard` with salary, projection, ownership sum, stack chips; Win%/ROI are —) and **Sim 150** (`model.dfs_lineups`). “Start from this lineup” writes those DK ids into locks.
+- Export selected: `# nfl-edge run_id=… slate_id=… source=user-optimized`. IDs are `player_dk_id` only.
 
 ### Prop detail (`/props/[game]/[player]`)
 - Header card: avatar, name, position pill, game context, `Enter a line`, market tabs (Rush yds, Rec yds, Rush + Rec, Receptions, Anytime TD), L5/L10/L20/season/H2H segment, `PropCallout`.
