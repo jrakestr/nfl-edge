@@ -10,6 +10,7 @@ export type RunOption = {
   created_at: string; // ISO
   draws_per_game: number | null;
   git_sha: string | null;
+  draws_pruned?: boolean;
 };
 
 /**
@@ -43,7 +44,8 @@ export function RunBadge({
   const asOf = `lines as of ${linesAsOf ? shortStampLocal(linesAsOf) : "—"} · verdicts as of ${
     verdictsAsOf ? shortStampLocal(verdictsAsOf) : "—"
   }`;
-  const label = `run ${shortRun(run.run_id)} · ${draws(run.draws_per_game)} · ${asOf}`;
+  const pruned = run.draws_pruned ? " · draws pruned" : "";
+  const label = `run ${shortRun(run.run_id)} · ${draws(run.draws_per_game)}${pruned} · ${asOf}`;
 
   const onChange = (value: string) => {
     const next = new URLSearchParams(params.toString());
@@ -70,6 +72,7 @@ export function RunBadge({
         {runs.map((r, i) => (
           <SelectItem key={r.run_id} value={r.run_id} className="tnum text-[12px]">
             run {shortRun(r.run_id)} · {shortStampLocal(r.created_at)} · {draws(r.draws_per_game)}
+            {r.draws_pruned ? " · draws pruned" : ""}
             {i === 0 ? " · newest" : ""}
           </SelectItem>
         ))}

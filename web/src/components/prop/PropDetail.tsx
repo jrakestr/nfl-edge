@@ -83,6 +83,7 @@ export function PropDetail({
   histByStat,
   actualRows = [],
   currentSeason,
+  drawsPruned = false,
 }: {
   player: PlayerHeader | null;
   game: GameContext | null;
@@ -95,6 +96,7 @@ export function PropDetail({
   histByStat: Record<string, Hist | null>;
   actualRows?: PlayerActualWeek[];
   currentSeason: number;
+  drawsPruned?: boolean;
 }) {
   const found = player != null;
   const name = found ? player.display_name : "Player not found";
@@ -170,15 +172,23 @@ export function PropDetail({
           </div>
           <label className="flex max-w-xs flex-col gap-1">
             <span className="t-colhead text-muted-foreground">Entered line</span>
-            <Input
-              readOnly
-              value={fair?.market_line != null ? String(fair.market_line) : ""}
-              placeholder="No line entered"
-              aria-describedby="prop-line-help"
-            />
-            <span id="prop-line-help" className="t-caption">
-              Enter a line on the Props board. Until then we use our fair line.
-            </span>
+            {drawsPruned ? (
+              <p className="t-caption" role="status">
+                draws pruned for this run
+              </p>
+            ) : (
+              <>
+                <Input
+                  readOnly
+                  value={fair?.market_line != null ? String(fair.market_line) : ""}
+                  placeholder="No line entered"
+                  aria-describedby="prop-line-help"
+                />
+                <span id="prop-line-help" className="t-caption">
+                  Enter a line on the Props board. Until then we use our fair line.
+                </span>
+              </>
+            )}
           </label>
           <Tabs value={stat} onValueChange={setStat}>
             <TabsList variant="line" className="h-8">

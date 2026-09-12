@@ -27,7 +27,7 @@ vi.mock("@/lib/queries/runs", async (importOriginal) => {
   return {
     ...orig,
     weeksWithRuns: async () => [{ week: 1, newest_run_id: runId, created_at: run.created_at, runs: 1 }],
-    runsForWeek: async () => [{ ...run, n_games: 16 }],
+    runsForWeek: async () => [{ ...run, n_games: 16, n_player_games: 16, draws_pruned: false }],
     slateGameCount: async () => 16,
     newerRunExists: () => false,
   };

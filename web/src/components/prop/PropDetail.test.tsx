@@ -119,6 +119,43 @@ describe("props-web surfaces", () => {
     expect(screen.getByText("Jauan Jennings")).toBeInTheDocument();
     expect(screen.getByText("−13.0%")).toBeInTheDocument();
     expect(screen.getByText("one-sided price, conservative")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Enter a line/)).toBeInTheDocument();
+  });
+
+  it("Fair props board names a pruned run and hides the line input", () => {
+    const row: FairProp = {
+      player_id: "00-0036259",
+      player_name: "Jauan Jennings",
+      position: "WR",
+      team: "MIN",
+      opponent: "SF",
+      game_id: "2026_01_SF_MIN",
+      home: "MIN",
+      away: "SF",
+      stat: "rec",
+      fair_line: 3.5,
+      p_over: 0.4,
+      p10: 1,
+      p25: 2,
+      p75: 5,
+      p90: 7,
+      mean: 3.2,
+      sentence: "Our line is 3.5",
+      fpts_dk_mean: 8,
+      hist: null,
+      market_line: null,
+      market_p_over: null,
+      edge: null,
+      lean: null,
+      over_odds: null,
+      under_odds: null,
+      market_sentence: null,
+      one_sided: false,
+      edge_floor: null,
+    };
+    render(<FairPropsIndex rows={[row]} drawsPruned />);
+    expect(screen.getByRole("status")).toHaveTextContent("draws pruned for this run");
+    expect(screen.queryByLabelText(/Enter a line/)).toBeNull();
   });
 
   it("Players search filters and links to prop detail", () => {

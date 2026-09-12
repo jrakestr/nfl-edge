@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { GameDrawer } from "@/components/board/GameDrawer";
+import { GameOutcome } from "@/components/board/GameOutcome";
 import { NgsMute } from "@/components/board/NgsMute";
 import { Matchup } from "@/components/board/TeamDot";
+import { WeekScoreboard } from "@/components/board/WeekScoreboard";
 import { DataTable } from "@/components/ui/DataTable";
+import { sortBoardRows } from "@/lib/board-sort";
 import { displayValue, homeLine, line } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
+import type { WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import { fallbackNotice, slateGameCountLabel } from "@/lib/slate";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
+import { cn } from "@/lib/utils";
 
 /** Implied scores from E[total] and E[home−away]. Mean when present, median otherwise. */
 export function simScore(row: Pick<BoardRow, "mean_total" | "mean_spread" | "fair_total" | "fair_spread">): {
@@ -26,24 +31,30 @@ export function GamesList({
   week,
   rows = [],
   weekTotal,
+  slateCount,
   verdicts = {},
   checks = {},
   playersByGame = {},
+  scoreboard,
   toolbar,
   fallbackFrom,
 }: {
   week?: number;
   rows?: BoardRow[];
   weekTotal?: number;
+  slateCount?: number;
   verdicts?: Record<string, VerdictPayload>;
   checks?: Record<string, GameChecks>;
   playersByGame?: Record<string, DrawerPlayer[]>;
+  scoreboard?: WeekScoreboardData;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const open = rows.find((r) => r.game_id === openId) ?? null;
+  const ordered = useMemo(() => sortBoardRows(rows), [rows]);
+  const open = ordered.find((r) => r.game_id === openId) ?? null;
   const total = weekTotal ?? rows.length;
+  const onSlate = slateCount ?? rows.length;
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-3">
@@ -52,12 +63,13 @@ export function GamesList({
         {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
         <p className="t-caption">
           {week != null ? `Week ${week}. ` : ""}
-          {total > 0 ? `${slateGameCountLabel(rows.length, total)} ` : ""}
+          {total > 0 ? `${slateGameCountLabel(onSlate, total)} ` : ""}
           Sim score summary from the same draws as the Edge board. Click a row for the game drawer.
         </p>
       </header>
+      {scoreboard ? <WeekScoreboard board={scoreboard} /> : null}
       <DataTable
-        data={rows}
+        data={ordered}
         getRowId={(r) => r.game_id}
         empty="No games listed yet"
         ariaLabel="Games"
@@ -69,7 +81,9 @@ export function GamesList({
             r.away.toLowerCase().includes(q) ||
             r.game_id.toLowerCase().includes(q),
         }}
-        rowProps={() => ({ className: "h-11 cursor-pointer" })}
+        rowProps={(r) => ({
+          className: cn("cursor-pointer", !r.has_started && "h-11"),
+        })}
         columns={[
           {
             id: "matchup",
@@ -82,6 +96,13 @@ export function GamesList({
             header: "Kickoff",
             sortValue: (r) => `${r.gameday ?? ""} ${r.gametime ?? ""}`,
             cell: (r) => <span className="t-caption">{kickoffLabel(r.gameday, r.gametime)}</span>,
+          },
+          {
+            id: "result",
+            header: "Result",
+            sortValue: (r) => (r.is_final ? 2 : r.has_started ? 1 : 0),
+            cell: (r) =>
+              r.has_started ? <GameOutcome row={r} compact /> : <span className="t-caption">—</span>,
           },
           {
             id: "sim",

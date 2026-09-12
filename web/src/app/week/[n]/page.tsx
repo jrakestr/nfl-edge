@@ -26,12 +26,13 @@ function one(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-function toOption(r: RunRow): RunOption {
+function toOption(r: RunRow & { draws_pruned?: boolean }): RunOption {
   return {
     run_id: r.run_id,
     created_at: r.created_at.toISOString(),
     draws_per_game: r.draws_per_game,
     git_sha: r.git_sha,
+    draws_pruned: r.draws_pruned,
   };
 }
 

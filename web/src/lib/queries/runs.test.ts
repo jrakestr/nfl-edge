@@ -2,8 +2,8 @@ import { pickDefaultRun, pickLineupRun } from "./runs";
 
 const t = (iso: string) => new Date(iso);
 
-function run(id: string, created: string, n_games: number) {
-  return { run_id: id, created_at: t(created), n_games };
+function run(id: string, created: string, n_games: number, n_player_games = n_games) {
+  return { run_id: id, created_at: t(created), n_games, n_player_games };
 }
 
 const FULL = 16;
@@ -39,10 +39,15 @@ describe("pickDefaultRun", () => {
   it("returns null when there are no runs", () => {
     expect(pickDefaultRun([], FULL)).toBeNull();
   });
+
+  it("skips a run with a full proj_games count but missing player games", () => {
+    const dstOnly = run("ddddddd4-dddd-4ddd-8ddd-ddddddddddd4", "2026-09-13T19:00:00Z", 16, 15);
+    expect(pickDefaultRun([dstOnly, olderFull], FULL)?.run_id).toBe(olderFull.run_id);
+  });
 });
 
 function lu(id: string, created: string, n_games: number, n_lineups: number) {
-  return { run_id: id, created_at: t(created), n_games, n_lineups };
+  return { run_id: id, created_at: t(created), n_games, n_player_games: n_games, n_lineups };
 }
 
 const satLineups = lu("aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "2026-09-12T03:00:00Z", 16, 150);

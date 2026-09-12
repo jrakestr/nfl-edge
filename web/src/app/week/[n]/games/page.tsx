@@ -7,6 +7,7 @@ import { checksForRun } from "@/lib/queries/checks";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
 import { ngsByGame } from "@/lib/queries/games";
 import { topPlayersByGame } from "@/lib/queries/players";
+import { weekScoreboard } from "@/lib/queries/results";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
 import { requestedSlate, resolveSlate, filterGamesForSlate } from "@/lib/slate";
 import { verdictsForRun } from "@/lib/queries/verdicts";
@@ -47,17 +48,21 @@ export default async function Page({
   const run = pickDefaultRun(runs, weekGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
 
-  const [allRows, verdicts, checks, playersByGame, infos] = run
+  const [allRows, verdicts, checks, playersByGame, infos, scoreboard] = run
     ? await Promise.all([
         boardRows(run.run_id),
         verdictsForRun(run.run_id),
         checksForRun(run.run_id),
         topPlayersByGame(run.run_id),
         sid ? slateGameInfos("dk", sid) : Promise.resolve([] as string[]),
+        weekScoreboard(season, week),
       ])
-    : [[], [], new Map(), {}, [] as string[]];
+    : [[], [], new Map(), {}, [] as string[], undefined];
 
-  const filtered = infos.length ? filterGamesForSlate(allRows, infos) : allRows;
+  const slateRows = infos.length ? filterGamesForSlate(allRows, infos) : allRows;
+  const onSlate = new Set(slateRows.map((r) => r.game_id));
+  const startedOffSlate = allRows.filter((r) => r.has_started && !onSlate.has(r.game_id));
+  const filtered = [...slateRows, ...startedOffSlate];
   const ngs = await ngsByGame(filtered.map((r) => r.game_id));
   const rows = filtered.map((r) => ({ ...r, ...ngs[r.game_id] }));
 
@@ -66,9 +71,11 @@ export default async function Page({
       week={weekOk ? week : undefined}
       rows={rows}
       weekTotal={weekGames || allRows.length}
+      slateCount={slateRows.length}
       verdicts={Object.fromEntries(verdicts.map((v) => [v.game_id, v.payload]))}
       checks={Object.fromEntries(checks)}
       playersByGame={playersByGame}
+      scoreboard={scoreboard}
       fallbackFrom={fallbackFrom}
       toolbar={
         <SlateSelector week={week} site="dk" page="games" slate={slate} slates={available} />

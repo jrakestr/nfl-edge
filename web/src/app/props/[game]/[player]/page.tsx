@@ -60,6 +60,7 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
       histByStat={histByStat}
       actualRows={actualRows}
       currentSeason={CURRENT_SEASON}
+      drawsPruned={Boolean(run?.draws_pruned)}
     />
   );
 }

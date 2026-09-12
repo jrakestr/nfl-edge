@@ -27,6 +27,7 @@ export const PRESERVED_PARAMS = [
   "flexRB",
   "flexWR",
   "flexTE",
+  "reqStack",
 ] as const;
 
 export const TABLE_PARAMS = ["sort", "dir", "q", "pos", "team", "game", "salMin", "salMax", "minProj"] as const;

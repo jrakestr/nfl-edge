@@ -43,4 +43,9 @@ describe("RunBadge", () => {
     );
     expect(screen.getByRole("combobox")).not.toHaveAttribute("data-stale");
   });
+
+  it("labels a run whose draws were pruned", () => {
+    render(<RunBadge run={{ ...run, draws_pruned: true }} runs={[{ ...run, draws_pruned: true }]} stale={false} />);
+    expect(screen.getByRole("combobox")).toHaveAccessibleName(/draws pruned/);
+  });
 });

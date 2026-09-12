@@ -29,4 +29,32 @@ describe("GamesList", () => {
     expect(screen.getByText(/NFLGameSim 28.1–30.2/)).toBeInTheDocument();
     expect(screen.queryByText("No games listed yet")).not.toBeInTheDocument();
   });
+
+  it("shows the final score and hides the week scoreboard when nothing is graded", () => {
+    const live = fixtureRows()[0]!;
+    const fin = {
+      ...fixtureRows()[1]!,
+      has_started: true,
+      is_final: true,
+      away_score: 10,
+      home_score: 13,
+      result: 3,
+    };
+    render(
+      <GamesList
+        week={1}
+        rows={[live, fin]}
+        scoreboard={{
+          nGames: 1,
+          spread: { wins: 0, losses: 0, pushes: 1 },
+          total: { wins: 0, losses: 1, pushes: 0 },
+          marginMae: 1.9,
+          totalMae: 22.3,
+        }}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Result" })).toBeInTheDocument();
+    expect(screen.getByText(`${fin.away} ${fin.away_score} – ${fin.home} ${fin.home_score}`)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Week scoreboard" })).toHaveTextContent("0–0–1");
+  });
 });

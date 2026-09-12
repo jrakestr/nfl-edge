@@ -10,5 +10,12 @@ export default async function Page() {
   const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
   const run = await runForWeek(CURRENT_SEASON, week);
   const rows = run ? await fairProps(run.run_id) : [];
-  return <FairPropsIndex rows={rows} season={CURRENT_SEASON} week={week} />;
+  return (
+    <FairPropsIndex
+      rows={rows}
+      season={CURRENT_SEASON}
+      week={week}
+      drawsPruned={Boolean(run?.draws_pruned)}
+    />
+  );
 }

@@ -100,10 +100,12 @@ export function FairPropsIndex({
   rows = [],
   season = 2026,
   week = 1,
+  drawsPruned = false,
 }: {
   rows?: FairProp[];
   season?: number;
   week?: number;
+  drawsPruned?: boolean;
 }) {
   const [stat, setStat] = useState("all");
   const data = useMemo(() => {
@@ -124,6 +126,11 @@ export function FairPropsIndex({
           Our line is the sim median on a hook. Two-sided books show a de-vigged edge.
           A one-sided price shows a floor (model minus the vigged implied), not an edge.
         </p>
+        {drawsPruned ? (
+          <p className="t-caption" role="status">
+            draws pruned for this run
+          </p>
+        ) : null}
         <label className="flex w-fit flex-col gap-1">
           <span className="t-colhead text-muted-foreground">Stat</span>
           <select
@@ -252,12 +259,16 @@ export function FairPropsIndex({
                 "—"
               ),
           },
-          {
-            id: "enter",
-            header: "Enter a line",
-            sortable: false,
-            cell: (r) => <EnterLine row={r} season={season} week={week} />,
-          },
+          ...(drawsPruned
+            ? []
+            : [
+                {
+                  id: "enter",
+                  header: "Enter a line",
+                  sortable: false as const,
+                  cell: (r: FairProp) => <EnterLine row={r} season={season} week={week} />,
+                },
+              ]),
         ]}
       />
     </div>
