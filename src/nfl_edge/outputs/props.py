@@ -181,6 +181,10 @@ def _player_cols(path: Path, player_id: str, stat: str) -> dict[str, np.ndarray]
     pq = ROOT / path
     if not pq.exists():
         return None
+    have = set(pl.scan_parquet(pq).collect_schema().names())
+    missing = [c for c in need if c not in have]
+    if missing:
+        raise KeyError(missing)
     df = pl.read_parquet(pq, columns=need).filter(pl.col("player_id") == player_id)
     if df.is_empty():
         return None
@@ -196,11 +200,11 @@ def compute(run_id: str, props: list[dict], names: dict[str, str], draws_n: int,
         if not path:
             skipped.append({**p, "reason": "no_proj"})
             continue
-        cols = _player_cols(path, pid, stat)
-        if cols is None:
-            skipped.append({**p, "reason": "no_draws"})
-            continue
         try:
+            cols = _player_cols(path, pid, stat)
+            if cols is None:
+                skipped.append({**p, "reason": "no_draws"})
+                continue
             vals = stat_draws(cols, stat)
         except KeyError:
             skipped.append({**p, "reason": "bad_stat"})
@@ -235,6 +239,18 @@ def compute(run_id: str, props: list[dict], names: dict[str, str], draws_n: int,
             "edge": u["edge"], "kelly_fraction": u["kelly_fraction"], "price": u["price"],
         })
     return rows, skipped
+
+
+def skip_report(skipped: list[dict]) -> str | None:
+    """Count unknown-stat skips so they are visible instead of absorbed."""
+    bad = [s for s in skipped if s.get("reason") == "bad_stat"]
+    if not bad:
+        return None
+    counts = Counter(str(s.get("stat") or "?") for s in bad)
+    parts = ", ".join(
+        f"{stat} {n}" for stat, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    )
+    return f"skipped {len(bad)} market_props: {parts}"
 
 
 def persist(run_id: str, rows: list[dict]) -> int:
@@ -290,7 +306,10 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
             names[r["gsis_id"]] = r["display_name"]
     rows, skipped = compute(rid, props, names, draws_n, paths, games, cfg())
     n = persist(rid, rows)
-    return {"run_id": rid, "n_props": len(props), "n_edges": n, "skipped": skipped}
+    return {
+        "run_id": rid, "n_props": len(props), "n_edges": n, "skipped": skipped,
+        "skip_report": skip_report(skipped),
+    }
 
 
 def persist_fair(run_id: str, rows: list[dict]) -> int:

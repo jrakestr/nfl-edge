@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import polars as pl
 import pytest
 
 from nfl_edge.ingest import names as N
@@ -112,6 +113,23 @@ def test_callout_sentence_names_the_line_and_the_book():
 def test_callout_keeps_st_brown():
     s = P.callout("Amon-Ra St. Brown", "rec_yds", 77.5, 0.4, -112, 0.53, 20000)
     assert s.startswith("St. Brown goes over")
+
+
+def test_skip_report_counts_unknown_stats():
+    skipped = (
+        [{"stat": "pass_rush", "reason": "bad_stat"}] * 9
+        + [{"stat": "total_yds", "reason": "bad_stat"}] * 5
+        + [{"stat": "rush_yds", "reason": "no_draws"}]
+    )
+    assert P.skip_report(skipped) == "skipped 14 market_props: pass_rush 9, total_yds 5"
+    assert P.skip_report([{"stat": "rush_yds", "reason": "no_draws"}]) is None
+
+
+def test_player_cols_unknown_stat_raises(tmp_path: Path):
+    pq = tmp_path / "g.parquet"
+    pl.DataFrame({"player_id": ["p1"], "rush_yds": [10]}).write_parquet(pq)
+    with pytest.raises(KeyError):
+        P._player_cols(pq, "p1", "pass_rush")
 
 
 def test_lean_uses_flat_then_sign_of_over_edge():

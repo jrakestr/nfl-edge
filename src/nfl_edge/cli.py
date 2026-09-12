@@ -221,6 +221,8 @@ def lines(
     pe = stats.get("prop_edges") or {}
     if pe.get("n_edges"):
         typer.echo(f"prop_edges: {pe['n_edges']} rows from {pe.get('n_props', 0)} market lines")
+    if pe.get("skip_report"):
+        typer.echo(pe["skip_report"])
     for g in w.games:
         flag = "" if g.status == "ok" else f"  [{g.status.upper()}]"
         typer.echo(f"{g.away} @ {g.home}  {g.kickoff or ''}{flag}")
