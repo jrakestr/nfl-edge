@@ -1,10 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { PlayersList } from "./PlayersList";
 import type { WeekPlayer } from "@/lib/types";
 import { REBUILD_PENDING } from "@/lib/injury-status";
+import { slateStorageKey } from "@/lib/slate-picks";
+
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace, prefetch: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/week/1/players/dk/main",
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -130,6 +133,26 @@ describe("PlayersList slate rows", () => {
     expect(screen.getByText("333")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(3);
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+  });
+
+  it("FLEX row shows the real position, never a FLEX chip", () => {
+    render(<PlayersList players={MAIN} />);
+    expect(screen.getByLabelText("RB")).toBeInTheDocument();
+    expect(screen.getByLabelText("WR")).toBeInTheDocument();
+    expect(screen.queryByLabelText("FLEX")).not.toBeInTheDocument();
+  });
+
+  it("lock writes URL and per-slate localStorage", () => {
+    replace.mockClear();
+    localStorage.clear();
+    render(<PlayersList players={MAIN} slateId="2026_01_main" />);
+    fireEvent.click(screen.getByRole("button", { name: "Lock Jahmyr Gibbs" }));
+    expect(replace).toHaveBeenCalled();
+    const href = String(replace.mock.calls.at(-1)?.[0]);
+    expect(href).toContain("lock=111");
+    expect(JSON.parse(localStorage.getItem(slateStorageKey("2026_01_main"))!)).toMatchObject({
+      lock: ["111"],
+    });
   });
 });
 

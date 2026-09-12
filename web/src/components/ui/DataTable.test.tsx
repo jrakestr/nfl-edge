@@ -43,7 +43,9 @@ const PLAYERS: WeekPlayer[] = [
 
 describe("table-state", () => {
   it("does not clobber board keys when writing sort", () => {
-    const base = new URLSearchParams("view=table&run=abc&season=2026&min=3&flat=0&slot=late");
+    const base = new URLSearchParams(
+      "view=table&run=abc&season=2026&min=3&flat=0&slot=late&lock=111&excl=222&stack=333",
+    );
     const next = tableStateToParams({ ...parseTableState(base), sort: "proj", dir: "asc", q: "gibbs" }, base);
     for (const k of PRESERVED_PARAMS) {
       expect(next.get(k)).toBe(base.get(k));

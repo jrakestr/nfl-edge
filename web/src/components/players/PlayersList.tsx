@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/DataTable";
 import { fallbackNotice } from "@/lib/slate";
+import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
+import { useSlatePicks, type PickKey } from "@/lib/slate-picks";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
 import type { ComponentProps, ReactNode } from "react";
@@ -25,16 +28,57 @@ function ownPct(v: number | null | undefined): string {
   return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
 }
 
+function PickButton({
+  metric,
+  label,
+  pressed,
+  disabled,
+  onClick,
+}: {
+  metric: Metric;
+  label: string;
+  pressed: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      aria-label={label}
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      <MetricIcon metric={metric} />
+    </Button>
+  );
+}
+
 /** Slate player library. Rows from raw.dk_salaries ⨝ proj_players for this slate. */
 export function PlayersList({
   players = [],
+  slateId = "",
   toolbar,
   fallbackFrom,
 }: {
   players?: WeekPlayer[];
+  slateId?: string;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
 }) {
+  const { picks, toggle } = useSlatePicks(slateId);
+
+  function pickAction(key: PickKey, p: WeekPlayer) {
+    const id = p.player_dk_id;
+    if (!id) return;
+    toggle(key, id);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-3">
@@ -177,6 +221,40 @@ export function PlayersList({
             align: "right",
             sortValue: (p) => p.typical_dk,
             cell: (p) => <span className="tnum font-semibold text-foreground">{num(p.typical_dk)}</span>,
+          },
+          {
+            id: "actions",
+            header: "Picks",
+            sortable: false,
+            cell: (p) => {
+              const id = p.player_dk_id;
+              const disabled = !id;
+              return (
+                <span className="inline-flex items-center gap-0.5">
+                  <PickButton
+                    metric="lock"
+                    label={`Lock ${p.display_name}`}
+                    pressed={id != null && picks.lock.includes(id)}
+                    disabled={disabled}
+                    onClick={() => pickAction("lock", p)}
+                  />
+                  <PickButton
+                    metric="exclude"
+                    label={`Exclude ${p.display_name}`}
+                    pressed={id != null && picks.excl.includes(id)}
+                    disabled={disabled}
+                    onClick={() => pickAction("excl", p)}
+                  />
+                  <PickButton
+                    metric="stack"
+                    label={`Add ${p.display_name} to stack`}
+                    pressed={id != null && picks.stack.includes(id)}
+                    disabled={disabled}
+                    onClick={() => pickAction("stack", p)}
+                  />
+                </span>
+              );
+            },
           },
         ]}
       />
