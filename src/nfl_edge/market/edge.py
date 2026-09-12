@@ -121,6 +121,19 @@ def lookup_total(grid: dict, line: float) -> tuple[float, float, float] | None:
     return lookup_line(grid["total"], line, TOTAL_LO, TOTAL_HI)
 
 
+def grid_from_parquet(path) -> dict:
+    """Read `{game_id}.game.parquet` and build the line grid. Path is relative to ROOT or absolute."""
+    from pathlib import Path
+
+    p = Path(path)
+    if not p.is_absolute():
+        p = ROOT / p
+    d = pl.read_parquet(p, columns=["home_pts", "away_pts"])
+    margin = (d["home_pts"] - d["away_pts"]).to_numpy()
+    total = (d["home_pts"] + d["away_pts"]).to_numpy()
+    return build_line_grid(margin, total)
+
+
 def kelly(model_prob: float, push: float, price: float, mult: float) -> float:
     """Kelly fraction at the offered price, clipped at zero and scaled by `mult`.
 

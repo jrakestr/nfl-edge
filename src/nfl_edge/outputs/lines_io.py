@@ -7,7 +7,8 @@ import json
 
 import polars as pl
 
-from ..db import insert_ignore, read_sql
+from ..config import ROOT
+from ..db import execute, insert_ignore, read_sql
 from ..market import edge
 from . import lines
 
@@ -77,10 +78,32 @@ def load_checks(run_id: str) -> list[dict]:
     ).to_dicts()
 
 
+def backfill_line_grids(run_id: str) -> int:
+    """Write line_grid from parquet for games that do not have one yet (current live run)."""
+    from psycopg.types.json import Jsonb
+
+    rows = read_sql(
+        "select game_id, draws_path from model.proj_games where run_id = %s and line_grid is null",
+        (run_id,),
+    )
+    n = 0
+    for r in rows.to_dicts():
+        path = ROOT / r["draws_path"]
+        if not path.is_file():
+            continue
+        execute(
+            "update model.proj_games set line_grid = %s where run_id = %s and game_id = %s",
+            (Jsonb(edge.grid_from_parquet(path)), run_id, r["game_id"]),
+        )
+        n += 1
+    return n
+
+
 def build(season: int, week: int, run_id: str | None = None, recompute: bool = False) -> tuple[lines.WeekVerdicts, dict]:
     """Compute missing edges, then the week's verdicts. Returns (verdicts, edge-run stats)."""
     run = resolve_run(season, week, run_id)
     stats = edge.run(run["run_id"], recompute=recompute)
+    stats["line_grids"] = backfill_line_grids(run["run_id"])
     from . import props as props_out
     stats["fair_props"] = props_out.fair_props(run["run_id"])
     stats["prop_edges"] = props_out.run(run["season"], run["week"], run_id=run["run_id"])

@@ -201,6 +201,15 @@ def test_moneyline_is_the_grid_at_spread_zero():
     assert E.conditional_prob(win, push) != pytest.approx(E.half_push_prob(win, push))
 
 
+def test_grid_from_parquet_matches_in_memory_grid(tmp_path):
+    home = 24 + GRID_MARGIN
+    away = np.full(7, 24.0)
+    path = tmp_path / "g.game.parquet"
+    pl.DataFrame({"home_pts": home, "away_pts": away}).write_parquet(path)
+    got = E.grid_from_parquet(path)
+    assert got == E.build_line_grid(GRID_MARGIN, home + away)
+
+
 def test_grid_snapshot_matches_draw_snapshot_edges():
     d = pl.DataFrame({"home_pts": GRID_MARGIN * 0 + 24 + GRID_MARGIN, "away_pts": np.full(7, 24.0)})
     # home - away == GRID_MARGIN; totals are not GRID_TOTAL, so only check spread + ML

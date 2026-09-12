@@ -26,6 +26,7 @@ import polars as pl
 from .. import priors as pr
 from ..config import ROOT, load_yaml
 from ..db import insert, read_sql
+from ..market import edge as market_edge
 from . import players as pp
 from . import scoring
 from .game import GameContext, GameDraws, TeamDraws, TeamPrior, simulate_game
@@ -290,6 +291,7 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
         "p_home_cover_market": None if ms is None else float((margin > ms).mean() + 0.5 * (margin == ms).mean()),
         "p_over_market": None if mt is None else float((total > mt).mean() + 0.5 * (total == mt).mean()),
         "market_spread": ms, "market_total": mt, "draws_path": str(gpath.relative_to(ROOT)),
+        "line_grid": json.dumps(market_edge.build_line_grid(margin, total)),
     }
     for name, fair, mkt, thr in (("spread_gap_vs_market", fair_spread, ms, cfg["checks"]["max_spread_gap_vs_market"]),
                                  ("total_gap_vs_market", fair_total, mt, cfg["checks"]["max_total_gap_vs_market"])):
