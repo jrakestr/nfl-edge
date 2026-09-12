@@ -31,6 +31,41 @@ export async function slateGameCount(season: number, week: number): Promise<numb
   return rows[0]?.n ?? 0;
 }
 
+/** Runs for a week plus lineup counts for one site+slate. */
+export async function runsForWeekWithLineups(
+  season: number,
+  week: number,
+  site: string,
+  slateId: string,
+): Promise<RunWithLineups[]> {
+  const rows = await sql()`
+    select r.run_id, r.season, r.week, r.created_at, r.draws_per_game, r.git_sha,
+           (select count(*)::int from model.proj_games p where p.run_id = r.run_id) as n_games,
+           (select count(*)::int from model.dfs_lineups l
+             where l.run_id = r.run_id and l.site = ${site} and l.slate_id = ${slateId}) as n_lineups
+    from model.sim_runs r
+    where r.season = ${season} and r.week = ${week}
+    order by created_at desc`;
+  return rows.map((r) => {
+    const parsed = RunRowSchema.parse(r);
+    return { ...parsed, n_games: Number(r.n_games), n_lineups: Number(r.n_lineups) };
+  });
+}
+
+export async function lineupRunForWeek(
+  season: number,
+  week: number,
+  site: string,
+  slateId: string,
+  pinned?: string,
+): Promise<{ run: RunWithLineups; buildInProgress: boolean } | null> {
+  const [runs, slateGames] = await Promise.all([
+    runsForWeekWithLineups(season, week, site, slateId),
+    slateGameCount(season, week),
+  ]);
+  return pickLineupRun(runs, slateGames, pinned);
+}
+
 /** Runs for a week, newest first (feeds the RunBadge's run picker). */
 export async function runsForWeek(season: number, week: number): Promise<RunWithCount[]> {
   const rows = await sql()`

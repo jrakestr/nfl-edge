@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { CURRENT_SEASON } from "@/lib/config";
 import { dfsExposure, dfsLineups, salaryLookup, salaryPositions, slateId, stackCorrelations } from "@/lib/queries/dfs";
-import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
+import { staleDkIds } from "@/lib/queries/players";
+import { lineupRunForWeek } from "@/lib/queries/runs";
 
 export const dynamic = "force-dynamic";
 
@@ -29,22 +30,20 @@ export default async function Page({
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
   const siteKey = site === "fd" ? "fd" : "dk";
   const weekOk = Number.isInteger(week) && week >= 1 && week <= 22;
-
   const pinned = one(sp.run);
-  const [runs, slateGames] = weekOk
-    ? await Promise.all([runsForWeek(season, week), slateGameCount(season, week)])
-    : [[], 0];
-  const run = pickDefaultRun(runs, slateGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
+  const picked = weekOk ? await lineupRunForWeek(season, week, siteKey, sid, pinned) : null;
+  const run = picked?.run ?? null;
 
-  const [lineups, exposure, lookup, correlations] = run
+  const [lineups, exposure, lookup, correlations, stale] = run
     ? await Promise.all([
         dfsLineups(run.run_id, siteKey, sid),
         dfsExposure(run.run_id, siteKey, sid),
         salaryLookup(siteKey, sid),
         stackCorrelations(run.run_id, siteKey, sid),
+        staleDkIds(season, week, run.created_at),
       ])
-    : [[], [], {}, []];
+    : [[], [], {}, [], new Set<string>()];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
 
   return (
@@ -59,6 +58,8 @@ export default async function Page({
       teams={teams}
       positions={salaryPositions(lookup)}
       correlations={correlations}
+      staleDkIds={stale}
+      buildInProgress={picked?.buildInProgress ?? false}
     />
   );
 }
