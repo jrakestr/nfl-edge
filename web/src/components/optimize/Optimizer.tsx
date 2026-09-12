@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { LineupCard } from "@/components/dfs/LineupCard";
 import { Button } from "@/components/ui/button";
@@ -9,14 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatUploadCsv } from "@/lib/dfs-upload";
 import { fallbackNotice } from "@/lib/slate";
 import { useSlatePicks } from "@/lib/slate-picks";
+import { flexConstructionError } from "@/lib/optimize/classic";
+import { applySolveControls, parseSolveControls } from "@/lib/optimize/controls-url";
 import { poolFromPlayers } from "@/lib/optimize/pool";
 import { solveSlate } from "@/lib/optimize/solve";
-import {
-  DEFAULT_CLASSIC,
-  DEFAULT_SHOWDOWN,
-  type SolveControls,
-  type SolvedLineup,
-} from "@/lib/optimize/types";
+import { type FlexPos, type SolveControls, type SolvedLineup } from "@/lib/optimize/types";
 import type { DfsLineup, WeekPlayer } from "@/lib/types";
 
 function asDfs(lu: SolvedLineup): DfsLineup {
@@ -86,14 +84,24 @@ export function Optimizer({
 }) {
   const showdown = slate === "showdown";
   const { picks, setPicks } = useSlatePicks(slateId);
-  const [controls, setControls] = useState<SolveControls>(() =>
-    showdown ? { ...DEFAULT_SHOWDOWN } : { ...DEFAULT_CLASSIC, lineups: 5 },
-  );
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const [controls, setControls] = useState<SolveControls>(() => parseSolveControls(sp, showdown));
   const [yours, setYours] = useState<SolvedLineup[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tab, setTab] = useState("yours");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const writeControls = useCallback(
+    (next: SolveControls) => {
+      const params = applySolveControls(next, new URLSearchParams(sp.toString()), showdown);
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [pathname, router, showdown, sp],
+  );
 
   const pool = useMemo(() => poolFromPlayers(players), [players]);
   const yoursTeams = useMemo(() => {
@@ -105,10 +113,25 @@ export function Optimizer({
   }, [teams, yours]);
 
   function patch(partial: Partial<SolveControls>) {
-    setControls((c) => ({ ...c, ...partial }));
+    setControls((c) => {
+      const next = {
+        ...c,
+        ...partial,
+        flexEligible: { ...c.flexEligible, ...partial.flexEligible },
+      };
+      writeControls(next);
+      return next;
+    });
   }
 
   async function generate() {
+    if (!showdown) {
+      const conflict = flexConstructionError(controls);
+      if (conflict) {
+        setError(conflict);
+        return;
+      }
+    }
     setBusy(true);
     setError(null);
     try {
@@ -182,6 +205,21 @@ export function Optimizer({
             : null}
           {!showdown
             ? numField("Bring-back", controls.bringBack, (bringBack) => patch({ bringBack }), 0, 2)
+            : null}
+          {!showdown
+            ? (["RB", "WR", "TE"] as FlexPos[]).map((pos) => (
+                <label key={pos} className="flex items-center gap-2 pb-1 t-body text-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-4"
+                    checked={controls.flexEligible[pos]}
+                    onChange={(e) =>
+                      patch({ flexEligible: { ...controls.flexEligible, [pos]: e.target.checked } })
+                    }
+                  />
+                  FLEX {pos}
+                </label>
+              ))
             : null}
           {!showdown ? (
             <label className="flex items-center gap-2 pb-1 t-body text-foreground">

@@ -1,6 +1,46 @@
 import type { Constraint } from "./glpk";
 import { teamOpponents } from "./pool";
-import type { OptPlayer, SolveControls } from "./types";
+import {
+  DEFAULT_POS_BOUNDS,
+  type FlexPos,
+  type OptPlayer,
+  type SolveControls,
+} from "./types";
+
+export function posRange(pos: FlexPos, controls: SolveControls): { lo: number; hi: number } {
+  const def = DEFAULT_POS_BOUNDS[pos];
+  const override = controls.posBounds?.[pos];
+  const lo = override?.min ?? def.min;
+  const hi = override?.max ?? def.max;
+  if (!controls.flexEligible[pos]) return { lo, hi: lo };
+  return { lo, hi };
+}
+
+export function posBound(
+  pos: FlexPos,
+  controls: SolveControls,
+): Constraint["bound"] {
+  const { lo, hi } = posRange(pos, controls);
+  if (lo === hi) return { kind: "eq", val: lo };
+  return { kind: "db", lo, up: hi };
+}
+
+/** Classic uses 7 non-QB/DST players. Return a message if the chosen bounds cannot make 7. */
+export function flexConstructionError(controls: SolveControls): string | null {
+  const rb = posRange("RB", controls);
+  const wr = posRange("WR", controls);
+  const te = posRange("TE", controls);
+  const min = rb.lo + wr.lo + te.lo;
+  const max = rb.hi + wr.hi + te.hi;
+  if (min <= 7 && 7 <= max) return null;
+  const fmt = (p: string, r: { lo: number; hi: number }) =>
+    `${p} ${r.lo === r.hi ? r.lo : `${r.lo}–${r.hi}`}`;
+  const parts = `${fmt("RB", rb)} + ${fmt("WR", wr)} + ${fmt("TE", te)}`;
+  if (max < 7) {
+    return `FLEX needs 7 skill players; ${parts} only make ${max}. Recheck a FLEX-eligible position.`;
+  }
+  return `FLEX needs 7 skill players; ${parts} need at least ${min}. Lower a position minimum.`;
+}
 
 export function classicConstraints(
   players: OptPlayer[],
@@ -22,9 +62,9 @@ export function classicConstraints(
   const constraints: Constraint[] = [
     { name: "size", vars: vars([...Array(n).keys()]), bound: { kind: "eq", val: 9 } },
     { name: "qb", vars: vars(byPos("QB").map(({ i }) => i)), bound: { kind: "eq", val: 1 } },
-    { name: "rb", vars: vars(byPos("RB").map(({ i }) => i)), bound: { kind: "db", lo: 2, up: 3 } },
-    { name: "wr", vars: vars(byPos("WR").map(({ i }) => i)), bound: { kind: "db", lo: 3, up: 4 } },
-    { name: "te", vars: vars(byPos("TE").map(({ i }) => i)), bound: { kind: "db", lo: 1, up: 2 } },
+    { name: "rb", vars: vars(byPos("RB").map(({ i }) => i)), bound: posBound("RB", controls) },
+    { name: "wr", vars: vars(byPos("WR").map(({ i }) => i)), bound: posBound("WR", controls) },
+    { name: "te", vars: vars(byPos("TE").map(({ i }) => i)), bound: posBound("TE", controls) },
     { name: "dst", vars: vars(byPos("DST").map(({ i }) => i)), bound: { kind: "eq", val: 1 } },
     {
       name: "salary_hi",

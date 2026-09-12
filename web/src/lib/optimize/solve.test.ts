@@ -1,4 +1,6 @@
 import { formatUploadCsv } from "@/lib/dfs-upload";
+import { flexConstructionError } from "./classic";
+import { applySolveControls, parseSolveControls } from "./controls-url";
 import { DEFAULT_CLASSIC, DEFAULT_SHOWDOWN, type OptPlayer, type SolveControls } from "./types";
 import { solveClassic, solveShowdown } from "./solve";
 
@@ -142,6 +144,59 @@ describe("classic ILP", () => {
     ).toBe(true);
     expect(kc[0]!.players.some((pl) => pl.team === "LAC" && pl.position !== "DST")).toBe(true);
     expect(kc[0]!.players.some((pl) => pl.dk_id === "lac")).toBe(false);
+  });
+
+  it("TE unchecked forces exactly one TE and FLEX is RB or WR", async () => {
+    const lineups = await solveClassic(CLASSIC, {
+      ...CLASSIC_CTRL,
+      lineups: 3,
+      flexEligible: { RB: true, WR: true, TE: false },
+    });
+    expect(lineups.length).toBeGreaterThanOrEqual(1);
+    for (const lu of lineups) {
+      const tes = lu.players.filter((pl) => pl.position === "TE");
+      expect(tes).toHaveLength(1);
+      expect(["RB", "WR"]).toContain(posOf(lu, "FLEX"));
+    }
+  });
+
+  it("all three FLEX positions checked keeps 2-TE lineups legal", async () => {
+    expect(flexConstructionError(CLASSIC_CTRL)).toBeNull();
+    const lineups = await solveClassic(CLASSIC, CLASSIC_CTRL);
+    expect(lineups).toHaveLength(5);
+    for (const lu of lineups) {
+      expect(["RB", "WR", "TE"]).toContain(posOf(lu, "FLEX"));
+    }
+  });
+});
+
+describe("flex construction", () => {
+  it("names the conflict when bounds cannot make 7 skill players", () => {
+    const msg = flexConstructionError({
+      ...DEFAULT_CLASSIC,
+      flexEligible: { RB: false, WR: false, TE: false },
+    });
+    expect(msg).toMatch(/FLEX needs 7 skill players/);
+    expect(msg).toMatch(/RB 2/);
+    expect(msg).toMatch(/WR 3/);
+    expect(msg).toMatch(/TE 1/);
+  });
+});
+
+describe("optimizer control URL", () => {
+  it("round-trips flex flags and keeps pick params", () => {
+    const next = applySolveControls(
+      { ...DEFAULT_CLASSIC, lineups: 5, stackN: 1, flexEligible: { RB: true, WR: true, TE: false } },
+      new URLSearchParams("lock=111&run=abc"),
+      false,
+    );
+    expect(next.get("flexTE")).toBe("0");
+    expect(next.get("stackN")).toBe("1");
+    expect(next.get("lock")).toBe("111");
+    expect(next.get("flexRB")).toBeNull();
+    const parsed = parseSolveControls(next, false);
+    expect(parsed.flexEligible).toEqual({ RB: true, WR: true, TE: false });
+    expect(parsed.stackN).toBe(1);
   });
 });
 

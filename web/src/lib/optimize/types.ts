@@ -12,6 +12,20 @@ export type OptPlayer = {
   proj_own: number | null;
 };
 
+export type FlexPos = "RB" | "WR" | "TE";
+
+export type FlexEligible = { RB: boolean; WR: boolean; TE: boolean };
+
+export type PosBound = { min: number; max: number };
+
+export const DEFAULT_FLEX: FlexEligible = { RB: true, WR: true, TE: true };
+
+export const DEFAULT_POS_BOUNDS: Record<FlexPos, PosBound> = {
+  RB: { min: 2, max: 3 },
+  WR: { min: 3, max: 4 },
+  TE: { min: 1, max: 2 },
+};
+
 export type SolveControls = {
   lineups: number;
   salaryCap: number;
@@ -22,6 +36,8 @@ export type SolveControls = {
   maxPerTeam: number;
   randomness: number;
   noQbVsDst: boolean;
+  flexEligible: FlexEligible;
+  posBounds?: Partial<Record<FlexPos, PosBound>>;
   locks: string[];
   excludes: string[];
   stackIds: string[];
@@ -37,6 +53,7 @@ export const DEFAULT_CLASSIC: SolveControls = {
   maxPerTeam: 4,
   randomness: 0,
   noQbVsDst: true,
+  flexEligible: { ...DEFAULT_FLEX },
   locks: [],
   excludes: [],
   stackIds: [],

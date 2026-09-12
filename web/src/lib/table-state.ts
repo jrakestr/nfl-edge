@@ -15,6 +15,18 @@ export const PRESERVED_PARAMS = [
   "lock",
   "excl",
   "stack",
+  "lineups",
+  "cap",
+  "minSalary",
+  "maxExp",
+  "maxTeam",
+  "rand",
+  "stackN",
+  "bringBack",
+  "noQbDst",
+  "flexRB",
+  "flexWR",
+  "flexTE",
 ] as const;
 
 export const TABLE_PARAMS = ["sort", "dir", "q", "pos", "team", "game", "salMin", "salMax", "minProj"] as const;

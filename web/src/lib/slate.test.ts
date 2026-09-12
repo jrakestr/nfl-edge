@@ -161,14 +161,18 @@ describe("pathContext", () => {
 describe("PRESERVED_PARAMS", () => {
   it("keeps slate and pick keys when table state writes sort", () => {
     expect(PRESERVED_PARAMS).toEqual(
-      expect.arrayContaining(["slate", "lock", "excl", "stack"]),
+      expect.arrayContaining(["slate", "lock", "excl", "stack", "flexTE", "stackN"]),
     );
-    const base = new URLSearchParams("slate=full&run=abc&season=2026&lock=111&excl=222&stack=333");
+    const base = new URLSearchParams(
+      "slate=full&run=abc&season=2026&lock=111&excl=222&stack=333&flexTE=0&stackN=1",
+    );
     const next = tableStateToParams({ ...parseTableState(base), sort: "proj", dir: "asc" }, base);
     expect(next.get("slate")).toBe("full");
     expect(next.get("run")).toBe("abc");
     expect(next.get("lock")).toBe("111");
     expect(next.get("excl")).toBe("222");
     expect(next.get("stack")).toBe("333");
+    expect(next.get("flexTE")).toBe("0");
+    expect(next.get("stackN")).toBe("1");
   });
 });
