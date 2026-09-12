@@ -8,6 +8,7 @@ import polars as pl
 from ..config import DATA_DIR, ROOT
 from ..db import execute, read_sql, upsert
 from . import names as N
+from .overrides import write_overrides
 
 # DK's Status column. User spec: O/D/Q. The Week 1 export spells OUT and IR rather than O/D.
 _STATUS = {
@@ -202,7 +203,7 @@ def run(season: int, week: int, path: Path, site: str = "dk", slate: str = "main
             pl.lit(season).alias("season"),
             pl.lit(week).alias("week"),
         ).select(["season", "week", "player_id", "status", "usage_multiplier", "note"])
-        ov_written = upsert(ov, "raw.player_overrides", ["season", "week", "player_id"])
+        ov_written = write_overrides(ov)
     unmatched = [r for r in rows if r.get("player_id") is None]
     summary = {
         "path": str(path),

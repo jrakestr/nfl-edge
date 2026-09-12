@@ -5,8 +5,18 @@ from pathlib import Path
 
 import polars as pl
 
-from ..db import read_sql, upsert
+from ..db import _write, read_sql
 from . import names as N
+
+OVERRIDE_CONFLICT = """
+on conflict (season, week, player_id) do update set
+  status = excluded.status,
+  usage_multiplier = excluded.usage_multiplier,
+  note = excluded.note,
+  updated_at = case
+    when raw.player_overrides.status is distinct from excluded.status
+    then now() else raw.player_overrides.updated_at end
+"""
 
 
 def should_touch_override(old_status: str | None, new_status: str | None) -> bool:
@@ -14,6 +24,12 @@ def should_touch_override(old_status: str | None, new_status: str | None) -> boo
     old = None if old_status is None else str(old_status).strip().lower()
     new = None if new_status is None else str(new_status).strip().lower()
     return old != new
+
+
+def write_overrides(df: pl.DataFrame) -> int:
+    """Upsert overrides; bump updated_at only when status changes."""
+    cols = ["season", "week", "player_id", "status", "usage_multiplier", "note"]
+    return _write(df.select(cols), "raw.player_overrides", OVERRIDE_CONFLICT)
 
 
 def load_catalog() -> pl.DataFrame:
@@ -31,7 +47,7 @@ def run(season: int, week: int, path: Path) -> dict:
             pl.lit(season).alias("season"),
             pl.lit(week).alias("week"),
         ).select(["season", "week", "player_id", "status", "usage_multiplier", "note"])
-        written = upsert(frame, "raw.player_overrides", ["season", "week", "player_id"])
+        written = write_overrides(frame)
     return {
         "path": str(path),
         "season": season,
