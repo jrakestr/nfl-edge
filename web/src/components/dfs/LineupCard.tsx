@@ -11,7 +11,7 @@ const SHOWDOWN_ORDER = ["CPT", "FLEX", "FLEX2", "FLEX3", "FLEX4", "FLEX5"] as co
 const NAME_SUFFIX = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
 const COMPOUND_LAST = new Set(["st", "de", "la", "van", "von"]);
 
-/** Last name for lineup chips. "Brian Robinson Jr." → Robinson, "Amon-Ra St. Brown" → St. Brown. */
+/** Display-only last name for chips. Shared cases: tests/fixtures/last_name_cases.json. */
 export function lastName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return name;

@@ -25,15 +25,22 @@ COMPOUND_LAST = frozenset({"st", "de", "la", "van", "von"})
 
 
 def last_name(name: str) -> str:
-    """Port of LineupCard.lastName. 'Brian Robinson Jr.' → Robinson, 'Amon-Ra St. Brown' → St. Brown."""
-    parts = (name or "").strip().split()
+    """Display-only last name for chips and PropCallout.
+
+    Not a matcher. Last names are not unique; use merge_key / match_one to join.
+    Same rules as LineupCard.lastName. Shared cases: tests/fixtures/last_name_cases.json.
+    """
+    parts = [p for p in (name or "").strip().split() if p]
     if not parts:
         return name
     end = len(parts) - 1
-    while end > 0 and parts[end].rstrip(".").lower() in NAME_SUFFIX:
+    while end > 0 and parts[end].replace(".", "").lower() in NAME_SUFFIX:
         end -= 1
-    if end >= 1 and parts[end - 1].rstrip(".").lower() in COMPOUND_LAST:
-        return " ".join(parts[end - 1 : end + 1])
+    stem = parts[end].replace(".", "").lower()
+    if end >= 1 and parts[end - 1].replace(".", "").lower() in COMPOUND_LAST:
+        return f"{parts[end - 1]} {parts[end]}"
+    if stem in NAME_SUFFIX:
+        return name
     return parts[end]
 
 
@@ -124,6 +131,8 @@ def prepare_catalog(catalog: pl.DataFrame) -> pl.DataFrame:
     return catalog.with_columns(
         pl.col("merge_name").fill_null("").map_elements(merge_key, return_dtype=pl.Utf8).alias("_mn"),
         pl.col("display_name").fill_null("").map_elements(merge_key, return_dtype=pl.Utf8).alias("_dn"),
+        pl.col("display_name").fill_null("").map_elements(last_name, return_dtype=pl.Utf8)
+        .map_elements(merge_key, return_dtype=pl.Utf8).alias("_ln"),
         team.alias("_team"),
         pl.col("position").fill_null("").str.to_uppercase().alias("_pos"),
     )

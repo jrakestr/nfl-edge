@@ -1,7 +1,15 @@
 """Name matching for injury overrides and DK salary ingest. No database."""
+import json
+from pathlib import Path
+
 import polars as pl
+import pytest
 
 from nfl_edge.ingest import names as N
+
+LAST_NAME_CASES = json.loads(
+    (Path(__file__).parent / "fixtures" / "last_name_cases.json").read_text()
+)
 
 CATALOG = pl.DataFrame({
     "gsis_id": ["00-0033873", "00-0033288", "00-0033289"],
@@ -27,10 +35,9 @@ def test_merge_key_strips_punctuation_and_suffixes():
     assert N.merge_key("A.J. Brown") == "aj brown"
 
 
-def test_last_name_skips_suffix_and_keeps_compound():
-    assert N.last_name("Brian Robinson Jr.") == "Robinson"
-    assert N.last_name("Patrick Mahomes II") == "Mahomes"
-    assert N.last_name("Amon-Ra St. Brown") == "St. Brown"
+@pytest.mark.parametrize("case", LAST_NAME_CASES, ids=lambda c: c["name"])
+def test_last_name_shared_cases(case):
+    assert N.last_name(case["name"]) == case["last"]
 
 
 def test_gsis_id_passthrough():
