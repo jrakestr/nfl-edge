@@ -13,7 +13,8 @@ export type ParsedGameInfo = { away: string; home: string };
 
 export type ResolvedSlate = { slate: string; fallback: boolean };
 
-function mapTeam(abbr: string): string {
+/** DK abbr → nflverse (`LAR`→`LA`, `JAC`→`JAX`, `WSH`→`WAS`). */
+export function mapTeam(abbr: string): string {
   const up = abbr.toUpperCase();
   return TEAM_ALIASES[up] ?? up;
 }

@@ -1,3 +1,4 @@
+import { TeamLogo } from "@/components/ui/TeamLogo";
 import { MetricIcon } from "@/lib/icons";
 
 export type Stack = { team: string; count: number; bringBack?: boolean };
@@ -15,7 +16,8 @@ export function StackChip({ team, count, bringBack }: Partial<Stack>) {
   return (
     <span className="inline-flex items-center gap-1 rounded-sm bg-accent px-1.5 py-0.5 t-caption text-foreground">
       <MetricIcon metric="stack" />
-      {team} {count}
+      <TeamLogo team={team} size={14} />
+      {count}
       {bringBack ? " + bring-back" : ""}
     </span>
   );

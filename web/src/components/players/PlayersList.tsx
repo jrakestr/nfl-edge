@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { TeamLogo } from "@/components/ui/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/DataTable";
 import { fallbackNotice } from "@/lib/slate";
@@ -197,16 +198,15 @@ export function PlayersList({
             header: "Team",
             sortValue: (p) => p.team ?? "",
             cell: (p) => (
-              <span
+              <TeamLogo
+                team={p.team ?? ""}
                 className={cn(
-                  "t-body font-semibold",
+                  "t-body",
                   p.player_dk_id && picks.excl.includes(p.player_dk_id)
                     ? "text-muted-foreground"
                     : "text-foreground",
                 )}
-              >
-                {p.team ?? "—"}
-              </span>
+              />
             ),
           },
           {
