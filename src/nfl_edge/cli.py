@@ -93,7 +93,11 @@ def backfill(
             if name not in selected:
                 continue
             t = time.time()
-            typer.echo(f"{season} {name}: {mods[name].run([season])} ({time.time() - t:.0f}s)")
+            if name == "schedules":
+                result = schedules.run([season], snapshot_lines=False)
+            else:
+                result = mods[name].run([season])
+            typer.echo(f"{season} {name}: {result} ({time.time() - t:.0f}s)")
     if "consensus" in selected:
         typer.echo("consensus coverage (weeks with ECR per season):")
         typer.echo(str(consensus.coverage(consensus.fetch(list(range(start, end + 1))))))

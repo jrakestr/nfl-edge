@@ -55,6 +55,7 @@ class GameContext:
     rest_diff_days: int = 0          # home_rest - away_rest
     wind_mph: float = 0.0
     roof: str = "outdoors"
+    neutral_site: bool = False
 
 
 @dataclass
@@ -90,7 +91,8 @@ def ppd_adjustments(home: TeamPrior, away: TeamPrior, ctx: GameContext, cfg: dic
     base_home = lg + (home.off_ppd - lg) + (away.def_ppd_allowed - lg)
     base_away = lg + (away.off_ppd - lg) + (home.def_ppd_allowed - lg)
     tc = cfg["team"]
-    hfa = float(ctx.home_field_pts) / 2.0                            # split: +half home, -half away
+    hfa_pts = tc.get("neutral_site_hfa_pts", 0.0) if ctx.neutral_site else ctx.home_field_pts
+    hfa = float(hfa_pts) / 2.0                                       # split: +half home, -half away
     rest = float(tc.get("rest_advantage_per_day", 0.0)) * ctx.rest_diff_days / 2.0
     wind_pen = 0.0
     if ctx.roof in ("outdoors", "open") and ctx.wind_mph > float(tc.get("weather_wind_threshold_mph", 99)):

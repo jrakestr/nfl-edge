@@ -17,7 +17,7 @@ SCHEDULE_COLS = [
     "away_rest", "home_rest", "away_moneyline", "home_moneyline", "spread_line",
     "away_spread_odds", "home_spread_odds", "total_line", "under_odds", "over_odds",
     "div_game", "roof", "surface", "temp", "wind", "away_qb_id", "home_qb_id",
-    "away_qb_name", "home_qb_name", "stadium",
+    "away_qb_name", "home_qb_name", "stadium", "location",
 ]
 LINE_COLS = [
     "game_id", "spread_line", "total_line", "away_moneyline", "home_moneyline",
@@ -27,12 +27,15 @@ LINE_COLS = [
 
 def fetch(seasons: list[int]) -> pl.DataFrame:
     df = nfl.load_schedules(seasons)
+    if "location" not in df.columns:
+        raise KeyError(f"load_schedules is missing expected column 'location'; columns={list(df.columns)}")
     return df.select([c for c in SCHEDULE_COLS if c in df.columns]).with_columns(
         pl.col("gameday").str.to_date(strict=False)
     )
 
 
-def run(seasons: list[int], week: int | None = None, lines_only: bool = False) -> dict:
+def run(seasons: list[int], week: int | None = None, lines_only: bool = False,
+        snapshot_lines: bool = True) -> dict:
     df = fetch(seasons)
     if week is not None:
         df = df.filter(pl.col("week") == week)
@@ -43,6 +46,8 @@ def run(seasons: list[int], week: int | None = None, lines_only: bool = False) -
         n_sched = upsert(missing, "raw.schedules", ["game_id"]) if not missing.is_empty() else 0
     else:
         n_sched = upsert(df, "raw.schedules", ["game_id"])
-    lines = df.select(LINE_COLS).filter(pl.col("spread_line").is_not_null())
-    n_lines = insert_ignore(lines, "raw.market_lines")
+    n_lines = 0
+    if snapshot_lines:
+        lines = df.select(LINE_COLS).filter(pl.col("spread_line").is_not_null())
+        n_lines = insert_ignore(lines, "raw.market_lines")
     return {"schedules": n_sched, "line_snapshots": n_lines}

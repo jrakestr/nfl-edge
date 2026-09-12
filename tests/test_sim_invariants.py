@@ -3,7 +3,7 @@
 Interfaces under test:
     game.TeamPrior(team, drives_mean, plays_per_drive, neutral_pass_rate, off_ppd, def_ppd_allowed,
                    fg_per_drive, pass_td_share, int_rate, sack_rate)
-    game.GameContext(home_field_pts, rest_diff_days, wind_mph, roof)
+    game.GameContext(home_field_pts, rest_diff_days, wind_mph, roof, neutral_site)
     game.simulate_game(home, away, ctx, n, rng, cfg, league) -> GameDraws
         GameDraws.home / .away: TeamDraws with int arrays of length n:
             drives, plays, pass_att, rush_att, sacks, td, pass_td, rush_td, fg, pts, int
@@ -126,6 +126,39 @@ def test_home_field_shifts_spread_only():
     d = game.simulate_game(_team("H"), _team("A"), _ctx(home_field_pts=3.0), N, rng, CFG, LEAGUE)
     assert d.ppd_adj["home"] > d.ppd_adj["away"]
     assert (d.home.pts.mean() - d.away.pts.mean()) > 1.0
+
+
+def test_neutral_site_shifts_ppd_by_half_home_field():
+    home, away = _team("H"), _team("A")
+    drives = LEAGUE["drives_mean"]
+    hfa_pts = float(CFG["team"]["home_field_pts"])
+    std = game.ppd_adjustments(home, away, _ctx(home_field_pts=hfa_pts), CFG, LEAGUE, drives)
+    neu = game.ppd_adjustments(
+        home, away, _ctx(home_field_pts=hfa_pts, neutral_site=True), CFG, LEAGUE, drives,
+    )
+    assert (std["home"] - neu["home"]) * drives == pytest.approx(hfa_pts / 2)
+    assert (std["away"] - neu["away"]) * drives == pytest.approx(-hfa_pts / 2)
+
+
+def test_neutral_site_leaves_rest_and_wind_unchanged():
+    home, away = _team("H"), _team("A")
+    drives = LEAGUE["drives_mean"]
+    hfa_pts = float(CFG["team"]["home_field_pts"])
+    kw = {"home_field_pts": hfa_pts, "rest_diff_days": 2, "wind_mph": 20.0, "roof": "outdoors"}
+    std = game.ppd_adjustments(home, away, _ctx(**kw), CFG, LEAGUE, drives)
+    neu = game.ppd_adjustments(home, away, _ctx(**kw, neutral_site=True), CFG, LEAGUE, drives)
+    rest = float(CFG["team"]["rest_advantage_per_day"]) * kw["rest_diff_days"] / 2.0
+    wind = 1.5
+    lg = LEAGUE["off_ppd"]
+    base_home = lg + (home.off_ppd - lg) + (away.def_ppd_allowed - lg)
+    base_away = lg + (away.off_ppd - lg) + (home.def_ppd_allowed - lg)
+    hfa_neu = float(CFG["team"].get("neutral_site_hfa_pts", 0.0)) / 2.0
+    assert (neu["home"] - base_home) * drives == pytest.approx(hfa_neu + rest - wind)
+    assert (std["home"] - base_home) * drives == pytest.approx(hfa_pts / 2 + rest - wind)
+    assert (neu["away"] - base_away) * drives == pytest.approx(-hfa_neu - rest - wind)
+    assert (std["away"] - base_away) * drives == pytest.approx(-hfa_pts / 2 - rest - wind)
+    assert (std["home"] - neu["home"]) * drives == pytest.approx(hfa_pts / 2)
+    assert (std["away"] - neu["away"]) * drives == pytest.approx(-hfa_pts / 2)
 
 
 def test_spread_and_total_monotone_in_strength():

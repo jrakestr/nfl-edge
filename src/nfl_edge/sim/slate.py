@@ -67,7 +67,7 @@ def load_games(season: int, week: int) -> pl.DataFrame:
     return read_sql(
         """
         select s.game_id, s.season, s.week, s.home_team, s.away_team, s.home_rest, s.away_rest,
-               s.roof, s.wind,
+               s.roof, s.wind, s.location,
                coalesce(m.spread_line, s.spread_line)::float8 as market_spread,
                coalesce(m.total_line, s.total_line)::float8 as market_total
         from raw.schedules s
@@ -122,6 +122,7 @@ def game_context(g: dict, cfg: dict) -> GameContext:
         rest_diff_days=int((g.get("home_rest") or 7) - (g.get("away_rest") or 7)),
         wind_mph=float(g.get("wind") or 0.0),
         roof=g.get("roof") or "outdoors",
+        neutral_site=g.get("location") == "Neutral",
     )
 
 
