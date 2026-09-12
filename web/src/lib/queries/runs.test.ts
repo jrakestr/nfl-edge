@@ -1,4 +1,4 @@
-import { pickDefaultRun } from "./runs";
+import { pickDefaultRun, pickLineupRun } from "./runs";
 
 const t = (iso: string) => new Date(iso);
 
@@ -38,5 +38,33 @@ describe("pickDefaultRun", () => {
 
   it("returns null when there are no runs", () => {
     expect(pickDefaultRun([], FULL)).toBeNull();
+  });
+});
+
+function lu(id: string, created: string, n_games: number, n_lineups: number) {
+  return { run_id: id, created_at: t(created), n_games, n_lineups };
+}
+
+const satLineups = lu("aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "2026-09-12T03:00:00Z", 16, 150);
+const sunSimNoLu = lu("bbbbbbb2-bbbb-4bbb-8bbb-bbbbbbbbbbb2", "2026-09-13T15:45:00Z", 16, 0);
+
+describe("pickLineupRun", () => {
+  it("keeps Saturday lineups while Sunday has a full sim and no lineups", () => {
+    const picked = pickLineupRun([sunSimNoLu, satLineups], FULL);
+    expect(picked?.run.run_id).toBe(satLineups.run_id);
+    expect(picked?.buildInProgress).toBe(true);
+  });
+
+  it("uses the new run once it has lineups", () => {
+    const sunDone = { ...sunSimNoLu, n_lineups: 150 };
+    const picked = pickLineupRun([sunDone, satLineups], FULL);
+    expect(picked?.run.run_id).toBe(sunDone.run_id);
+    expect(picked?.buildInProgress).toBe(false);
+  });
+
+  it("returns the default run with no note when nothing has lineups", () => {
+    const picked = pickLineupRun([sunSimNoLu], FULL);
+    expect(picked?.run.run_id).toBe(sunSimNoLu.run_id);
+    expect(picked?.buildInProgress).toBe(false);
   });
 });

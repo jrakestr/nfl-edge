@@ -2,6 +2,7 @@ import { StackChip, type Stack } from "./StackChip";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { pct as fmtPct } from "@/lib/edge";
 import { MetricLabel } from "@/lib/icons";
+import { REBUILD_PENDING } from "@/lib/injury-status";
 import type { DfsLineup } from "@/lib/types";
 
 const SLOT_ORDER = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as const;
@@ -35,6 +36,7 @@ export function LineupCard({
   selected = false,
   onToggle,
   slate,
+  staleDkIds = new Set(),
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
@@ -42,11 +44,13 @@ export function LineupCard({
   selected?: boolean;
   onToggle?: () => void;
   slate?: string;
+  staleDkIds?: Set<string>;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
   const showdown = slate === "showdown" || lineup.players.some((p) => p.slot === "CPT");
   const order = showdown ? SHOWDOWN_ORDER : SLOT_ORDER;
+  const stale = lineup.players.some((p) => p.dk_id != null && staleDkIds.has(p.dk_id));
   return (
     <article className="card flex flex-col gap-2 p-4" aria-label={`Lineup ${lineup.lineup_id}`}>
       <div className="flex items-start gap-3">
@@ -104,6 +108,7 @@ export function LineupCard({
               ROI <span className="tnum font-semibold text-foreground">{fmtPct(lineup.sim_roi)}</span>
             </MetricLabel>
             {stacks.length ? stacks.map((s) => <StackChip key={s.team} {...s} />) : <StackChip />}
+            {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
           </div>
         </div>
       </div>

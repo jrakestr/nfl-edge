@@ -9,6 +9,13 @@ from ..db import read_sql, upsert
 from . import names as N
 
 
+def should_touch_override(old_status: str | None, new_status: str | None) -> bool:
+    """True only when the stored status changes. Same O/D re-ingest keeps updated_at."""
+    old = None if old_status is None else str(old_status).strip().lower()
+    new = None if new_status is None else str(new_status).strip().lower()
+    return old != new
+
+
 def load_catalog() -> pl.DataFrame:
     return read_sql(
         "select gsis_id, display_name, merge_name, latest_team, position from raw.players"

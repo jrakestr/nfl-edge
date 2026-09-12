@@ -62,6 +62,11 @@ const SHOWDOWN: DfsLineup = {
 };
 
 describe("LineupCard", () => {
+  it("flags a lineup that includes a stale injury dk_id", () => {
+    render(<LineupCard lineup={SAMPLE} teams={TEAMS} staleDkIds={new Set(["2"])} />);
+    expect(screen.getByText("projected before injury report; rebuild pending")).toBeInTheDocument();
+  });
+
   it("shows last names, win%, and DET stack", () => {
     render(<LineupCard lineup={SAMPLE} teams={TEAMS} />);
     expect(screen.getByText("Gibbs")).toBeInTheDocument();
@@ -120,5 +125,21 @@ describe("LineupReview with data", () => {
     expect(screen.getByText("Gibbs")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export selected" })).toBeDisabled();
     expect(screen.getByLabelText("Jahmyr Gibbs exposure")).toBeInTheDocument();
+  });
+
+  it("notes Sunday build in progress when the new run has no lineups", () => {
+    render(
+      <LineupReview
+        week="1"
+        site="dk"
+        slate="main"
+        runId="aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1"
+        slateId="2026_01_main"
+        lineups={[SAMPLE]}
+        teams={TEAMS}
+        buildInProgress
+      />,
+    );
+    expect(screen.getByRole("note")).toHaveTextContent("Sunday build in progress");
   });
 });

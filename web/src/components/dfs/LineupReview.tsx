@@ -37,6 +37,8 @@ export function LineupReview({
   teams = {},
   positions = {},
   correlations = [],
+  staleDkIds,
+  buildInProgress = false,
 }: {
   week: string;
   site: string;
@@ -48,6 +50,8 @@ export function LineupReview({
   teams?: Record<string, string>;
   positions?: Record<string, string>;
   correlations?: CorrPair[];
+  staleDkIds?: Set<string>;
+  buildInProgress?: boolean;
 }) {
   const [sort, setSort] = useState<SortKey>("win");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -108,6 +112,11 @@ export function LineupReview({
           <h1 className="t-title">
             Week {week} · {site.toUpperCase()} · {slate}
           </h1>
+          {buildInProgress ? (
+            <p className="t-caption text-warn" role="note">
+              Sunday build in progress
+            </p>
+          ) : null}
           <Button
             type="button"
             size="sm"
@@ -209,6 +218,7 @@ export function LineupReview({
                   sim_roi: null,
                   players: [],
                 }}
+                staleDkIds={staleDkIds}
               />
               <p className="t-caption">No lineups for this slate yet.</p>
             </>
@@ -220,6 +230,7 @@ export function LineupReview({
                 lineup={lu}
                 teams={teams}
                 positions={positions}
+                staleDkIds={staleDkIds}
                 selected={selected.has(lu.lineup_id)}
                 onToggle={() =>
                   setSelected((prev) => {

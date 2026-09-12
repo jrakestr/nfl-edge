@@ -4,6 +4,9 @@ import { RunRowSchema, WeekRunsSchema, type RunRow, type WeekRuns } from "@/lib/
 /** A run plus how many proj_games rows it wrote. Used to skip a partial Sunday sim. */
 export type RunWithCount = RunRow & { n_games: number };
 
+/** Lineups/Optimize: n_lineups is for one site+slate. */
+export type RunWithLineups = RunWithCount & { n_lineups: number };
+
 /** Weeks of a season that have at least one sim run, newest week first. */
 export async function weeksWithRuns(season: number): Promise<WeekRuns[]> {
   const rows = await sql()`
@@ -60,6 +63,22 @@ export function pickDefaultRun<T extends { run_id: string; created_at: Date; n_g
   const full = slateGames > 0 ? runs.filter((r) => r.n_games === slateGames).sort(newest) : [];
   if (full.length) return full[0];
   return [...runs].sort(newest)[0];
+}
+
+/**
+ * Lineups/Optimize: use the default run when it has lineups; otherwise the newest run
+ * that has lineups for the slate. `buildInProgress` when the default run still has none.
+ */
+export function pickLineupRun<
+  T extends { run_id: string; created_at: Date; n_games: number; n_lineups: number },
+>(runs: T[], slateGames: number, pinned?: string): { run: T; buildInProgress: boolean } | null {
+  const preferred = pickDefaultRun(runs, slateGames, pinned);
+  if (!preferred) return null;
+  if (preferred.n_lineups > 0) return { run: preferred, buildInProgress: false };
+  const newest = (a: T, b: T) => b.created_at.getTime() - a.created_at.getTime();
+  const withLineups = runs.filter((r) => r.n_lineups > 0).sort(newest);
+  if (withLineups[0]) return { run: withLineups[0], buildInProgress: true };
+  return { run: preferred, buildInProgress: false };
 }
 
 /** The run to display: pinned if present, else the newest full slate for the week. */

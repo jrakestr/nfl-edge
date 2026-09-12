@@ -325,6 +325,17 @@ export const WeekPlayerSchema = z.object({
   fpts_dk_mean: numOrNull,
   typical_dk: numOrNull,
   hist: HistSchema.nullable(),
+  override_status: z.string().nullable().optional(),
+  override_updated_at: z
+    .union([z.date(), z.string()])
+    .nullable()
+    .optional()
+    .transform((d) => (d == null ? null : typeof d === "string" ? d : d.toISOString())),
+  run_created_at: z
+    .union([z.date(), z.string()])
+    .nullable()
+    .optional()
+    .transform((d) => (d == null ? null : typeof d === "string" ? d : d.toISOString())),
 });
 export type WeekPlayer = z.infer<typeof WeekPlayerSchema>;
 
