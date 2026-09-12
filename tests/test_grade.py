@@ -177,6 +177,48 @@ def test_kickoff_uses_gametime_et():
     assert k == datetime(2025, 11, 9, 13, 0, tzinfo=ET)
 
 
+def test_kickoff_home_location_still_uses_gametime():
+    k = G.kickoff_at(date(2026, 9, 13), "13:00", "Home")
+    assert k == datetime(2026, 9, 13, 13, 0, tzinfo=ET)
+
+
+def test_kickoff_neutral_is_midnight_et():
+    k = G.kickoff_at(date(2026, 9, 10), "20:35", "Neutral")
+    assert k == datetime(2026, 9, 10, 0, 0, tzinfo=ET)
+
+
+def test_run_for_kickoff_newest_before():
+    kick = datetime(2026, 9, 9, 20, 20, tzinfo=ET)
+    runs = [
+        {"run_id": "old", "created_at": datetime(2026, 9, 5, 6, 30, tzinfo=UTC)},
+        {"run_id": "live", "created_at": datetime(2026, 9, 8, 0, 35, tzinfo=UTC)},
+        {"run_id": "after", "created_at": datetime(2026, 9, 12, 19, 24, tzinfo=UTC)},
+    ]
+    assert G.run_for_kickoff(runs, kick) == "live"
+
+
+def test_run_for_kickoff_none_when_all_after():
+    kick = datetime(2025, 11, 9, 13, 0, tzinfo=ET)
+    runs = [{"run_id": "backtest", "created_at": datetime(2026, 9, 4, 12, 0, tzinfo=UTC)}]
+    assert G.run_for_kickoff(runs, kick) is None
+
+
+def test_predated_kickoff_true_only_when_run_is_before():
+    kick = datetime(2026, 9, 9, 20, 20, tzinfo=ET)
+    assert G.predated_kickoff(datetime(2026, 9, 8, 0, 35, tzinfo=UTC), kick) is True
+    assert G.predated_kickoff(datetime(2026, 9, 12, 19, 24, tzinfo=UTC), kick) is False
+
+
+def test_run_for_kickoff_neutral_rejects_afternoon_resim():
+    """London stored as 20:35 ET; a 13:00 ET Sunday re-sim must not predate midnight."""
+    kick = G.kickoff_at(date(2026, 10, 4), "20:35", "Neutral")
+    runs = [
+        {"run_id": "sat", "created_at": datetime(2026, 10, 3, 18, 0, tzinfo=UTC)},
+        {"run_id": "sun_1pm", "created_at": datetime(2026, 10, 4, 17, 0, tzinfo=UTC)},  # 13:00 ET
+    ]
+    assert G.run_for_kickoff(runs, kick) == "sat"
+
+
 def test_pick_close_last_pre_kickoff_among_three():
     kickoff = datetime(2025, 11, 9, 13, 0, tzinfo=ET)
     snaps = [

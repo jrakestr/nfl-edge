@@ -33,6 +33,7 @@ class GradeReport:
     n_verdicts: int
     skipped_unplayed: int
     skipped_no_parquet: list[str] = field(default_factory=list)
+    assignments: list[dict] = field(default_factory=list)
     picks: pl.DataFrame = field(default_factory=pl.DataFrame)
     verdicts: pl.DataFrame = field(default_factory=pl.DataFrame)
     games: pl.DataFrame = field(default_factory=pl.DataFrame)
@@ -79,16 +80,39 @@ def closing_prob(price_a: float, price_b: float) -> float:
     return float(devig_two_way(price_a, price_b)[0])
 
 
-def kickoff_at(gameday, gametime) -> datetime:
+def _aware(ts: datetime) -> datetime:
+    if getattr(ts, "tzinfo", None) is None:
+        return ts.replace(tzinfo=ZoneInfo("UTC"))
+    return ts
+
+
+def kickoff_at(gameday, gametime, location: str | None = None) -> datetime:
+    """ET kickoff cutoff. Neutral sites use gameday 00:00 ET so a stored evening
+    gametime cannot treat a post-game re-sim as pre-kickoff. Twin of the board
+    has_started clock (web/src/lib/kickoff.ts)."""
     d = gameday.date() if isinstance(gameday, datetime) else gameday
     if isinstance(d, str):
         d = date.fromisoformat(d[:10])
+    if location == "Neutral":
+        return datetime.combine(d, time(0, 0), tzinfo=ET)
     if gametime in (None, ""):
         t = time(23, 59)
     else:
         hh, mm = str(gametime).split(":")[:2]
         t = time(int(hh), int(mm[:2]))
     return datetime.combine(d, t, tzinfo=ET)
+
+
+def run_for_kickoff(runs: list[dict], kickoff: datetime) -> str | None:
+    """Newest run whose created_at precedes kickoff. None → caller grades every run."""
+    prior = [r for r in runs if _aware(r["created_at"]) < kickoff]
+    if not prior:
+        return None
+    return max(prior, key=lambda r: _aware(r["created_at"]))["run_id"]
+
+
+def predated_kickoff(created_at: datetime, kickoff: datetime) -> bool:
+    return _aware(created_at) < kickoff
 
 
 def pick_close(snapshots: list[dict], kickoff: datetime, schedule: dict) -> dict | None:
@@ -352,11 +376,12 @@ def _calibration_tables(rows: pl.DataFrame) -> tuple[pl.DataFrame, float | None,
 def _runs(season: int, week: int, run_id: str | None) -> pl.DataFrame:
     if run_id:
         return read_sql(
-            "select run_id::text, season, week, draws_per_game from model.sim_runs where run_id = %s",
+            "select run_id::text, season, week, draws_per_game, created_at from model.sim_runs "
+            "where run_id = %s",
             (run_id,),
         )
     return read_sql(
-        "select run_id::text, season, week, draws_per_game from model.sim_runs "
+        "select run_id::text, season, week, draws_per_game, created_at from model.sim_runs "
         "where season = %s and week = %s order by created_at",
         (season, week),
     )
@@ -380,8 +405,11 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
     unplayed: set[str] = set()
     n_verdicts = 0
     kept_runs: list[str] = []
+    assignments: list[dict] = []
+    run_rows = list(runs.iter_rows(named=True))
+    run_by_id = {row["run_id"]: row for row in run_rows}
 
-    for r in runs.iter_rows(named=True):
+    for r in run_rows:
         rid = r["run_id"]
         if not _parquet_ok(rid):
             skipped_pq.append(rid)
@@ -412,7 +440,7 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
         )
         sched = read_sql(
             """
-            select game_id, home_team, away_team, gameday, gametime,
+            select game_id, home_team, away_team, gameday, gametime, location,
                    result::float8 as result, total::float8 as total,
                    spread_line::float8 as spread_line, total_line::float8 as total_line,
                    home_spread_odds, away_spread_odds, over_odds, under_odds,
@@ -443,7 +471,11 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
             if sc.get("result") is None:
                 unplayed.add(game_id)
                 continue
-            kick = kickoff_at(sc["gameday"], sc.get("gametime"))
+            kick = kickoff_at(sc["gameday"], sc.get("gametime"), sc.get("location"))
+            chosen = run_for_kickoff(run_rows, kick)
+            if chosen is not None and rid != chosen:
+                continue
+            pred = predated_kickoff(run_by_id[rid]["created_at"], kick)
             close = pick_close(snaps_by.get(game_id, []), kick, sc)
             game = {"game_id": game_id, "result": sc["result"], "total": sc["total"],
                     "n_snapshots": n_by.get(game_id, 0),
@@ -451,6 +483,11 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
             meta[(rid, game_id)] = {
                 "matchup": f"{sc['away_team']}@{sc['home_team']}", "result": sc["result"],
             }
+            assignments.append({
+                "game_id": game_id, "run_id": rid,
+                "created_at": run_by_id[rid]["created_at"], "kickoff": kick,
+                "predated_kickoff": pred,
+            })
             vrow = verd_by_game.get(game_id)
             for (mlid,), erows in part.group_by("market_line_id"):
                 mlid = mlid[0] if isinstance(mlid, tuple) else mlid
@@ -458,6 +495,7 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
                 graded = grade_snapshot(erows.to_dicts(), bet, close, game, vrow)
                 for row in graded:
                     row["run_id"] = rid
+                    row["predated_kickoff"] = pred
                     all_rows.append(row)
 
     if all_rows:
@@ -478,6 +516,6 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
     return GradeReport(
         season=season, week=week, run_ids=kept_runs, n_rows=df.height if not df.is_empty() else 0,
         n_verdicts=n_verdicts, skipped_unplayed=len(unplayed), skipped_no_parquet=skipped_pq,
-        picks=picks, verdicts=verd_tbl, games=games_tbl, calibration=cal,
+        assignments=assignments, picks=picks, verdicts=verd_tbl, games=games_tbl, calibration=cal,
         brier_sim=brier_s, brier_close=brier_c, monotone=mono, dfs=dfs, props=props,
     )

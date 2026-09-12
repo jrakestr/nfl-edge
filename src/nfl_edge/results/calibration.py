@@ -398,7 +398,12 @@ def _week_pick_row(week, df: pl.DataFrame) -> dict:
 
 
 def results_report(season: int, weeks: list[int] | None = None) -> Path:
-    """Per-week and cumulative grading from model.results. Newest graded run per week."""
+    """Per-week and cumulative grading from model.results.
+
+    Default curve is predated_kickoff rows only — whatever grade.py wrote before
+    kickoff. A week may have more than one run_id. Hindsight/fallback rows stay
+    in the table and are listed, not scored.
+    """
     df = read_sql(
         """
         select r.season, r.week, r.run_id::text as run_id, r.created_at,
@@ -407,32 +412,49 @@ def results_report(season: int, weeks: list[int] | None = None) -> Path:
                res.edge::float8 as edge, res.kelly_fraction::float8 as kelly_fraction,
                res.clv_points::float8 as clv_points, res.pnl::float8 as pnl,
                res.pnl_kelly::float8 as pnl_kelly, res.actual::float8 as actual,
-               res.is_last_snapshot, res.verdict_pick, res.verdict_call, res.close_source
+               res.is_last_snapshot, res.verdict_pick, res.verdict_call, res.close_source,
+               res.predated_kickoff
         from model.results res
         join model.sim_runs r on r.run_id = res.run_id
         where r.season = %s
         """,
         (season,),
     )
-    if weeks:
+    if weeks and df.height:
         df = df.filter(pl.col("week").is_in(weeks))
     OUT.mkdir(exist_ok=True)
     path = OUT / f"grading_{season}.md"
+    clv_note = (
+        "CLV columns are structurally zero on backfilled seasons (snapshots were captured after "
+        "kickoff, so the close is the schedules fallback equal to the bet line). They are "
+        "informative from 2026 Week 1 onward, once the lines-only cron is producing pre-kickoff "
+        "snapshots."
+    )
     if df.is_empty():
-        path.write_text(f"# Grading {season}\n\n_no graded rows_\n")
+        path.write_text(f"# Grading {season}\n\n{clv_note}\n\n_no graded rows_\n")
+        return path
+
+    hindsight = df.filter(~pl.col("predated_kickoff"))
+    primary = df.filter(pl.col("predated_kickoff"))
+    if primary.is_empty():
+        path.write_text(
+            f"# Grading {season}\n\n{clv_note}\n\n_no predated-kickoff rows_\n"
+        )
         return path
 
     listed = (
-        df.select(["week", "run_id", "created_at"]).unique()
-        .sort(["week", "created_at"], descending=[False, True])
+        primary.select(["week", "run_id", "created_at"]).unique()
+        .sort(["week", "created_at"])
     )
-    newest = listed.unique(subset=["week"], keep="first").sort("week")
-    keep_ids = newest["run_id"].to_list()
-    primary = df.filter(pl.col("run_id").is_in(keep_ids))
-    other = listed.filter(~pl.col("run_id").is_in(keep_ids))
+    week_ids = listed["week"].unique().sort()
+    other = (
+        hindsight.select(["week", "run_id", "created_at"]).unique()
+        .sort(["week", "created_at"])
+        if hindsight.height else pl.DataFrame()
+    )
 
     week_rows = [_week_pick_row(int(w), primary.filter(pl.col("week") == w))
-                 for w in newest["week"].to_list()]
+                 for w in week_ids.to_list()]
     weekly = pl.DataFrame(week_rows, strict=False)
     cumul = pl.DataFrame([_week_pick_row("all", primary)], strict=False)
 
@@ -457,23 +479,18 @@ def results_report(season: int, weeks: list[int] | None = None) -> Path:
         if other.height else "_none_"
     )
     chosen_md = "\n".join(
-        f"- week {r['week']}: `{r['run_id']}`" for r in newest.iter_rows(named=True)
+        f"- week {r['week']}: `{r['run_id']}`" for r in listed.iter_rows(named=True)
     )
     lines = [
         f"# Grading {season}",
         "",
-        (
-            "CLV columns are structurally zero on backfilled seasons (snapshots were captured after "
-            "kickoff, so the close is the schedules fallback equal to the bet line). They are "
-            "informative from 2026 Week 1 onward, once the lines-only cron is producing pre-kickoff "
-            "snapshots."
-        ),
+        clv_note,
         "",
-        "## Chosen run per week (newest with graded rows)",
+        "## Predated-kickoff runs (in the tables)",
         "",
         chosen_md,
         "",
-        "## Other graded runs (listed, not in the tables)",
+        "## Hindsight / fallback rows (listed, not in the tables)",
         "",
         others_md,
         "",
