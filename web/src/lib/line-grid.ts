@@ -1,3 +1,4 @@
+import { pivotEdges, type RawEdge } from "@/lib/edge";
 import type { BoardRow, EdgeSide } from "@/lib/types";
 
 /** Same published window as `nfl_edge.market.edge`. */
@@ -138,4 +139,31 @@ export function edgesFromGrid(grid: LineGrid, snap: GridSnapshot, defaultPrice =
     }
   }
   return out;
+}
+
+export type PersistedEdge = RawEdge & { market_line_id: number };
+
+/**
+ * Use persisted edges only when they were computed at this snapshot.
+ * Otherwise look up the grid (moneyline = spread 0). No grid → empty sides.
+ */
+export function resolveBoardEdges(args: {
+  snapshotId: number | null;
+  persisted: PersistedEdge[] | null;
+  persistedLineId?: number | null;
+  grid: LineGrid | null;
+  snap: GridSnapshot;
+  defaultPrice?: number;
+}): BoardRow["edges"] {
+  const persistedId = args.persistedLineId ?? args.persisted?.[0]?.market_line_id ?? null;
+  if (
+    args.snapshotId != null &&
+    persistedId === args.snapshotId &&
+    args.persisted &&
+    args.persisted.length
+  ) {
+    return pivotEdges(args.persisted);
+  }
+  if (args.grid) return edgesFromGrid(args.grid, args.snap, args.defaultPrice);
+  return pivotEdges(null);
 }

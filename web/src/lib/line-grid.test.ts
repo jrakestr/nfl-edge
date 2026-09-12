@@ -6,6 +6,7 @@ import {
   edgesFromGrid,
   lookupSpread,
   lookupTotal,
+  resolveBoardEdges,
 } from "./line-grid";
 
 const MARGIN = [10, 7, 7, 3, 0, -3, -7];
@@ -74,5 +75,38 @@ describe("line grid", () => {
     expect(e.ml_home?.market_prob).toBeCloseTo(0.7241379310344829);
     expect(e.total_over?.model_prob).toBeCloseTo(4 / 7);
     expect(e.total_over?.market_prob).toBeCloseTo(0.5);
+  });
+
+  it("uses persisted edges only when market_line_id equals the current snapshot", () => {
+    const stale: Parameters<typeof resolveBoardEdges>[0]["persisted"] = [
+      {
+        market_type: "spread",
+        side: "home",
+        model_prob: 0.99,
+        market_prob: 0.5,
+        edge: 0.49,
+        kelly_fraction: 0.1,
+        price: -110,
+        market_line_id: 1,
+      },
+    ];
+    const behind = resolveBoardEdges({
+      snapshotId: 2,
+      persisted: stale,
+      persistedLineId: 1,
+      grid,
+      snap: SNAP,
+    });
+    expect(behind.spread_home?.model_prob).toBeCloseTo(0.2);
+    expect(behind.spread_home?.model_prob).not.toBeCloseTo(0.99);
+
+    const current = resolveBoardEdges({
+      snapshotId: 1,
+      persisted: stale,
+      persistedLineId: 1,
+      grid,
+      snap: SNAP,
+    });
+    expect(current.spread_home?.model_prob).toBeCloseTo(0.99);
   });
 });

@@ -62,15 +62,19 @@ export function WeekBoard(p: WeekBoardProps) {
 
           {missingVerdicts > 0 ? (
             <p className="t-caption text-warn" role="note">
-              {missingVerdicts} of {p.rows.length} games have a newer line than their verdict; run `nfl-edge lines
-              --season {p.season} --week {p.week}` to refresh.
+              {missingVerdicts} of {p.rows.length} games have a newer line than their verdict.
             </p>
           ) : null}
 
           {p.view === "plain" ? (
             <div className="flex flex-col gap-3" data-view="plain">
               {p.verdicts.map((v) => (
-                <VerdictCard key={v.game_id} payload={v.payload} failedChecks={p.checks[v.game_id]?.failed ?? []} />
+                <VerdictCard
+                  key={v.game_id}
+                  payload={v.payload}
+                  liveEdges={p.rows.find((r) => r.game_id === v.game_id)?.edges}
+                  failedChecks={p.checks[v.game_id]?.failed ?? []}
+                />
               ))}
               {p.verdicts.length === 0 ? (
                 <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>

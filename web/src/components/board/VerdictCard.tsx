@@ -1,6 +1,6 @@
 import { direction, homeLine, intensity, line, pct, price, signedPct } from "@/lib/edge";
 import { kickoffFromPayload } from "@/lib/format";
-import type { Chip, VerdictPayload } from "@/lib/types";
+import type { BoardRow, Chip, EdgeSide, VerdictPayload } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";
 import { EdgeDiff } from "./EdgeCell";
@@ -14,18 +14,40 @@ import { emphasize } from "./emphasize";
  * - no snapshot (one sentence, chips null) → "No line posted yet", fair numbers muted.
  * - status 'warn' → --warn dot with the failing check names.
  */
+function liveForChip(chip: Chip | null | undefined, edges?: BoardRow["edges"]): EdgeSide | null {
+  if (!chip || !edges) return null;
+  if (chip.market_type === "total") return chip.side === "under" ? edges.total_under : edges.total_over;
+  if (chip.market_type === "moneyline") return chip.side === "away" ? edges.ml_away : edges.ml_home;
+  return chip.side === "away" ? edges.spread_away : edges.spread_home;
+}
+
+function overlayChip(chip: Chip | null | undefined, live: EdgeSide | null | undefined): Chip | null {
+  if (!chip) return chip ?? null;
+  if (!live) return chip;
+  return { ...chip, prob: live.model_prob, market_prob: live.market_prob, edge: live.edge, price: live.price };
+}
+
 export function VerdictCard({
   payload,
+  liveEdges,
   failedChecks = [],
   onOpen,
   className,
 }: {
   payload: VerdictPayload;
+  liveEdges?: BoardRow["edges"];
   failedChecks?: string[];
   onOpen?: (gameId: string) => void;
   className?: string;
 }) {
-  const { status, sentences, chips } = payload;
+  const { status, sentences } = payload;
+  const chips = payload.chips
+    ? {
+        side: overlayChip(payload.chips.side, liveForChip(payload.chips.side, liveEdges)),
+        total: overlayChip(payload.chips.total, liveForChip(payload.chips.total, liveEdges)),
+        home_wins: overlayChip(payload.chips.home_wins, liveForChip(payload.chips.home_wins, liveEdges)),
+      }
+    : payload.chips;
   const withheld = status === "fail";
   const noLine = !withheld && chips == null;
   const moved = payload.market?.moved_since_sim;

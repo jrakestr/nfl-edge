@@ -78,6 +78,7 @@ describe("/week/[n] against the Week 1 fixture", () => {
 
   it("flags games whose newest line is newer than their verdict", () => {
     render(<WeekBoard {...props({ verdicts: sortVerdicts(fixtureVerdicts()).slice(0, 14) })} />);
-    expect(screen.getByRole("note")).toHaveTextContent("2 of 16 games have a newer line");
+    expect(screen.getByRole("note")).toHaveTextContent("2 of 16 games have a newer line than their verdict");
+    expect(screen.getByRole("note")).not.toHaveTextContent("nfl-edge lines");
   });
 });
