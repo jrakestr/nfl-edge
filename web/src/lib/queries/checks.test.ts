@@ -1,4 +1,4 @@
-import { formatFailedLine, groupFailedChecks, statusFor, type RawCheck } from "./checks";
+import { formatFailedLine, formatGapCaption, groupFailedChecks, marketGapCaptions, statusFor, type RawCheck } from "./checks";
 import type { GameChecks } from "@/lib/types";
 
 function row(over: Partial<RawCheck> & Pick<RawCheck, "check_name" | "passed">): RawCheck {
@@ -53,6 +53,34 @@ describe("statusFor", () => {
         "2026-09-12T18:00:00.000Z",
       ),
     ).toBe("BAL@IND 7.5 (limit 4.0) · at run Sat 14:00");
+  });
+
+  it("writes a warn caption that includes the gap, limit, and run clock", () => {
+    expect(
+      formatGapCaption(
+        { check_name: "spread_gap_vs_market", value: 7.5, threshold: 4, team: null, severity: "warning" },
+        "2026-09-12T18:00:00.000Z",
+      ),
+    ).toBe("spread 7.5 from market at run Sat 14:00 (limit 4.0)");
+    const captions = marketGapCaptions(
+      {
+        game_id: "g",
+        status: "warn",
+        failed: ["spread_gap_vs_market", "td_sum"],
+        failedRows: [
+          { check_name: "td_sum", value: 0.9, threshold: 1, team: "BAL", severity: "invariant" },
+          { check_name: "spread_gap_vs_market", value: 9, threshold: 4, team: null, severity: "warning" },
+          { check_name: "total_gap_vs_market", value: 2, threshold: 8, team: null, severity: "warning" },
+        ],
+        invariants: 1,
+        warnings: 2,
+      },
+      "2026-09-12T18:00:00.000Z",
+    );
+    expect(captions).toEqual([
+      "spread 9.0 from market at run Sat 14:00 (limit 4.0)",
+      "total 2.0 from market at run Sat 14:00 (limit 8.0)",
+    ]);
   });
 
   it("groups failed rows by check, invariants first, larger gap first", () => {

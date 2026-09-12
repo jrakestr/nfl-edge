@@ -43,6 +43,21 @@ describe("VerdictCard", () => {
     expect(card).not.toHaveTextContent(/withheld/);
   });
 
+  it("market-gap caption sits under the sentences and keeps chips", () => {
+    render(
+      <VerdictCard
+        payload={warn}
+        failedChecks={["spread_gap_vs_market"]}
+        gapCaptions={["spread 9.0 from market at run Sat 14:00 (limit 4.0)"]}
+      />,
+    );
+    const card = screen.getByRole("article");
+    const notes = within(card).getAllByText("spread 9.0 from market at run Sat 14:00 (limit 4.0)");
+    expect(notes.length).toBeGreaterThanOrEqual(2);
+    expect(notes[0]).toHaveClass("text-warn");
+    expect(within(card).getByRole("complementary", { name: "Chips" })).toBeInTheDocument();
+  });
+
   it("warn: the status dot names the failing checks", () => {
     render(<VerdictCard payload={warn} failedChecks={["market_gap"]} />);
     const status = within(screen.getByRole("article")).getByRole("status");

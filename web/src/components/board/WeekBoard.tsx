@@ -1,6 +1,6 @@
 import type { TrackRecord, WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import type { DrawerPlayer } from "@/lib/queries/players";
-import { groupFailedChecks } from "@/lib/queries/checks";
+import { groupFailedChecks, marketGapCaptions } from "@/lib/queries/checks";
 import type { BoardRow, GameChecks, VerdictRow } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
@@ -127,6 +127,7 @@ export function WeekBoard(p: WeekBoardProps) {
                         row={row}
                         liveEdges={row?.has_started ? undefined : row?.edges}
                         failedChecks={p.checks[v.game_id]?.failed ?? []}
+                        gapCaptions={marketGapCaptions(p.checks[v.game_id], p.run.created_at)}
                       />
                     </OpenGameTrigger>
                   );
@@ -143,6 +144,7 @@ export function WeekBoard(p: WeekBoardProps) {
                   checks={p.checks}
                   draws={p.run.draws_per_game}
                   filters={p.filters}
+                  runCreatedAt={p.run.created_at}
                 />
               </div>
             )}

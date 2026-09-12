@@ -6,6 +6,7 @@ import { displayValue, homeLine, maxEdge, pct } from "@/lib/edge";
 import { sortBoardRows } from "@/lib/board-sort";
 import { kickoffLabel } from "@/lib/format";
 import { slot as kickoffSlot } from "@/lib/teams";
+import { marketGapCaptions } from "@/lib/queries/checks";
 import type { BoardRow, GameChecks } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";
@@ -25,11 +26,13 @@ export function BoardTable({
   checks,
   draws,
   filters,
+  runCreatedAt,
 }: {
   rows: BoardRow[];
   checks: Record<string, GameChecks>;
   draws: number | null;
   filters: Filters;
+  runCreatedAt?: string | null;
 }) {
   const visible = useMemo(() => {
     const next = applyFilters(rows, filters, (r) => kickoffSlot(r.gameday, r.gametime));
@@ -89,12 +92,22 @@ export function BoardTable({
             id: "matchup",
             header: "Matchup",
             sortValue: (r) => `${r.away} ${r.home}`,
-            cell: (r) => (
-              <div className="flex items-center gap-3">
-                <Matchup home={r.home} away={r.away} />
-                <span className="t-caption">{kickoffLabel(r.gameday, r.gametime)}</span>
-              </div>
-            ),
+            cell: (r) => {
+              const gaps = runCreatedAt ? marketGapCaptions(checks[r.game_id], runCreatedAt) : [];
+              return (
+                <div className="flex items-center gap-3">
+                  <Matchup home={r.home} away={r.away} />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="t-caption">{kickoffLabel(r.gameday, r.gametime)}</span>
+                    {gaps.map((c) => (
+                      <span key={c} className="t-caption text-warn">
+                        {c}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              );
+            },
           },
           {
             id: "spread",

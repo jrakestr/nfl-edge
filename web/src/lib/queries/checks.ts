@@ -91,6 +91,19 @@ export function formatFailedLine(away: string, home: string, row: FailedCheck, r
   return `${formatFailedGame(away, home, row)} · ${atRunLabel(runAt)}`;
 }
 
+export function formatGapCaption(row: FailedCheck, runAt: string | Date): string {
+  const kind = row.check_name.includes("total") ? "total" : "spread";
+  const val = row.value == null ? "—" : row.value.toFixed(1);
+  const lim = row.threshold == null ? "—" : row.threshold.toFixed(1);
+  return `${kind} ${val} from market ${atRunLabel(runAt)} (limit ${lim})`;
+}
+
+export function marketGapCaptions(checks: GameChecks | undefined, runAt: string | Date): string[] {
+  return (checks?.failedRows ?? [])
+    .filter((r) => r.check_name === "spread_gap_vs_market" || r.check_name === "total_gap_vs_market")
+    .map((r) => formatGapCaption(r, runAt));
+}
+
 export type FailedCheckItem = {
   game_id: string;
   away: string;

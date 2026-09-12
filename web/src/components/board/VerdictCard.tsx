@@ -33,6 +33,7 @@ export function VerdictCard({
   row,
   liveEdges,
   failedChecks = [],
+  gapCaptions = [],
   onOpen,
   className,
 }: {
@@ -40,6 +41,7 @@ export function VerdictCard({
   row?: BoardRow;
   liveEdges?: BoardRow["edges"];
   failedChecks?: string[];
+  gapCaptions?: string[];
   onOpen?: (gameId: string) => void;
   className?: string;
 }) {
@@ -72,10 +74,15 @@ export function VerdictCard({
       <div className="min-w-0 flex-1">
         <header className="mb-2 flex items-center gap-3">
           <h3 id={`verdict-${payload.game_id}`} className="t-body flex items-center gap-2">
-            <Matchup home={payload.home} away={payload.away} />
+            <Matchup home={payload.home} away={payload.away} variant="logo" />
           </h3>
           <span className="t-caption">{kickoffFromPayload(payload.kickoff)}</span>
           {movedNote ? <span className="t-caption text-warn">{movedNote}</span> : null}
+          {gapCaptions.map((c) => (
+            <span key={c} className="t-caption text-warn">
+              {c}
+            </span>
+          ))}
           <CheckStatus status={status} failed={failedChecks} className="ml-auto" />
           {onOpen ? (
             <button
@@ -100,6 +107,11 @@ export function VerdictCard({
           <div className={cn("flex flex-col gap-1 t-sentence", noLine && "text-muted-foreground")}>
             {sentences.map((s, i) => (
               <p key={i}>{emphasize(s)}</p>
+            ))}
+            {gapCaptions.map((c) => (
+              <p key={c} className="t-caption text-warn">
+                {c}
+              </p>
             ))}
           </div>
         )}

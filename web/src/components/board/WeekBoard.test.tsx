@@ -38,6 +38,38 @@ function props(over: Partial<WeekBoardProps> = {}): WeekBoardProps {
 }
 
 describe("/week/[n] against the Week 1 fixture", () => {
+  it("marks two market-gap games with different captions and does not resort them", () => {
+    const rows = fixtureRows().sort((a, b) => maxEdge(b) - maxEdge(a));
+    const a = rows[0]!;
+    const b = rows[1]!;
+    const checks = fixtureChecks();
+    checks[a.game_id] = {
+      game_id: a.game_id,
+      status: "warn",
+      failed: ["spread_gap_vs_market"],
+      failedRows: [{ check_name: "spread_gap_vs_market", value: 9, threshold: 4, team: null, severity: "warning" }],
+      invariants: 0,
+      warnings: 1,
+    };
+    checks[b.game_id] = {
+      game_id: b.game_id,
+      status: "warn",
+      failed: ["spread_gap_vs_market"],
+      failedRows: [{ check_name: "spread_gap_vs_market", value: 2, threshold: 4, team: null, severity: "warning" }],
+      invariants: 0,
+      warnings: 1,
+    };
+    const verdicts = sortVerdicts(fixtureVerdicts());
+    render(<WeekBoard {...props({ rows, checks, verdicts })} />);
+    const cards = screen.getAllByRole("article");
+    expect(cards[0]).toHaveAttribute("data-game", a.game_id);
+    expect(cards[1]).toHaveAttribute("data-game", b.game_id);
+    expect(cards[0]).toHaveTextContent("spread 9.0 from market");
+    expect(cards[1]).toHaveTextContent("spread 2.0 from market");
+    expect(cards[0]).toHaveTextContent("at run");
+    expect(within(cards[0]).getByRole("complementary", { name: "Chips" })).toBeInTheDocument();
+  });
+
   it("lists failing games on the checks panel with the run-stored gap", () => {
     const checks = fixtureChecks();
     const warnId = Object.keys(checks).find((id) => checks[id]!.status === "warn")!;
