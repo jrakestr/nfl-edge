@@ -19,14 +19,16 @@ jahmyr gibbs (111),saquon barkley (222),bijan robinson (333),ja'marr chase (444)
 """
 
 EXPOSURE = """Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return
-Jahmyr Gibbs,RB,DET,20.0,5.0,40.0,25.0,1.2
-Puka Nacua,WR,LAR,8.0,1.0,20.0,10.0,0.4
+Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,$1.2
+Puka Nacua,WR,LAR,$7800,18.0,8.0%,1.0%,20.0%,$0.4
+dolphins,DST,MIA,$2700,7.67755,46.44%,61.34%,43.33%,$15.7
 """
 
 SLATE = [
     {"name": "Jahmyr Gibbs", "player_dk_id": "111", "player_id": "00-g"},
     {"name": "Puka Nacua", "player_dk_id": "666", "player_id": "00-p"},
     {"name": "Rams", "player_dk_id": "999", "player_id": "LA_DST"},
+    {"name": "dolphins", "player_dk_id": "2700", "player_id": "MIA_DST"},
 ]
 
 
@@ -98,9 +100,9 @@ def test_showdown_exposure_collapses_cpt_and_flex(tmp_path: Path):
     exp = P.parse_exposure_csv(e, SD_SLATE)
     assert len(exp) == 1
     assert exp[0]["player_id"] == "00-jsn"
-    assert exp[0]["sim_own"] == pytest.approx(0.50)
-    assert exp[0]["proj_own"] == pytest.approx(0.16)
-    assert abs(exp[0]["leverage"] - 0.34) < 1e-9
+    assert exp[0]["own_field_sim"] == pytest.approx(0.50)
+    assert exp[0]["own_field_proj"] == pytest.approx(0.16)
+    assert exp[0]["win_pct"] == pytest.approx(0.12)
 
 
 def test_showdown_upload_header():
@@ -164,6 +166,79 @@ def test_parse_gpp_and_exposure(tmp_path: Path):
     assert lineups[0]["names"][0] == "Jahmyr Gibbs"
     exp = P.parse_exposure_csv(e, SLATE)
     by_id = {r["player_id"]: r for r in exp}
-    assert by_id["00-g"]["sim_own"] == 0.40
-    assert by_id["00-p"]["proj_own"] == 0.10
-    assert abs(by_id["00-p"]["leverage"] - 0.10) < 1e-9
+    assert by_id["00-g"]["own_field_sim"] == pytest.approx(0.40)
+    assert by_id["00-g"]["win_pct"] == pytest.approx(0.20)
+    assert by_id["00-g"]["own_field_proj"] is None
+    assert by_id["00-p"]["own_field_sim"] == pytest.approx(0.20)
+    mia = by_id["MIA_DST"]
+    assert mia["win_pct"] == pytest.approx(0.4644)
+    assert mia["own_field_sim"] == pytest.approx(0.4333)
+    assert mia["roi"] == pytest.approx(15.7)
+    assert mia["own_field_proj"] is None
+    assert "sim_own" not in mia
+    assert "proj_own" not in mia
+
+
+def test_parse_exposure_raises_on_classic_width_mismatch(tmp_path: Path):
+    e = tmp_path / "exp.csv"
+    e.write_text(
+        "Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
+        "Jahmyr Gibbs,RB,DET,20.0,5.0,40.0,25.0,1.2\n"
+    )
+    with pytest.raises(ValueError, match=r"8.*9|header.*data"):
+        P.parse_exposure_csv(e, SLATE)
+    e.write_text(
+        "Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
+        "Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,25.0%,$1.2\n"
+    )
+    with pytest.raises(ValueError, match=r"10|header.*data"):
+        P.parse_exposure_csv(e, SLATE)
+
+
+def test_exposure_from_lineups_rates():
+    lineups = [
+        {"dk_ids": ["111", "666", "999"]},
+        {"dk_ids": ["111", "999"]},
+    ]
+    ours = P.exposure_from_lineups(lineups, SLATE)
+    assert ours["00-g"] == pytest.approx(1.0)
+    assert ours["00-p"] == pytest.approx(0.5)
+    assert ours["LA_DST"] == pytest.approx(1.0)
+    assert "MIA_DST" not in ours
+
+
+def test_field_proj_from_projections(tmp_path: Path):
+    p = tmp_path / "projections.csv"
+    p.write_text(
+        "Name,Position,Team,Salary,Fpts,Own%,StdDev\n"
+        "Jahmyr Gibbs,RB,DET,8000,22.5,18.5,4.0\n"
+        "Puka Nacua,WR,LAR,7800,18.0,12.0,3.0\n"
+    )
+    own = P.field_proj_from_projections(p, SLATE)
+    assert own["00-g"] == pytest.approx(0.185)
+    assert own["00-p"] == pytest.approx(0.12)
+
+
+def test_merge_exposure_keeps_all_three_and_leverage_vs_field_sim():
+    parsed = [
+        {"player_id": "00-g", "own_field_sim": 0.40, "own_field_proj": None, "win_pct": 0.2, "roi": 1.2},
+        {"player_id": "00-p", "own_field_sim": 0.20, "own_field_proj": None, "win_pct": 0.08, "roi": 0.4},
+    ]
+    ours = {"00-g": 0.60}
+    field_proj = {"00-g": 0.185, "00-p": 0.12}
+    rows = {r["player_id"]: r for r in P.merge_exposure(parsed, ours, field_proj)}
+    assert rows["00-g"]["own_ours"] == pytest.approx(0.60)
+    assert rows["00-g"]["own_field_proj"] == pytest.approx(0.185)
+    assert rows["00-g"]["own_field_sim"] == pytest.approx(0.40)
+    assert rows["00-g"]["leverage"] == pytest.approx(0.20)
+    assert rows["00-p"]["own_ours"] == pytest.approx(0.0)
+    assert rows["00-p"]["leverage"] == pytest.approx(-0.20)
+
+
+def test_exposure_from_lineups_showdown_counts_player_once():
+    lineups = [
+        {"dk_ids": ["43782097", "43782034", "43782035"]},
+        {"dk_ids": ["43782097", "43782035"]},
+    ]
+    ours = P.exposure_from_lineups(lineups, SD_SLATE)
+    assert ours["00-jsn"] == pytest.approx(1.0)

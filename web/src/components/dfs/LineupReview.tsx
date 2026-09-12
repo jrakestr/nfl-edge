@@ -16,6 +16,11 @@ import { cn } from "@/lib/utils";
 const SETTINGS = ["Randomness —", "Stacks % —", "Max exposure —"] as const;
 type SortKey = "proj" | "win" | "roi";
 
+/** Pre-0018 rows kept the shifted parse in own_ours and never wrote own_field_sim. */
+export function recomputedExposure(rows: DfsExposure[]): DfsExposure[] {
+  return rows.filter((r) => r.own_field_sim != null);
+}
+
 function salaryBars(lineups: DfsLineup[]): { label: string; n: number }[] {
   const buckets = [
     { label: "≤48k", lo: 0, hi: 48000 },
@@ -88,6 +93,7 @@ export function LineupReview({
 
   const hist = salaryBars(lineups);
   const histMax = Math.max(1, ...hist.map((h) => h.n));
+  const readyExposure = recomputedExposure(exposure);
 
   async function onExport() {
     if (!runId || selected.size === 0) return;
@@ -235,14 +241,18 @@ export function LineupReview({
             <h2 className="t-body font-semibold">
               <MetricLabel metric="ownership">Exposure vs field</MetricLabel>
             </h2>
-            {exposure.length === 0 ? (
+            {readyExposure.length === 0 ? (
               <>
                 <ExposureBar name="—" />
-                <p className="t-caption">Sorted by leverage once dfs-web writes exposure.</p>
+                <p className="t-caption">
+                  {exposure.length > 0
+                    ? "Exposure not recomputed for this run."
+                    : "Sorted by leverage once dfs-web writes exposure."}
+                </p>
               </>
             ) : (
-              exposure.slice(0, 20).map((e) => (
-                <ExposureBar key={e.player_id} name={e.name} mine={e.sim_own} field={e.proj_own} />
+              readyExposure.slice(0, 20).map((e) => (
+                <ExposureBar key={e.player_id} name={e.name} mine={e.own_ours} field={e.own_field_sim} />
               ))
             )}
           </section>

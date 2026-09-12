@@ -72,7 +72,8 @@ describe("LineupCard", () => {
     expect(screen.getByText("Gibbs")).toBeInTheDocument();
     expect(screen.getByTitle("Amon-Ra St. Brown")).toHaveTextContent("St. Brown");
     expect(screen.getByText("31%")).toBeInTheDocument();
-    expect(screen.getByText("DET 7")).toBeInTheDocument();
+    expect(screen.getByText("DET")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
   });
 
   it("does not treat Jr as the last name", () => {
@@ -133,7 +134,7 @@ describe("LineupReview with data", () => {
         runId="bda9aaf4-032b-4380-ab3a-6634696525eb"
         slateId="2026_01_main"
         lineups={[SAMPLE]}
-        exposure={[{ player_id: "g", name: "Jahmyr Gibbs", team: "DET", sim_own: 0.4, proj_own: 0.2, leverage: 0.2 }]}
+        exposure={[{ player_id: "g", name: "Jahmyr Gibbs", team: "DET", own_ours: 0.4, own_field_proj: 0.25, own_field_sim: 0.2, leverage: 0.2 }]}
         teams={TEAMS}
       />,
     );
@@ -141,6 +142,23 @@ describe("LineupReview with data", () => {
     expect(screen.getByText("Gibbs")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export selected" })).toBeDisabled();
     expect(screen.getByLabelText("Jahmyr Gibbs exposure")).toBeInTheDocument();
+  });
+
+  it("hides pre-migration exposure that has no own_field_sim", () => {
+    render(
+      <LineupReview
+        week="1"
+        site="dk"
+        slate="main"
+        runId="bda9aaf4-032b-4380-ab3a-6634696525eb"
+        slateId="2026_01_main"
+        lineups={[SAMPLE]}
+        exposure={[{ player_id: "g", name: "Jahmyr Gibbs", team: "DET", own_ours: 0.4, own_field_proj: 0.25, own_field_sim: null, leverage: 0.2 }]}
+        teams={TEAMS}
+      />,
+    );
+    expect(screen.getByText("Exposure not recomputed for this run.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Jahmyr Gibbs exposure")).not.toBeInTheDocument();
   });
 
   it("notes Sunday build in progress when the new run has no lineups", () => {

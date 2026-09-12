@@ -104,36 +104,151 @@ def parse_gpp_csv(path: Path) -> list[dict]:
     return rows
 
 
+CLASSIC_EXPOSURE_HEADER = [
+    "Player", "Position", "Team", "Win%", "Top1%", "Sim. Own%", "Proj. Own%", "Avg. Return",
+]
+CLASSIC_EXPOSURE_WIDTH = 9
+SHOWDOWN_EXPOSURE_HEADER = [
+    "Player", "Roster Position", "Position", "Team", "Win%", "Top10%",
+    "Sim. Own%", "Proj. Own%", "Avg. Return",
+]
+SHOWDOWN_EXPOSURE_WIDTH = 9
+
+
+class ExposureSchemaError(ValueError):
+    """NFL-DFS-Tools exposure header or row width does not match the contract."""
+
+
+def _header_key(header: list[str]) -> tuple[str, ...]:
+    return tuple(h.strip() for h in header)
+
+
+def _exposure_contract(header: list[str]) -> tuple[str, int]:
+    key = _header_key(header)
+    if key == tuple(CLASSIC_EXPOSURE_HEADER):
+        return "classic", CLASSIC_EXPOSURE_WIDTH
+    if key == tuple(SHOWDOWN_EXPOSURE_HEADER):
+        return "showdown", SHOWDOWN_EXPOSURE_WIDTH
+    raise ExposureSchemaError(
+        f"unknown exposure header ({len(header)} fields): {list(key)}"
+    )
+
+
+def _money(raw: object) -> float | None:
+    if raw is None or str(raw).strip() == "":
+        return None
+    s = str(raw).strip().replace("$", "").replace(",", "")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
 def parse_exposure_csv(path: Path, slate: list[dict]) -> list[dict]:
     by_name = {str(r.get("name") or "").strip().lower(): r for r in slate if r.get("name")}
     out = []
     with path.open(newline="") as f:
-        reader = csv.DictReader(f)
-        fields = {k.lower().strip(): k for k in (reader.fieldnames or [])}
-
-        def col(*names: str) -> str | None:
-            for n in names:
-                if n in fields:
-                    return fields[n]
-            return None
-
-        for row in reader:
-            name = (row.get(col("player") or "Player") or "").strip()
+        reader = csv.reader(f)
+        header = next(reader, None)
+        if not header:
+            return []
+        kind, width = _exposure_contract(header)
+        n_header = len(header)
+        for cells in reader:
+            if len(cells) != width:
+                raise ExposureSchemaError(
+                    f"exposure header has {n_header} fields, data row has {len(cells)} "
+                    f"(contract {kind} width {width})"
+                )
+            name = (cells[0] or "").strip()
             src = by_name.get(name.lower())
             if not src or not src.get("player_id"):
                 continue
-            sim = _pct(row.get(col("sim. own%", "sim own%") or ""))
-            proj = _pct(row.get(col("proj. own%", "proj own%") or ""))
-            lev = None if sim is None or proj is None else sim - proj
+            if kind == "classic":
+                win = _pct(cells[5])
+                field_sim = _pct(cells[7])
+                field_proj = None
+                roi = _money(cells[8])
+            else:
+                win = _pct(cells[4])
+                field_sim = _pct(cells[6])
+                field_proj = _pct(cells[7])
+                roi = _money(cells[8])
             out.append({
                 "player_id": src["player_id"],
-                "sim_own": sim,
-                "proj_own": proj,
-                "leverage": lev,
-                "win_pct": _pct(row.get(col("win%") or "")),
-                "roi": _pct(row.get(col("avg. return", "roi") or "")),
+                "own_field_sim": field_sim,
+                "own_field_proj": field_proj,
+                "win_pct": win,
+                "roi": roi,
             })
     return _collapse_exposure(out)
+
+
+def field_proj_from_projections(path: Path, slate: list[dict]) -> dict[str, float]:
+    """Own% we fed the GPP sim, as a fraction, keyed by player_id."""
+    by_name = {str(r.get("name") or "").strip().lower(): r["player_id"]
+               for r in slate if r.get("name") and r.get("player_id")}
+    out: dict[str, float] = {}
+    if not path.exists():
+        return out
+    with path.open(newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = (row.get("Name") or "").strip()
+            pid = by_name.get(name.lower())
+            if not pid:
+                continue
+            own = _pct(row.get("Own%"))
+            if own is not None:
+                out[pid] = own
+    return out
+
+
+def merge_exposure(
+    parsed: list[dict],
+    ours: dict[str, float],
+    field_proj: dict[str, float],
+) -> list[dict]:
+    """own_ours from our lineups, own_field_proj from projections, own_field_sim from the CSV."""
+    out = []
+    for row in parsed:
+        pid = row["player_id"]
+        own_ours = ours.get(pid, 0.0)
+        proj = field_proj.get(pid)
+        if proj is None:
+            proj = row.get("own_field_proj")
+        sim = row.get("own_field_sim")
+        lev = None if sim is None else own_ours - sim
+        out.append({
+            **row,
+            "own_ours": own_ours,
+            "own_field_proj": proj,
+            "own_field_sim": sim,
+            "leverage": lev,
+        })
+    return out
+
+
+def exposure_from_lineups(lineups: list[dict], slate: list[dict]) -> dict[str, float]:
+    """Share of our lineups that contain each player_id. Count once per lineup."""
+    by_dk = {}
+    for r in slate:
+        did = str(r.get("player_dk_id") or "")
+        pid = r.get("player_id")
+        if did and pid:
+            by_dk[did] = pid
+    n = len(lineups)
+    if n == 0:
+        return {}
+    counts: dict[str, int] = {}
+    for lu in lineups:
+        seen: set[str] = set()
+        for did in lu.get("dk_ids") or []:
+            pid = by_dk.get(str(did))
+            if pid and pid not in seen:
+                seen.add(pid)
+                counts[pid] = counts.get(pid, 0) + 1
+    return {pid: c / n for pid, c in counts.items()}
 
 
 def _collapse_exposure(rows: list[dict]) -> list[dict]:
@@ -146,18 +261,18 @@ def _collapse_exposure(rows: list[dict]) -> list[dict]:
             by_pid[pid] = dict(row)
             continue
         sim = None
-        if prev.get("sim_own") is not None or row.get("sim_own") is not None:
-            sim = (prev.get("sim_own") or 0.0) + (row.get("sim_own") or 0.0)
-        proj_vals = [v for v in (prev.get("proj_own"), row.get("proj_own")) if v is not None]
+        if prev.get("own_field_sim") is not None or row.get("own_field_sim") is not None:
+            sim = (prev.get("own_field_sim") or 0.0) + (row.get("own_field_sim") or 0.0)
+        proj_vals = [
+            v for v in (prev.get("own_field_proj"), row.get("own_field_proj")) if v is not None
+        ]
         proj = max(proj_vals) if proj_vals else None
         win_vals = [v for v in (prev.get("win_pct"), row.get("win_pct")) if v is not None]
         roi_vals = [v for v in (prev.get("roi"), row.get("roi")) if v is not None]
-        lev = None if sim is None or proj is None else sim - proj
         by_pid[pid] = {
             **prev,
-            "sim_own": sim,
-            "proj_own": proj,
-            "leverage": lev,
+            "own_field_sim": sim,
+            "own_field_proj": proj,
             "win_pct": max(win_vals) if win_vals else None,
             "roi": max(roi_vals) if roi_vals else None,
         }

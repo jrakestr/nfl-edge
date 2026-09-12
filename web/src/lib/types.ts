@@ -246,8 +246,9 @@ export const DfsExposureSchema = z.object({
   player_id: z.string(),
   name: z.string(),
   team: z.string().nullable(),
-  sim_own: numOrNull,
-  proj_own: numOrNull,
+  own_ours: numOrNull,
+  own_field_proj: numOrNull,
+  own_field_sim: numOrNull,
   leverage: numOrNull,
 });
 export type DfsExposure = z.infer<typeof DfsExposureSchema>;

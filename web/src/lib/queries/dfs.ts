@@ -66,8 +66,9 @@ export async function dfsExposure(runId: string, site: string, slateId: string):
     select e.player_id,
            coalesce(p.display_name, e.player_id) as name,
            coalesce(pp.team, s.team) as team,
-           e.sim_own::float8 as sim_own,
-           e.proj_own::float8 as proj_own,
+           e.own_ours::float8 as own_ours,
+           e.own_field_proj::float8 as own_field_proj,
+           e.own_field_sim::float8 as own_field_sim,
            e.leverage::float8 as leverage
     from model.dfs_exposure e
     left join raw.players p on p.gsis_id = e.player_id
@@ -80,9 +81,17 @@ export async function dfsExposure(runId: string, site: string, slateId: string):
     ) s
       on s.site = e.site and s.slate_id = e.slate_id and s.player_id = e.player_id
     where e.run_id = ${runId}::uuid and e.site = ${site} and e.slate_id = ${slateId}
-    order by e.leverage desc nulls last, e.sim_own desc nulls last`;
+    order by e.leverage desc nulls last, e.own_ours desc nulls last`;
   return rows.map((r) => DfsExposureSchema.parse(r));
 }
+
+/**
+ * Minimum own_ours for the lineup-review correlation strip.
+ * 2026 wk1 DK main: old sim_own>=0.2 CTE was 26–39 players (shifted field cols).
+ * own_ours>=0.2 from the same 150 lineups is 13–15 (too tight).
+ * own_ours>=0.07 is 27–31 on main / 29–31 on full — same band as that CTE.
+ */
+export const OURS_EXPOSED_MIN = 0.07;
 
 /** Highest DK-point correlations among players we actually exposed. Display only. */
 export async function stackCorrelations(
@@ -94,7 +103,8 @@ export async function stackCorrelations(
     with exposed as (
       select player_id from model.dfs_exposure
       where run_id = ${runId}::uuid and site = ${site} and slate_id = ${slateId}
-        and sim_own is not null and sim_own >= 0.2
+        and own_field_sim is not null
+        and own_ours is not null and own_ours >= ${OURS_EXPOSED_MIN}
     )
     select coalesce(pa.display_name, c.player_id_a) as a,
            coalesce(pb.display_name, c.player_id_b) as b,

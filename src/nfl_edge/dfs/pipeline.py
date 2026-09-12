@@ -41,7 +41,10 @@ def persist(run_id: str, site: str, slate_id: str, slate_type: str,
     n_lu = insert(pl.DataFrame(lu_rows), "model.dfs_lineups") if lu_rows else 0
     exp_rows = [{
         "run_id": run_id, "site": site, "slate_id": slate_id,
-        "player_id": r["player_id"], "sim_own": r.get("sim_own"), "proj_own": r.get("proj_own"),
+        "player_id": r["player_id"],
+        "own_ours": r.get("own_ours"),
+        "own_field_proj": r.get("own_field_proj"),
+        "own_field_sim": r.get("own_field_sim"),
         "leverage": r.get("leverage"), "win_pct": r.get("win_pct"), "roi": r.get("roi"),
     } for r in exposure]
     n_exp = insert(pl.DataFrame(exp_rows), "model.dfs_exposure") if exp_rows else 0
@@ -72,7 +75,10 @@ def run(
     sim = run_sim.run(export_dir, site=site, field=field, lineups_csv=Path(opto["path"]),
                       slate_rows=salaries, showdown=showdown)
     merged = parse.merge_sim_stats(opto["lineups"], sim["lineups"])
-    written = persist(rid, site, slate_id, slate_type_for(slate), merged, sim["exposure"])
+    ours = parse.exposure_from_lineups(merged, salaries)
+    field_proj = parse.field_proj_from_projections(export_dir / "projections.csv", salaries)
+    exposure = parse.merge_exposure(sim["exposure"], ours, field_proj)
+    written = persist(rid, site, slate_id, slate_type_for(slate), merged, exposure)
     upload = parse.upload_csv(merged, rid, slate_id)
     (export_dir / "dk_upload.csv").write_text(upload)
     if export:
