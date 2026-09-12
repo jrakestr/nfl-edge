@@ -70,8 +70,24 @@ describe("LineupCard", () => {
   it("shows last names, win%, and DET stack", () => {
     render(<LineupCard lineup={SAMPLE} teams={TEAMS} />);
     expect(screen.getByText("Gibbs")).toBeInTheDocument();
+    expect(screen.getByTitle("Amon-Ra St. Brown")).toHaveTextContent("St. Brown");
     expect(screen.getByText("31%")).toBeInTheDocument();
     expect(screen.getByText("DET 7")).toBeInTheDocument();
+  });
+
+  it("does not treat Jr as the last name", () => {
+    const lineup: DfsLineup = {
+      ...SAMPLE,
+      players: [
+        ...SAMPLE.players.slice(0, 7),
+        { slot: "FLEX", name: "Brian Robinson Jr.", dk_id: "8" },
+        SAMPLE.players[8],
+      ],
+    };
+    render(<LineupCard lineup={lineup} />);
+    const chip = screen.getByTitle("Brian Robinson Jr.");
+    expect(chip).toHaveTextContent("Robinson");
+    expect(chip).not.toHaveTextContent("Jr");
   });
 
   it("FLEX shows the player's real position", () => {

@@ -19,6 +19,22 @@ STATUSES = frozenset({"out", "doubtful", "questionable", "active"})
 DST_POS = frozenset({"DST", "DEF", "D"})
 TEAM_ALIASES = {"LAR": "LA", "JAC": "JAX", "WSH": "WAS", "JAX": "JAX"}
 GSIS_RE = re.compile(r"^00-\d{7}$")
+# Same sets as web/src/components/dfs/LineupCard.tsx lastName.
+NAME_SUFFIX = frozenset({"jr", "sr", "ii", "iii", "iv", "v"})
+COMPOUND_LAST = frozenset({"st", "de", "la", "van", "von"})
+
+
+def last_name(name: str) -> str:
+    """Port of LineupCard.lastName. 'Brian Robinson Jr.' → Robinson, 'Amon-Ra St. Brown' → St. Brown."""
+    parts = (name or "").strip().split()
+    if not parts:
+        return name
+    end = len(parts) - 1
+    while end > 0 and parts[end].rstrip(".").lower() in NAME_SUFFIX:
+        end -= 1
+    if end >= 1 and parts[end - 1].rstrip(".").lower() in COMPOUND_LAST:
+        return " ".join(parts[end - 1 : end + 1])
+    return parts[end]
 
 
 def merge_key(name: str) -> str:

@@ -115,6 +115,13 @@ def test_callout_keeps_st_brown():
     assert s.startswith("St. Brown goes over")
 
 
+def test_last_name_skips_jr():
+    assert P.last_name("Brian Robinson Jr.") == "Robinson"
+    s = P.callout("Brian Robinson Jr.", "rush_yds", 70.5, 0.4, -110, 0.53, 20000)
+    assert s.startswith("Robinson goes over")
+    assert "Jr" not in s
+
+
 def test_skip_report_counts_unknown_stats():
     skipped = (
         [{"stat": "pass_rush", "reason": "bad_stat"}] * 9

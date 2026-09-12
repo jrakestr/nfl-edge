@@ -15,6 +15,7 @@ import polars as pl
 
 from ..config import ROOT, load_yaml
 from ..db import execute, insert, read_sql
+from ..ingest.names import last_name
 from ..market.edge import (
     conditional_prob,
     devig_two_way,
@@ -43,15 +44,6 @@ MINUS = "\u2212"
 
 def cfg() -> dict:
     return load_yaml("sim.yaml")["edge"]
-
-
-def last_name(display_name: str) -> str:
-    parts = (display_name or "").strip().split()
-    if not parts:
-        return display_name
-    if len(parts) >= 2 and parts[-2].rstrip(".").lower() in {"st", "de", "la", "van", "von"}:
-        return " ".join(parts[-2:])
-    return parts[-1]
 
 
 def round_to_half(x: float) -> float:

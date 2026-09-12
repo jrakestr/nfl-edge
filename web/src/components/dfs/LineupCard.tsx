@@ -8,9 +8,23 @@ import type { DfsLineup } from "@/lib/types";
 const SLOT_ORDER = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as const;
 const SHOWDOWN_ORDER = ["CPT", "FLEX", "FLEX2", "FLEX3", "FLEX4", "FLEX5"] as const;
 
-function lastToken(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return parts[parts.length - 1] ?? name;
+const NAME_SUFFIX = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+const COMPOUND_LAST = new Set(["st", "de", "la", "van", "von"]);
+
+/** Last name for lineup chips. "Brian Robinson Jr." → Robinson, "Amon-Ra St. Brown" → St. Brown. */
+export function lastName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return name;
+  let end = parts.length - 1;
+  while (end > 0 && NAME_SUFFIX.has(parts[end].replaceAll(".", "").toLowerCase())) {
+    end -= 1;
+  }
+  const stem = parts[end].replaceAll(".", "").toLowerCase();
+  if (end > 0 && COMPOUND_LAST.has(parts[end - 1].replaceAll(".", "").toLowerCase())) {
+    return `${parts[end - 1]} ${parts[end]}`;
+  }
+  if (NAME_SUFFIX.has(stem)) return name;
+  return parts[end] ?? name;
 }
 
 export function stacksFromPlayers(
@@ -72,8 +86,8 @@ export function LineupCard({
               const pos = p ? positions[p.name.toLowerCase()] : undefined;
               const label = p
                 ? slot === "CPT"
-                  ? `CPT ${lastToken(p.name)}`
-                  : lastToken(p.name)
+                  ? `CPT ${lastName(p.name)}`
+                  : lastName(p.name)
                 : slot;
               return (
                 <span

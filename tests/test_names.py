@@ -27,6 +27,12 @@ def test_merge_key_strips_punctuation_and_suffixes():
     assert N.merge_key("A.J. Brown") == "aj brown"
 
 
+def test_last_name_skips_suffix_and_keeps_compound():
+    assert N.last_name("Brian Robinson Jr.") == "Robinson"
+    assert N.last_name("Patrick Mahomes II") == "Mahomes"
+    assert N.last_name("Amon-Ra St. Brown") == "St. Brown"
+
+
 def test_gsis_id_passthrough():
     r = N.match_one({"player": "00-0033873"}, CATALOG, {}, TEAMS)
     assert r.player_id == "00-0033873"
