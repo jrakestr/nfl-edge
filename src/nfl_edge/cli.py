@@ -331,6 +331,7 @@ def dk_salaries(
         f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
         f"{r['overrides_written']} overrides"
     )
+    typer.echo(f"failed to match: {r['unmatched_n']}")
     for u in r["unmatched"]:
         typer.echo(
             f"  {u.get('match_reason', 'unmatched')}: {u.get('name')} "
@@ -366,6 +367,38 @@ def dfs(
         f"dfs {r['slate_id']}: {r['n_lineups']} lineups, {r['n_exposure']} exposure, "
         f"upload {r['upload']}"
     )
+
+
+@app.command()
+def bettingpros(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+    file: str = typer.Option(..., "--file", help="Smart Money xlsx or a directory of them"),
+):
+    """Ingest BettingPros Smart Money player props into model.market_props. No edges."""
+    from pathlib import Path
+
+    from .market import bettingpros as bp
+
+    r = bp.run(season, week, Path(file))
+    typer.echo("fair_props stats: " + " ".join(r["fair_stats"]))
+    typer.echo(f"{r['n_selection']} Selection")
+    typer.echo(f"  {r['n_team']} team (Game set)")
+    typer.echo(f"  {r['n_player']} player props")
+    typer.echo(f"    {r['n_mapped']} map to a fair_props stat")
+    if r["rejected_markets"]:
+        parts = ", ".join(f"{m['market']} {m['n']}" for m in r["rejected_markets"])
+        typer.echo(f"    rejected markets: {parts}")
+    typer.echo(f"    {r['n_joined']} survive name+team roster join")
+    for u in r["rejected_roster"]:
+        typer.echo(
+            f"    {u.get('reason', 'unmatched')}: {u.get('player')} "
+            f"pos={u.get('pos')} team={u.get('team')}"
+        )
+    if r["stopped"]:
+        typer.echo(f"stopped: {r['n_joined']} survivors < {bp.MIN_SURVIVORS}; nothing written")
+        return
+    typer.echo(f"    {r['written']} written")
 
 
 @app.command()
@@ -405,7 +438,7 @@ def props(
 def grade(
     week: int = typer.Option(...),
     season: int = typer.Option(2026),
-    run: str = typer.Option(None, help="run_id (default: every sim run for the week)"),
+    run: str = typer.Option(None, help="run_id (default: newest run before each game's kickoff)"),
 ):
     """Grade every edge and verdict of a week against scores and the close; write model.results."""
     import polars as pl
@@ -421,6 +454,11 @@ def grade(
     )
     for rid in report.skipped_no_parquet:
         typer.echo(f"  skipped {rid}: parquet missing")
+    for a in report.assignments:
+        typer.echo(
+            f"  {a['game_id']} → {a['run_id'][:8]} created {a['created_at']} "
+            f"kickoff {a['kickoff']} predated={a['predated_kickoff']}"
+        )
     if report.brier_sim is not None:
         typer.echo(f"Brier sim {report.brier_sim:.4f} vs close {report.brier_close:.4f}"
                    f"{'' if report.monotone is None else f'; monotone={report.monotone}'}")
