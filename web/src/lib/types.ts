@@ -192,6 +192,8 @@ export const BoardRowSchema = z.object({
     .transform((d) => (d == null ? null : typeof d === "string" ? d : d.toISOString())), // ISO, serializable
   spread_line: numOrNull, // nflverse convention (positive = home favored)
   total_line: numOrNull,
+  run_market_spread: numOrNull.default(null), // proj_games.market_spread at sim time
+  run_market_total: numOrNull.default(null),
   home_spread_odds: z.number().int().nullable(),
   away_spread_odds: z.number().int().nullable(),
   over_odds: z.number().int().nullable(),

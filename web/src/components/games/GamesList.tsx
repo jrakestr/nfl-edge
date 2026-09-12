@@ -9,6 +9,7 @@ import { WeekScoreboard } from "@/components/board/WeekScoreboard";
 import { DataTable } from "@/components/ui/DataTable";
 import { sortBoardRows } from "@/lib/board-sort";
 import { displayValue, homeLine, line } from "@/lib/edge";
+import { simScore } from "@/lib/implied";
 import { kickoffLabel } from "@/lib/format";
 import type { WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import { fallbackNotice, slateGameCountLabel } from "@/lib/slate";
@@ -16,16 +17,7 @@ import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
 import { cn } from "@/lib/utils";
 
-/** Implied scores from E[total] and E[home−away]. Mean when present, median otherwise. */
-export function simScore(row: Pick<BoardRow, "mean_total" | "mean_spread" | "fair_total" | "fair_spread">): {
-  away: number;
-  home: number;
-} | null {
-  const total = displayValue(row.mean_total, row.fair_total);
-  const spread = displayValue(row.mean_spread, row.fair_spread);
-  if (total == null || spread == null) return null;
-  return { home: (total + spread) / 2, away: (total - spread) / 2 };
-}
+export { simScore } from "@/lib/implied";
 
 export function GamesList({
   week,

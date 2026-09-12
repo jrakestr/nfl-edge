@@ -8,6 +8,7 @@ import { formatFailedLine } from "@/lib/queries/checks";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
 import { CheckStatus } from "./CheckStatus";
+import { GameWhy } from "./GameWhy";
 import { EdgeDiff } from "./EdgeCell";
 import { GameOutcome } from "./GameOutcome";
 import { MarketPill, TotalPill } from "./MarketPill";
@@ -158,6 +159,8 @@ export function GameDrawer({
                 />
               </section>
               )}
+
+              <GameWhy row={row} runCreatedAt={runCreatedAt} />
 
               <section aria-label="Checks" className="flex flex-col gap-1">
                 <h4 className="t-colhead text-muted-foreground">Checks</h4>

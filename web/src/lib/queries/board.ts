@@ -81,6 +81,7 @@ export async function boardRows(runId: string): Promise<BoardRow[]> {
            p.home_win_prob::float8, p.p_home_cover_market::float8, p.p_over_market::float8,
            l.id::int as market_line_id, l.captured_at,
            l.spread_line::float8, l.total_line::float8,
+           p.market_spread::float8 as run_market_spread, p.market_total::float8 as run_market_total,
            l.home_spread_odds, l.away_spread_odds, l.over_odds, l.under_odds,
            l.home_moneyline, l.away_moneyline,
            e.market_line_id::int as persisted_edge_line_id,
