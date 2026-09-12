@@ -1,6 +1,22 @@
 
 # nfl-edge rules
 
+## Plan Files Specification (Mandatory)
+
+Every task plan file generated MUST strictly contain the following three level-2 (`##`) headings in this exact sequence. Plans missing any section or altering the order are strictly invalid. Never bury acceptance criteria within the user story, overview, or execution steps.
+
+```markdown
+## User story
+## Acceptance criteria
+## Steps
+```
+
+### Acceptance Criteria Format
+Under `## Acceptance criteria`, specify each testable scenario under its own `### Scenario N: <Title>` heading using the standard Given / When / Then format:
+* **Given** [initial context or system state]
+* **When** [action or event occurs]
+* **Then** [expected outcome or assertion]
+
 Read docs/purpose.md before planning any change. docs/architecture.md is the design.
 
 - One simulation per game; every output (lines, props, DFS, showdown) reads from the same draws. Never compute a projection outside sim/.
@@ -30,16 +46,22 @@ Read docs/purpose.md before planning any change. docs/architecture.md is the des
 - Web todos also need `npm run lint && npm run typecheck && npm test && npm run build` green.
 - Treat star underprojection vs posted prop lines as a model-miss warning, not an under lean; books set lines near the median, so a sound model should land ~40-60% on posted lines.
 - Do not ship Sunday DFS/prop leans from a run that systematically underprojects stars; if a priors correctness fix worsens backtest MAE beyond noise, stop before rebuilding the live week.
+- Do not change a sim parameter on a sample smaller than a full week of graded games. Do not tune usage `k` against posted lines; calibrate out of sample against realized share.
+- Do not re-run the usage `k` sweep until both usage-vector xfails are green (`test_wr1_renorm_delta_independent_of_room_size` and `test_many_games_negligible_carries_get_negligible_share`). Do not loosen those bounds. If both pass and k=0 still wins, the vector target is biased — find the third problem; do not treat k=0 as the fix. The Tuesday week-2 k=0 fallback is uncoupled from that sweep: if the vector operator is not ready, ship k=0 on the existing backtest (2025 week 2 worst at k=3; k=0 better on both channels).
+- Put durable standing rules in AGENTS.md; one-time Tuesday or week checklists belong in STATUS.md.
+- Fail closed with a plain-language reason: never publish a partial sim, silently drop a forced optimizer pick, or invent a missing opposite price to de-vig a one-sided prop.
 
 ## Learned Workspace Facts
 
-- GitHub remote is jrakestr/nfl-edge (private).
+- GitHub remote is jrakestr/nfl-edge (private). Production is the Git deploy of `web/`; never `vercel --prod` from the repo root (it uploads `data/draws/`).
 - `.env` DATABASE_URL is Supabase; unset it to use the local Postgres container (port 5433, database `nfl_edge`, not default `postgres`) for 2025 backtests.
 - Market spread/total never enter `sim/game.py` or `sim/players.py`; `slate.py` loads them only for P(cover)/P(over) summaries.
 - The web app lives in `web/`. The Edge board reads `model.verdicts_latest` and `model.edges_latest`; do not fall back to verdict payload `edges[]`.
 - Displayed spread/total use `mean_spread`/`mean_total`; median stays for P(cover)/P(over).
-- DK salary CSVs live in gitignored `data/dk/`. Player-ID joins go through `raw.players`. DFS is slate-scoped (main/full/showdown have distinct DK IDs); upload CSVs must use that slate's IDs. DK `LAR` maps to nflverse `LA`. Status O/D/Q on ingest writes `raw.player_overrides`.
+- DK salary CSVs live in gitignored `data/dk/`. Player-ID joins go through `raw.players` and `raw.dk_player_crosswalk` (LAR→LA, JAC→JAX, WSH→WAS). DFS is slate-scoped (main/full/showdown have distinct DK IDs); upload CSVs must use that slate's IDs. Status O/D/Q on ingest writes `raw.player_overrides`; the UI reads overrides live, and OUT/D set after the run's `created_at` grey the projection and drop the player from the optimizer pool.
 - Calibration monotone against the close is a season-long grading target, not a sim build gate.
 - Recency weights belong on the prior rate only. Shrinkage `n_eff` is unweighted game/touch count for usage and efficiency; team strength uses recency-weighted `sum(w)`. Prior-season week 18 is excluded from the history sample in all channels. Do not use recency weight as usage/efficiency shrink sample size.
-- Player props on the board come from `model.fair_props` (sim medians, half-rounded), written by `nfl-edge lines`. The manual market CSV is optional for edges only. Fair-line calibration is graded separately from market-priced edges.
-- Browser-optimized lineups are not graded unless exported and entered; the weekly sim lineups remain the graded set.
+- Player props on the board come from `model.fair_props` (sim medians, rounded to the nearest half), written by `nfl-edge lines`. The manual market CSV is optional for edges only. Fair-line calibration is graded separately from market-priced edges.
+- Browser-optimized lineups are not graded unless exported and entered; the weekly sim lineups remain the graded set. Locks and required-stack players are exempt from exposure caps; a lock means in the lineup (showdown: `c_i + f_i = 1`), not a specific slot.
+- Grade each game against the newest `sim_runs` row predating kickoff; the board reads `model.results` and does not re-select the run. Neutral games use `gameday` 00:00 ET as the cutoff. `lines-only` never writes scores; finals need a full ingest.
+- Prune draw parquet only after the week is graded (or an age fallback); keep `sim_runs` rows and null `draws_path`. Fail the sim if any game lacks player draws rather than publishing a partial slate.

@@ -2,11 +2,43 @@
 
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
 
+## Week rebuild (2026-09-12)
+
+What changed: `ops/week-rebuild.sh` re-applies `data/overrides/${SEASON}_wk${WW}.csv` after both `dk-salaries` and before sim; newest-run now checks player-game coverage and the sim fails closed on a missing usage team.
+What was verified: `tests/test_week_rebuild_plist.py` (3) plus prune / sim-lock / slate-partial / slate-parquet (17). launchd will run this file at 20:00, not HEAD-from-last-week.
+What was deferred: the injury plan's one-shot `nfl-edge overrides` apply if DK ingest has not run yet — 20:00 will apply the CSV itself before sim.
+
+## DFS exposure parse (2026-09-12)
+
+What changed: `parse_exposure_csv` reads by position (classic 8-header/9-data contract); `model.dfs_exposure` is `own_ours` / `own_field_proj` / `own_field_sim`; leverage is ours minus realized field.
+What was verified: `tests/test_dfs_wrappers.py` (15) and ruff; web lint/typecheck/test/build. `stackCorrelations` cutoff is `own_ours >= 0.07` (measured: old `sim_own>=0.2` CTE 26–39 on main; `own_ours>=0.2` is 13–15).
+What was deferred: live-week `nfl-edge dfs` rebuild; NFL-DFS-Tools writer patch (name Salary/Fpts, emit Proj. Own%, then `len(header)==len(row)`). Leverage stays off the stack-suggestions plan. Pre-0018 rows keep shifted values in `own_ours`; the panel hides them when `own_field_sim` is null. After tonight's rebuild, leverage must be two-sided (a few well above the field, a long tail below). All-negative again means the parse is fine and something else is wrong — stop before those numbers inform a lineup.
+
 ## Optimizer stack suggestions (2026-09-12)
 
-What changed: Optimize shows same-game partners ranked by `corr × fpts_dk_sd` when anyone is locked; Players gained ceiling and position ranks. Leverage stayed off — `parse_exposure_csv` still shifts columns.
+What changed: Optimize shows same-game partners ranked by `corr × fpts_dk_sd` when anyone is locked; Players gained ceiling and position ranks. Leverage stayed off.
 What was verified: web lint, typecheck, test, build. Require in stack wrote the pair; five generated lineups all contained Allen + Moore; two locked QBs returned "2 quarterbacks selected; a classic lineup has room for 1".
-What was deferred: Leverage column and sort until the exposure parser reads by position.
+What was deferred: Leverage column and sort until a `dfs` persist writes the three named own columns.
+
+## Week 1 live (2026-09-12)
+
+TNF + Melbourne graded against kickoff-locked run `bf9a11f4` (`predated_kickoff`). Board hides live picks on started games; scoreboard is ATS 0–1–1, totals 0–2–0, margin MAE 13.5, total MAE 20.3. `origin/main` at `1c5b224`. Sat 20:00 rebuild path is lines → props → dfs. Sun 08:40 full ingest lands Saturday scores; no manual ingest needed before Tue grade. Local Docker is behind 0013/0015/0016/0017/0018 — `nfl-edge db migrate` and confirm pending is empty when it next comes up.
+
+### Usage allocation — hold k=3 through Tuesday (2026-09-12)
+
+`shrink_k_usage` stays at 3 this week. The Tuesday k=0 fallback for week 2 does **not** depend on the gated sweep: if the vector operator is not ready by then, k=0 ships on the backtest already run — 2025 week 2 was the worst week at k=3, and k=0 was better there on both channels. Honest cuts split the problem: at k=3, prior-season target bias is −2.8 pp and carry bias is −7.2 (pred-k3: −3.4 / −10.7). Receptions are mostly volume (team rec p50 18.2 vs 2025 team-game median 21); carries are allocation. Week 1 is not worse than the average (tgt −2.5 / car −4.0); weeks 2–17 carry bias is −7.5 and 2025 week 2 was the worst single week. Gates (both `xfail(strict=True)` until the usage-vector operator; do not loosen the bounds): `test_wr1_renorm_delta_independent_of_room_size` (room-size slope ≈ 0) and `test_many_games_negligible_carries_get_negligible_share` (2 carries / 11 games must stay under 1%, not inherit the RB mean — the Saylors / n_eff-in-games half). Either can pass while the other fails; they are separate halves. When **both** go green, re-run the k sweep — not before. If a positive k wins, the new target carries information and the formulation is sound. If k=0 still wins with a flat slope and Saylors at 1%, the vector target is biased too and there is a third thing to find. DET week-1 ACT RBs: Gibbs / Saylors / Vaki; only Gibbs has carry volume (224 vs 2 / 1); Montgomery is HOU. Primary fat-end check is IND 2025 (Taylor, mean renorm Δ −12.9 / bias −24.1); CLE is the committee illustration only. Player-week OLS n=565, week FE, 30 clusters: alone, delta +0.41 (wild p=0.10) and count −3.8 pp/RB (wild p=0.022); jointly neither survives (delta +0.25 p=0.38, count −2.8 p=0.15). Post-fix test is the count coefficient, not the delta (it becomes degenerate). Pre-registered 2026-09-12 in `tests/test_priors.py` (`POST_FIX_COUNT_COEF_*`, next to the xfails): PASS if |coef| ≤ 1.9 pp and the 95% cluster CI covers 0; FAIL if |coef + 3.8| ≤ 1.4 (holds near −3.8); anything in between is underpowered — more weeks, no verdict. Weekly SE of star-RB bias is 2.8 pp; band the post-fix week trend at ±3 pp. Volume (`neutral_pass_rate`, plays) can start in parallel. Leave Lamb alone.
+
+### Tuesday 2026-09-15 — volume decomposition (do not touch a parameter on two games)
+
+Both finals came in far under on totals (45.3 vs 23, 52.2 vs 34) while receptions props lean the other way (too few catches). Opposite leans argue against a global scale problem. After sixteen games are graded, put **projected vs actual** next to each other for all four, plus sacks:
+
+- drives
+- plays per drive
+- neutral pass rate
+- pass attempts
+- sacks (attempts = dropbacks − sacks; an inflated sack rate drags attempts without moving anything else)
+
+Read: plays right + attempts low → pass rate. Plays low → pace, further upstream, and that would also move points. Attempts low + points high localizes the error in the drive → play → attempt chain.
 
 ## Web v2 — Checkpoint A (2026-09-07)
 - Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable (`syncUrl={false}`).
