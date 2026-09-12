@@ -122,7 +122,10 @@ def backfill_line_grids(run_id: str) -> int:
     )
     n = 0
     for r in rows.to_dicts():
-        path = ROOT / r["draws_path"]
+        raw = r.get("draws_path")
+        if not raw:
+            continue
+        path = ROOT / raw
         if not path.is_file():
             continue
         execute(

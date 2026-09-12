@@ -229,7 +229,10 @@ def run(run_id: str, recompute: bool = False) -> dict:
     rows: list[dict] = []
     parity_checked = parity_ok = 0
     for g in pg.iter_rows(named=True):
-        d = pl.read_parquet(ROOT / g["draws_path"], columns=["home_pts", "away_pts"])
+        path = g.get("draws_path")
+        if not path or not (ROOT / path).is_file():
+            continue
+        d = pl.read_parquet(ROOT / path, columns=["home_pts", "away_pts"])
         margin = (d["home_pts"] - d["away_pts"]).to_numpy().astype(float)
         matched = False
         for s in snaps.filter(pl.col("game_id") == g["game_id"]).iter_rows(named=True):

@@ -391,7 +391,10 @@ def _parquet_ok(run_id: str) -> bool:
     pg = read_sql("select draws_path from model.proj_games where run_id = %s", (run_id,))
     if pg.is_empty():
         return False
-    return all((ROOT / p).exists() for p in pg["draws_path"] if p)
+    paths = list(pg["draws_path"])
+    return not any(
+        p is None or str(p).strip() == "" or not (ROOT / str(p)).exists() for p in paths
+    )
 
 
 def run(season: int, week: int, run_id: str | None = None) -> GradeReport:

@@ -231,17 +231,18 @@ def test_lean_uses_flat_then_sign_of_over_edge():
     assert P.lean(-0.04, 0.01) == "under"
 
 
-def test_round_to_half_always_lands_on_x5():
-    assert P.round_to_half(83.0) == 83.5
-    assert P.round_to_half(83.2) == 83.5
-    assert P.round_to_half(83.9) == 83.5
-    assert P.round_to_half(0.0) == 0.5
-    assert P.round_to_half(1.0) == 1.5
+def test_round_to_half_is_nearest_not_always_up():
+    assert P.round_to_half(83.0) == 83.0
+    assert P.round_to_half(83.2) == 83.0
+    assert P.round_to_half(83.3) == 83.5
+    assert P.round_to_half(83.9) == 84.0
+    assert P.round_to_half(0.0) == 0.0
+    assert P.round_to_half(3.0) == 3.0
 
 
-def test_fair_line_is_median_rounded_to_half():
+def test_fair_line_is_median_rounded_to_nearest_half():
     vals = np.array([70.0, 80.0, 83.0, 90.0, 100.0])
-    assert P.fair_line(vals) == 83.5
+    assert P.fair_line(vals) == 83.0
 
 
 def test_anytime_td_is_prob_of_at_least_one():
@@ -255,7 +256,7 @@ def test_anytime_td_is_prob_of_at_least_one():
 def test_p_over_at_fair_line_matches_parquet_draws():
     vals = np.array([70.0, 80.0, 83.0, 90.0, 100.0])
     line = P.fair_line(vals)
-    assert line == 83.5
+    assert line == 83.0
     assert P.p_over_at(vals, line) == pytest.approx(float((vals > line).mean()))
     assert P.p_over_at(vals, line) == pytest.approx(0.4)
 

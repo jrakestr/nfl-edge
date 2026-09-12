@@ -8,7 +8,6 @@ PropCallout copy is persisted on model.prop_edges.
 """
 from __future__ import annotations
 
-import math
 from collections import Counter
 from pathlib import Path
 
@@ -50,8 +49,8 @@ def cfg() -> dict:
 
 
 def round_to_half(x: float) -> float:
-    """Always a hook: median 83.0 and 83.9 both become 83.5."""
-    return math.floor(float(x)) + 0.5
+    """Nearest half-point. A median of 3.0 stays 3.0; 83.3 becomes 83.5."""
+    return round(float(x) * 2.0) / 2.0
 
 
 def fair_line(values: np.ndarray) -> float:
@@ -243,12 +242,12 @@ def compute(run_id: str, props: list[dict], names: dict[str, str], draws_n: int,
         pid, stat = p["player_id"], p["stat"]
         path = paths.get(pid)
         if not path:
-            skipped.append({**p, "reason": "no_proj"})
+            skipped.append({**p, "reason": "draws_pruned"})
             continue
         try:
             cols = _player_cols(path, pid, stat)
             if cols is None:
-                skipped.append({**p, "reason": "no_draws"})
+                skipped.append({**p, "reason": "draws_pruned" if not (ROOT / path).exists() else "no_draws"})
                 continue
             vals = stat_draws(cols, stat)
         except KeyError:
@@ -394,7 +393,7 @@ def persist_fair(run_id: str, rows: list[dict]) -> int:
 
 
 def fair_props(run_id: str) -> dict:
-    """Median-hook fair line for every offensive player-stat on the run. From parquet, not the hist."""
+    """Nearest-half fair line for every offensive player-stat on the run. From parquet, not the hist."""
     loc = read_sql(
         "select player_id, game_id, position, draws_path from model.proj_players where run_id = %s",
         (run_id,),
