@@ -221,11 +221,17 @@ def test_qb_factor_is_one_for_the_qb_who_produced_the_lookback_and_below_one_for
     q = qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG).row(0, named=True)
     assert q["qb_pass_factor"] == pytest.approx(1.0, abs=0.02)
     assert 0.9 < q["qb_att_share"] < 1.0
+    assert q["qb_lookback_id"] == "star"
+    assert q["n_att"] == pytest.approx(240.0)
+    assert q["qb_lookback_att"] == pytest.approx(240.0)
     backup = pl.DataFrame({"team": ["T"], "qb_id": ["newguy"]})     # no history -> league YPA
     q2 = qb.build(_qb_weeks(), backup, fb, 2025, 9, UCFG).row(0, named=True)
     assert q2["qb_pass_factor"] < q["qb_pass_factor"] - 0.02   # league-YPA backup behind a good starter
     assert q2["qb_att_share"] == pytest.approx(0.97)
     assert q2["qb_id"] == "newguy"
+    assert q2["n_att"] == pytest.approx(0.0)
+    assert q2["qb_lookback_id"] == "star"
+    assert q2["qb_lookback_att"] == pytest.approx(240.0)
 
 
 def test_qb_starter_falls_back_when_schedule_has_none():

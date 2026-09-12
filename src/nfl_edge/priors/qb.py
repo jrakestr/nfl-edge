@@ -8,6 +8,9 @@ Per team for (season, week):
                   Applied to team off_ppd (** elasticity) and to receiver yardage efficiency, which
                   makes receiver rates QB-neutral: they were measured under the team's lookback QB play.
   qb_att_share    starter share of team pass attempts in weeks they played, shrunk toward the prior.
+  n_att           starter pass attempts in the lookback window (0 when the starter is absent).
+  qb_lookback_id  player with the most attempts on that team in the same window (not "former starter").
+  qb_lookback_att that player's attempts in the window.
 Team-level passing rows come from player_stats_weekly (QB rows) and never touch game outcomes.
 """
 from __future__ import annotations
@@ -77,7 +80,20 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
         common.shrink(pl.col("_ypa"), pl.col("n_att"), league_ypa, float(c["shrink_k_qb_att"])).alias("qb_ypa"),
         common.shrink(pl.col("_share"), pl.col("n_starts"), float(c["qb_att_share_prior"]),
                       float(c["shrink_k_qb_share"])).alias("qb_att_share"),
-    ).select(["player_id", "qb_ypa", "qb_att_share"])
+    ).select(["player_id", "qb_ypa", "qb_att_share", "n_att"])
+
+    lookback = (
+        g.group_by(["team", "player_id"]).agg(pl.col("attempts").sum().alias("qb_lookback_att"))
+        .sort(["team", "qb_lookback_att"], descending=[False, True])
+        .group_by("team", maintain_order=True)
+        .agg(
+            pl.col("player_id").first().alias("qb_lookback_id"),
+            pl.col("qb_lookback_att").first(),
+        )
+        if g.height else pl.DataFrame(schema={
+            "team": pl.Utf8, "qb_lookback_id": pl.Utf8, "qb_lookback_att": pl.Float64,
+        })
+    )
 
     teams = pl.concat([starters.select(["team"]), fallback_qb1.select(["team"])]).unique()
     out = (
@@ -88,13 +104,16 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
         .filter(pl.col("qb_id").is_not_null())
         .join(per_qb, left_on="qb_id", right_on="player_id", how="left")
         .join(team, on="team", how="left")
+        .join(lookback, on="team", how="left")
         .with_columns(
             pl.col("qb_ypa").fill_null(league_ypa),
             pl.col("team_ypa").fill_null(league_ypa),
             pl.col("qb_att_share").fill_null(float(c["qb_att_share_prior"])),
+            pl.col("n_att").fill_null(0.0),
         )
         .with_columns((pl.col("qb_ypa") / pl.col("team_ypa")).clip(lo, hi).alias("qb_pass_factor"))
-        .select(["team", "qb_id", "qb_ypa", "team_ypa", "qb_pass_factor", "qb_att_share"])
+        .select(["team", "qb_id", "qb_ypa", "team_ypa", "qb_pass_factor", "qb_att_share",
+                 "n_att", "qb_lookback_id", "qb_lookback_att"])
         .sort("team")
     )
     return out.with_columns(pl.lit(season).alias("season"), pl.lit(week).alias("week"))
