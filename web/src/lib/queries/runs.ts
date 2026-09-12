@@ -1,6 +1,9 @@
 import { sql } from "@/lib/db";
 import { RunRowSchema, WeekRunsSchema, type RunRow, type WeekRuns } from "@/lib/types";
 
+/** A run plus how many proj_games rows it wrote. Used to skip a partial Sunday sim. */
+export type RunWithCount = RunRow & { n_games: number };
+
 /** Weeks of a season that have at least one sim run, newest week first. */
 export async function weeksWithRuns(season: number): Promise<WeekRuns[]> {
   const rows = await sql()`
@@ -18,22 +21,51 @@ export async function newestWeek(season: number): Promise<number | null> {
   return rows[0]?.week ?? null;
 }
 
-/** Runs for a week, newest first (feeds the RunBadge's run picker). */
-export async function runsForWeek(season: number, week: number): Promise<RunRow[]> {
+/** Scheduled games for the week — the full-slate size a sim must match. */
+export async function slateGameCount(season: number, week: number): Promise<number> {
   const rows = await sql()`
-    select run_id, season, week, created_at, draws_per_game, git_sha
-    from model.sim_runs
-    where season = ${season} and week = ${week}
-    order by created_at desc`;
-  return rows.map((r) => RunRowSchema.parse(r));
+    select count(*)::int as n from raw.schedules where season = ${season} and week = ${week}`;
+  return rows[0]?.n ?? 0;
 }
 
-/** The run to display: `runId` when pinned and present, else the newest for the week. */
-export async function runForWeek(season: number, week: number, runId?: string): Promise<RunRow | null> {
-  const runs = await runsForWeek(season, week);
+/** Runs for a week, newest first (feeds the RunBadge's run picker). */
+export async function runsForWeek(season: number, week: number): Promise<RunWithCount[]> {
+  const rows = await sql()`
+    select r.run_id, r.season, r.week, r.created_at, r.draws_per_game, r.git_sha,
+           (select count(*)::int from model.proj_games p where p.run_id = r.run_id) as n_games
+    from model.sim_runs r
+    where r.season = ${season} and r.week = ${week}
+    order by created_at desc`;
+  return rows.map((r) => {
+    const parsed = RunRowSchema.parse(r);
+    return { ...parsed, n_games: Number(r.n_games) };
+  });
+}
+
+/**
+ * Newest run whose proj_games count equals the week's schedule. A pinned id wins when
+ * present; a missing pin or an empty full-slate set falls through. No full run → newest.
+ */
+export function pickDefaultRun<T extends { run_id: string; created_at: Date; n_games: number }>(
+  runs: T[],
+  slateGames: number,
+  pinned?: string,
+): T | null {
   if (runs.length === 0) return null;
-  if (runId) return runs.find((r) => r.run_id === runId) ?? runs[0];
-  return runs[0];
+  if (pinned) {
+    const hit = runs.find((r) => r.run_id === pinned);
+    if (hit) return hit;
+  }
+  const newest = (a: T, b: T) => b.created_at.getTime() - a.created_at.getTime();
+  const full = slateGames > 0 ? runs.filter((r) => r.n_games === slateGames).sort(newest) : [];
+  if (full.length) return full[0];
+  return [...runs].sort(newest)[0];
+}
+
+/** The run to display: pinned if present, else the newest full slate for the week. */
+export async function runForWeek(season: number, week: number, runId?: string): Promise<RunRow | null> {
+  const [runs, slateGames] = await Promise.all([runsForWeek(season, week), slateGameCount(season, week)]);
+  return pickDefaultRun(runs, slateGames, runId);
 }
 
 export function newerRunExists(run: RunRow, runs: RunRow[]): boolean {

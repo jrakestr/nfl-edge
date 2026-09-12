@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PlayersList } from "@/components/players/PlayersList";
 import { CURRENT_SEASON } from "@/lib/config";
 import { weekPlayers } from "@/lib/queries/players";
-import { runsForWeek } from "@/lib/queries/runs";
+import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +28,11 @@ export default async function Page({
   const seasonParam = Number(one(sp.season));
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
   const weekOk = Number.isInteger(week) && week >= 1 && week <= 22;
-  const runs = weekOk ? await runsForWeek(season, week) : [];
   const pinned = one(sp.run);
-  const run = runs.length ? (pinned ? (runs.find((r) => r.run_id === pinned) ?? runs[0]) : runs[0]) : null;
+  const [runs, slateGames] = weekOk
+    ? await Promise.all([runsForWeek(season, week), slateGameCount(season, week)])
+    : [[], 0];
+  const run = pickDefaultRun(runs, slateGames, pinned);
   const players = run ? await weekPlayers(run.run_id) : [];
   return <PlayersList players={players} />;
 }

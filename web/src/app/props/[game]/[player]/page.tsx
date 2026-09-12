@@ -10,7 +10,7 @@ import {
   propHistogram,
   propTimeline,
 } from "@/lib/queries/props";
-import { newestWeek, runsForWeek } from "@/lib/queries/runs";
+import { newestWeek, runForWeek } from "@/lib/queries/runs";
 import type { Hist } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +25,7 @@ export async function generateMetadata({
 export default async function PropPage({ params }: PageProps<"/props/[game]/[player]">) {
   const { game, player } = await params;
   const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
-  const runs = await runsForWeek(CURRENT_SEASON, week);
-  const run = runs[0] ?? null;
+  const run = await runForWeek(CURRENT_SEASON, week);
   const [header, ctx] = await Promise.all([playerById(player), gameById(game)]);
   const fairs = run ? await playerFairProps(run.run_id, player) : [];
   const log = await playerLog(player, 20);

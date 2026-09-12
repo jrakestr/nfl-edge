@@ -3,7 +3,7 @@ import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
 import { boardRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { topPlayersByGame } from "@/lib/queries/players";
-import { newestWeek, runsForWeek } from "@/lib/queries/runs";
+import { newestWeek, runForWeek } from "@/lib/queries/runs";
 import { verdictsForRun } from "@/lib/queries/verdicts";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +11,7 @@ export const metadata = { title: "Games" };
 
 export default async function Page() {
   const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
-  const runs = await runsForWeek(CURRENT_SEASON, week);
-  const run = runs[0] ?? null;
+  const run = await runForWeek(CURRENT_SEASON, week);
   const [rows, verdicts, checks, playersByGame] = run
     ? await Promise.all([
         boardRows(run.run_id),

@@ -23,11 +23,16 @@ const run = {
   git_sha: "5823f735",
 };
 
-vi.mock("@/lib/queries/runs", () => ({
-  weeksWithRuns: async () => [{ week: 1, newest_run_id: runId, created_at: run.created_at, runs: 1 }],
-  runsForWeek: async () => [run],
-  newerRunExists: () => false,
-}));
+vi.mock("@/lib/queries/runs", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@/lib/queries/runs")>();
+  return {
+    ...orig,
+    weeksWithRuns: async () => [{ week: 1, newest_run_id: runId, created_at: run.created_at, runs: 1 }],
+    runsForWeek: async () => [{ ...run, n_games: 16 }],
+    slateGameCount: async () => 16,
+    newerRunExists: () => false,
+  };
+});
 vi.mock("@/lib/queries/verdicts", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@/lib/queries/verdicts")>();
   const { fixtureVerdicts: v } = await import("@/test/fixture");
