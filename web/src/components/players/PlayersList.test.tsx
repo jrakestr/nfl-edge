@@ -145,7 +145,7 @@ describe("PlayersList slate rows", () => {
   it("lock writes URL and per-slate localStorage", () => {
     replace.mockClear();
     localStorage.clear();
-    render(<PlayersList players={MAIN} slateId="2026_01_main" />);
+    render(<PlayersList players={MAIN} slateId="2026_01_main" week={1} site="dk" slate="main" />);
     fireEvent.click(screen.getByRole("button", { name: "Lock Jahmyr Gibbs" }));
     expect(replace).toHaveBeenCalled();
     const href = String(replace.mock.calls.at(-1)?.[0]);
@@ -153,6 +153,39 @@ describe("PlayersList slate rows", () => {
     expect(JSON.parse(localStorage.getItem(slateStorageKey("2026_01_main"))!)).toMatchObject({
       lock: ["111"],
     });
+  });
+
+  it("summary bar starts at zero and the CTA is enabled", () => {
+    render(<PlayersList players={MAIN} week={1} site="dk" slate="main" />);
+    expect(screen.getByRole("complementary", { name: "Pick summary" })).toHaveTextContent(
+      "Locked 0 · Excluded 0 · Stacked 0",
+    );
+    expect(screen.getByRole("link", { name: "Build lineups with these →" })).toHaveAttribute(
+      "href",
+      "/week/1/optimize/dk/main",
+    );
+  });
+
+  it("row actions update counts and Clear all zeros them", () => {
+    replace.mockClear();
+    localStorage.clear();
+    render(<PlayersList players={MAIN} slateId="2026_01_main" week={1} site="dk" slate="main" />);
+    fireEvent.click(screen.getByRole("button", { name: "Lock Jahmyr Gibbs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exclude Main Only" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Jahmyr Gibbs to stack" }));
+    expect(screen.getByRole("complementary", { name: "Pick summary" })).toHaveTextContent(
+      "Locked 1 · Excluded 1 · Stacked 1",
+    );
+    expect(screen.getByRole("row", { name: /jahmyr gibbs/i })).toHaveAttribute("data-locked", "true");
+    expect(screen.getByRole("row", { name: /jahmyr gibbs/i })).toHaveAttribute("data-stacked", "true");
+    expect(screen.getByRole("row", { name: /main only/i })).toHaveAttribute("data-excluded", "true");
+    expect(screen.getByRole("link", { name: "Build lineups with these →" }).getAttribute("href")).toContain(
+      "lock=111",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(screen.getByRole("complementary", { name: "Pick summary" })).toHaveTextContent(
+      "Locked 0 · Excluded 0 · Stacked 0",
+    );
   });
 });
 

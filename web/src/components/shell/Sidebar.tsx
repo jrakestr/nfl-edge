@@ -14,10 +14,12 @@ function NavItems({
   collapsed,
   pathname,
   querySlate,
+  search,
 }: {
   collapsed: boolean;
   pathname: string;
   querySlate?: string | null;
+  search?: URLSearchParams | null;
 }) {
   const ctx = pathContext(pathname, querySlate);
   return (
@@ -28,7 +30,7 @@ function NavItems({
         return (
           <Link
             key={item.href}
-            href={navHref(item.label, ctx, item.href)}
+            href={navHref(item.label, ctx, item.href, search)}
             aria-label={item.label}
             aria-current={active ? "page" : undefined}
             title={item.label}
@@ -51,7 +53,9 @@ function NavItems({
 
 function SlateNav({ collapsed, pathname }: { collapsed: boolean; pathname: string }) {
   const sp = useSearchParams();
-  return <NavItems collapsed={collapsed} pathname={pathname} querySlate={sp.get("slate")} />;
+  return (
+    <NavItems collapsed={collapsed} pathname={pathname} querySlate={sp.get("slate")} search={sp} />
+  );
 }
 
 export function Sidebar({

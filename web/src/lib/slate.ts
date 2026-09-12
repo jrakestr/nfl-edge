@@ -47,15 +47,32 @@ export function requestedSlate(pathSlate: string | undefined, querySlate: string
   return "main";
 }
 
+const PICK_QUERY_KEYS = ["lock", "excl", "stack"] as const;
+
+/** Copy lock/excl/stack onto an href so slate and sidebar hops keep picks. */
+export function withPickParams(href: string, search?: URLSearchParams | null): string {
+  if (!search) return href;
+  const extra = new URLSearchParams();
+  for (const k of PICK_QUERY_KEYS) {
+    const v = search.get(k);
+    if (v) extra.set(k, v);
+  }
+  const qs = extra.toString();
+  if (!qs) return href;
+  return href.includes("?") ? `${href}&${qs}` : `${href}?${qs}`;
+}
+
 export function slateHref(args: {
   page: SlatePage;
   week: number | string;
   site: string;
   slate: string;
+  search?: URLSearchParams | null;
 }): string {
-  const { page, week, site, slate } = args;
-  if (page === "games") return `/week/${week}/games?slate=${slate}`;
-  return `/week/${week}/${page}/${site}/${slate}`;
+  const { page, week, site, slate, search } = args;
+  const path =
+    page === "games" ? `/week/${week}/games?slate=${slate}` : `/week/${week}/${page}/${site}/${slate}`;
+  return withPickParams(path, search);
 }
 
 export function fallbackNotice(requested: string): string {
@@ -107,11 +124,18 @@ export function navHref(
   label: string,
   ctx: { week: number | null; site: string; slate: string },
   fallback: string,
+  search?: URLSearchParams | null,
 ): string {
-  if (label === "Players") return "/players";
-  if (ctx.week == null) return fallback;
-  if (label === "Games") return slateHref({ page: "games", week: ctx.week, site: ctx.site, slate: ctx.slate });
-  if (label === "Lineups") return slateHref({ page: "dfs", week: ctx.week, site: ctx.site, slate: ctx.slate });
-  if (label === "Optimize") return slateHref({ page: "optimize", week: ctx.week, site: ctx.site, slate: ctx.slate });
-  return fallback;
+  if (label === "Players") return withPickParams("/players", search);
+  if (ctx.week == null) return withPickParams(fallback, search);
+  if (label === "Games") {
+    return slateHref({ page: "games", week: ctx.week, site: ctx.site, slate: ctx.slate, search });
+  }
+  if (label === "Lineups") {
+    return slateHref({ page: "dfs", week: ctx.week, site: ctx.site, slate: ctx.slate, search });
+  }
+  if (label === "Optimize") {
+    return slateHref({ page: "optimize", week: ctx.week, site: ctx.site, slate: ctx.slate, search });
+  }
+  return withPickParams(fallback, search);
 }

@@ -8,7 +8,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
-import { useSlatePicks, type PickKey } from "@/lib/slate-picks";
+import { applyPicksToParams, emptyPicks, useSlatePicks, type PickKey } from "@/lib/slate-picks";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
 import type { ComponentProps, ReactNode } from "react";
@@ -59,19 +59,31 @@ function PickButton({
   );
 }
 
+function tone(excluded: boolean, extra?: string) {
+  return cn("tnum font-semibold", excluded ? "text-muted-foreground" : "text-foreground", extra);
+}
+
 /** Slate player library. Rows from raw.dk_salaries ⨝ proj_players for this slate. */
 export function PlayersList({
   players = [],
   slateId = "",
+  week = 1,
+  site = "dk",
+  slate = "main",
   toolbar,
   fallbackFrom,
 }: {
   players?: WeekPlayer[];
   slateId?: string;
+  week?: number | string;
+  site?: string;
+  slate?: string;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
 }) {
-  const { picks, toggle } = useSlatePicks(slateId);
+  const { picks, toggle, setPicks } = useSlatePicks(slateId);
+  const buildQs = applyPicksToParams(picks, new URLSearchParams()).toString();
+  const buildHref = `/week/${week}/optimize/${site}/${slate}${buildQs ? `?${buildQs}` : ""}`;
 
   function pickAction(key: PickKey, p: WeekPlayer) {
     const id = p.player_dk_id;
@@ -91,9 +103,19 @@ export function PlayersList({
         getRowId={(p) => p.player_dk_id ?? p.player_id}
         empty="No projections listed yet"
         ariaLabel="Players"
-        rowProps={(p) =>
-          ({ "data-in-pool": String(rowFlags(p).inPool) }) as ComponentProps<"tr">
-        }
+        rowProps={(p) => {
+          const id = p.player_dk_id;
+          const locked = id != null && picks.lock.includes(id);
+          const excluded = id != null && picks.excl.includes(id);
+          const stacked = id != null && picks.stack.includes(id);
+          return {
+            "data-in-pool": String(rowFlags(p).inPool),
+            "data-locked": locked ? "true" : undefined,
+            "data-excluded": excluded ? "true" : undefined,
+            "data-stacked": stacked ? "true" : undefined,
+            className: excluded ? "opacity-60" : undefined,
+          } as ComponentProps<"tr">;
+        }}
         searchPlaceholder="Name or team"
         filters={{
           search: (p, q) =>
@@ -111,29 +133,66 @@ export function PlayersList({
             id: "player",
             header: "Player",
             sortValue: (p) => p.display_name,
-            cell: (p) => (
-              <span className="inline-flex items-center gap-1.5">
-                <PositionPill position={p.position} />
-                <Link
-                  href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
-                  className="font-semibold text-foreground underline-offset-2 hover:underline"
-                >
-                  {p.display_name}
-                </Link>
-              </span>
-            ),
+            cell: (p) => {
+              const id = p.player_dk_id;
+              const locked = id != null && picks.lock.includes(id);
+              const excluded = id != null && picks.excl.includes(id);
+              const stacked = id != null && picks.stack.includes(id);
+              return (
+                <span className="inline-flex items-center gap-1.5">
+                  <PositionPill position={p.position} />
+                  <Link
+                    href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
+                    className={cn(
+                      "font-semibold underline-offset-2 hover:underline",
+                      excluded ? "text-muted-foreground" : "text-foreground",
+                    )}
+                  >
+                    {p.display_name}
+                  </Link>
+                  {locked ? (
+                    <span className="t-caption font-semibold text-foreground">Lock</span>
+                  ) : null}
+                  {stacked && p.team ? (
+                    <span className="t-caption font-semibold text-foreground">{p.team}</span>
+                  ) : null}
+                </span>
+              );
+            },
           },
           {
             id: "team",
             header: "Team",
             sortValue: (p) => p.team ?? "",
-            cell: (p) => <span className="t-body font-semibold text-foreground">{p.team ?? "—"}</span>,
+            cell: (p) => (
+              <span
+                className={cn(
+                  "t-body font-semibold",
+                  p.player_dk_id && picks.excl.includes(p.player_dk_id)
+                    ? "text-muted-foreground"
+                    : "text-foreground",
+                )}
+              >
+                {p.team ?? "—"}
+              </span>
+            ),
           },
           {
             id: "opp",
             header: "Opp",
             sortValue: (p) => p.opponent ?? "",
-            cell: (p) => <span className="t-body font-semibold text-foreground">{p.opponent ?? "—"}</span>,
+            cell: (p) => (
+              <span
+                className={cn(
+                  "t-body font-semibold",
+                  p.player_dk_id && picks.excl.includes(p.player_dk_id)
+                    ? "text-muted-foreground"
+                    : "text-foreground",
+                )}
+              >
+                {p.opponent ?? "—"}
+              </span>
+            ),
           },
           {
             id: "kickoff",
@@ -145,7 +204,11 @@ export function PlayersList({
             id: "dkid",
             header: "DK ID",
             sortValue: (p) => p.player_dk_id ?? "",
-            cell: (p) => <span className="tnum font-semibold text-foreground">{p.player_dk_id ?? "—"}</span>,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {p.player_dk_id ?? "—"}
+              </span>
+            ),
           },
           {
             id: "salary",
@@ -154,7 +217,7 @@ export function PlayersList({
             align: "right",
             sortValue: (p) => p.salary,
             cell: (p) => (
-              <span className="tnum font-semibold text-foreground">
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
                 {p.salary != null ? p.salary.toLocaleString("en-US") : "—"}
               </span>
             ),
@@ -167,16 +230,10 @@ export function PlayersList({
             sortValue: (p) => p.fpts_dk_mean,
             cell: (p) => {
               const { stale } = rowFlags(p);
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
               return (
                 <span className="flex flex-col items-end gap-0.5">
-                  <span
-                    className={cn(
-                      "tnum font-semibold",
-                      stale ? "text-muted-foreground" : "text-foreground",
-                    )}
-                  >
-                    {num(p.fpts_dk_mean)}
-                  </span>
+                  <span className={tone(excluded || stale)}>{num(p.fpts_dk_mean)}</span>
                   {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
                 </span>
               );
@@ -188,7 +245,7 @@ export function PlayersList({
             align: "right",
             sortValue: (p) => p.ceiling,
             cell: (p) => (
-              <span className="tnum font-semibold text-foreground">
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
                 {p.floor == null && p.ceiling == null ? "—" : `${num(p.floor)}–${num(p.ceiling)}`}
               </span>
             ),
@@ -199,7 +256,11 @@ export function PlayersList({
             metric: "ownership",
             align: "right",
             sortValue: (p) => p.proj_own,
-            cell: (p) => <span className="tnum font-semibold text-foreground">{ownPct(p.proj_own)}</span>,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {ownPct(p.proj_own)}
+              </span>
+            ),
           },
           {
             id: "value",
@@ -207,7 +268,11 @@ export function PlayersList({
             metric: "value",
             align: "right",
             sortValue: (p) => p.value,
-            cell: (p) => <span className="tnum font-semibold text-foreground">{num(p.value, 2)}</span>,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(p.value, 2)}
+              </span>
+            ),
           },
           {
             id: "injury",
@@ -220,7 +285,11 @@ export function PlayersList({
             header: "Typical game",
             align: "right",
             sortValue: (p) => p.typical_dk,
-            cell: (p) => <span className="tnum font-semibold text-foreground">{num(p.typical_dk)}</span>,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(p.typical_dk)}
+              </span>
+            ),
           },
           {
             id: "actions",
@@ -258,6 +327,22 @@ export function PlayersList({
           },
         ]}
       />
+      <aside
+        className="glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3"
+        aria-label="Pick summary"
+      >
+        <p className="t-body font-semibold text-foreground">
+          Locked {picks.lock.length} · Excluded {picks.excl.length} · Stacked {picks.stack.length}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setPicks(emptyPicks())}>
+            Clear all
+          </Button>
+          <Button asChild size="sm">
+            <Link href={buildHref}>Build lineups with these →</Link>
+          </Button>
+        </div>
+      </aside>
     </div>
   );
 }

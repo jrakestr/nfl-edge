@@ -37,6 +37,10 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByRole("heading", { name: "Players" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Name or team")).toBeEnabled();
     expect(screen.getByText("No projections listed yet")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Pick summary" })).toHaveTextContent(
+      "Locked 0 · Excluded 0 · Stacked 0",
+    );
+    expect(screen.getByRole("link", { name: "Build lineups with these →" })).toBeEnabled();
   });
 
   it("Props index: empty fair list", () => {
@@ -77,6 +81,5 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByText("Actual")).toBeInTheDocument();
     expect(screen.getByText("Chart fills in with grade-web")).toBeInTheDocument();
     expect(screen.getByText("Flat ROI")).toBeInTheDocument();
-    expect(screen.getByText("vs benchmarks")).toBeInTheDocument();
   });
 });

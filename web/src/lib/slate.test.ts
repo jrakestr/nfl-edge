@@ -8,6 +8,7 @@ import {
   slateGameCountLabel,
   slateHref,
   slateKey,
+  withPickParams,
 } from "@/lib/slate";
 import { PRESERVED_PARAMS, parseTableState, tableStateToParams } from "@/lib/table-state";
 
@@ -84,6 +85,14 @@ describe("slateHref", () => {
       "/week/1/games?slate=full",
     );
   });
+
+  it("appends lock/excl/stack and ignores other keys", () => {
+    const search = new URLSearchParams("lock=111&excl=222&q=Gibbs&stack=333");
+    expect(slateHref({ page: "optimize", week: 1, site: "dk", slate: "main", search })).toBe(
+      "/week/1/optimize/dk/main?lock=111&excl=222&stack=333",
+    );
+    expect(withPickParams("/players", search)).toBe("/players?lock=111&excl=222&stack=333");
+  });
 });
 
 describe("filterGamesForSlate", () => {
@@ -124,6 +133,14 @@ describe("navHref", () => {
 
   it("falls back when not on a week route", () => {
     expect(navHref("Games", { week: null, site: "dk", slate: "full" }, "/games")).toBe("/games");
+  });
+
+  it("carries pick params on Optimize and Players", () => {
+    const search = new URLSearchParams("lock=111&stack=333");
+    expect(navHref("Optimize", ctx, "/optimize", search)).toBe(
+      "/week/1/optimize/dk/full?lock=111&stack=333",
+    );
+    expect(navHref("Players", ctx, "/players", search)).toBe("/players?lock=111&stack=333");
   });
 });
 
