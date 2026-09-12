@@ -19,7 +19,7 @@ import { GradingPage } from "@/components/grading/GradingPage";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { WeekBoard, type WeekBoardProps } from "@/components/board/WeekBoard";
 import { DEFAULT_FILTERS } from "@/components/board/filters";
-import { NO_TRACK, fixture, fixtureChecks, fixtureRows, fixtureVerdicts } from "@/test/fixture";
+import { NO_SCOREBOARD, NO_TRACK, fixture, fixtureChecks, fixtureRows, fixtureVerdicts } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
 import { maxEdge } from "@/lib/edge";
 import { PropDetail } from "@/components/prop/PropDetail";
@@ -130,6 +130,7 @@ function boardProps(view: "plain" | "table"): WeekBoardProps {
     rows: fixtureRows().sort((a, b) => maxEdge(b) - maxEdge(a)),
     checks: fixtureChecks(),
     track: NO_TRACK,
+    scoreboard: NO_SCOREBOARD,
   };
 }
 

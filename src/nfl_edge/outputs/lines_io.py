@@ -39,7 +39,7 @@ def load_games(run_id: str) -> list[dict]:
           where game_id in (select game_id from model.proj_games where run_id = %s)
           order by game_id, captured_at desc
         )
-        select p.game_id, s.home_team, s.away_team,
+        select p.game_id, s.home_team, s.away_team, s.result::float8 as result,
                (s.gameday::text || ' ' || coalesce(s.gametime, '')) as kickoff,
                p.fair_spread::float8 as fair_spread, p.fair_total::float8 as fair_total,
                p.mean_spread::float8 as mean_spread, p.mean_total::float8 as mean_total,

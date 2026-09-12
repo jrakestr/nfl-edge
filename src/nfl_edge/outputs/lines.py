@@ -268,4 +268,6 @@ def build_week(season: int, week: int, run_id: str, draws: int, games: list[dict
     verdicts = [game_verdict(g, by_game.get(g["game_id"], []), game_status(g["game_id"], checks), teams, cfg, draws)
                 for g in games]
     verdicts.sort(key=lambda v: -v.max_edge)
-    return WeekVerdicts(season, week, run_id, draws, week_summary(week, verdicts, cfg, run_id, draws), verdicts)
+    done = {g["game_id"] for g in games if g.get("result") is not None}
+    remaining = [v for v in verdicts if v.game_id not in done]
+    return WeekVerdicts(season, week, run_id, draws, week_summary(week, remaining, cfg, run_id, draws), verdicts)

@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { WeekBoard, type WeekBoardProps } from "./WeekBoard";
 import { DEFAULT_FILTERS } from "./filters";
-import { NO_TRACK, asFailed, fixture, fixtureChecks, fixtureRows, fixtureSummary, fixtureVerdicts } from "@/test/fixture";
+import { NO_SCOREBOARD, NO_TRACK, asFailed, fixture, fixtureChecks, fixtureRows, fixtureSummary, fixtureVerdicts } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
 import { maxEdge } from "@/lib/edge";
 
@@ -32,6 +32,7 @@ function props(over: Partial<WeekBoardProps> = {}): WeekBoardProps {
     rows: fixtureRows().sort((a, b) => maxEdge(b) - maxEdge(a)),
     checks: fixtureChecks(),
     track: NO_TRACK,
+    scoreboard: NO_SCOREBOARD,
     ...over,
   };
 }
@@ -80,5 +81,22 @@ describe("/week/[n] against the Week 1 fixture", () => {
     render(<WeekBoard {...props({ verdicts: sortVerdicts(fixtureVerdicts()).slice(0, 14) })} />);
     expect(screen.getByRole("note")).toHaveTextContent("2 of 16 games have a newer line than their verdict");
     expect(screen.getByRole("note")).not.toHaveTextContent("nfl-edge lines");
+  });
+
+  it("caption and stale note count only games that have not started", () => {
+    const rows = fixtureRows().map((r, i) => (i < 2 ? { ...r, has_started: true, is_final: i === 0 } : r));
+    const liveIds = new Set(rows.filter((r) => !r.has_started).map((r) => r.game_id));
+    const verdicts = sortVerdicts(fixtureVerdicts()).filter((v) => liveIds.has(v.game_id)).slice(0, 13);
+    render(<WeekBoard {...props({ rows, verdicts })} />);
+    expect(screen.getByRole("region", { name: "Week summary" })).toHaveTextContent("14 games");
+    expect(screen.getByRole("note")).toHaveTextContent("1 of 14 games have a newer line than their verdict");
+  });
+
+  it("table tiles count only games that have not started", () => {
+    const rows = fixtureRows().map((r, i) => (i < 2 ? { ...r, has_started: true, is_final: true } : r));
+    render(<WeekBoard {...props({ view: "table", rows })} />);
+    const tiles = within(screen.getByRole("list", { name: "Week summary tiles" })).getAllByRole("listitem");
+    expect(tiles).toHaveLength(4);
+    expect(tiles[0]).toHaveTextContent("14");
   });
 });

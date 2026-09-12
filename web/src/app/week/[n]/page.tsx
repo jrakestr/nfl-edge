@@ -8,7 +8,7 @@ import { CURRENT_SEASON } from "@/lib/config";
 import { boardRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { topPlayersByGame } from "@/lib/queries/players";
-import { trackRecord } from "@/lib/queries/results";
+import { trackRecord, weekScoreboard } from "@/lib/queries/results";
 import { newerRunExists, pickDefaultRun, runsForWeek, slateGameCount, weeksWithRuns } from "@/lib/queries/runs";
 import { verdictsForRun } from "@/lib/queries/verdicts";
 import type { GameChecks, RunRow } from "@/lib/types";
@@ -47,11 +47,12 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
   const pinned = one(sp.run);
   const filters = parseFilters(sp);
 
-  const [weeks, runs, slateGames, track] = await Promise.all([
+  const [weeks, runs, slateGames, track, scoreboard] = await Promise.all([
     weeksWithRuns(season),
     runsForWeek(season, week),
     slateGameCount(season, week),
     trackRecord(season),
+    weekScoreboard(season, week),
   ]);
   const run = pickDefaultRun(runs, slateGames, pinned);
 
@@ -78,6 +79,7 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
       rows={rows}
       checks={Object.fromEntries(checks)}
       track={track}
+      scoreboard={scoreboard}
       playersByGame={playersByGame}
     />
   );

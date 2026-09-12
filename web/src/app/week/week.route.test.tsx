@@ -1,8 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { PageActionsProvider } from "@/components/shell/PageActions";
-import { fixture, fixtureChecks, fixtureRows, fixtureSummary, fixtureVerdicts, NO_TRACK } from "@/test/fixture";
+import { fixture, fixtureChecks, fixtureSummary, fixtureVerdicts, NO_SCOREBOARD, NO_TRACK } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
-import { maxEdge } from "@/lib/edge";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
@@ -41,14 +40,21 @@ vi.mock("@/lib/queries/verdicts", async (importOriginal) => {
     verdictsForRun: async () => orig.sortVerdicts(v()),
   };
 });
-vi.mock("@/lib/queries/board", () => ({
-  boardRows: async () => fixtureRows().sort((a, b) => maxEdge(b) - maxEdge(a)),
-}));
+vi.mock("@/lib/queries/board", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@/lib/queries/board")>();
+  const { fixtureRows: rows } = await import("@/test/fixture");
+  const { maxEdge: me } = await import("@/lib/edge");
+  return {
+    ...orig,
+    boardRows: async () => rows().sort((a, b) => me(b) - me(a)),
+  };
+});
 vi.mock("@/lib/queries/checks", () => ({
   checksForRun: async () => new Map(Object.entries(fixtureChecks())),
 }));
 vi.mock("@/lib/queries/results", () => ({
   trackRecord: async () => NO_TRACK,
+  weekScoreboard: async () => NO_SCOREBOARD,
 }));
 vi.mock("@/lib/queries/players", () => ({
   topPlayersByGame: async () => ({}),

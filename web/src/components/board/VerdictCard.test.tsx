@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { VerdictCard } from "./VerdictCard";
-import { asFailed, asMoved, asNoLine, fixturePayloads } from "@/test/fixture";
+import { asFailed, asMoved, asNoLine, fixturePayloads, fixtureRows } from "@/test/fixture";
 
 const payloads = fixturePayloads();
 const ok = payloads.find((p) => p.status === "ok" && p.chips?.side && p.chips.total)!;
@@ -60,5 +60,14 @@ describe("VerdictCard", () => {
     render(<VerdictCard payload={ok} onOpen={onOpen} />);
     screen.getByRole("button", { name: "details" }).click();
     expect(onOpen).toHaveBeenCalledWith(ok.game_id);
+  });
+
+  it("a started game drops the verdict sentence and chips", () => {
+    const row = { ...fixtureRows()[0]!, game_id: ok.game_id, has_started: true, is_final: false };
+    render(<VerdictCard payload={ok} row={row} />);
+    const card = screen.getByRole("article");
+    expect(screen.getByText("In progress")).toBeInTheDocument();
+    for (const s of ok.sentences) expect(card).not.toHaveTextContent(s.replace(/\s+/g, " "));
+    expect(within(card).queryByRole("complementary", { name: "Chips" })).toBeNull();
   });
 });

@@ -240,6 +240,15 @@ def test_week_summary_mentions_games_without_a_line():
 
 
 # ----------------------------------------------------------------------------- build_week
+def test_week_summary_excludes_games_with_a_result():
+    a = game()
+    b = game(game_id="2025_10_CHI_CAR", home_team="CAR", away_team="CHI", result=7.0)
+    e2 = [{**r, "ref_id": "2025_10_CHI_CAR"} for r in edges(p_home=0.70, m_home=0.49)]
+    w = L.build_week(2025, 10, "7f3a1b2c-0000", DRAWS, [a, b], edges() + e2, [], TEAMS, CFG)
+    assert len(w.games) == 2
+    assert w.summary.startswith("Week 10: 1 game.")
+
+
 def test_build_week_sorts_by_max_edge_and_applies_check_status():
     g1 = game()
     g2 = game(game_id="2025_10_CHI_CAR", home_team="CAR", away_team="CHI")

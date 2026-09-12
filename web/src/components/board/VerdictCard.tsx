@@ -4,6 +4,7 @@ import type { BoardRow, Chip, EdgeSide, VerdictPayload } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";
 import { EdgeDiff } from "./EdgeCell";
+import { GameOutcome } from "./GameOutcome";
 import { Matchup } from "./TeamDot";
 import { emphasize } from "./emphasize";
 
@@ -29,27 +30,31 @@ function overlayChip(chip: Chip | null | undefined, live: EdgeSide | null | unde
 
 export function VerdictCard({
   payload,
+  row,
   liveEdges,
   failedChecks = [],
   onOpen,
   className,
 }: {
   payload: VerdictPayload;
+  row?: BoardRow;
   liveEdges?: BoardRow["edges"];
   failedChecks?: string[];
   onOpen?: (gameId: string) => void;
   className?: string;
 }) {
+  const started = Boolean(row?.has_started);
   const { status, sentences } = payload;
-  const chips = payload.chips
-    ? {
-        side: overlayChip(payload.chips.side, liveForChip(payload.chips.side, liveEdges)),
-        total: overlayChip(payload.chips.total, liveForChip(payload.chips.total, liveEdges)),
-        home_wins: overlayChip(payload.chips.home_wins, liveForChip(payload.chips.home_wins, liveEdges)),
-      }
-    : payload.chips;
+  const chips =
+    started || !payload.chips
+      ? payload.chips
+      : {
+          side: overlayChip(payload.chips.side, liveForChip(payload.chips.side, liveEdges)),
+          total: overlayChip(payload.chips.total, liveForChip(payload.chips.total, liveEdges)),
+          home_wins: overlayChip(payload.chips.home_wins, liveForChip(payload.chips.home_wins, liveEdges)),
+        };
   const withheld = status === "fail";
-  const noLine = !withheld && chips == null;
+  const noLine = !withheld && !started && chips == null;
   const moved = payload.market?.moved_since_sim;
   const movedParts = [
     moved?.spread ? `spread ${fmtLine(moved.spread.from)} → ${fmtLine(moved.spread.to)}` : null,
@@ -89,11 +94,15 @@ export function VerdictCard({
           </div>
         ) : null}
 
-        <div className={cn("flex flex-col gap-1 t-sentence", noLine && "text-muted-foreground")}>
-          {sentences.map((s, i) => (
-            <p key={i}>{emphasize(s)}</p>
-          ))}
-        </div>
+        {started && row ? (
+          <GameOutcome row={row} />
+        ) : (
+          <div className={cn("flex flex-col gap-1 t-sentence", noLine && "text-muted-foreground")}>
+            {sentences.map((s, i) => (
+              <p key={i}>{emphasize(s)}</p>
+            ))}
+          </div>
+        )}
 
         {noLine ? (
           <p className="mt-2 t-caption">
@@ -103,7 +112,7 @@ export function VerdictCard({
         ) : null}
       </div>
 
-      {!withheld && chips ? (
+      {!withheld && !started && chips ? (
         <aside className="flex w-[196px] shrink-0 flex-col gap-2 border-l border-border-soft pl-4" aria-label="Chips">
           <ChipRow name="Side" chip={chips.side ?? null} />
           <ChipRow name="Total" chip={chips.total ?? null} />

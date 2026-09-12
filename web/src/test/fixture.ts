@@ -74,6 +74,14 @@ export function fixtureChecks(): Record<string, GameChecks> {
 
 export const NO_TRACK: TrackRecord = { gradedWeeks: 0, wins: 0, losses: 0, pushes: 0, roi: null };
 
+export const NO_SCOREBOARD = {
+  nGames: 0,
+  spread: { wins: 0, losses: 0, pushes: 0 },
+  total: { wins: 0, losses: 0, pushes: 0 },
+  marginMae: null,
+  totalMae: null,
+};
+
 /** Rewrite a payload into the three states the board must render without a live example. */
 export function asFailed(p: VerdictPayload): VerdictPayload {
   return {

@@ -8,6 +8,7 @@ import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
 import type { DrawerPlayer } from "@/lib/queries/players";
 import { CheckStatus } from "./CheckStatus";
 import { EdgeDiff } from "./EdgeCell";
+import { GameOutcome } from "./GameOutcome";
 import { MarketPill, TotalPill } from "./MarketPill";
 import { Matchup } from "./TeamDot";
 import { emphasize } from "./emphasize";
@@ -68,13 +69,16 @@ export function GameDrawer({
 
             <div className="flex flex-col gap-6 p-6">
               <section aria-label="Verdict" className="flex flex-col gap-1 t-sentence">
-                {verdict ? (
+                {row.has_started ? (
+                  <GameOutcome row={row} />
+                ) : verdict ? (
                   verdict.sentences.map((s, i) => <p key={i}>{emphasize(s)}</p>)
                 ) : (
                   <p className="text-muted-foreground">No verdict at the newest line yet.</p>
                 )}
               </section>
 
+              {row.has_started ? null : (
               <section aria-label="Edges">
                 <h4 className="t-colhead mb-2 text-muted-foreground">Model vs market at the newest line</h4>
                 <DataTable
@@ -150,6 +154,7 @@ export function GameDrawer({
                   ]}
                 />
               </section>
+              )}
 
               <section aria-label="Checks" className="flex flex-col gap-1">
                 <h4 className="t-colhead text-muted-foreground">Checks</h4>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/ui/DataTable";
 import { displayValue, homeLine, maxEdge, pct } from "@/lib/edge";
+import { sortBoardRows } from "@/lib/board-sort";
 import { kickoffLabel } from "@/lib/format";
 import { slot as kickoffSlot } from "@/lib/teams";
 import type { DrawerPlayer } from "@/lib/queries/players";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { CheckStatus } from "./CheckStatus";
 import { EdgeCell } from "./EdgeCell";
 import { GameDrawer } from "./GameDrawer";
+import { GameOutcome } from "./GameOutcome";
 import { MarketPill } from "./MarketPill";
 import { Matchup } from "./TeamDot";
 import { type Filters, applyFilters } from "./filters";
@@ -38,7 +40,7 @@ export function BoardTable({
 }) {
   const visible = useMemo(() => {
     const next = applyFilters(rows, filters, (r) => kickoffSlot(r.gameday, r.gametime));
-    return [...next].sort((a, b) => maxEdge(b) - maxEdge(a));
+    return sortBoardRows(next);
   }, [rows, filters]);
   const [cursor, setCursor] = useState<number>(-1);
   const [openId, setOpenId] = useState<string | null>(initialOpen ?? null);
@@ -90,7 +92,7 @@ export function BoardTable({
             if (ev.key === "Enter") openRow(r.game_id);
           },
           className: cn(
-            "h-11 cursor-pointer border-border-soft hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
+            r.has_started ? "cursor-pointer border-border-soft hover:bg-accent focus-visible:bg-accent focus-visible:outline-none" : "h-11 cursor-pointer border-border-soft hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
             cursor === i && "bg-accent",
           ),
         })}
@@ -115,6 +117,7 @@ export function BoardTable({
               const failed = checks[r.game_id]?.status === "fail";
               const modelSpread = displayValue(r.mean_spread, r.fair_spread);
               if (failed) return <Withheld />;
+              if (r.has_started) return <GameOutcome row={r} compact />;
               return (
                 <EdgeCell
                   kind="spread"
@@ -135,6 +138,7 @@ export function BoardTable({
               const failed = checks[r.game_id]?.status === "fail";
               const modelTotal = displayValue(r.mean_total, r.fair_total);
               if (failed) return <Withheld />;
+              if (r.has_started) return <span className="t-caption">—</span>;
               return (
                 <EdgeCell
                   kind="total"
@@ -154,6 +158,7 @@ export function BoardTable({
             cell: (r) => {
               const failed = checks[r.game_id]?.status === "fail";
               if (failed) return <Withheld />;
+              if (r.has_started) return <span className="t-caption">—</span>;
               const e = r.edges;
               return (
                 <EdgeCell
@@ -173,7 +178,7 @@ export function BoardTable({
             sortValue: (r) => r.p_home_cover_market,
             cell: (r) => {
               const failed = checks[r.game_id]?.status === "fail";
-              if (failed || r.p_home_cover_market == null) return "—";
+              if (failed || r.has_started || r.p_home_cover_market == null) return "—";
               return (
                 <span>
                   <span className="font-semibold text-foreground">{r.home}</span>{" "}
