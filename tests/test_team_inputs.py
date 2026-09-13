@@ -9,7 +9,7 @@ from nfl_edge.priors import Priors, qb, team
 from nfl_edge.sim import slate
 
 QCFG = {
-    "lookback_weeks": 8, "prior_season_weight": 0.35, "shrink_k_team": 4,
+    "recency_half_life_weeks": 8, "shrink_k_team": 4,
     "shrink_k_qb_att": 150, "qb_factor_clip": [0.8, 1.2], "qb_att_share_prior": 0.97,
     "shrink_k_qb_share": 3,
 }
@@ -38,7 +38,7 @@ def _priors() -> Priors:
                 "pass_att", "dropbacks", "sacks", "interceptions", "neutral_pass_rate",
                 "opp_points", "opp_drives"],
     )
-    tp = team.build(games, 2025, 9, {"lookback_weeks": 8, "prior_season_weight": 0.35, "shrink_k_team": 4})
+    tp = team.build(games, 2025, 9, {"recency_half_life_weeks": 8, "shrink_k_team": 4})
     q = qb.build(
         _qb_weeks(),
         pl.DataFrame({"team": ["T"], "qb_id": ["star"]}),

@@ -2,9 +2,10 @@
 
 Every prior for (season S, week W) reads only rows with
 `((season >= S-3 and season < S and week <> 18) or (season = S and week < W))`,
-so week 18 of every prior season is out (resting starters). Rows are weighted: current season
-`exp(-(W - week) / lookback_weeks)`, prior season `prior_season_weight`. A statistic is
-`sum(w * num) / sum(w * den)` — recency on the rate only.
+so week 18 of every prior season is out (resting starters). Rows are weighted
+`w = 2 ** (-age_weeks / H)` with `age_weeks = (S - season) * 18 + (W - week)` and
+`H = recency_half_life_weeks`. A statistic is `sum(w * num) / sum(w * den)` —
+recency on the rate only.
 
 Shrinkage sample size differs by channel:
   usage / efficiency  unweighted count (games; carries/targets)
@@ -36,13 +37,27 @@ def drop_prior_week18(df: pl.DataFrame, season: int) -> pl.DataFrame:
     return df.filter(~((pl.col("season") < season) & (pl.col("week") == 18)))
 
 
+def age_weeks(season: int, week: int) -> pl.Expr:
+    """Weeks of age of a history row relative to target (season, week)."""
+    return (season - pl.col("season")) * 18 + (week - pl.col("week"))
+
+
 def with_weights(df: pl.DataFrame, season: int, week: int, c: dict) -> pl.DataFrame:
     """Add column `w` following the recency scheme above. Expects `season` and `week` columns."""
+    h = float(c["recency_half_life_weeks"])
     return drop_prior_week18(df, season).with_columns(
-        pl.when(pl.col("season") == season)
-        .then(((pl.col("week") - week).cast(pl.Float64) / c["lookback_weeks"]).exp())
-        .otherwise(pl.lit(float(c["prior_season_weight"])))
-        .alias("w")
+        (2.0 ** (-age_weeks(season, week).cast(pl.Float64) / h)).alias("w")
+    )
+
+
+def season_weight_mass(df: pl.DataFrame, season: int, week: int, c: dict) -> pl.DataFrame:
+    """Share of total recency weight carried by each history season."""
+    g = with_weights(df, season, week, c)
+    tot = g["w"].sum()
+    return (
+        g.group_by("season").agg(pl.col("w").sum().alias("mass"))
+        .with_columns((pl.col("mass") / tot).alias("share"))
+        .sort("season")
     )
 
 

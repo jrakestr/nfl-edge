@@ -3,14 +3,12 @@
 Uses the pure builders (team.build, common.*) on synthetic team-game rows; no database.
 The overrides test lands with priors-refine.
 """
-import math
-
 import polars as pl
 import pytest
 
 from nfl_edge.priors import common, efficiency, qb, team, usage
 
-CFG = {"lookback_weeks": 8, "prior_season_weight": 0.35, "shrink_k_team": 4}
+CFG = {"recency_half_life_weeks": 8, "shrink_k_team": 4}
 
 # a league of two "average" teams plus one hot team; per-game columns team.build needs
 COLS = ["season", "week", "team", "plays", "drives", "points", "fg_made", "td", "pass_td", "pass_att",
@@ -65,10 +63,11 @@ def test_shrink_weight_formula():
 def test_recency_weights_and_prior_season():
     df = pl.DataFrame({"season": [2025, 2025, 2024], "week": [8, 1, 17]})
     w = common.with_weights(df, 2025, 9, CFG)["w"].to_list()
-    assert w[0] == pytest.approx(math.exp(-1 / 8))
-    assert w[1] == pytest.approx(math.exp(-8 / 8))
-    assert w[0] > w[1]
-    assert w[2] == pytest.approx(0.35)
+    h = CFG["recency_half_life_weeks"]
+    assert w[0] == pytest.approx(2 ** (-1 / h))   # age = 1
+    assert w[1] == pytest.approx(2 ** (-8 / h))   # age = 8
+    assert w[2] == pytest.approx(2 ** (-10 / h))  # age = 18 + (9 - 17)
+    assert w[0] > w[1] > w[2]
 
 
 def test_history_filter_excludes_target_week_and_future():
