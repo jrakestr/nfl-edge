@@ -100,7 +100,7 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
     """
     g = common.with_weights(pw, season, week, c)
     raw = g.group_by("player_id").agg(
-        common.n_games().alias("n_eff"),
+        common.n_eff_kish().alias("n_eff"),
         pl.col("position").last(),
         common.weighted_ratio("targets", "team_targets").alias("_target_share"),
         common.weighted_ratio("carries", "team_carries").alias("_carry_share"),

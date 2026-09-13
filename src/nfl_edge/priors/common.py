@@ -7,10 +7,9 @@ so week 18 of every prior season is out (resting starters). Rows are weighted
 `H = recency_half_life_weeks`. A statistic is `sum(w * num) / sum(w * den)` —
 recency on the rate only.
 
-Shrinkage sample size differs by channel:
-  usage / efficiency  unweighted count (games; carries/targets)
-  team                `sum(w)` — NFL team strength regresses year to year, so recency
-                      counts as less evidence
+Shrinkage `n_eff` is Kish `(Σw)² / Σw²` on the weights that enter the shrunk mean:
+  usage / team / QB start-share  per-row recency `w`
+  efficiency / QB YPA            touch-level `n · w`
 then `n_eff / (n_eff + k)` toward the league or positional value.
 """
 from __future__ import annotations
@@ -62,13 +61,26 @@ def season_weight_mass(df: pl.DataFrame, season: int, week: int, c: dict) -> pl.
 
 
 def n_games() -> pl.Expr:
-    """Unweighted game count for usage/efficiency shrinkage. Recency weights do not enter."""
+    """Unweighted game count. Not the shrink sample size — that is `n_eff_kish`."""
     return pl.len().cast(pl.Float64)
 
 
+def n_eff_kish(weight: pl.Expr | None = None) -> pl.Expr:
+    """Kish effective sample size (Σw)² / Σw² on the weights that enter the shrunk mean."""
+    w = pl.col("w") if weight is None else weight
+    return (w.sum() ** 2) / (w ** 2).sum()
+
+
+def n_eff_kish_mass(mass: str) -> pl.Expr:
+    """Kish when each row is `mass` unit observations of weight w: (Σ n w)² / Σ n w²."""
+    w = pl.col("w")
+    n = pl.col(mass)
+    return ((n * w).sum() ** 2) / (n * (w ** 2)).sum()
+
+
 def n_eff_weighted() -> pl.Expr:
-    """Recency-weighted sample size for team-channel shrinkage."""
-    return pl.col("w").sum()
+    """Deprecated alias: team-channel shrink now uses Kish, not sum(w)."""
+    return n_eff_kish()
 
 
 def weighted_ratio(num: str, den: str) -> pl.Expr:

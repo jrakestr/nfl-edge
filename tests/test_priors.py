@@ -114,7 +114,9 @@ def test_history_filter_excludes_prior_season_week_18():
         .filter(pl.col("team") == "HOT"),
         2025, 9, CFG,
     )
-    assert hot["n_eff"] == pytest.approx(float(g["w"].sum()))
+    w = g["w"]
+    kish = float(w.sum() ** 2 / (w ** 2).sum())
+    assert hot["n_eff"] == pytest.approx(kish)
     assert 18 not in common.with_weights(
         pl.DataFrame(rows, orient="row", schema=COLS), 2025, 9, CFG
     ).filter(pl.col("team") == "HOT")["week"].to_list()
@@ -239,12 +241,12 @@ def test_qb_factor_is_one_for_the_qb_who_produced_the_lookback_and_below_one_for
     assert q["qb_lookback_id"] == "star"
     assert q["n_att"] == pytest.approx(240.0)
     assert q["qb_lookback_att"] == pytest.approx(240.0)
-    backup = pl.DataFrame({"team": ["T"], "qb_id": ["newguy"]})     # no history -> league YPA
+    backup = pl.DataFrame({"team": ["T"], "qb_id": ["newguy"]})     # no history -> factor 1.0
     q2 = qb.build(_qb_weeks(), backup, fb, 2025, 9, UCFG).row(0, named=True)
-    assert q2["qb_pass_factor"] < q["qb_pass_factor"] - 0.02   # league-YPA backup behind a good starter
+    assert q2["n_att"] == pytest.approx(0.0)
+    assert q2["qb_pass_factor"] == pytest.approx(1.0)  # no information, no adjustment
     assert q2["qb_att_share"] == pytest.approx(0.97)
     assert q2["qb_id"] == "newguy"
-    assert q2["n_att"] == pytest.approx(0.0)
     assert q2["qb_lookback_id"] == "star"
     assert q2["qb_lookback_att"] == pytest.approx(240.0)
 
@@ -255,7 +257,7 @@ def test_qb_starter_falls_back_when_schedule_has_none():
     assert qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG)["qb_id"].to_list() == ["star"]
 
 
-# ---------------------------------------------------------------- n_eff is unweighted sample size; recency stays on the rate
+# ---------------------------------------------------------------- n_eff is Kish (Σw)²/Σw²; recency stays on the rate too
 
 ECFG = {**UCFG, "shrink_k_targets": 40, "shrink_k_carries": 60, "shrink_to_ffopportunity": 0.0}
 
@@ -279,18 +281,55 @@ def _week1_usage_pw(*, star_games: int = 17, rook_games: int = 0):
     return pl.DataFrame(rows, orient="row", schema=PW_COLS), _roster(extra=extra)
 
 
-def test_week1_starter_usage_lambda_is_unweighted_game_count():
+def _kish(weights) -> float:
+    w = list(weights)
+    s = sum(w)
+    return (s * s) / sum(x * x for x in w)
+
+
+def test_week1_starter_usage_lambda_is_kish_n_eff():
     pw, ros = _week1_usage_pw(star_games=17)
     u = usage.build(pw, ros, 2026, 1, UCFG)
     star = u.filter(pl.col("player_id") == "wr1").row(0, named=True)
     wr2 = u.filter(pl.col("player_id") == "wr2").row(0, named=True)
-    assert star["n_eff"] == 17.0
-    lam = 17.0 / (17.0 + UCFG["shrink_k_usage"])
-    assert lam == pytest.approx(0.85)
-    # four WRs at n_eff=17: shares 0.6, 0.4, 0.3, 0.3 → positional mean 0.4
-    # pre-renorm star 0.85*0.6+0.15*0.4 = 0.57; wr2 0.85*0.4+0.15*0.4 = 0.40
-    assert star["target_share"] == pytest.approx(0.57 / (0.57 + 0.40))
-    assert wr2["target_share"] == pytest.approx(0.40 / (0.57 + 0.40))
+    g = common.with_weights(pw.filter(pl.col("player_id") == "wr1"), 2026, 1, UCFG)
+    kish = _kish(g["w"].to_list())
+    raw = 17.0
+    assert star["n_eff"] == pytest.approx(kish)
+    assert kish < raw
+    k = float(UCFG["shrink_k_usage"])
+    lam = kish / (kish + k)
+    # four WRs share the same 17-game schedule → same Kish; shares 0.6, 0.4, 0.3, 0.3 → pos mean 0.4
+    pre_star = lam * 0.6 + (1 - lam) * 0.4
+    pre_wr2 = lam * 0.4 + (1 - lam) * 0.4
+    assert star["target_share"] == pytest.approx(pre_star / (pre_star + pre_wr2))
+    assert wr2["target_share"] == pytest.approx(pre_wr2 / (pre_star + pre_wr2))
+
+
+def test_three_season_incumbent_kish_neff_below_raw_count():
+    """51 games across S-3..S-1 is not 51 recent games. Kish must sit below raw count."""
+    rows = []
+    for season in (2023, 2024, 2025):
+        for w in range(1, 18):
+            rows += [
+                (season, w, "avg1", "U", "WR", 9, 0, 0, 30, 25, 0.3, 0.0, 1.0, 1.0, 0.7),
+                (season, w, "inc", "T", "WR", 18, 0, 0, 30, 25, 0.6, 0.0, 1.0, 1.0, 0.9),
+                (season, w, "qb", "T", "QB", 0, 3, 30, 30, 25, 0.0, 0.1, 1.0, 1.0, 1.0),
+                (season, w, "rb1", "T", "RB", 0, 22, 0, 30, 25, 0.0, 0.9, 1.0, 1.0, 0.7),
+            ]
+    pw = pl.DataFrame(rows, orient="row", schema=PW_COLS)
+    ros = _roster(extra=[("T", "inc", "WR", "Incumbent")])
+    u = usage.build(pw, ros, 2026, 1, UCFG)
+    inc = u.filter(pl.col("player_id") == "inc").row(0, named=True)
+    g = common.with_weights(pw.filter(pl.col("player_id") == "inc"), 2026, 1, UCFG)
+    kish = _kish(g["w"].to_list())
+    raw = 51.0
+    assert inc["n_eff"] == pytest.approx(kish)
+    assert g.height == 51
+    assert kish < raw
+    # visible gap: raw would give λ = 51/54; Kish does not
+    print(f"3-season incumbent raw={raw:.0f} Kish n_eff={kish:.2f} λ_raw={raw/(raw+3):.3f} "
+          f"λ_kish={kish/(kish+3):.3f}")
 
 
 def _ols_slope(xs: list[float], ys: list[float]) -> float:
@@ -343,7 +382,7 @@ def _wr1_renorm_delta_by_room(k: float = 3.0) -> list[tuple[int, float, float, f
     u = usage.build(pw, ros, 2026, 1, cfg)
     g = common.with_weights(pw, 2026, 1, cfg)
     raw = g.group_by("player_id").agg(
-        common.n_games().alias("n_eff"),
+        common.n_eff_kish().alias("n_eff"),
         pl.col("position").last(),
         common.weighted_ratio("targets", "team_targets").alias("_target_share"),
     )
@@ -446,7 +485,8 @@ def test_many_games_negligible_carries_get_negligible_share():
     pw, ros = _scraps_rb_usage_inputs()
     u = usage.build(pw, ros, 2026, 1, UCFG)
     scraps = u.filter(pl.col("player_id") == "scraps").row(0, named=True)
-    assert scraps["n_eff"] == 11.0
+    g = common.with_weights(pw.filter(pl.col("player_id") == "scraps"), 2026, 1, UCFG)
+    assert scraps["n_eff"] == pytest.approx(_kish(g["w"].to_list()))
     assert scraps["carry_share"] < 0.01, (
         "2 carries across 11 games must stay near 1%, not inherit the RB mean; "
         f"carry_share={scraps['carry_share']:.4f}"
@@ -458,40 +498,44 @@ def test_three_game_rookie_shrinks_harder_than_full_starter():
     u = usage.build(pw, ros, 2026, 1, UCFG)
     star = u.filter(pl.col("player_id") == "wr1").row(0, named=True)
     rook = u.filter(pl.col("player_id") == "rook").row(0, named=True)
-    assert rook["n_eff"] == 3.0
-    assert star["n_eff"] == 17.0
-    # same raw 18/30 share; rook λ=3/6 keeps half, so less of the star rate after shrink+renorm
+    g_star = common.with_weights(pw.filter(pl.col("player_id") == "wr1"), 2026, 1, UCFG)
+    g_rook = common.with_weights(pw.filter(pl.col("player_id") == "rook"), 2026, 1, UCFG)
+    assert rook["n_eff"] == pytest.approx(_kish(g_rook["w"].to_list()))
+    assert star["n_eff"] == pytest.approx(_kish(g_star["w"].to_list()))
+    assert rook["n_eff"] < star["n_eff"]
+    # same raw 18/30 share; rook has less Kish trust, so less of the star rate after shrink+renorm
     assert rook["target_share"] < star["target_share"] - 0.02
 
 
-def test_team_neff_is_weighted_sum_not_game_count():
-    """Team strength shrinks with recency-weighted n_eff; the rate itself stays weighted."""
+def test_team_neff_is_kish_not_sum_w():
+    """Team strength shrinks with Kish n_eff; the rate itself stays weighted."""
     rows = []
     for w in range(1, 9):
         rows.append(_game(2025, w, "AVG1"))
         rows.append(_game(2025, w, "AVG2"))
-        rows.append(_game(2024, w, "HOT", points=24))   # stale, w=0.35
-        rows.append(_game(2025, w, "HOT", points=40))   # current, recency > 0.35
+        rows.append(_game(2024, w, "HOT", points=24))
+        rows.append(_game(2025, w, "HOT", points=40))
     games = pl.DataFrame(rows, orient="row", schema=COLS)
     p = team.build(games, 2025, 9, CFG)
     hot = p.teams.filter(pl.col("team") == "HOT").row(0, named=True)
     g = common.with_weights(games.filter(pl.col("team") == "HOT"), 2025, 9, CFG).with_columns(
         pl.lit(1.0).alias("games")
     )
+    kish = _kish(g["w"].to_list())
     n_w = float(g["w"].sum())
-    assert hot["n_eff"] == pytest.approx(n_w)
-    assert hot["n_eff"] < 16.0                         # not the unweighted game count
+    assert hot["n_eff"] == pytest.approx(kish)
+    assert hot["n_eff"] != pytest.approx(n_w)          # not sum(w)
+    assert hot["n_eff"] < 16.0                         # Kish < raw game count when weights decay
     weighted = float(g.select(common.weighted_ratio("points", "drives")).item())
     k = float(CFG["shrink_k_team"])
-    lam = n_w / (n_w + k)
+    lam = kish / (kish + k)
     expected = lam * weighted + (1 - lam) * p.league["off_ppd"]
     assert hot["off_ppd"] == pytest.approx(expected)
-    # unweighted-count λ would keep more of the hot rate
-    lam_games = 16.0 / (16.0 + k)
-    assert hot["off_ppd"] != pytest.approx(lam_games * weighted + (1 - lam_games) * p.league["off_ppd"])
+    lam_sum = n_w / (n_w + k)
+    assert hot["off_ppd"] != pytest.approx(lam_sum * weighted + (1 - lam_sum) * p.league["off_ppd"])
 
 
-def test_efficiency_neff_is_unweighted_targets_and_carries():
+def test_efficiency_neff_is_kish_on_touch_weights():
     rows = []
     for w in range(1, 18):
         # star: 10 targets, 80 rec yards every 2025 game
@@ -507,8 +551,12 @@ def test_efficiency_neff_is_unweighted_targets_and_carries():
     )
     e = efficiency.build(pw, 2026, 1, ECFG)
     star = e.filter(pl.col("player_id") == "star").row(0, named=True)
-    assert star["n_targets"] == 170.0
-    lam = 170.0 / (170.0 + ECFG["shrink_k_targets"])
+    g = common.with_weights(pw.filter(pl.col("player_id") == "star"), 2026, 1, ECFG)
+    # each week is 10 unit observations of weight w → (Σ 10w)² / Σ 10 w² = 10 × Kish(w)
+    kish = 10.0 * _kish(g["w"].to_list())
+    assert star["n_targets"] == pytest.approx(kish)
+    assert kish < 170.0
+    lam = kish / (kish + ECFG["shrink_k_targets"])
     # positional ypt is (80*17+60*17)/(10*17*2) = 7.0; star raw 8.0
     expected = lam * 8.0 + (1 - lam) * 7.0
     assert star["yds_per_target"] == pytest.approx(expected)

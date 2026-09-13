@@ -64,7 +64,7 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
 
     team_weeks = g.unique(subset=["season", "week", "team"])
     team = team_weeks.group_by("team").agg(
-        common.n_eff_weighted().alias("n_eff"),
+        common.n_eff_kish().alias("n_eff"),
         common.weighted_ratio("team_pass_yds", "team_attempts").alias("_ypa"),
     ).with_columns(
         common.shrink(pl.col("_ypa"), pl.col("n_eff"), league_ypa, float(c["shrink_k_team"])).alias("team_ypa")
@@ -73,12 +73,14 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
     per_qb = g.with_columns((pl.col("attempts") / pl.col("team_attempts")).alias("_share")).group_by("player_id").agg(
         pl.col("attempts").sum().alias("n_att"),
         (pl.col("attempts") >= 10).sum().alias("n_starts"),
+        common.n_eff_kish_mass("attempts").alias("n_eff_att"),
+        common.n_eff_kish(pl.col("w") * (pl.col("attempts") >= 10).cast(pl.Float64)).alias("n_eff_starts"),
         common.weighted_ratio("pass_yds", "attempts").alias("_ypa"),
         ((pl.col("w") * pl.col("_share")).filter(pl.col("attempts") >= 10).sum()
          / pl.col("w").filter(pl.col("attempts") >= 10).sum()).alias("_share"),
     ).with_columns(
-        common.shrink(pl.col("_ypa"), pl.col("n_att"), league_ypa, float(c["shrink_k_qb_att"])).alias("qb_ypa"),
-        common.shrink(pl.col("_share"), pl.col("n_starts"), float(c["qb_att_share_prior"]),
+        common.shrink(pl.col("_ypa"), pl.col("n_eff_att"), league_ypa, float(c["shrink_k_qb_att"])).alias("qb_ypa"),
+        common.shrink(pl.col("_share"), pl.col("n_eff_starts"), float(c["qb_att_share_prior"]),
                       float(c["shrink_k_qb_share"])).alias("qb_att_share"),
     ).select(["player_id", "qb_ypa", "qb_att_share", "n_att"])
 
@@ -111,7 +113,12 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
             pl.col("qb_att_share").fill_null(float(c["qb_att_share_prior"])),
             pl.col("n_att").fill_null(0.0),
         )
-        .with_columns((pl.col("qb_ypa") / pl.col("team_ypa")).clip(lo, hi).alias("qb_pass_factor"))
+        .with_columns(
+            pl.when(pl.col("n_att") == 0)
+            .then(pl.lit(1.0))
+            .otherwise((pl.col("qb_ypa") / pl.col("team_ypa")).clip(lo, hi))
+            .alias("qb_pass_factor")
+        )
         .select(["team", "qb_id", "qb_ypa", "team_ypa", "qb_pass_factor", "qb_att_share",
                  "n_att", "qb_lookback_id", "qb_lookback_att"])
         .sort("team")

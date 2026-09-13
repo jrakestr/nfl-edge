@@ -25,8 +25,8 @@ RATES: dict[str, tuple[str, str, str | None, str]] = {
 def build(pw: pl.DataFrame, season: int, week: int, c: dict) -> pl.DataFrame:
     g = common.with_weights(pw, season, week, c)
     aggs = [
-        pl.col("targets").sum().alias("n_targets"),
-        pl.col("carries").sum().alias("n_carries"),
+        common.n_eff_kish_mass("targets").alias("n_targets"),
+        common.n_eff_kish_mass("carries").alias("n_carries"),
         pl.col("position").last(),
     ]
     for name, (num, den, exp, _) in RATES.items():
