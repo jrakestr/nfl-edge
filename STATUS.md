@@ -2,6 +2,23 @@
 
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
 
+## Lookback Phase 1 (2026-09-12)
+
+Local only. Did not publish over the live 2026 week-1 run. `python -m nfl_edge.results.lookback_report`.
+
+What changed: history window is three prior seasons + current (`week <> 18` on every season < S). Recency is `w = 2 ** (-age_weeks / H)` with **H = 6**. Shrink `n_eff` is Kish `(Σw)² / Σw²` on the weights that enter the rate. Every `shrink_k` retuned on 2024+2025 OOS realized rates (not lines). `shrink_k_qb_att` / QB-factor scoring **excluded MIA, CLE, NYJ, CIN, LV, ATL, WAS, MIN**.
+
+What was verified (local Postgres, 2020–2025 history):
+- Weight mass at H=6 (2026 week 1 team-games): 2023 **1.369%**, 2024 10.917%, 2025 87.714%. S−3 < 2% — honest window is two seasons.
+- 3-season incumbent: raw 51 vs Kish 21.78 at H=8 (λ 0.944 → 0.879); at live H=6 Kish 16.73 (λ 0.848).
+- shrink_k old → new: usage 3→1, targets 40→30, carries 60→5, qb_att 150→400, team 4→8, qb_share 3→6.
+- Lamb: 12 raw / share 0.236 → Kish 12.64 on 44 raw games / share 0.223.
+- Watson: 0 att, fill-to-league 7.028 / 6.238, factor **1.127** → 387 att, 6.519 / 6.411, factor **1.017**. Zero 2025 att no longer fills to league once 2024 exists.
+- 32-team factor (includes the eight): before min/med/max 0.960 / 1.016 / 1.137, starter-change factor>1 = 5/8; after 0.953 / 1.011 / 1.129, 10/12 (wider lookback changes who is “lookback QB”).
+- pts_gap vs market implied team total: **+0.88** on `f049d136` (20k) → **+1.05** local 5k, not published. Local `raw.player_overrides` is empty and `schedules.location` is missing (Melbourne treated as home HFA).
+
+What was deferred: league-replacement QB baseline; Dirichlet / usage-vector k sweep (xfails stay); live 2026 week-1 rebuild (after Tue 2026-09-15 grade); Phases 2–4; tuning H against YPA or lines.
+
 ## Week rebuild (2026-09-12)
 
 What changed: `ops/week-rebuild.sh` re-applies `data/overrides/${SEASON}_wk${WW}.csv` after both `dk-salaries` and before sim; newest-run now checks player-game coverage and the sim fails closed on a missing usage team.
