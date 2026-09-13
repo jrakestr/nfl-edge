@@ -3,6 +3,8 @@
 Uses the pure builders (team.build, common.*) on synthetic team-game rows; no database.
 The overrides test lands with priors-refine.
 """
+import inspect
+
 import polars as pl
 import pytest
 
@@ -85,6 +87,41 @@ def test_history_filter_excludes_target_week_and_future():
         | ((pl.col("season") == 2025) & (pl.col("week") < 9))
     )
     assert kept.select(["season", "week"]).rows() == [(2022, 17), (2023, 17), (2024, 17), (2025, 8)]
+
+
+def test_three_season_window_and_weights_drop_leakage_rows():
+    """New window + with_weights + SQL-shaped filter: S,W / future / wk18 / S-4 out; S-3,17 and S,W-1 in."""
+    s, w = 2025, 9
+    where = common.history_where(s, w)
+    assert where == (
+        f"((season >= {s - 3} and season < {s} and week <> 18) "
+        f"or (season = {s} and week < {w}))"
+    )
+    # ffopportunity week W uses the same hist filter — it cannot enter week W priors
+    body = inspect.getsource(usage.load_player_weeks)
+    assert "from raw.ff_opportunity_weekly where {hist}" in body
+    assert "hist = common.history_where(season, week)" in body
+
+    df = pl.DataFrame({
+        "season": [s, s, s, s + 1, s - 1, s - 2, s - 3, s - 3, s - 4],
+        "week":   [w, w + 1, w - 1, 1, 18, 18, 18, 17, 1],
+        "src":    ["target", "future", "ok_cur", "future_szn", "wk18_s1", "wk18_s2",
+                   "wk18_s3", "ok_s3", "s4"],
+    })
+    sql_shaped = df.filter(
+        ((pl.col("season") >= s - 3) & (pl.col("season") < s) & (pl.col("week") != 18))
+        | ((pl.col("season") == s) & (pl.col("week") < w))
+    )
+    kept = common.with_weights(sql_shaped, s, w, CFG)
+    pairs = set(kept.select(["season", "week"]).rows())
+    assert (s, w) not in pairs
+    assert (s, w + 1) not in pairs
+    assert (s - 1, 18) not in pairs
+    assert (s - 2, 18) not in pairs
+    assert (s - 3, 18) not in pairs
+    assert (s - 4, 1) not in pairs
+    assert (s - 3, 17) in pairs
+    assert (s, w - 1) in pairs
 
 
 def test_history_filter_excludes_prior_season_week_18():
