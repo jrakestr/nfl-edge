@@ -73,19 +73,35 @@ def test_recency_weights_and_prior_season():
 
 def test_history_filter_excludes_target_week_and_future():
     where = common.history_where(2025, 9, "a")
-    assert where == "((a.season = 2024 and a.week <> 18) or (a.season = 2025 and a.week < 9))"
-    df = pl.DataFrame({"season": [2024, 2024, 2025, 2025, 2025, 2026], "week": [17, 18, 8, 9, 10, 1]})
-    kept = common.drop_prior_week18(df, 2025).filter(
-        (pl.col("season") == 2024) | ((pl.col("season") == 2025) & (pl.col("week") < 9))
+    assert where == (
+        "((a.season >= 2022 and a.season < 2025 and a.week <> 18) "
+        "or (a.season = 2025 and a.week < 9))"
     )
-    assert kept["week"].to_list() == [17, 8]
+    df = pl.DataFrame({
+        "season": [2021, 2022, 2022, 2023, 2023, 2024, 2024, 2025, 2025, 2025, 2026],
+        "week":   [1,    17,   18,   17,   18,   17,   18,   8,    9,    10,   1],
+    })
+    kept = common.drop_prior_week18(df, 2025).filter(
+        ((pl.col("season") >= 2022) & (pl.col("season") < 2025))
+        | ((pl.col("season") == 2025) & (pl.col("week") < 9))
+    )
+    assert kept.select(["season", "week"]).rows() == [(2022, 17), (2023, 17), (2024, 17), (2025, 8)]
 
 
 def test_history_filter_excludes_prior_season_week_18():
     where = common.history_where(2026, 1)
-    assert "week <> 18" in where
-    df = pl.DataFrame({"season": [2025, 2025, 2025, 2026], "week": [17, 18, 1, 1]})
+    assert where == (
+        "((season >= 2023 and season < 2026 and week <> 18) "
+        "or (season = 2026 and week < 1))"
+    )
+    df = pl.DataFrame({
+        "season": [2022, 2023, 2023, 2024, 2024, 2025, 2025, 2025, 2026],
+        "week":   [1,    17,   18,   17,   18,   17,   18,   1,    1],
+    })
     kept = common.drop_prior_week18(df, 2026)
+    assert kept.select(["season", "week"]).rows() == [
+        (2022, 1), (2023, 17), (2024, 17), (2025, 17), (2025, 1), (2026, 1),
+    ]
     assert kept.filter(pl.col("season") == 2025)["week"].to_list() == [17, 1]
     # team builder must not let a prior-season week-18 blowout into n_eff or the rate
     rows = [_game(2025, w, "AVG1") for w in range(1, 9)]

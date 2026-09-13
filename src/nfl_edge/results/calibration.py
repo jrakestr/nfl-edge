@@ -226,7 +226,7 @@ def leakage_audit(season: int, weeks: list[int]) -> list[str]:
             cur = df.filter(pl.col("season") == season)
             mx = int(cur["week"].max()) if cur.height else -1
             seasons = sorted(df["season"].unique().to_list())
-            ok = mx < w and all(s in (season - 1, season) for s in seasons)
+            ok = mx < w and all(s in range(season - 3, season + 1) for s in seasons)
             findings.append(
                 f"{'PASS' if ok else 'FAIL'} dynamic: {name} for week {w} has max current-season week {mx} "
                 f"(< {w}), seasons {seasons}"

@@ -1,7 +1,8 @@
 """Shared prior machinery: leakage filter, recency weights, weighted ratios, shrinkage.
 
-Every prior for (season S, week W) reads only rows with `season = S-1 or (season = S and week < W)`,
-excluding prior-season week 18 (resting starters). Rows are weighted: current season
+Every prior for (season S, week W) reads only rows with
+`((season >= S-3 and season < S and week <> 18) or (season = S and week < W))`,
+so week 18 of every prior season is out (resting starters). Rows are weighted: current season
 `exp(-(W - week) / lookback_weeks)`, prior season `prior_season_weight`. A statistic is
 `sum(w * num) / sum(w * den)` — recency on the rate only.
 
@@ -25,14 +26,14 @@ def cfg() -> dict:
 def history_where(season: int, week: int, alias: str = "") -> str:
     p = f"{alias}." if alias else ""
     return (
-        f"(({p}season = {season - 1} and {p}week <> 18) "
+        f"(({p}season >= {season - 3} and {p}season < {season} and {p}week <> 18) "
         f"or ({p}season = {season} and {p}week < {week}))"
     )
 
 
 def drop_prior_week18(df: pl.DataFrame, season: int) -> pl.DataFrame:
-    """Drop prior-season week 18 (resting starters) from a history frame."""
-    return df.filter(~((pl.col("season") == season - 1) & (pl.col("week") == 18)))
+    """Drop week 18 (resting starters) from every season before the target season."""
+    return df.filter(~((pl.col("season") < season) & (pl.col("week") == 18)))
 
 
 def with_weights(df: pl.DataFrame, season: int, week: int, c: dict) -> pl.DataFrame:
