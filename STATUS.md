@@ -1,6 +1,42 @@
 # Status
 
-Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A.
+Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A. Gemini plan `gemini_three_phases_b63212b0.plan.md` — Phase 1 live on Gemini 3.x; Phases 2–3 wait on accept.
+
+## DK reference lines (2026-09-19)
+
+What changed: DraftKings is the reference market line from `2026-09-20T00:00:00Z` (`model.line_reference` / `config/line_reference.yaml`). Games kicking off before that stay nflverse. `model.market_lines_latest` feeds edges, verdicts, the board, and `lines`. Odds-api `h2h,spreads,totals` runs on both `lines-only` (even-hour, 3 credits, ~36/day) and week-rebuild; `RecentDuplicate` is a no-op. Week-2 sat-final `bcf81a44` re-priced (96 edges / 16 verdicts).
+
+What was verified: week-1 `4d5d8a29` stayed 96 / 16; dry re-grade kept the same `close_market_line_id` on all 16 graded games. `trackRecord` 19–28–1, ROI −0.177; `weekScoreboard` n=16 spread 6–9–1 total 8–8–0 MAE 12.50 / 12.66. All 15 open week-2 games show DK spread and total; DET_BUF stays nflverse. Latest DK vs latest nflverse numbers match on those 15; 0 sign changes, 0 threshold crosses. `pytest` 384 passed / `ruff` clean; web lint / typecheck / 435 tests / build green.
+
+What was deferred: Sunday 08:40 `sun-inactives` still has to finish on this tree. No sim. SAT DFS `json5` crash unchanged.
+
+## grade-web (2026-09-19)
+
+What changed: batched `fair_props` / `prop_edges` writes (`update_from`). Finished 2026 week-1 grade (DAL@NYG, DEN@KC). `/grading` reads `model.results` (tiles from the pick set; table and calibration from last-snapshot predated rows).
+
+What was verified: missing-finals named no games. 16 distinct `ref_id` per market_type. `close_market_line_id` unchanged on all 84 already-graded last-snapshot rows. `weekScoreboard` nGames 16; track 19–28–1 on 48 picks. Kickoff runs for the two late games still had parquet; three older runs skipped (`skipped_no_parquet`). `fair_props` 15309 rows in one statement (no hang). `pytest` persist tests + `ruff` on those files; web lint / typecheck / 416 tests / build green.
+
+What was deferred: Brier sim vs close stays file-only (`output/grading_2026.md`) — do not reimplement in TypeScript (`season-refine`). `grade-checkpoint`. `dk_reference_lines` close picker not in the tree; week-1 grade used nflverse snapshots. No `week1-grade` commit (DB only).
+
+## Odds API health check (2026-09-19)
+
+What changed: one live pull `env -u DATABASE_URL uv run nfl-edge ingest odds-api --markets h2h --regions us` (1 credit, no `--force`). Wrote 234 rows / 11 books into `raw.market_lines` (`source='odds_api'`). Week-2 `odds_api` rows 100 → 265, games 13 → 16, books 9 → 11. New `fetched_at` 2026-09-20 02:08:50 UTC; new-pull `captured_at` 2026-09-20 02:05:02–02:08:40 UTC.
+
+What was verified: **pass**. Offline `pytest tests/test_odds_api.py` 9/9. HTTP 200 (no 401/429/422). `remaining=19994`, `used=6` (cumulative header), no remaining-credits warning, `skipped=0`. At the new `fetched_at`: 165 week-2 rows, 15 games, 11 books. `2026_02_DET_BUF` has 0 rows at this stamp (Sep 13 rows still present, append-only). All 15 open week-2 games have 11 books, including `2026_02_MIA_SF`, `2026_02_SEA_ARI`, `2026_02_NYG_LA` (0 on Sep 13; not in `skipped:`, so the API simply did not offer them then). Newest run still `4d5d8a29` (`sun-inactives`, week 1): `edges_latest` 96, `verdicts_latest` 16. Board stays pinned to `source='nflverse'`.
+
+What was deferred: full `env -u DATABASE_URL uv run nfl-edge ingest odds-api --markets h2h,spreads,totals --regions us` (3 credits = 3 markets × 1 region). Not run. No `TEAM_NAMES` or matching change. No commit.
+
+## Schedules upsert + Tuesday grade (2026-09-13)
+
+What changed: `schedule_writes` updates `away_score`/`home_score`/`result`/`total` (score sum)/`overtime` on existing rows; betting columns stay put. `nfl-edge lines` withholds a missing spread edge instead of raising. `edges_latest`/`verdicts_latest` pinned to `source='nflverse'`. `lines --close` pins each game to the last pre-kickoff nflverse snapshot and marks `backfilled`. `com.nfl-edge.week-grade` Tuesday 09:00 Phoenix (`ops/week-grade.sh`, `output/cron-grade.log`); no `RunAtLoad`.
+
+What was verified (Supabase, `DATABASE_URL` unset):
+- Ingest 2026 week 1: `inserted=0, updated=12, line_snapshots=0`. Finals 14/16. Still open: `DAL@NYG` (SNF), `DEN@KC` (MNF).
+- `lines --close --run 4d5d8a29-…`: 7 new backfilled verdicts (`NE@SEA`, `SF@LA`, `BAL@IND`, `CHI@CAR`, `CLE@JAX`, `NO@DET`, `NYJ@TEN`). The other Sunday games already had a live row at that close snapshot (`insert_ignore`). `54ac9015` live verdicts unchanged (16 games, `backfilled=false`).
+- Grade wrote `model.results` before hanging in per-row `fair_props` UPDATEs (killed; not this plan). Assignments: `bf9a11f4` → TNF + Melbourne (36+42 rows, `predated=true`); `4d5d8a29` → 12 Sunday finals (768 rows, `predated=true`); 2 unplayed skipped.
+- CLV is **not** 0 on every non-ML row (564 non-ML, 42 at 0, 522 nonzero). Expected: grade walks every snapshot, not only the close. Even on the close id, probability CLV is not uniformly 0.
+
+What was deferred: Saturday `json5` DFS crash; `prop_grade`/`grade_fair_props` one-`execute`-per-row over Supabase; Monday job; sim rebuild; CLV retune. Tuesday agent will refuse week 1 until both remaining finals land.
 
 ## Lookback Phase 1 (2026-09-12)
 
@@ -18,6 +54,26 @@ What was verified (local Postgres, 2020–2025 history):
 - pts_gap vs market implied team total: **+0.88** on `f049d136` (20k) → **+1.05** local 5k, not published. Local `raw.player_overrides` is empty and `schedules.location` is missing (Melbourne treated as home HFA).
 
 What was deferred: league-replacement QB baseline; Dirichlet / usage-vector k sweep (xfails stay); live 2026 week-1 rebuild (after Tue 2026-09-15 grade); Phases 2–4; tuning H against YPA or lines.
+
+## Surface sim diagnostics (2026-09-12)
+
+Shipped (`405d6da` and the six todos before it). Drawer Why reads `model.run_team_inputs`; MIA is Willis 35 att vs Tua 384, factor 1.137. `WeekBoard` stays a server component (`/week/[n]` First Load JS 788,702 uncompressed; shared shell 505,052).
+
+Uncommitted `web/src/components/board/WhyExplain.tsx` is Gemini-phase working tree, not the diagnostics ship. If `npm run lint` goes red there (`react-hooks/set-state-in-effect` on the drawer fetch), do not debug it as a board or checks-panel regression. Lint is green as of this writing (the `setBusy` effect is gone); typecheck / 301 tests / build are green on the committed diagnostics.
+
+20:00 `ops/week-rebuild.sh` is Python CLI only. Uncommitted `web/` does not touch the job. Tonight's checks after the run: Penix `00-0039917` still `out`; newest-run `dfs_exposure` leverage two-sided (a few above the field, a long tail below — all-negative means stop).
+
+## Gemini three phases (2026-09-12)
+
+What changed: `model.llm_calls` / `model.usage_claims`; server-only Gemini REST client; per-phase models (`explain` → `gemini-3.5-flash-lite`; `claims` / `optimize-nl` → `gemini-3.8-flash`; no global `GEMINI_MODEL`, no `gemini-3.1-pro-preview`). Explain join over `run_team_inputs` + `proj_games` + market; `nfl-edge lines` insert-if-absent backfill; claims paste route (no URL fetch); optimizer phrase compiler. Nothing in `sim/game.py`, `sim/players.py`, or the ILP path. `GEMINI_API_KEY` copied into gitignored `web/.env.local` and Vercel as a sensitive server env on production / preview / development (never `NEXT_PUBLIC_`).
+
+What was verified: `models.list` returned 50 models / 40 `generateContent` IDs; both `gemini-3.5-flash-lite` and `gemini-3.8-flash` are callable. AI Studio Rate Limit (`aistudio.google.com/rate-limit`, jrakestr@gmail.com Pro) shows **No Cloud Projects Available** — live RPM/RPD rows are not visible until a Cloud project is imported. Official docs still have no free-tier RPM/RPD table. Third-party / forum measurements (not this project's row): Flash-Lite ~15 RPM / 500 RPD; `gemini-3.8-flash` ~5 RPM / **20 RPD**. Phase 1 stays on Flash-Lite. Phase 2 should batch documents rather than one call per paste if that 20 RPD holds.
+
+First drawer pass failed on substance (payload recitation, snake field names). Prompt/schema retuned: `{driver, evidence_strength, sentences}`, snake reject, numeral guard accepts rounded values and percents from payload ratios, `pts_gap` added per side. Cache requires the new shape so old recitations are not served. Live: MIA thin · Willis 14% vs Tua (35 vs 384), 6.4 above implied 18.75; IND strong · 5.9 above implied, 2.46 ppd vs league 2.15, Jones 384 is a full-season sample so the gap is the prior. Prompt pins one-decimal points / two-decimal ppd / whole percents; lookback baseline not "expected"; no "raw"; evidence describes, does not endorse. Cache hits on reopen.
+
+What was deferred: Phase 2 / 3 live checkpoints. Import a Cloud project in AI Studio if you want the live quota table. Do not Promote claims. Do not Generate from a parsed phrase until you say to. If 3.8 Flash is 20 RPD on this key, stop and report cost rather than upgrade or silently switch models.
+
+## Week rebuild (2026-09-12)
 
 ## Week rebuild (2026-09-12)
 
@@ -56,6 +112,16 @@ Both finals came in far under on totals (45.3 vs 23, 52.2 vs 34) while reception
 - sacks (attempts = dropbacks − sacks; an inflated sack rate drags attempts without moving anything else)
 
 Read: plays right + attempts low → pass rate. Plays low → pace, further upstream, and that would also move points. Attempts low + points high localizes the error in the drive → play → attempt chain.
+
+Tighter localization from the 32-team board (run `f049d136`, 2026-09-12): mean gap vs market implied team total is **+0.88 pts/team** (~1.8 pts of total per game). That sits next to the volume finding (team rec p50 18.2 vs 2025 team-game median 21, ~13% light). Both can be true only if **points per drive is too high while drives and plays are too low** — the two errors compensate, which is why totals looked roughly sane while every player projection ran light. Do not treat the two graded TNF/Melbourne unders as the evidence; n=32 against the market is.
+
+### QB-channel target (2026-09-12) — do not patch three times
+
+`spread_gap_vs_market` on `f049d136` is two games, two diagnoses. MIA/LV and CLE are **bugs, not bets**. IND/BAL is a genuine disagreement (2025 IND 436 points; market has them at 22 against BAL) and should be graded.
+
+Mechanism confirmed on the eight Week-1 starter changes: Pearson(factor, pts_gap) **0.71**; changed+factor>1 mean gap **+3.01** vs changed+factor≤1 **−0.55**. The estimator is one-sided. `qb_ypa` shrinks toward league, then divides by the departed starter's team YPA, so a small-sample or missing-sample replacement cannot say "downgrade" — Cleveland is the sharper case (Watson 0 attempts in the 2025-only window → fill-to-league 7.03 / Sanders 6.24 = factor 1.127). Miami at least has 35 attempts at 12.06 YPA (λ=0.19, factor 1.137). Cooper Rush (52 att at 5.83 → 6.72, factor 0.97) shows the other half: a clamp at 1.0 when att are low stops the inflating direction only. The fix is the target (league replacement baseline), not `k`.
+
+The same single-season lookback (`season = S-1` at week 1) produced three symptoms: Lamb's twelve-game injured 2025 as WR1 baseline, Watson's entire 2024 body of work invisible, and small-sample QBs shrinking toward whoever they replaced. **Multi-season lookback with recency weighting is its own item** — do not patch the three symptoms separately. A one-line interim (factor = 1.0 when attempts are zero) is independent of that and of the clamp; nothing ships before the Sunday slate.
 
 ## Web v2 — Checkpoint A (2026-09-07)
 - Contrast, position pills, Lucide metrics, DataTable URL state, collapsible 216/64 sidebar, `Week 1 › Lineups › DK Main` crumbs, glass shell + field gradient. Prop detail game log is DataTable (`syncUrl={false}`).

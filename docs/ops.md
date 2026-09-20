@@ -1,15 +1,23 @@
 # Operations: line snapshots and the weekly run order
 
-Scheduled on this Mac as two LaunchAgents. `com.vix.cron` is not running here, so a crontab
+Scheduled on this Mac as three LaunchAgents. `com.vix.cron` is not running here, so a crontab
 would never fire.
 
-- `com.nfl-edge.lines-only` runs `ops/lines-only.sh`: `nfl-edge ingest --season 2026 --lines-only`
-  then `nfl-edge lines` for each stale week. Log: `output/cron-lines.log`.
+- `com.nfl-edge.lines-only` runs `ops/lines-only.sh`: `nfl-edge ingest odds-api` (`h2h,spreads,totals`,
+  3 credits) then `nfl-edge ingest --season 2026 --lines-only` then `nfl-edge lines` for each stale
+  week. `RecentDuplicate` is a no-op; any other odds-api failure logs one line and nflverse +
+  `lines` still run. Each pull prints `remaining=`; a `<100` line is a warning. Log:
+  `output/cron-lines.log`.
 - `com.nfl-edge.week-rebuild` runs `ops/week-rebuild.sh` Saturday 20:00 and Sunday 08:40 MST
   (Mac clock = Phoenix). Week comes from `raw.schedules` (`nfl-edge current-week`), not the
   plist. Saturday `--note sat-final`. Sunday `--note sun-inactives`: sim must finish by 08:50
   or the Saturday run stays live; lines/props/dfs then run to completion (DFS main before full)
   with a 09:30 soft-ceiling log. No `RunAtLoad`. Log: `output/cron-rebuild.log`.
+- `com.nfl-edge.week-grade` runs `ops/week-grade.sh` Tuesday 09:00 Phoenix. Lists every REG week
+  whose last `gameday` is before today; for each week that is not already fully graded it ingests,
+  refuses to grade if any game still has a null `result` (missing `game_id`s named, exit
+  non-zero), and grades the ones that are complete. Always prints completed-vs-ungraded so a
+  skipped week stays visible. No `RunAtLoad`. Log: `output/cron-grade.log`.
 
 `DATABASE_URL` is unset so `.env` (Supabase) is used. If the database or github.com is
 unreachable (Mac asleep or off Wi-Fi) both jobs log `unreachable, skipped` and exit 0.
@@ -18,7 +26,11 @@ unreachable (Mac asleep or off Wi-Fi) both jobs log `unreachable, skipped` and e
 
 - Through Sunday 2026-09-13 23:59 PT: every 30 minutes (`StartInterval` 1800).
 - After that cutoff: the wrapper no-ops except on even Pacific hours (2 h). `ops-refine` if a
-  later TNF/MNF needs a dedicated extra fire.
+  later TNF/MNF needs a dedicated extra fire. Odds-api cost on that cadence is 3 credits × 12
+  even hours ≈ 36 credits/day (plus 3 more on each week-rebuild).
+- Reference book is DraftKings from `2026-09-20T00:00:00Z` (`config/line_reference.yaml` /
+  `model.line_reference`). Games kicking off before that date stay on nflverse. Incomplete
+  DraftKings rows (missing spread or total) fall back to nflverse.
 - nflverse schedule lines are not a live odds feed. Snapshot resolution is bounded by upstream
   refresh. During Week 1 count distinct snapshots per game and record the observed cadence in
   `STATUS.md` before treating the last snapshot as the closing line.
@@ -28,8 +40,9 @@ nfl-edge ingest --season 2026 --lines-only
 ```
 
 Pulls the nflverse schedule for the whole season and `insert ... on conflict do nothing` into
-`raw.market_lines`. An unchanged pull is a no-op. Games not yet in `raw.schedules` are added;
-existing schedule rows are not touched.
+`raw.market_lines`. An unchanged pull is a no-op. New `game_id`s are inserted. Existing
+schedule rows receive `away_score` / `home_score` / `result` / `total` (score sum) / `overtime`
+when nflverse publishes a final; kickoff, teams, stadium, and betting columns stay as stored.
 
 ## Install / swap (no snapshot gap)
 
@@ -59,16 +72,23 @@ Install `com.nfl-edge.week-rebuild` the same way (`ops/com.nfl-edge.week-rebuild
 Do not set `RunAtLoad`. Confirm both calendar intervals and that `RunAtLoad` is absent:
 `launchctl print gui/$(id -u)/com.nfl-edge.week-rebuild`.
 
+Install `com.nfl-edge.week-grade` the same way (`ops/com.nfl-edge.week-grade.plist`).
+Do not set `RunAtLoad`. Confirm Tuesday 09:00:
+`launchctl print gui/$(id -u)/com.nfl-edge.week-grade`.
+
 ## Weekly runbook
 
 Replace `W` with the NFL week. Run in this order, on this Mac, with `DATABASE_URL` unset.
 
-Tuesday
+Tuesday 09:00 Phoenix (`com.nfl-edge.week-grade`)
 
-1. `nfl-edge ingest --season 2026 --week W`
-2. `nfl-edge grade --season 2026 --week W-1`  (skip on Week 1 until the previous week has scores)
-3. `nfl-edge sim --season 2026 --week W --draws 20000`
-4. `nfl-edge lines --season 2026 --week W`
+The agent ingests and grades every completed week that is still ungraded. It will not grade a
+week until every REG game has a non-null `result`. Reconstruct Sunday verdicts that were never
+persisted with `nfl-edge lines --close --run <run_id>` (pre-kickoff snapshot only; marked
+`backfilled`). Then start the new week:
+
+1. `nfl-edge sim --season 2026 --week W --draws 20000`
+2. `nfl-edge lines --season 2026 --week W`
 
 Wednesday / Friday (injury report)
 
@@ -78,7 +98,7 @@ Wednesday / Friday (injury report)
 Saturday 20:00 MST (`com.nfl-edge.week-rebuild`, `--note sat-final`)
 
 Drop Main and Full CSVs in `data/dk/` first. The agent runs ingest → dk-salaries main and
-full → sim 20k → lines → props → dfs main then full.
+full → sim 20k → odds-api pull → lines → props → dfs main then full.
 
 Sunday 08:40 MST (`--note sun-inactives`)
 
