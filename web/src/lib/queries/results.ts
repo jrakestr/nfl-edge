@@ -16,6 +16,7 @@ export type TrackRecord = {
   kellyRoi: number | null;
   sides: Wlp;
   totals: Wlp;
+  moneyline: Wlp;
 };
 
 export type WeekScoreboard = {
@@ -50,7 +51,10 @@ export async function trackRecord(season: number): Promise<TrackRecord> {
            count(*) filter (where market_type = 'spread' and outcome is null)::int as sides_p,
            count(*) filter (where market_type = 'total' and outcome = 1)::int as totals_w,
            count(*) filter (where market_type = 'total' and outcome = 0)::int as totals_l,
-           count(*) filter (where market_type = 'total' and outcome is null)::int as totals_p
+           count(*) filter (where market_type = 'total' and outcome is null)::int as totals_p,
+           count(*) filter (where market_type = 'moneyline' and outcome = 1)::int as ml_w,
+           count(*) filter (where market_type = 'moneyline' and outcome = 0)::int as ml_l,
+           count(*) filter (where market_type = 'moneyline' and outcome is null)::int as ml_p
     from picks`;
   const r = rows[0];
   return {
@@ -62,6 +66,7 @@ export async function trackRecord(season: number): Promise<TrackRecord> {
     kellyRoi: r?.kelly_roi ?? null,
     sides: { wins: r?.sides_w ?? 0, losses: r?.sides_l ?? 0, pushes: r?.sides_p ?? 0 },
     totals: { wins: r?.totals_w ?? 0, losses: r?.totals_l ?? 0, pushes: r?.totals_p ?? 0 },
+    moneyline: { wins: r?.ml_w ?? 0, losses: r?.ml_l ?? 0, pushes: r?.ml_p ?? 0 },
   };
 }
 
@@ -114,6 +119,8 @@ function num(v: unknown): number | null {
 /**
  * One row per graded game. Last snapshot of the newest predated run.
  * Filter is predated_kickoff AND is_last_snapshot — not the pick set.
+ * CLV points come from the earliest edge>0 snapshot on the pick side, not
+ * the close (where clv_points is zero by construction).
  */
 export async function gradedGames(season: number): Promise<GradedGame[]> {
   const rows = await sql()`
@@ -132,6 +139,34 @@ export async function gradedGames(season: number): Promise<GradedGame[]> {
       select distinct on (ref_id) ref_id, run_id, week
       from last
       order by ref_id, created_at desc
+    ),
+    snaps as (
+      select r.ref_id, r.run_id, count(distinct r.market_line_id)::int as snapshot_count
+      from model.results r
+      join chosen c on c.ref_id = r.ref_id and c.run_id = r.run_id
+      where r.predated_kickoff
+      group by r.ref_id, r.run_id
+    ),
+    last_pick as (
+      select distinct on (l.ref_id, l.run_id, l.market_type)
+             l.ref_id, l.run_id, l.market_type, l.side, l.outcome, l.edge
+      from last l
+      join chosen c on c.ref_id = l.ref_id and c.run_id = l.run_id
+      where l.edge > 0
+      order by l.ref_id, l.run_id, l.market_type, l.edge desc
+    ),
+    first_bet as (
+      select distinct on (r.ref_id, r.run_id, r.market_type)
+             r.ref_id, r.run_id, r.market_type,
+             r.clv_points::float8 as clv_points,
+             r.is_last_snapshot
+      from model.results r
+      join chosen c on c.ref_id = r.ref_id and c.run_id = r.run_id
+      join last_pick p on p.ref_id = r.ref_id and p.run_id = r.run_id
+        and p.market_type = r.market_type and p.side = r.side
+      join raw.market_lines m on m.id = r.market_line_id
+      where r.predated_kickoff and r.edge > 0
+      order by r.ref_id, r.run_id, r.market_type, m.captured_at, r.market_line_id
     )
     select c.ref_id as game_id, c.week, c.run_id::text as run_id,
            sc.home_team as home, sc.away_team as away,
@@ -144,16 +179,25 @@ export async function gradedGames(season: number): Promise<GradedGame[]> {
            g.home_win_prob::float8 as home_win_prob,
            sh.line as spread_line, sh.model_prob as spread_model_prob,
            sh.market_prob as spread_market_prob, sh.edge as spread_edge,
-           sh.outcome as spread_outcome, sh.clv_points as spread_clv_points,
-           sh.verdict_call as spread_verdict_call,
+           psp.outcome as spread_pick_outcome,
+           (psp.ref_id is not null) as spread_has_pick,
+           case when fbs.is_last_snapshot then null else fbs.clv_points end as spread_clv_points,
+           (select l.verdict_call from last l
+             where l.ref_id = c.ref_id and l.run_id = c.run_id
+               and l.market_type = 'spread' and l.verdict_call is not null
+             limit 1) as spread_verdict_call,
            tov.line as total_line, tov.model_prob as total_model_prob,
            tov.market_prob as total_market_prob, tov.edge as total_edge,
-           tov.outcome as total_outcome, tov.clv_points as total_clv_points,
+           pto.outcome as total_pick_outcome,
+           (pto.ref_id is not null) as total_has_pick,
+           case when fbt.is_last_snapshot then null else fbt.clv_points end as total_clv_points,
            mh.model_prob as ml_model_prob, mh.market_prob as ml_market_prob,
            mh.edge as ml_edge, mh.outcome as ml_outcome,
-           ml.home_spread_odds, ml.away_spread_odds
+           ml.home_spread_odds, ml.away_spread_odds,
+           coalesce(sn.snapshot_count, 0) as snapshot_count
     from chosen c
     join raw.schedules sc on sc.game_id = c.ref_id
+    left join snaps sn on sn.ref_id = c.ref_id and sn.run_id = c.run_id
     left join model.proj_games g on g.run_id = c.run_id and g.game_id = c.ref_id
     left join last sh on sh.ref_id = c.ref_id and sh.run_id = c.run_id
       and sh.market_type = 'spread' and sh.side = 'home'
@@ -161,6 +205,14 @@ export async function gradedGames(season: number): Promise<GradedGame[]> {
       and tov.market_type = 'total' and tov.side = 'over'
     left join last mh on mh.ref_id = c.ref_id and mh.run_id = c.run_id
       and mh.market_type = 'moneyline' and mh.side = 'home'
+    left join last_pick psp on psp.ref_id = c.ref_id and psp.run_id = c.run_id
+      and psp.market_type = 'spread'
+    left join last_pick pto on pto.ref_id = c.ref_id and pto.run_id = c.run_id
+      and pto.market_type = 'total'
+    left join first_bet fbs on fbs.ref_id = c.ref_id and fbs.run_id = c.run_id
+      and fbs.market_type = 'spread'
+    left join first_bet fbt on fbt.ref_id = c.ref_id and fbt.run_id = c.run_id
+      and fbt.market_type = 'total'
     left join raw.market_lines ml on ml.id = sh.market_line_id
     order by c.week, sc.gameday, sc.gametime, c.ref_id`;
   return rows.map((r) => ({
@@ -182,14 +234,16 @@ export async function gradedGames(season: number): Promise<GradedGame[]> {
     spreadModelProb: num(r.spread_model_prob),
     spreadMarketProb: num(r.spread_market_prob),
     spreadEdge: num(r.spread_edge),
-    spreadOutcome: r.spread_outcome == null ? null : Number(r.spread_outcome),
+    spreadHasPick: Boolean(r.spread_has_pick),
+    spreadOutcome: r.spread_pick_outcome == null ? null : Number(r.spread_pick_outcome),
     spreadClvPoints: num(r.spread_clv_points),
     spreadVerdictCall: (r.spread_verdict_call as string | null) ?? null,
     totalLine: num(r.total_line),
     totalModelProb: num(r.total_model_prob),
     totalMarketProb: num(r.total_market_prob),
     totalEdge: num(r.total_edge),
-    totalOutcome: r.total_outcome == null ? null : Number(r.total_outcome),
+    totalHasPick: Boolean(r.total_has_pick),
+    totalOutcome: r.total_pick_outcome == null ? null : Number(r.total_pick_outcome),
     totalClvPoints: num(r.total_clv_points),
     mlModelProb: num(r.ml_model_prob),
     mlMarketProb: num(r.ml_market_prob),
@@ -197,6 +251,7 @@ export async function gradedGames(season: number): Promise<GradedGame[]> {
     mlOutcome: r.ml_outcome == null ? null : Number(r.ml_outcome),
     homeSpreadOdds: r.home_spread_odds == null ? null : Number(r.home_spread_odds),
     awaySpreadOdds: r.away_spread_odds == null ? null : Number(r.away_spread_odds),
+    snapshotCount: Number(r.snapshot_count ?? 0),
   }));
 }
 

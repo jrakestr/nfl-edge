@@ -72,3 +72,34 @@ export function outcomeLabel(outcome: number | null | undefined): string {
   if (outcome == null) return "Push";
   return "Push";
 }
+
+export type BetSnap = {
+  marketLineId: number;
+  capturedAt: string;
+  isLastSnapshot: boolean;
+  edge: number;
+  clvPoints: number | null;
+};
+
+/**
+ * CLV as the bet would have been placed: earliest edge>0 snapshot on the
+ * pick side. Close-only (or first appearance at close) is null, not 0.
+ */
+export function firstBetClvFrom(snaps: BetSnap[]): number | null {
+  const bets = snaps
+    .filter((s) => s.edge > 0)
+    .sort((a, b) => a.capturedAt.localeCompare(b.capturedAt) || a.marketLineId - b.marketLineId);
+  if (bets.length === 0) return null;
+  const first = bets[0];
+  if (first.isLastSnapshot) return null;
+  return first.clvPoints;
+}
+
+export function spreadCoverPrimary(hasPick: boolean, outcome: number | null): string {
+  return hasPick ? outcomeLabel(outcome) : "No bet";
+}
+
+export function snapshotClvTitle(count: number): string {
+  if (count <= 1) return "1 snapshot. No earlier line to grade movement against.";
+  return `${count} snapshots. From the first snapshot we would have bet to the close.`;
+}

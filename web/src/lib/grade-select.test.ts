@@ -1,4 +1,11 @@
-import { calibrationBucketsFrom, newestPredatedRunByGame, outcomeLabel } from "./grade-select";
+import {
+  calibrationBucketsFrom,
+  firstBetClvFrom,
+  newestPredatedRunByGame,
+  outcomeLabel,
+  snapshotClvTitle,
+  spreadCoverPrimary,
+} from "./grade-select";
 
 describe("newestPredatedRunByGame", () => {
   it("two last-snapshot runs for one game returns only the predated run", () => {
@@ -47,5 +54,40 @@ describe("outcomeLabel", () => {
     expect(outcomeLabel(1)).toBe("Won");
     expect(outcomeLabel(0)).toBe("Lost");
     expect(outcomeLabel(null)).toBe("Push");
+  });
+});
+
+describe("firstBetClvFrom", () => {
+  it("uses the earliest edge>0 snapshot and drops close-only zeros", () => {
+    const snaps = [
+      { marketLineId: 2, capturedAt: "2026-09-12T18:00:00Z", isLastSnapshot: true, edge: 0.04, clvPoints: 0 },
+      { marketLineId: 1, capturedAt: "2026-09-10T12:00:00Z", isLastSnapshot: false, edge: 0.03, clvPoints: 1.5 },
+    ];
+    expect(firstBetClvFrom(snaps)).toBe(1.5);
+  });
+
+  it("returns null when the first bet-able row is the close", () => {
+    const snaps = [
+      { marketLineId: 9, capturedAt: "2026-09-11T00:00:00Z", isLastSnapshot: false, edge: -0.02, clvPoints: 2 },
+      { marketLineId: 10, capturedAt: "2026-09-12T00:00:00Z", isLastSnapshot: true, edge: 0.04, clvPoints: 0 },
+    ];
+    expect(firstBetClvFrom(snaps)).toBeNull();
+  });
+});
+
+describe("spreadCoverPrimary", () => {
+  it("2026_01_GB_MIN: MIN −1.5, MIN by 17, pick hit → Won", () => {
+    expect(spreadCoverPrimary(true, 1)).toBe("Won");
+  });
+
+  it("no spread pick is No bet", () => {
+    expect(spreadCoverPrimary(false, null)).toBe("No bet");
+  });
+});
+
+describe("snapshotClvTitle", () => {
+  it("names the snapshot count", () => {
+    expect(snapshotClvTitle(1)).toMatch(/1 snapshot/);
+    expect(snapshotClvTitle(3)).toMatch(/3 snapshots/);
   });
 });

@@ -65,6 +65,9 @@ export function GradingPage({
   const kelly = !empty && track.kellyRoi != null ? `Kelly ${signedPct(track.kellyRoi)}` : null;
   const sides = empty ? "—" : wlp(track.sides.wins, track.sides.losses, track.sides.pushes);
   const totals = empty ? "—" : wlp(track.totals.wins, track.totals.losses, track.totals.pushes);
+  const moneyline = empty
+    ? "—"
+    : wlp(track.moneyline.wins, track.moneyline.losses, track.moneyline.pushes);
   const shown = weekFilter == null ? games : games.filter((g) => g.week === weekFilter);
   const nBuckets = buckets.reduce((s, b) => s + b.n, 0);
 
@@ -77,7 +80,7 @@ export function GradingPage({
           ten graded weeks.
         </p>
       </header>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4" role="list" aria-label="Track record">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5" role="list" aria-label="Track record">
         <Tile
           label="Record"
           value={record}
@@ -91,6 +94,7 @@ export function GradingPage({
         />
         <Tile label="Sides" value={sides} />
         <Tile label="Totals" value={totals} />
+        <Tile label="Moneyline" value={moneyline} />
       </div>
       {weeks.length > 1 ? (
         <nav className="flex flex-wrap items-center gap-2" aria-label="Week">

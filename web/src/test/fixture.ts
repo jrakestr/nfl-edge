@@ -91,6 +91,7 @@ export const NO_TRACK: TrackRecord = {
   kellyRoi: null,
   sides: { wins: 0, losses: 0, pushes: 0 },
   totals: { wins: 0, losses: 0, pushes: 0 },
+  moneyline: { wins: 0, losses: 0, pushes: 0 },
 };
 
 export const NO_SCOREBOARD = {

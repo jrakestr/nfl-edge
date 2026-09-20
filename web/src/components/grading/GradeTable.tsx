@@ -6,20 +6,39 @@ import { Matchup } from "@/components/board/TeamDot";
 import { DataTable } from "@/components/ui/DataTable";
 import { homeLine, signed } from "@/lib/edge";
 import { kickoffLabel } from "@/lib/format";
-import { outcomeLabel } from "@/lib/grade-select";
+import { snapshotClvTitle, spreadCoverPrimary } from "@/lib/grade-select";
 import type { GradedGame } from "@/lib/grade-types";
 
-function coverCell(r: GradedGame): string {
+function coverCell(r: GradedGame) {
+  const primary = spreadCoverPrimary(r.spreadHasPick, r.spreadOutcome);
   const call = r.spreadVerdictCall?.trim();
-  if (call && !call.includes("_")) return call;
-  return outcomeLabel(r.spreadOutcome);
+  const showCall = !r.spreadHasPick && call && !call.includes("_");
+  return (
+    <span className="flex flex-col items-end gap-0.5">
+      <span className="t-body font-semibold text-foreground">{primary}</span>
+      {showCall ? <span className="t-caption text-muted-foreground">{call}</span> : null}
+    </span>
+  );
 }
 
-function clvCell(r: GradedGame): string {
-  const parts: string[] = [];
-  if (r.spreadClvPoints != null) parts.push(signed(r.spreadClvPoints));
-  if (r.totalClvPoints != null) parts.push(signed(r.totalClvPoints));
-  return parts.length ? parts.join(" ") : "—";
+function clvCell(r: GradedGame) {
+  const parts: { label: string; pts: number }[] = [];
+  if (r.spreadClvPoints != null) parts.push({ label: "Spread", pts: r.spreadClvPoints });
+  if (r.totalClvPoints != null) parts.push({ label: "Total", pts: r.totalClvPoints });
+  return (
+    <span className="flex flex-col items-end gap-0.5" title={snapshotClvTitle(r.snapshotCount)}>
+      {parts.length === 0 ? (
+        <span className="t-body tnum text-foreground">—</span>
+      ) : (
+        parts.map((p) => (
+          <span key={p.label} className="t-body tnum text-foreground">
+            <span className="t-caption text-muted-foreground">{p.label} </span>
+            {signed(p.pts)}
+          </span>
+        ))
+      )}
+    </span>
+  );
 }
 
 export function GradeTable({ games }: { games: GradedGame[] }) {
@@ -90,8 +109,8 @@ export function GradeTable({ games }: { games: GradedGame[] }) {
           id: "cover",
           header: "Covers the book line",
           align: "right",
-          sortValue: (r) => r.spreadOutcome,
-          cell: (r) => <span className="t-body font-semibold text-foreground">{coverCell(r)}</span>,
+          sortValue: (r) => (r.spreadHasPick ? (r.spreadOutcome ?? -1) : -2),
+          cell: (r) => coverCell(r),
         },
         {
           id: "market",
@@ -130,10 +149,10 @@ export function GradeTable({ games }: { games: GradedGame[] }) {
         },
         {
           id: "clv",
-          header: "CLV points",
+          header: "Line moved our way",
           align: "right",
           sortValue: (r) => r.spreadClvPoints ?? r.totalClvPoints,
-          cell: (r) => <span className="t-body tnum text-foreground">{clvCell(r)}</span>,
+          cell: (r) => clvCell(r),
         },
       ]}
     />

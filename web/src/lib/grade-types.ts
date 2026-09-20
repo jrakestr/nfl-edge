@@ -21,13 +21,18 @@ export type GradedGame = {
   spreadModelProb: number | null;
   spreadMarketProb: number | null;
   spreadEdge: number | null;
+  /** Last-snapshot spread side with edge > 0. */
+  spreadHasPick: boolean;
+  /** Outcome of that pick, not the home side. */
   spreadOutcome: number | null;
+  /** First bet-able snapshot CLV; null when that snapshot is the close. */
   spreadClvPoints: number | null;
   spreadVerdictCall: string | null;
   totalLine: number | null;
   totalModelProb: number | null;
   totalMarketProb: number | null;
   totalEdge: number | null;
+  totalHasPick: boolean;
   totalOutcome: number | null;
   totalClvPoints: number | null;
   mlModelProb: number | null;
@@ -36,6 +41,7 @@ export type GradedGame = {
   mlOutcome: number | null;
   homeSpreadOdds: number | null;
   awaySpreadOdds: number | null;
+  snapshotCount: number;
 };
 
 export type CalBucket = {

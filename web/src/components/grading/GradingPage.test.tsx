@@ -35,6 +35,7 @@ function game(i: number): GradedGame {
     spreadModelProb: 0.52,
     spreadMarketProb: 0.48,
     spreadEdge: 0.04,
+    spreadHasPick: true,
     spreadOutcome: i % 2,
     spreadClvPoints: 0.5,
     spreadVerdictCall: i % 2 ? "pays" : "does not pay",
@@ -42,6 +43,7 @@ function game(i: number): GradedGame {
     totalModelProb: 0.51,
     totalMarketProb: 0.5,
     totalEdge: 0.01,
+    totalHasPick: true,
     totalOutcome: 1,
     totalClvPoints: -0.5,
     mlModelProb: 0.55,
@@ -50,6 +52,7 @@ function game(i: number): GradedGame {
     mlOutcome: 1,
     homeSpreadOdds: -110,
     awaySpreadOdds: -110,
+    snapshotCount: 3,
   };
 }
 
@@ -62,6 +65,7 @@ const TRACK: TrackRecord = {
   kellyRoi: -0.35,
   sides: { wins: 6, losses: 9, pushes: 1 },
   totals: { wins: 8, losses: 8, pushes: 0 },
+  moneyline: { wins: 5, losses: 11, pushes: 0 },
 };
 
 describe("GradingPage populated", () => {
@@ -84,6 +88,10 @@ describe("GradingPage populated", () => {
     expect(screen.getByText(/Kelly/)).toBeInTheDocument();
     expect(screen.getByText("6–9–1")).toBeInTheDocument();
     expect(screen.getByText("8–8–0")).toBeInTheDocument();
+    const tiles = screen.getByRole("list", { name: "Track record" });
+    expect(tiles).toHaveTextContent("5–11–0");
+    expect(tiles).toHaveTextContent("Moneyline");
+    expect(screen.getByText("Line moved our way")).toBeInTheDocument();
     expect(screen.getByText(/T01 17 – XX 20/)).toBeInTheDocument();
     expect(screen.getAllByRole("row").length).toBeGreaterThan(16);
     expect(screen.getByText("32")).toBeInTheDocument();
