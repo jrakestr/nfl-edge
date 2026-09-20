@@ -186,6 +186,7 @@ export const BoardRowSchema = z.object({
   p_home_cover_market: numOrNull,
   p_over_market: numOrNull,
   market_line_id: z.number().int().nullable(),
+  line_source: z.string().default("schedule lines"),
   captured_at: z
     .union([z.date(), z.string()])
     .nullable()
@@ -382,6 +383,17 @@ export const WeekPlayerSchema = z.object({
   override_status: z.string().nullable().optional(),
   override_updated_at: z.union([z.date(), z.string()]).nullable().optional(),
   run_created_at: z.union([z.date(), z.string()]).nullable().optional(),
+  gameday: z.string().nullable().optional(),
+  gametime: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  roof: z.string().nullable().optional(),
+  home_away: z.enum(["home", "away"]).nullable().optional(),
+  market_total: numOrNull.optional(),
+  market_spread: numOrNull.optional(),
+  kickoff_window: z.enum(["early", "afternoon", "primetime"]).nullable().optional(),
+  elevated: z.boolean().optional(),
+  elevated_reason: z.string().nullable().optional(),
+  depth_as_of: z.string().nullable().optional(),
 });
 export type WeekPlayer = z.infer<typeof WeekPlayerSchema>;
 

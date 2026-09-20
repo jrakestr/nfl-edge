@@ -1,6 +1,7 @@
 import { sortBoardRows } from "@/lib/board-sort";
 import { sql } from "@/lib/db";
 import { hasStarted } from "@/lib/kickoff";
+import { lineSourceLabel } from "@/lib/line-source";
 import { resolveBoardEdges, type LineGrid, type PersistedEdge } from "@/lib/line-grid";
 import { BoardRowSchema, type BoardRow, type GradedMarket } from "@/lib/types";
 
@@ -28,6 +29,82 @@ function pivotGraded(picks: GradedPick[] | null): BoardRow["graded"] {
 
 export { sortBoardRows };
 
+const EMPTY_EDGES: BoardRow["edges"] = {
+  spread_home: null,
+  spread_away: null,
+  total_over: null,
+  total_under: null,
+  ml_home: null,
+  ml_away: null,
+};
+
+/**
+ * One REG game per schedule row, joined to model.market_lines_latest.
+ * Model fields stay null — the web app never computes a projection.
+ */
+export async function scheduleRows(season: number, week: number): Promise<BoardRow[]> {
+  const rows = await sql()`
+    with latest as (
+      select id, game_id, captured_at, source, bookmaker, spread_line, total_line,
+             home_spread_odds, away_spread_odds, over_odds, under_odds, home_moneyline, away_moneyline
+      from model.market_lines_latest
+    )
+    select s.game_id, s.home_team as home, s.away_team as away,
+           to_char(s.gameday, 'YYYY-MM-DD') as gameday, s.gametime, s.location,
+           s.home_score, s.away_score, s.result::float8 as result,
+           (s.home_score is not null and s.away_score is not null and s.result is not null) as is_final,
+           l.id::int as market_line_id, l.captured_at, l.source, l.bookmaker,
+           l.spread_line::float8, l.total_line::float8,
+           l.home_spread_odds, l.away_spread_odds, l.over_odds, l.under_odds,
+           l.home_moneyline, l.away_moneyline
+    from raw.schedules s
+    left join latest l on l.game_id = s.game_id
+    where s.season = ${season} and s.week = ${week} and s.game_type = 'REG'
+    order by s.gameday, s.gametime, s.game_id`;
+  const parsed = rows.map((r) => {
+    const gameday = r.gameday as string;
+    const gametime = (r.gametime as string | null) ?? null;
+    const location = (r.location as string | null) ?? null;
+    return BoardRowSchema.parse({
+      game_id: r.game_id,
+      home: r.home,
+      away: r.away,
+      gameday,
+      gametime,
+      location,
+      home_score: r.home_score ?? null,
+      away_score: r.away_score ?? null,
+      result: r.result ?? null,
+      is_final: Boolean(r.is_final),
+      has_started: hasStarted(gameday, gametime, location),
+      graded_run_id: null,
+      graded: null,
+      fair_spread: null,
+      fair_total: null,
+      mean_spread: null,
+      mean_total: null,
+      home_win_prob: null,
+      p_home_cover_market: null,
+      p_over_market: null,
+      market_line_id: (r.market_line_id as number | null) ?? null,
+      line_source: lineSourceLabel(r.source as string | null, r.bookmaker as string | null),
+      captured_at: r.captured_at ?? null,
+      spread_line: r.spread_line ?? null,
+      total_line: r.total_line ?? null,
+      run_market_spread: null,
+      run_market_total: null,
+      home_spread_odds: r.home_spread_odds ?? null,
+      away_spread_odds: r.away_spread_odds ?? null,
+      over_odds: r.over_odds ?? null,
+      under_odds: r.under_odds ?? null,
+      home_moneyline: r.home_moneyline ?? null,
+      away_moneyline: r.away_moneyline ?? null,
+      edges: EMPTY_EDGES,
+    });
+  });
+  return sortBoardRows(parsed);
+}
+
 /**
  * Table rows for a run: proj_games ⨝ schedules ⨝ newest market_lines.
  * Persisted model.edges are used only when their market_line_id equals that snapshot;
@@ -38,10 +115,9 @@ export { sortBoardRows };
 export async function boardRows(runId: string): Promise<BoardRow[]> {
   const rows = await sql()`
     with latest as (
-      select distinct on (game_id) id, game_id, captured_at, spread_line, total_line,
+      select id, game_id, captured_at, source, bookmaker, spread_line, total_line,
              home_spread_odds, away_spread_odds, over_odds, under_odds, home_moneyline, away_moneyline
-      from raw.market_lines
-      order by game_id, captured_at desc, id desc
+      from model.market_lines_latest
     ),
     newest_edge as (
       select distinct on (e.ref_id) e.ref_id, e.market_line_id
@@ -79,7 +155,7 @@ export async function boardRows(runId: string): Promise<BoardRow[]> {
            coalesce(gp.mean_total, p.mean_total)::float8 as mean_total,
            p.fair_spread::float8, p.fair_total::float8,
            p.home_win_prob::float8, p.p_home_cover_market::float8, p.p_over_market::float8,
-           l.id::int as market_line_id, l.captured_at,
+           l.id::int as market_line_id, l.captured_at, l.source, l.bookmaker,
            l.spread_line::float8, l.total_line::float8,
            p.market_spread::float8 as run_market_spread, p.market_total::float8 as run_market_total,
            l.home_spread_odds, l.away_spread_odds, l.over_odds, l.under_odds,
@@ -120,6 +196,7 @@ export async function boardRows(runId: string): Promise<BoardRow[]> {
     const location = (r.location as string | null) ?? null;
     return BoardRowSchema.parse({
       ...r,
+      line_source: lineSourceLabel(r.source as string | null, r.bookmaker as string | null),
       edges,
       is_final: Boolean(r.is_final),
       has_started: hasStarted(gameday, gametime, location),

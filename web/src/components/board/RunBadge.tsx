@@ -23,25 +23,37 @@ export function RunBadge({
   stale,
   linesAsOf = null,
   verdictsAsOf = null,
+  linesSource = null,
   className,
 }: {
-  run: RunOption;
+  run: RunOption | null;
   runs: RunOption[];
   stale: boolean;
   linesAsOf?: string | null;
   verdictsAsOf?: string | null;
+  linesSource?: string | null;
   className?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
+  if (!run) {
+    return (
+      <span className={cn("tnum t-caption font-medium text-foreground", className)}>
+        lines as of {linesAsOf ? shortStampLocal(linesAsOf) : "—"}
+        {linesSource ? ` · ${linesSource}` : ""}
+      </span>
+    );
+  }
+
   const drift =
     !!linesAsOf &&
     !!verdictsAsOf &&
     new Date(linesAsOf).getTime() !== new Date(verdictsAsOf).getTime();
   const warn = stale || drift;
-  const asOf = `lines as of ${linesAsOf ? shortStampLocal(linesAsOf) : "—"} · verdicts as of ${
+  const sourceBit = linesSource ? ` · ${linesSource}` : "";
+  const asOf = `lines as of ${linesAsOf ? shortStampLocal(linesAsOf) : "—"}${sourceBit} · verdicts as of ${
     verdictsAsOf ? shortStampLocal(verdictsAsOf) : "—"
   }`;
   const pruned = run.draws_pruned ? " · draws pruned" : "";
@@ -61,7 +73,7 @@ export function RunBadge({
         aria-label={`${label}${stale ? " (a newer run exists)" : ""}${drift ? " (verdicts behind the line)" : ""}`}
         data-stale={warn ? "true" : undefined}
         className={cn(
-          "tnum h-7 w-full justify-between rounded-md border bg-card px-2 text-[11px] leading-4 font-medium text-muted-foreground shadow-none",
+          "tnum t-caption h-8 w-full justify-between rounded-md border bg-card px-2 font-medium shadow-none",
           warn ? "border-warn text-warn" : "border-border",
           className,
         )}
@@ -70,7 +82,7 @@ export function RunBadge({
       </SelectTrigger>
       <SelectContent align="start">
         {runs.map((r, i) => (
-          <SelectItem key={r.run_id} value={r.run_id} className="tnum text-[12px]">
+          <SelectItem key={r.run_id} value={r.run_id} className="tnum t-caption">
             run {shortRun(r.run_id)} · {shortStampLocal(r.created_at)} · {draws(r.draws_per_game)}
             {r.draws_pruned ? " · draws pruned" : ""}
             {i === 0 ? " · newest" : ""}

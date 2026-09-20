@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useGamesSelection, useLiveSearchParams } from "@/components/shell/GamesSelection";
 import { useCallback, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -8,13 +9,15 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PageActions, SidebarFooter } from "@/components/shell/PageActions";
 import { RunBadge, type RunOption } from "./RunBadge";
+import { type Density } from "./PlainVerdictList";
 import { type Filters, filtersToParams, type SlotFilter } from "./filters";
 
 export type View = "plain" | "table";
+export type { Density };
 
 /**
  * Week selector, Plain English / Table toggle, filters (Table view), RunBadge. State lives
- * in the URL (`?view=`, `?run=`, `?min=`, `?flat=0`, `?slot=`) so links are shareable and
+ * in the URL (`?view=`, `?density=`, `?run=`, `?min=`, `?flat=0`, `?slot=`) so links are shareable and
  * server components can read it. `[` / `]` step weeks.
  */
 export function WeekHeader({
@@ -22,37 +25,44 @@ export function WeekHeader({
   week,
   weeks,
   view,
+  density = "full",
   filters,
   run,
   runs,
   stale,
   linesAsOf = null,
   verdictsAsOf = null,
+  linesSource = null,
 }: {
   season: number;
   week: number;
-  weeks: number[]; // weeks with a run, desc
+  weeks: number[]; // weeks with a schedule, desc
   view: View;
+  density?: Density;
   filters: Filters;
   run: RunOption | null;
   runs: RunOption[];
   stale: boolean;
   linesAsOf?: string | null;
   verdictsAsOf?: string | null;
+  linesSource?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useSearchParams();
+  const params = useLiveSearchParams();
+  const { setSelected } = useGamesSelection();
 
   const go = useCallback(
     (nextWeek: number, patch?: (p: URLSearchParams) => void) => {
       const p = new URLSearchParams(params.toString());
       p.delete("run"); // a pinned run belongs to one week
+      p.delete("games");
+      setSelected([]);
       patch?.(p);
       const qs = p.toString();
       router.push(`/week/${nextWeek}${qs ? `?${qs}` : ""}`);
     },
-    [params, router],
+    [params, router, setSelected],
   );
 
   const setParams = useCallback(
@@ -83,7 +93,7 @@ export function WeekHeader({
       <PageActions>
         <div className="flex items-center gap-2">
           <Select value={String(week)} onValueChange={(v) => go(Number(v))}>
-            <SelectTrigger aria-label="Week" className="h-8 w-[120px] rounded-md text-[13px]">
+            <SelectTrigger aria-label="Week" className="h-8 w-[120px] rounded-md t-body">
               <SelectValue>{`Week ${week}`}</SelectValue>
             </SelectTrigger>
             <SelectContent align="end">
@@ -98,14 +108,14 @@ export function WeekHeader({
         </div>
       </PageActions>
       <SidebarFooter>
-        {run ? (
-          <RunBadge run={run} runs={runs} stale={stale} linesAsOf={linesAsOf} verdictsAsOf={verdictsAsOf} />
-        ) : (
-          <span className="t-caption">no run for week {week}</span>
-        )}
+        <RunBadge run={run} runs={runs} stale={stale} linesAsOf={linesAsOf} verdictsAsOf={verdictsAsOf} linesSource={linesSource} />
       </SidebarFooter>
 
-      <div className="flex flex-wrap items-center gap-3">
+      {run ? (
+      <div
+        className="glass sticky top-[var(--topbar-height)] z-[9] flex flex-wrap items-center gap-3 border-b py-2"
+        data-week-header=""
+      >
         <ToggleGroup
           type="single"
           value={view}
@@ -115,13 +125,32 @@ export function WeekHeader({
           aria-label="View"
           className="rounded-sm border border-border bg-card p-0.5"
         >
-          <ToggleGroupItem value="plain" className="h-7 rounded-[4px] px-3 text-[12px] font-semibold">
+          <ToggleGroupItem value="plain" className="h-8 rounded-[4px] px-3 t-body font-semibold">
             Plain English
           </ToggleGroupItem>
-          <ToggleGroupItem value="table" className="h-7 rounded-[4px] px-3 text-[12px] font-semibold">
+          <ToggleGroupItem value="table" className="h-8 rounded-[4px] px-3 t-body font-semibold">
             Table
           </ToggleGroupItem>
         </ToggleGroup>
+
+        {view === "plain" ? (
+          <ToggleGroup
+            type="single"
+            value={density}
+            onValueChange={(v) => {
+              if (v) setParams((p) => (v === "full" ? p.delete("density") : p.set("density", v)));
+            }}
+            aria-label="Density"
+            className="rounded-sm border border-border bg-card p-0.5"
+          >
+            <ToggleGroupItem value="full" className="h-8 rounded-[4px] px-3 t-body font-semibold">
+              Full
+            </ToggleGroupItem>
+            <ToggleGroupItem value="compact" className="h-8 rounded-[4px] px-3 t-body font-semibold">
+              Compact
+            </ToggleGroupItem>
+          </ToggleGroup>
+        ) : null}
 
         {view === "table" ? (
           <div className="flex flex-wrap items-center gap-3" aria-label="Filters">
@@ -129,7 +158,7 @@ export function WeekHeader({
               value={filters.slot}
               onValueChange={(v) => setFiltersClean({ ...filters, slot: v as SlotFilter }, setParams)}
             >
-              <SelectTrigger aria-label="Kickoff slot" className="h-7 w-[132px] rounded-sm text-[12px]">
+              <SelectTrigger aria-label="Kickoff slot" className="h-8 w-[148px] rounded-sm t-body">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -156,13 +185,14 @@ export function WeekHeader({
               pressed={filters.hideFlat}
               onPressedChange={(on) => setFiltersClean({ ...filters, hideFlat: on }, setParams)}
               aria-label="Hide flat"
-              className="h-7 rounded-sm px-2.5 text-[12px]"
+              className="h-8 rounded-sm px-2.5 t-body font-semibold"
             >
               Hide flat
             </Toggle>
           </div>
         ) : null}
       </div>
+      ) : null}
     </>
   );
 }

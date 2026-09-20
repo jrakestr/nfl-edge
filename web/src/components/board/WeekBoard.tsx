@@ -7,21 +7,24 @@ import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
 import { ChecksPanel } from "./ChecksPanel";
 import { GameOpenShell } from "./GameOpenShell";
-import { OpenGameTrigger } from "./OpenGameTrigger";
 import { type Filters } from "./filters";
 import { type RunOption } from "./RunBadge";
 import { SummaryTiles } from "./SummaryTiles";
-import { VerdictCard } from "./VerdictCard";
+import { PlainVerdictList, type Density } from "./PlainVerdictList";
+import { GameStrip } from "@/components/shell/GameStrip";
+import { toStripGame } from "@/lib/kickoff";
+import { BoardGamesFilter } from "./BoardGamesFilter";
 import { WeekHeader, type View } from "./WeekHeader";
 import { WeekScoreboard } from "./WeekScoreboard";
 import { WeekSummaryCard } from "./WeekSummaryCard";
-import { draws as fmtDraws, maxIso, shortRun } from "@/lib/format";
+import { draws as fmtDraws, maxIso, noProjectionsNotice, shortRun } from "@/lib/format";
 
 export type WeekBoardProps = {
   season: number;
   week: number;
   weeks: number[];
   view: View;
+  density?: Density;
   filters: Filters;
   run: RunOption | null;
   runs: RunOption[];
@@ -69,6 +72,7 @@ export function WeekBoard(p: WeekBoardProps) {
   const missingVerdicts = remainingRows.filter((r) => !verdictIds.has(r.game_id)).length;
   const linesAsOf = maxIso(p.rows.map((r) => r.captured_at));
   const verdictsAsOf = maxIso(p.verdicts.map((v) => v.payload.market?.captured_at));
+  const linesSource = p.rows.find((r) => r.line_source)?.line_source ?? null;
 
   const header = (
     <WeekHeader
@@ -76,23 +80,59 @@ export function WeekBoard(p: WeekBoardProps) {
       week={p.week}
       weeks={p.weeks}
       view={p.view}
+      density={p.density ?? "full"}
       filters={p.filters}
       run={p.run}
       runs={p.runs}
       stale={p.stale}
       linesAsOf={linesAsOf}
       verdictsAsOf={verdictsAsOf}
+      linesSource={linesSource}
     />
   );
 
+  const strip = p.rows.map(toStripGame);
+
   if (!p.run) {
+    const notice = noProjectionsNotice(p.week);
+    const openRow = p.openGameId ? (rowOf[p.openGameId] ?? null) : null;
     return (
       <>
         {header}
-        <EmptyState title={`Week ${p.week}`}>
-          No simulation for this week yet. Run `nfl-edge sim --season {p.season} --week {p.week}` and then `nfl-edge
-          lines`.
-        </EmptyState>
+        {strip.length ? <GameStrip games={strip} /> : null}
+        {p.rows.length === 0 ? (
+          <EmptyState title={`Week ${p.week}`}>
+            No simulation for this week yet. Run `nfl-edge sim --season {p.season} --week {p.week}` and then `nfl-edge
+            lines`.
+          </EmptyState>
+        ) : (
+          <>
+            <p className="t-body text-foreground" role="note">
+              {notice}
+            </p>
+            <BoardGamesFilter />
+            <GameOpenShell
+              openId={p.openGameId ?? null}
+              row={openRow}
+              verdict={null}
+              checks={null}
+              players={[]}
+              runCreatedAt={null}
+              runId={null}
+              scheduleOnly
+              teamInputs={{}}
+            >
+              <div className="flex flex-col gap-4" data-view="table">
+                <BoardTable
+                  rows={p.rows}
+                  checks={{}}
+                  draws={null}
+                  filters={p.filters}
+                />
+              </div>
+            </GameOpenShell>
+          </>
+        )}
       </>
     );
   }
@@ -104,6 +144,8 @@ export function WeekBoard(p: WeekBoardProps) {
   return (
     <>
       {header}
+      {strip.length ? <GameStrip games={strip} /> : null}
+      <BoardGamesFilter />
       <WeekScoreboard board={p.scoreboard} />
       <WeekSummaryCard summary={summary} caption={caption} />
 
@@ -122,28 +164,28 @@ export function WeekBoard(p: WeekBoardProps) {
         checks={p.openGameId ? (p.checks[p.openGameId] ?? null) : null}
         players={p.openGameId ? (p.playersByGame?.[p.openGameId] ?? []) : []}
         runCreatedAt={run.created_at}
+        runId={run.run_id}
         teamInputs={openRow ? inputsForMatchup(p.teamInputs ?? {}, openRow.away, openRow.home) : {}}
       >
         {p.view === "plain" ? (
-          <div className="flex flex-col gap-3" data-view="plain">
-            {verdicts.map((v) => {
-              const row = p.rows.find((r) => r.game_id === v.game_id);
-              return (
-                <OpenGameTrigger key={v.game_id} gameId={v.game_id}>
-                  <VerdictCard
-                    payload={v.payload}
-                    row={row}
-                    liveEdges={row?.has_started ? undefined : row?.edges}
-                    failedChecks={p.checks[v.game_id]?.failed ?? []}
-                    gapCaptions={marketGapCaptions(p.checks[v.game_id], run.created_at)}
-                  />
-                </OpenGameTrigger>
-              );
-            })}
+          <>
+            <PlainVerdictList
+              density={p.density ?? "full"}
+              items={verdicts.map((v) => {
+                const row = p.rows.find((r) => r.game_id === v.game_id);
+                return {
+                  payload: v.payload,
+                  row,
+                  liveEdges: row?.has_started ? undefined : row?.edges,
+                  failedChecks: p.checks[v.game_id]?.failed ?? [],
+                  gapCaptions: marketGapCaptions(p.checks[v.game_id], run.created_at),
+                };
+              })}
+            />
             {verdicts.length === 0 ? (
               <EmptyState title="No verdicts">Nothing persisted for this run at the newest line.</EmptyState>
             ) : null}
-          </div>
+          </>
         ) : (
           <div className="flex flex-col gap-4" data-view="table">
             <SummaryTiles payloads={payloads} track={p.track} />

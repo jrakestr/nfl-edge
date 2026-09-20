@@ -48,4 +48,26 @@ describe("RunBadge", () => {
     render(<RunBadge run={{ ...run, draws_pruned: true }} runs={[{ ...run, draws_pruned: true }]} stale={false} />);
     expect(screen.getByRole("combobox")).toHaveAccessibleName(/draws pruned/);
   });
+
+  it("with no run shows lines as of only", () => {
+    render(<RunBadge run={null} runs={[]} stale={false} linesAsOf="2026-09-12T17:32:00.000Z" />);
+    expect(screen.getByText(/lines as of/)).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("appends the plain-words line source", () => {
+    render(
+      <RunBadge
+        run={run}
+        runs={[run]}
+        stale={false}
+        linesAsOf="2026-09-20T02:21:57.000Z"
+        verdictsAsOf="2026-09-20T02:21:57.000Z"
+        linesSource="DraftKings"
+      />,
+    );
+    expect(screen.getByRole("combobox")).toHaveAccessibleName(/DraftKings/);
+    expect(screen.getByRole("combobox")).not.toHaveAccessibleName(/odds_api|nflverse/);
+  });
 });
+

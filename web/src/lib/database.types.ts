@@ -183,6 +183,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "edges_market_line_id_fkey"
+            columns: ["market_line_id"]
+            isOneToOne: false
+            referencedRelation: "market_lines_latest"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "edges_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -294,6 +301,27 @@ export type Database = {
             referencedColumns: ["run_id"]
           },
         ]
+      }
+      line_reference: {
+        Row: {
+          bookmaker: string
+          effective_from: string
+          fallback_source: string
+          source: string
+        }
+        Insert: {
+          bookmaker: string
+          effective_from: string
+          fallback_source: string
+          source: string
+        }
+        Update: {
+          bookmaker?: string
+          effective_from?: string
+          fallback_source?: string
+          source?: string
+        }
+        Relationships: []
       }
       llm_calls: {
         Row: {
@@ -756,6 +784,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "results_close_market_line_id_fkey"
+            columns: ["close_market_line_id"]
+            isOneToOne: false
+            referencedRelation: "market_lines_latest"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "results_market_line_id_fkey"
+            columns: ["market_line_id"]
+            isOneToOne: false
+            referencedRelation: "market_lines_latest"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -998,6 +1040,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "verdicts_market_line_id_fkey"
+            columns: ["market_line_id"]
+            isOneToOne: false
+            referencedRelation: "market_lines_latest"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "verdicts_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -1026,6 +1075,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "edges_market_line_id_fkey"
+            columns: ["market_line_id"]
+            isOneToOne: false
+            referencedRelation: "market_lines_latest"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "edges_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -1033,6 +1089,25 @@ export type Database = {
             referencedColumns: ["run_id"]
           },
         ]
+      }
+      market_lines_latest: {
+        Row: {
+          away_moneyline: number | null
+          away_spread_odds: number | null
+          bookmaker: string | null
+          captured_at: string | null
+          fetched_at: string | null
+          game_id: string | null
+          home_moneyline: number | null
+          home_spread_odds: number | null
+          id: number | null
+          over_odds: number | null
+          source: string | null
+          spread_line: number | null
+          total_line: number | null
+          under_odds: number | null
+        }
+        Relationships: []
       }
       verdicts_latest: {
         Row: {
@@ -1044,6 +1119,13 @@ export type Database = {
           run_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "verdicts_market_line_id_fkey"
+            columns: ["market_line_id"]
+            isOneToOne: false
+            referencedRelation: "market_lines_latest"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "verdicts_run_id_fkey"
             columns: ["run_id"]
