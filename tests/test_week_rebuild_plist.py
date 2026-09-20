@@ -24,15 +24,30 @@ def test_script_sunday_deadline_is_sim_only():
     assert text.index('"$sim_code" -eq 124') < fail_at
     assert "keep_saturday" not in text[fail_at : fail_at + 200]
     assert "n_player_games" in text
-    assert "--slate main" in text
-    assert "--slate full" in text
+    assert "DKSalaries_${SEASON}_wk${WW}_" in text
+    assert "--salaries-only" in text
+    assert "--merge-status" in text
+    assert "--slate main" not in text
+    assert "--slate full" not in text
     assert "current-week" in text
 
 
 def test_script_reapplies_overrides_after_dk_salaries_before_sim():
     text = SH.read_text()
-    full = text.index("--slate full")
+    merge = text.index("--merge-status")
     ov = text.index('"$NFL" overrides')
     sim = text.index('"$NFL" sim')
-    assert full < ov < sim
-    assert "data/overrides/" in text[full:ov]
+    assert merge < ov < sim
+    assert "data/overrides/" in text[merge:ov]
+
+
+def test_odds_api_pull_is_before_lines():
+    text = SH.read_text()
+    pull = text.index("ingest odds-api")
+    lines = text.index('"$NFL" lines')
+    assert "--markets h2h,spreads,totals" in text
+    assert "--regions us" in text
+    assert "--force" not in text
+    assert pull < lines
+    assert "recent duplicate" in text.lower() or "RecentDuplicate" in text
+    assert "remaining=" in text

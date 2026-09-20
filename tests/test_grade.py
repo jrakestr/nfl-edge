@@ -231,15 +231,13 @@ def test_pick_close_last_pre_kickoff_among_three():
     assert close["spread_line"] == pytest.approx(3.5)
 
 
-def test_pick_close_schedules_fallback_when_none_pre_kickoff():
+def test_pick_close_none_when_no_candidate_pre_kickoff():
     kickoff = datetime(2025, 11, 9, 13, 0, tzinfo=ET)
     snaps = [{"id": 9, "captured_at": kickoff + timedelta(days=1), "spread_line": 3.5, "total_line": 44.5}]
     sched = {"spread_line": 3.5, "total_line": 44.5, "home_spread_odds": -108, "away_spread_odds": -112,
              "over_odds": -110, "under_odds": -110, "home_moneyline": -180, "away_moneyline": 160}
     close = G.pick_close(snaps, kickoff, sched)
-    assert close["source"] == "schedules" and close["market_line_id"] is None
-    assert close["spread_line"] == pytest.approx(3.5)
-    assert close["home_spread_odds"] == -108
+    assert close is None
 
 
 def test_pick_close_none_when_schedules_line_null():
@@ -283,6 +281,26 @@ def test_grade_snapshot_is_last_only_for_matching_close_id_when_several():
     last = G.grade_snapshot(_edges(snap_id=11), _bet(snap_id=11), _close(snap_id=11),
                             _game(n_snapshots=3), _verdict(snap_id=11))
     assert all(r["is_last_snapshot"] for r in last)
+
+
+def test_is_last_snapshot_is_exactly_the_close_row_even_when_n_snap_is_1():
+    """Walking DK + nflverse must not mark every singleton snapshot as last."""
+    close = _close(snap_id=11)
+    other = G.grade_snapshot(_edges(snap_id=10), _bet(snap_id=10), close,
+                             _game(n_snapshots=1), _verdict(snap_id=10))
+    last = G.grade_snapshot(_edges(snap_id=11), _bet(snap_id=11), close,
+                            _game(n_snapshots=1), _verdict(snap_id=11))
+    combined = other + last
+    keys = [(r["ref_id"], r["market_type"], r["side"]) for r in combined]
+    lasts = [r for r in combined if r["is_last_snapshot"]]
+    assert all(r["is_last_snapshot"] is False for r in other)
+    assert all(r["is_last_snapshot"] for r in last)
+    for key in set(keys):
+        n = sum(1 for r in lasts if (r["ref_id"], r["market_type"], r["side"]) == key)
+        assert n == 1
+        hit = next(r for r in lasts if (r["ref_id"], r["market_type"], r["side"]) == key)
+        assert hit["market_line_id"] == 11
+        assert hit["close_market_line_id"] == 11
 
 
 def test_payload_without_structured_fields_raises():
