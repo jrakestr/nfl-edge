@@ -575,6 +575,31 @@ def benchmark_nflgamesim(
         raise typer.Exit(code=1) from None
 
 
+@benchmark_app.command("rts")
+def benchmark_rts(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(None, "--file", help="RTS projection CSV"),
+):
+    """Load RTS projected points into raw.external_players (benchmark only)."""
+    from pathlib import Path
+
+    from .benchmark import rts_players as rp
+
+    try:
+        r = rp.run(season, week, Path(file) if file else None)
+    except ValueError as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        f"rts {r['season']} wk{r['week']}: "
+        f"{r['written']} written / {r['rows']} rows, "
+        f"{r['matched']} matched, {r['unmatched_n']} unmatched"
+    )
+    for u in r["unmatched"]:
+        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']}")
+
+
 @benchmark_app.command("nflgamesim-players")
 def benchmark_nflgamesim_players(
     season: int = typer.Option(...),
