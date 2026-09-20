@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { GameStrip } from "@/components/shell/GameStrip";
+import { useGamesSelection } from "@/components/shell/GamesSelection";
 import { SlateSelector } from "@/components/shell/SlateSelector";
+import { selectedOnSlate } from "@/lib/games-param";
+import type { StripGame } from "@/lib/kickoff";
 import { LineupCard } from "@/components/dfs/LineupCard";
+import { PhraseBox } from "@/components/optimize/PhraseBox";
 import { StackSuggestions } from "@/components/optimize/StackSuggestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +20,7 @@ import { applySolveControls, parseSolveControls } from "@/lib/optimize/controls-
 import { poolFromPlayers } from "@/lib/optimize/pool";
 import { solveSlate } from "@/lib/optimize/solve";
 import { type FlexPos, type SolveControls, type SolvedLineup } from "@/lib/optimize/types";
+import { useUrlBoundState } from "@/lib/url-bound-state";
 import type { SlateCorr } from "@/lib/optimize/stack-suggestions";
 import type { DfsLineup, WeekPlayer } from "@/lib/types";
 
@@ -71,6 +76,7 @@ export function Optimizer({
   positions = {},
   fallbackFrom = null,
   buildInProgress = false,
+  strip = [],
 }: {
   week: number | string;
   site: string;
@@ -85,29 +91,40 @@ export function Optimizer({
   positions?: Record<string, string>;
   fallbackFrom?: string | null;
   buildInProgress?: boolean;
+  strip?: StripGame[];
 }) {
   const showdown = slate === "showdown";
   const { picks, setPicks } = useSlatePicks(slateId);
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
-  const [controls, setControls] = useState<SolveControls>(() => parseSolveControls(sp, showdown));
+  const { selected: selectedGames } = useGamesSelection();
+  const [controls, setControls] = useUrlBoundState({
+    parse: (sp) => parseSolveControls(sp, showdown),
+    apply: (next, base) => applySolveControls(next, base, showdown),
+  });
   const [yours, setYours] = useState<SolvedLineup[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tab, setTab] = useState("yours");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const writeControls = useCallback(
-    (next: SolveControls) => {
-      const params = applySolveControls(next, new URLSearchParams(sp.toString()), showdown);
-      const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
-    },
-    [pathname, router, showdown, sp],
-  );
-
-  const pool = useMemo(() => poolFromPlayers(players), [players]);
+  const visible = useMemo(() => {
+    const active = selectedOnSlate(
+      selectedGames,
+      strip.map((g) => g.game_id),
+    );
+    if (!active.length) return players;
+    const set = new Set(active);
+    return players.filter((p) => p.game_id != null && set.has(p.game_id));
+  }, [players, selectedGames, strip]);
+  const { pool, poolError } = useMemo(() => {
+    try {
+      return { pool: poolFromPlayers(visible, { uniquePlayerId: !showdown }), poolError: null };
+    } catch (e) {
+      return {
+        pool: [] as ReturnType<typeof poolFromPlayers>,
+        poolError: e instanceof Error ? e.message : "A player appears twice in this slate's pool.",
+      };
+    }
+  }, [visible, showdown]);
   const yoursTeams = useMemo(() => {
     const m = { ...teams };
     for (const lu of yours) {
@@ -117,18 +134,29 @@ export function Optimizer({
   }, [teams, yours]);
 
   function patch(partial: Partial<SolveControls>) {
-    setControls((c) => {
-      const next = {
-        ...c,
-        ...partial,
-        flexEligible: { ...c.flexEligible, ...partial.flexEligible },
-      };
-      writeControls(next);
-      return next;
-    });
+    setControls((c) => ({
+      ...c,
+      ...partial,
+      flexEligible: { ...c.flexEligible, ...partial.flexEligible },
+    }));
   }
 
   async function generate() {
+    const visibleIds = new Set(visible.map((p) => p.player_dk_id).filter((id): id is string => Boolean(id)));
+    const missingLocks = picks.lock.filter(
+      (id) => players.some((p) => p.player_dk_id === id) && !visibleIds.has(id),
+    );
+    if (missingLocks.length) {
+      const names = missingLocks.map(
+        (id) => players.find((p) => p.player_dk_id === id)?.display_name ?? id,
+      );
+      setError(
+        names.length === 1
+          ? `${names[0]} is locked but not in the selected games`
+          : `${names.join(", ")} are locked but not in the selected games`,
+      );
+      return;
+    }
     const live = {
       ...controls,
       locks: picks.lock,
@@ -192,8 +220,9 @@ export function Optimizer({
           </p>
         ) : null}
       </header>
+      {strip.length ? <GameStrip games={strip} /> : null}
 
-      <section className="glass rounded-xl border p-4" aria-label="Optimizer settings">
+      <section className="card p-4" aria-label="Optimizer settings">
         <div className="flex flex-wrap items-end gap-3">
           {numField("Lineups", controls.lineups, (lineups) => patch({ lineups }), 1, 20)}
           {numField("Cap", controls.salaryCap, (salaryCap) => patch({ salaryCap }), 0, 100000, 100)}
@@ -248,6 +277,34 @@ export function Optimizer({
             {busy ? "Solving…" : "Generate"}
           </Button>
         </div>
+        <PhraseBox
+          pool={pool}
+          week={week}
+          site={site}
+          slate={slate}
+          lock={picks.lock}
+          stack={picks.stack}
+          onApply={({ patch, excl, stack }) => {
+            if (patch && Object.keys(patch).length) {
+              setControls((c) => ({ ...c, ...patch }));
+            }
+            if (excl.length || stack.length) {
+              setPicks({
+                ...picks,
+                excl: excl.length ? [...new Set([...picks.excl, ...excl])] : picks.excl,
+                stack: stack.length ? [...new Set([...picks.stack, ...stack])] : picks.stack,
+              });
+            }
+          }}
+        />
+        <p className="mt-2 t-caption">
+          Elevated-by-injury marks backups whose starter is out. The sim does not reallocate vacated
+          share, so the projection is still a backup&apos;s prior — useful as a human override, not as
+          the model&apos;s opinion.
+          {pool.some((p) => p.depthAsOf)
+            ? ` Depth snapshot ${pool.find((p) => p.depthAsOf)?.depthAsOf}.`
+            : ""}
+        </p>
         <p className="mt-3 t-caption">
           Pool {pool.length} · locked {picks.lock.length} · excluded {picks.excl.length}
         </p>
@@ -265,9 +322,9 @@ export function Optimizer({
             setPicks({ ...picks, stack: [...next] });
           }}
         />
-        {error ? (
+        {poolError || error ? (
           <p className="mt-2 t-body text-warn" role="status">
-            {error}
+            {poolError ?? error}
           </p>
         ) : null}
       </section>

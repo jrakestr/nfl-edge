@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { GamesSelectionProvider } from "@/components/shell/GamesSelection";
+import type { StripGame } from "@/lib/kickoff";
 import { PLAYER_CELL, PlayersList } from "./PlayersList";
 import type { WeekPlayer } from "@/lib/types";
 import { REBUILD_PENDING } from "@/lib/injury-status";
@@ -6,11 +8,17 @@ import { slateStorageKey } from "@/lib/slate-picks";
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 
+let search = new URLSearchParams();
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace, prefetch: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/week/1/players/dk/main",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => search,
 }));
+
+beforeEach(() => {
+  search = new URLSearchParams();
+});
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -87,6 +95,53 @@ const MAIN: WeekPlayer[] = [
   },
 ];
 
+const noProjWr: WeekPlayer = {
+  player_id: "00-noproj-wr",
+  player_dk_id: "444",
+  display_name: "No Proj WR",
+  position: "WR",
+  team: "SEA",
+  opponent: "SF",
+  kickoff: "Sun 1:00 PM",
+  game_id: "g4",
+  salary: 3000,
+  fpts_dk_mean: null,
+  typical_dk: 4,
+  hist: null,
+};
+
+const noProjRb: WeekPlayer = {
+  player_id: "00-noproj-rb",
+  player_dk_id: "555",
+  display_name: "No Proj RB",
+  position: "RB",
+  team: "CHI",
+  opponent: "MIN",
+  kickoff: "Sun 1:00 PM",
+  game_id: "g5",
+  salary: 3200,
+  fpts_dk_mean: null,
+  typical_dk: 3,
+  hist: null,
+};
+
+const zeroProj: WeekPlayer = {
+  player_id: "00-zero",
+  player_dk_id: "666",
+  display_name: "Zero Proj",
+  position: "TE",
+  team: "GB",
+  opponent: "DET",
+  kickoff: "Sun 1:00 PM",
+  game_id: "g6",
+  salary: 2500,
+  fpts_dk_mean: 0,
+  typical_dk: 1,
+  hist: null,
+};
+
+const WITH_UNPROJ: WeekPlayer[] = [...MAIN, noProjWr, noProjRb, zeroProj];
+
 const FULL: WeekPlayer[] = [
   {
     ...MAIN[0]!,
@@ -117,33 +172,42 @@ const FULL: WeekPlayer[] = [
 describe("PlayersList slate rows", () => {
   it("shows a notice when the slate fell back to main", () => {
     render(<PlayersList players={MAIN} fallbackFrom="nope" />);
-    expect(screen.getByText(/Unknown slate “nope”; showing Main/)).toBeInTheDocument();
+    expect(screen.getByText(/Nope is listed for this week but has no salary rows/)).toBeInTheDocument();
   });
 
-  it("switching Main to Full changes the player count and DK IDs", () => {
+  it("switching Main to Full changes the player count", () => {
     const { rerender } = render(<PlayersList players={MAIN} />);
-    expect(screen.getByText("111")).toBeInTheDocument();
-    expect(screen.getByText("222")).toBeInTheDocument();
-    expect(screen.queryByText("333")).not.toBeInTheDocument();
+    expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+    expect(screen.getByText("Main Only")).toBeInTheDocument();
+    expect(screen.queryByText("Full Only")).not.toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(3); // header + 2
+    expect(screen.queryByRole("columnheader", { name: "DK ID" })).not.toBeInTheDocument();
 
     rerender(<PlayersList players={FULL} />);
-    expect(screen.getByText("999")).toBeInTheDocument();
-    expect(screen.queryByText("111")).not.toBeInTheDocument();
-    expect(screen.getByText("333")).toBeInTheDocument();
-    expect(screen.getAllByRole("row")).toHaveLength(3);
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+    expect(screen.getByText("Full Only")).toBeInTheDocument();
+    expect(screen.queryByText("Main Only")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(3);
   });
 
-  it("shows ceiling and position ranks and not leverage", () => {
+  it("shows ceiling and pts rank and not leverage, floor, or extra ranks", () => {
     render(<PlayersList players={MAIN} />);
     expect(screen.getByRole("columnheader", { name: "Ceiling" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Pts rk" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Val rk" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Ceil rk" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Val rk" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Ceil rk" })).not.toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "Leverage" })).not.toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "Floor / ceil" })).not.toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Floor" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Floor" })).not.toBeInTheDocument();
+  });
+
+  it("opens on the value sort from ?sort=value&dir=desc", () => {
+    search = new URLSearchParams("sort=value&dir=desc");
+    render(<PlayersList players={[...MAIN].reverse()} />);
+    const rows = screen.getAllByRole("row");
+    // Header + 2 players: highest value first despite the input order.
+    expect(rows[1]).toHaveTextContent("Jahmyr Gibbs");
+    expect(rows[2]).toHaveTextContent("Main Only");
   });
 
   it("FLEX row shows the real position, never a FLEX chip", () => {
@@ -177,7 +241,7 @@ describe("PlayersList slate rows", () => {
     );
   });
 
-  it("row actions update counts and Clear all zeros them", () => {
+  it("row actions update counts and Clear picks zeros them", () => {
     replace.mockClear();
     localStorage.clear();
     render(<PlayersList players={MAIN} slateId="2026_01_main" week={1} site="dk" slate="main" />);
@@ -200,10 +264,43 @@ describe("PlayersList slate rows", () => {
     expect(screen.getByRole("link", { name: "Build lineups with these →" }).getAttribute("href")).toContain(
       "lock=111",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear picks" }));
     expect(screen.getByRole("complementary", { name: "Pick summary" })).toHaveTextContent(
       "Locked 0 · Excluded 0 · Stacked 0",
     );
+  });
+});
+
+describe("PlayersList hide unprojected", () => {
+  it("hides null-projection rows by default and keeps a zero projection", () => {
+    render(<PlayersList players={WITH_UNPROJ} />);
+    expect(screen.getByRole("checkbox", { name: "Hide unprojected" })).toBeChecked();
+    expect(screen.getByText("hiding 2 with no projection")).toBeInTheDocument();
+    expect(screen.queryByText("No Proj WR")).not.toBeInTheDocument();
+    expect(screen.queryByText("No Proj RB")).not.toBeInTheDocument();
+    expect(screen.getByText("Zero Proj")).toBeInTheDocument();
+    expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+  });
+
+  it("unchecking shows null-projection rows and writes showunproj=1", () => {
+    replace.mockClear();
+    render(<PlayersList players={WITH_UNPROJ} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Hide unprojected" }));
+    expect(screen.getByText("No Proj WR")).toBeInTheDocument();
+    expect(screen.getByText("No Proj RB")).toBeInTheDocument();
+    expect(screen.getByText("2 with no projection")).toBeInTheDocument();
+    expect(screen.queryByText("hiding 2 with no projection")).not.toBeInTheDocument();
+    const href = String(replace.mock.calls.at(-1)?.[0]);
+    expect(href).toContain("showunproj=1");
+  });
+
+  it("counts null-projection rows after other filters, not the whole slate", () => {
+    render(<PlayersList players={WITH_UNPROJ} />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Position" }), { target: { value: "WR" } });
+    expect(screen.getByText("hiding 1 with no projection")).toBeInTheDocument();
+    expect(screen.queryByText("hiding 2 with no projection")).not.toBeInTheDocument();
+    expect(screen.queryByText("No Proj WR")).not.toBeInTheDocument();
+    expect(screen.getByText("Main Only")).toBeInTheDocument();
   });
 });
 
@@ -224,5 +321,77 @@ describe("PlayersList injury status", () => {
     expect(screen.getByLabelText("Q")).toHaveTextContent("Q");
     expect(screen.queryByText(REBUILD_PENDING)).not.toBeInTheDocument();
     expect(screen.getByText("18.2")).toHaveClass("text-foreground");
+  });
+});
+
+const STRIP: StripGame[] = [
+  {
+    game_id: "g1",
+    away: "NO",
+    home: "DET",
+    gameday: "2026-09-13",
+    gametime: "13:00",
+    location: "Home",
+    away_score: null,
+    home_score: null,
+    is_final: false,
+  },
+  {
+    game_id: "g2",
+    away: "KC",
+    home: "LAC",
+    gameday: "2026-09-13",
+    gametime: "13:00",
+    location: "Home",
+    away_score: null,
+    home_score: null,
+    is_final: false,
+  },
+];
+
+describe("PlayersList game strip", () => {
+  it("filters rows from chips and has no Game select", () => {
+    render(
+      <GamesSelectionProvider>
+        <PlayersList players={MAIN} strip={STRIP} />
+      </GamesSelectionProvider>,
+    );
+    expect(screen.getByLabelText("Team")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Game")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "NO at DET" }));
+    expect(screen.getByRole("row", { name: /jahmyr gibbs/i })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /main only/i })).toBeNull();
+  });
+});
+
+describe("PlayersList NFLGameSim", () => {
+  const NGS: WeekPlayer[] = [{ ...MAIN[0]!, ngs_fpts: 36.9 }, { ...MAIN[1]!, ngs_fpts: 20.1 }];
+
+  it("shows a muted NFLGameSim column beside DK pts", () => {
+    render(<PlayersList players={NGS} />);
+    expect(screen.getByRole("columnheader", { name: "NFLGameSim" })).toBeInTheDocument();
+    expect(screen.getByText("36.9")).toHaveClass("t-caption", "text-muted-foreground");
+    // DK pts keeps the model treatment.
+    expect(screen.getByText("18.2")).toHaveClass("text-foreground");
+  });
+
+  it("shows an em dash when the bench is absent", () => {
+    render(<PlayersList players={[{ ...MAIN[0]!, ngs_fpts: 36.9 }, { ...MAIN[1]! }]} />);
+    const row = screen.getByRole("row", { name: /main only/i });
+    expect(row).toHaveTextContent("—");
+  });
+
+  it("hide-unprojected still keys off our projection, not the bench", () => {
+    render(<PlayersList players={[...NGS, noProjWr]} />);
+    expect(screen.getByText("hiding 1 with no projection")).toBeInTheDocument();
+    expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+  });
+
+  it("sorts by the bench from ?sort=ngs&dir=desc", () => {
+    search = new URLSearchParams("sort=ngs&dir=desc");
+    render(<PlayersList players={[...NGS].reverse()} />);
+    const rows = screen.getAllByRole("row");
+    expect(rows[1]).toHaveTextContent("Jahmyr Gibbs");
+    expect(rows[2]).toHaveTextContent("Main Only");
   });
 });
