@@ -21,10 +21,10 @@ GPP_IDS = """QB,RB,RB,WR,WR,WR,TE,FLEX,DST,Fpts Proj,Field Fpts Proj,Ceiling,Sal
 jahmyr gibbs (111),saquon barkley (222),bijan robinson (333),ja'marr chase (444),amon-ra st. brown (555),puka nacua (666),sam laporta (777),justin jefferson (888),rams (999),140.1,140,180,50000,12.5,30.0,45.0,0.01,2.1,DET 3,,0,opto,1
 """
 
-EXPOSURE = """Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return
-Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,$1.2
-Puka Nacua,WR,LAR,$7800,18.0,8.0%,1.0%,20.0%,$0.4
-dolphins,DST,MIA,$2700,7.67755,46.44%,61.34%,43.33%,$15.7
+EXPOSURE = """Player,Position,Team,Salary,Fpts,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return
+Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,25.0%,$1.2
+Puka Nacua,WR,LAR,$7800,18.0,8.0%,1.0%,20.0%,12.0%,$0.4
+dolphins,DST,MIA,$2700,7.67755,46.44%,61.34%,43.33%,29.4%,$15.7
 """
 
 SLATE = [
@@ -286,19 +286,39 @@ def test_parse_gpp_and_exposure(tmp_path: Path):
     assert "proj_own" not in mia
 
 
+def test_parse_exposure_maps_every_writer_cell(tmp_path: Path):
+    e = tmp_path / "exp.csv"
+    e.write_text(
+        "Player,Position,Team,Salary,Fpts,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
+        "Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,25.0%,$1.2\n"
+    )
+    (row,) = P.parse_exposure_csv(e, SLATE)
+    assert row["player_id"] == "00-g"
+    assert row["win_pct"] == pytest.approx(0.20)
+    assert row["own_field_sim"] == pytest.approx(0.40)
+    assert row["own_field_proj"] is None
+    assert row["roi"] == pytest.approx(1.2)
+
+
 def test_parse_exposure_raises_on_classic_width_mismatch(tmp_path: Path):
     e = tmp_path / "exp.csv"
     e.write_text(
         "Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
         "Jahmyr Gibbs,RB,DET,20.0,5.0,40.0,25.0,1.2\n"
     )
-    with pytest.raises(ValueError, match=r"8.*9|header.*data"):
+    with pytest.raises(ValueError, match="unknown exposure header"):
         P.parse_exposure_csv(e, SLATE)
     e.write_text(
         "Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
         "Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,25.0%,$1.2\n"
     )
-    with pytest.raises(ValueError, match=r"10|header.*data"):
+    with pytest.raises(ValueError, match="unknown exposure header"):
+        P.parse_exposure_csv(e, SLATE)
+    e.write_text(
+        "Player,Position,Team,Salary,Fpts,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
+        "Jahmyr Gibbs,RB,DET,$8000,22.5,20.0%,5.0%,40.0%,25.0%\n"
+    )
+    with pytest.raises(ValueError, match="header has 10 fields, data row has 9"):
         P.parse_exposure_csv(e, SLATE)
 
 

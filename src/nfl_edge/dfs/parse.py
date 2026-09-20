@@ -105,9 +105,10 @@ def parse_gpp_csv(path: Path) -> list[dict]:
 
 
 CLASSIC_EXPOSURE_HEADER = [
-    "Player", "Position", "Team", "Win%", "Top1%", "Sim. Own%", "Proj. Own%", "Avg. Return",
+    "Player", "Position", "Team", "Salary", "Fpts", "Win%", "Top1%",
+    "Sim. Own%", "Proj. Own%", "Avg. Return",
 ]
-CLASSIC_EXPOSURE_WIDTH = 9
+CLASSIC_EXPOSURE_WIDTH = 10
 SHOWDOWN_EXPOSURE_HEADER = [
     "Player", "Roster Position", "Position", "Team", "Win%", "Top10%",
     "Sim. Own%", "Proj. Own%", "Avg. Return",
@@ -165,10 +166,13 @@ def parse_exposure_csv(path: Path, slate: list[dict]) -> list[dict]:
             if not src or not src.get("player_id"):
                 continue
             if kind == "classic":
+                # Writer cells: name,pos,team,$salary,fpts,win%,top1%,sim%,proj%,$return.
+                # own_field_proj always comes from projections.csv (merge_exposure),
+                # never from this file's Proj. Own% column.
                 win = _pct(cells[5])
                 field_sim = _pct(cells[7])
                 field_proj = None
-                roi = _money(cells[8])
+                roi = _money(cells[9])
             else:
                 win = _pct(cells[4])
                 field_sim = _pct(cells[6])
