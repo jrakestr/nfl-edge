@@ -168,9 +168,9 @@ def _histogram(arr: np.ndarray, n_bins: int = 20) -> dict:
 
 def _summarize(name: str, arr: np.ndarray) -> dict:
     del name
-    q = np.percentile(arr, [10, 50, 90])
+    q = np.percentile(arr, [10, 25, 50, 90])
     return {"mean": round(float(arr.mean()), 3), "sd": round(float(arr.std()), 3),
-            "p10": float(q[0]), "p50": float(q[1]), "p90": float(q[2]),
+            "p10": float(q[0]), "p25": float(q[1]), "p50": float(q[2]), "p90": float(q[3]),
             "hist": _histogram(arr)}
 
 
