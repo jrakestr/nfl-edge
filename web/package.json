@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-query-schema.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit && node scripts/check-query-schema.mjs",
+    "types:gen": "npx supabase gen types typescript --project-id zjaqajygzsmysddeltno --schema raw,model > src/lib/database.types.ts",
     "test": "vitest run",
     "a11y": "playwright test",
     "logos": "node scripts/build-logos.mjs"

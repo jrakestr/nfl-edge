@@ -56,7 +56,7 @@ Read docs/purpose.md before planning any change. docs/architecture.md is the des
 - GitHub remote is jrakestr/nfl-edge (private). Production is the Git deploy of `web/`; never `vercel --prod` from the repo root (it uploads `data/draws/`).
 - `.env` DATABASE_URL is Supabase; unset it to use the local Postgres container (port 5433, database `nfl_edge`, not default `postgres`) for 2025 backtests.
 - Market spread/total never enter `sim/game.py` or `sim/players.py`; `slate.py` loads them only for P(cover)/P(over) summaries.
-- The web app lives in `web/`. The Edge board reads `model.verdicts_latest` and `model.edges_latest`; do not fall back to verdict payload `edges[]`.
+- The web app lives in `web/`. The Edge board reads `model.verdicts_latest` and `model.edges_latest`; do not fall back to verdict payload `edges[]`. After a column rename or add, regen `web/src/lib/database.types.ts` (`npm run types:gen` in `web/`) and keep it committed; typecheck/build fail if a query names a missing column.
 - Displayed spread/total use `mean_spread`/`mean_total`; median stays for P(cover)/P(over).
 - DK salary CSVs live in gitignored `data/dk/`. Player-ID joins go through `raw.players` and `raw.dk_player_crosswalk` (LAR→LA, JAC→JAX, WSH→WAS). DFS is slate-scoped (main/full/showdown have distinct DK IDs); upload CSVs must use that slate's IDs. Status O/D/Q on ingest writes `raw.player_overrides`; the UI reads overrides live, and OUT/D set after the run's `created_at` grey the projection and drop the player from the optimizer pool.
 - Calibration monotone against the close is a season-long grading target, not a sim build gate.
