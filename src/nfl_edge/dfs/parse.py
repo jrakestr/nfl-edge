@@ -302,20 +302,54 @@ def merge_sim_stats(opto: list[dict], gpp: list[dict]) -> list[dict]:
     return out
 
 
+UPLOAD_NAME = re.compile(
+    r"^dk_upload_(?P<slate_id>.+)_(?P<run_id_prefix>[A-Za-z0-9-]{1,8})_"
+    r"(?P<source>sim|user-optimized)\.csv$"
+)
+
+
+def upload_filename(slate_id: str, run_id: str, source: str = "sim") -> str:
+    """Provenance for a DK upload: slate, first 8 of run_id, and source."""
+    return f"dk_upload_{slate_id}_{run_id[:8]}_{source}.csv"
+
+
+def parse_upload_stamp(path: Path | str) -> dict:
+    """Read run/slate/source from the filename (and full run_id from the path)."""
+    p = Path(path)
+    m = UPLOAD_NAME.match(p.name)
+    if not m:
+        raise ValueError(f"not an nfl-edge upload filename: {p.name}")
+    stamp = {
+        "slate_id": m.group("slate_id"),
+        "run_id_prefix": m.group("run_id_prefix"),
+        "source": m.group("source"),
+        "run_id": None,
+    }
+    # data/dfs/<run_id>/<site>/<slate>/dk_upload_….csv
+    parts = p.parts
+    if len(parts) >= 4:
+        maybe = parts[-4]
+        if maybe.startswith(stamp["run_id_prefix"]):
+            stamp["run_id"] = maybe
+    return stamp
+
+
 def upload_csv(
     lineups: list[dict],
-    run_id: str,
-    slate_id: str,
+    run_id: str = "",
+    slate_id: str = "",
     alias_ids: dict[str, str] | None = None,
 ) -> str:
-    """DK upload of this slate's IDs. `alias_ids` is ignored — never substitute another slate."""
-    del alias_ids
+    """DK upload of this slate's IDs. Line 1 is the DK header — no comment.
+
+    Provenance is the filename (`upload_filename`); `run_id` / `slate_id` stay
+    on the signature so callers keep passing them. `alias_ids` is ignored —
+    never substitute another slate.
+    """
+    del alias_ids, run_id, slate_id
     sd = bool(lineups) and (lineups[0].get("slots") or [""])[0] == "CPT"
     header = "CPT,FLEX,FLEX,FLEX,FLEX,FLEX" if sd else "QB,RB,RB,WR,WR,WR,TE,FLEX,DST"
-    lines = [
-        f"# nfl-edge run_id={run_id} slate_id={slate_id}",
-        header,
-    ]
+    lines = [header]
     for lu in lineups:
         cells = []
         for name, did in zip(lu["names"], lu["dk_ids"]):

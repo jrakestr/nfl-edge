@@ -122,7 +122,7 @@ Wednesday 2026-09-09 ~15:00 MST (before NE@SEA lock, 20:20 ET / 18:20 MST)
 7. `nfl-edge dfs --season 2026 --week 1 --site dk --slate showdown --lineups 150 --field 20000`
 8. `cd web && vercel` (preview, not `--prod`)
 
-Report: `run_id`, invariants, override delta vs `output/overrides_2026_wk01_pre_wed.csv` (202 rows at bf9a11f4: 127 out / 75 Q), upload path `data/dfs/<run_id>/dk/showdown/dk_upload.csv`.
+Report: `run_id`, invariants, override delta vs `output/overrides_2026_wk01_pre_wed.csv` (202 rows at bf9a11f4: 127 out / 75 Q), upload path `data/dfs/<run_id>/dk/showdown/dk_upload_<slate_id>_<run_id first 8>_sim.csv`.
 
 Saturday 2026-09-12 20:00 MST (LaunchAgent; `--note sat-final`)
 
@@ -168,8 +168,11 @@ ahead of the last `lines` run come from `proj_games.line_grid` (a lookup, not a 
 
 Player library: `/week/[n]/players/dk/{slate}`. Browser optimizer: `/week/[n]/optimize/dk/{slate}`.
 Browser-optimized lineups are **not graded** unless you export the CSV and enter that slate.
-The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Both exports stamp
-`run_id`, `slate_id`, and `source` (`sim` or `user-optimized`).
+The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Both exports put
+`run_id`, `slate_id`, and `source` (`sim` or `user-optimized`) in the filename
+(`dk_upload_<slate_id>_<run_id first 8>_<source>.csv`). Line 1 is the DK header — never a
+comment. Grade an entered upload from that name (and the CLI path
+`data/dfs/<run_id>/<site>/<slate>/`).
 Sentences stay on the last `nfl-edge lines` write, which this Mac's LaunchAgent runs after each
 snapshot when a week is stale.
 

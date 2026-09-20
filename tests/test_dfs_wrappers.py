@@ -114,8 +114,9 @@ def test_showdown_upload_header():
         "slots": ["CPT", "FLEX"],
     }]
     text = P.upload_csv(p_rows, run_id="run-sd", slate_id="2026_01_showdown")
-    assert text.splitlines()[1] == "CPT,FLEX,FLEX,FLEX,FLEX,FLEX"
+    assert text.splitlines()[0] == "CPT,FLEX,FLEX,FLEX,FLEX,FLEX"
     assert "43782097" in text
+    assert not text.startswith("#")
 
 
 def test_upload_csv_uses_slate_ids_not_another_slate(tmp_path: Path):
@@ -125,10 +126,32 @@ def test_upload_csv_uses_slate_ids_not_another_slate(tmp_path: Path):
     # A different slate would have Gibbs as 0001; upload must keep 111 from this opto file.
     other = {"Jahmyr Gibbs": "0001"}
     text = P.upload_csv(rows, run_id="abc-run", slate_id="2026_01_full", alias_ids=other)
-    assert "abc-run" in text
-    assert "2026_01_full" in text
-    assert "111" in text.splitlines()[2]
+    assert text.splitlines()[0] == "QB,RB,RB,WR,WR,WR,TE,FLEX,DST"
+    assert "abc-run" not in text
+    assert "111" in text.splitlines()[1]
     assert "0001" not in text
+
+
+def test_upload_filename_and_stamp_from_path():
+    name = P.upload_filename("2026_01_full", "e7a5ff4e-abcd-1234", "sim")
+    assert name == "dk_upload_2026_01_full_e7a5ff4e_sim.csv"
+    stamp = P.parse_upload_stamp(
+        Path("data/dfs/e7a5ff4e-abcd-1234/dk/full") / name
+    )
+    assert stamp["slate_id"] == "2026_01_full"
+    assert stamp["run_id_prefix"] == "e7a5ff4e"
+    assert stamp["source"] == "sim"
+    assert stamp["run_id"] == "e7a5ff4e-abcd-1234"
+
+
+def test_upload_filename_user_optimized():
+    name = P.upload_filename("2026_01_main", "abc-run", "user-optimized")
+    assert name == "dk_upload_2026_01_main_abc-run_user-optimized.csv"
+    stamp = P.parse_upload_stamp(name)
+    assert stamp["slate_id"] == "2026_01_main"
+    assert stamp["run_id_prefix"] == "abc-run"
+    assert stamp["source"] == "user-optimized"
+    assert stamp["run_id"] is None
 
 
 def test_merge_sim_stats_by_slate_ids_ignores_case():

@@ -80,7 +80,9 @@ def run(
     exposure = parse.merge_exposure(sim["exposure"], ours, field_proj)
     written = persist(rid, site, slate_id, slate_type_for(slate), merged, exposure)
     upload = parse.upload_csv(merged, rid, slate_id)
-    (export_dir / "dk_upload.csv").write_text(upload)
+    upload_name = parse.upload_filename(slate_id, rid, "sim")
+    upload_path = export_dir / upload_name
+    upload_path.write_text(upload)
     if export:
         Path(export).write_text(upload)
     return {
@@ -92,6 +94,6 @@ def run(
         "n_lineups": len(merged),
         "n_exposure": len(sim["exposure"]),
         "persisted": written,
-        "upload": str(export or export_dir / "dk_upload.csv"),
+        "upload": str(export or upload_path),
         "draw_root": str(DATA_DIR / "dfs" / rid / site / slate),
     }

@@ -12,7 +12,7 @@ import { StackSuggestions } from "@/components/optimize/StackSuggestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatUploadCsv } from "@/lib/dfs-upload";
+import { formatUploadCsv, uploadFilename } from "@/lib/dfs-upload";
 import { fallbackNotice } from "@/lib/slate";
 import { useSlatePicks } from "@/lib/slate-picks";
 import { classicForcedInError, flexConstructionError } from "@/lib/optimize/classic";
@@ -195,10 +195,10 @@ export function Optimizer({
     if (!runId) return;
     const picked = yours.filter((l) => selected.has(l.lineup_id)).map(asDfs);
     if (!picked.length) return;
-    const csv = formatUploadCsv(runId, slateId, picked, "user-optimized");
+    const csv = formatUploadCsv(picked);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = `dk_upload_${slateId}_user.csv`;
+    a.download = uploadFilename(slateId, runId, "user-optimized");
     a.click();
     URL.revokeObjectURL(a.href);
   }

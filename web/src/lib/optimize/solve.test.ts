@@ -106,11 +106,12 @@ describe("classic ILP", () => {
         expect(shared).toBeLessThanOrEqual(6);
       }
     }
-    const csv = formatUploadCsv("run-1", "2026_01_main", lineupsToDfs(lineups), "user-optimized");
+    const csv = formatUploadCsv(lineupsToDfs(lineups));
     for (const lu of lineups) {
       for (const pl of lu.players) expect(csv).toContain(pl.dk_id);
     }
-    expect(csv).toContain("source=user-optimized");
+    expect(csv.split("\n")[0]).toBe("QB,RB,RB,WR,WR,WR,TE,FLEX,DST");
+    expect(csv).not.toContain("source=user-optimized");
   });
 
   it("stack, bring-back, and no-QB-vs-DST follow whichever QB is chosen", async () => {

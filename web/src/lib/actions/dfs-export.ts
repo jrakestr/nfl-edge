@@ -14,5 +14,5 @@ export async function exportSelectedLineups(args: {
   if (ids.size === 0) return "";
   const all = await dfsLineups(args.runId, args.site, args.slateId);
   const picked = all.filter((r) => ids.has(r.lineup_id));
-  return formatUploadCsv(args.runId, args.slateId, picked);
+  return formatUploadCsv(picked);
 }

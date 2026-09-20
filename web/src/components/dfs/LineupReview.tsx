@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { exportSelectedLineups } from "@/lib/actions/dfs-export";
+import { uploadFilename } from "@/lib/dfs-upload";
 import type { CorrPair, DfsExposure, DfsLineup } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ExposureBar } from "./ExposureBar";
@@ -108,7 +109,7 @@ export function LineupReview({
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `dk_upload_${sid}.csv`;
+      a.download = uploadFilename(sid, runId, "sim");
       a.click();
       URL.revokeObjectURL(a.href);
     } finally {
@@ -190,7 +191,7 @@ export function LineupReview({
           </div>
         ) : (
           <p className="t-caption">
-            Lineups fill in with dfs-web. Export is stamped with run_id when model.dfs_lineups exists.
+            Lineups fill in with dfs-web. Export filename includes run_id when model.dfs_lineups exists.
           </p>
         )}
       </header>
