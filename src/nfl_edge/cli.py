@@ -540,6 +540,38 @@ def benchmark_nflgamesim(
         raise typer.Exit(code=1) from None
 
 
+@benchmark_app.command("nflgamesim-players")
+def benchmark_nflgamesim_players(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(None, "--file", help="NFLGameSim weekly player CSV"),
+):
+    """Load an NFLGameSim player CSV into raw.external_players (benchmark only)."""
+    from pathlib import Path
+
+    from .benchmark import nflgamesim_players as ngp
+    from .ingest.odds_api import UnmappedTeam
+
+    try:
+        r = ngp.run(season, week, Path(file) if file else None)
+        typer.echo(
+            f"nflgamesim-players {r['season']} wk{r['week']}: "
+            f"{r['written']} written / {r['rows']} rows, "
+            f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
+            f"{r['games_unresolved_n']} unresolved games"
+        )
+        for u in r["unmatched"]:
+            typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} opp={u['opponent']}")
+        for g in r["games_unresolved"]:
+            typer.echo(
+                f"  unresolved game ({g['hits']} hits): {g['name']} "
+                f"team={g['team']} opp={g['opponent']}"
+            )
+    except (UnmappedTeam, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+
+
 @app.command()
 def bettingpros(
     week: int = typer.Option(...),
