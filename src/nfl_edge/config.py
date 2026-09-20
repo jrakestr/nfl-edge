@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -22,6 +23,31 @@ def database_url() -> str:
     if not url:
         raise RuntimeError("DATABASE_URL not set (see .env.example)")
     return url
+
+
+def odds_api_key() -> str:
+    key = os.environ.get("ODDS_API_KEY")
+    if not key:
+        raise RuntimeError("ODDS_API_KEY not set (see .env.example)")
+    return key
+
+
+def line_reference() -> dict:
+    cfg = load_yaml("line_reference.yaml")
+    raw = cfg["effective_from"]
+    if isinstance(raw, datetime):
+        effective = raw if raw.tzinfo else raw.replace(tzinfo=UTC)
+    else:
+        text = str(raw)
+        if text.endswith("Z"):
+            text = f"{text[:-1]}+00:00"
+        effective = datetime.fromisoformat(text)
+    return {
+        "source": cfg["source"],
+        "bookmaker": cfg["bookmaker"],
+        "fallback_source": cfg["fallback_source"],
+        "effective_from": effective,
+    }
 
 
 def dfs_tools_path() -> Path:
