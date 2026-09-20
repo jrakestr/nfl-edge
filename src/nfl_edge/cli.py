@@ -464,6 +464,41 @@ def dk_salaries(
         typer.echo(line)
 
 
+@app.command("rts-status")
+def rts_status(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(..., "--file", help="RTS projection export CSV"),
+    second: str = typer.Option(None, "--second", help="Second-source CSV: player,team,position,proj,status"),
+):
+    """Upsert availability overrides from an RTS projection export. Never the sim."""
+    from pathlib import Path
+
+    from .ingest import rts_status as rts
+
+    try:
+        r = rts.run(season, week, Path(file), Path(second) if second else None)
+    except ValueError as e:
+        typer.echo(str(e))
+        raise typer.Exit(1) from e
+    typer.echo(
+        f"rts-status {r['season']} wk{r['week']}: {r['written']} written / "
+        f"{r['rts_rows']} RTS rows"
+        + (f" / {r['src2_rows']} second-source rows" if r["second"] else "")
+        + f" -> {r['csv']}"
+    )
+    for u in r["upserts"]:
+        typer.echo(f"  {u['status']} x{u['usage_multiplier']}: {u['name']} ({u['player_id']})")
+    for p in r["protected"]:
+        typer.echo(f"  protected-manual: {p.get('name')} ({p['player_id']})")
+    for q in r["skipped_qb_zero"]:
+        typer.echo(f"  qb-zero-skipped: {q.get('player')} team={q.get('team')}")
+    for n in r["near_zero"]:
+        typer.echo(f"  near-zero listed: {n.get('player')} {n.get('proj'):.2f}")
+    for u in r["unmatched"]:
+        typer.echo(f"  {u.get('reason', 'unmatched')}: {u.get('player')} team={u.get('team')}")
+
+
 @app.command()
 def dfs(
     week: int = typer.Option(...),
