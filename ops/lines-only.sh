@@ -41,6 +41,21 @@ capture() {
   printf '%s\n' "$out"
 }
 
+# Odds API: 3 credits. RecentDuplicate is a no-op. Any other failure logs one
+# line and the nflverse snapshot plus lines still run. CLI prints remaining=.
+set +e
+odds_out=$(/usr/bin/env -u DATABASE_URL "$NFL" ingest odds-api --markets h2h,spreads,totals --regions us 2>&1)
+odds_code=$?
+set -e
+printf '%s\n' "$odds_out"
+if [ "$odds_code" -ne 0 ] && ! printf '%s' "$odds_out" | grep -qi 'recent duplicate'; then
+  if is_unreachable "$odds_out"; then
+    echo "odds-api unreachable, continuing with nflverse"
+  else
+    echo "odds-api failed, continuing with nflverse"
+  fi
+fi
+
 capture /usr/bin/env -u DATABASE_URL "$NFL" ingest --season 2026 --lines-only
 
 weeks=$(capture /usr/bin/env -u DATABASE_URL "$NFL" stale-weeks --season 2026)

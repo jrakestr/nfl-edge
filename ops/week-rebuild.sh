@@ -1,7 +1,7 @@
 #!/bin/bash
 # Saturday 20:00 / Sunday 08:40 MST. Week from raw.schedules.
 # Sunday: sim must finish by 08:50 or Saturday stays live. lines/props/dfs run to
-# completion; log if past 09:30. DFS main before full.
+# completion; log if past 09:30. DK slates from files on disk; Status merge after salaries.
 # DB or github.com unreachable: one line, exit 0.
 set -euo pipefail
 ROOT="/Users/home/Development/nfl-edge"
@@ -76,22 +76,29 @@ if [ -z "${WEEK// }" ]; then
   exit 1
 fi
 WW=$(printf '%02d' "$WEEK")
-MAIN_CSV="$ROOT/data/dk/DKSalaries_${SEASON}_wk${WW}_main.csv"
-FULL_CSV="$ROOT/data/dk/DKSalaries_${SEASON}_wk${WW}_full.csv"
 PROPS_CSV="$ROOT/data/props/props_${SEASON}_wk${WW}.csv"
-
-if [ ! -f "$MAIN_CSV" ]; then
-  echo "missing $MAIN_CSV"
+shopt -s nullglob
+DK_CSVS=("$ROOT/data/dk/DKSalaries_${SEASON}_wk${WW}_"*.csv)
+if [ ${#DK_CSVS[@]} -eq 0 ]; then
+  echo "no DKSalaries_${SEASON}_wk${WW}_*.csv in data/dk/"
   exit 1
 fi
-if [ ! -f "$FULL_CSV" ]; then
-  echo "missing $FULL_CSV"
-  exit 1
-fi
+SLATES=()
+prefix="DKSalaries_${SEASON}_wk${WW}_"
+for f in "${DK_CSVS[@]}"; do
+  base=$(basename "$f")
+  slate=${base#"$prefix"}
+  slate=${slate%.csv}
+  SLATES+=("$slate")
+done
 
 capture /usr/bin/env -u DATABASE_URL "$NFL" ingest --season "$SEASON" --week "$WEEK"
-capture /usr/bin/env -u DATABASE_URL "$NFL" dk-salaries --season "$SEASON" --week "$WEEK" --slate main
-capture /usr/bin/env -u DATABASE_URL "$NFL" dk-salaries --season "$SEASON" --week "$WEEK" --slate full
+for slate in "${SLATES[@]}"; do
+  capture /usr/bin/env -u DATABASE_URL "$NFL" dk-salaries \
+    --season "$SEASON" --week "$WEEK" --slate "$slate" --salaries-only
+done
+capture /usr/bin/env -u DATABASE_URL "$NFL" dk-salaries \
+  --season "$SEASON" --week "$WEEK" --merge-status
 
 OV_CSV="$ROOT/data/overrides/${SEASON}_wk${WW}.csv"
 if [ -f "$OV_CSV" ]; then
@@ -146,6 +153,20 @@ if [ "$n_games" != "$expect" ] || [ "$n_player_games" != "$expect" ]; then
 fi
 
 soft_note
+# Odds API: 3 credits, one pull per run. RecentDuplicate is a no-op. CLI prints remaining=.
+set +e
+odds_out=$(/usr/bin/env -u DATABASE_URL "$NFL" ingest odds-api --markets h2h,spreads,totals --regions us 2>&1)
+odds_code=$?
+set -e
+printf '%s\n' "$odds_out"
+if [ "$odds_code" -ne 0 ] && ! printf '%s' "$odds_out" | grep -qi 'recent duplicate'; then
+  if is_unreachable "$odds_out"; then
+    echo "unreachable, skipped"
+    exit 0
+  fi
+  exit "$odds_code"
+fi
+soft_note
 capture /usr/bin/env -u DATABASE_URL "$NFL" lines --season "$SEASON" --week "$WEEK"
 soft_note
 if [ -f "$PROPS_CSV" ]; then
@@ -153,10 +174,11 @@ if [ -f "$PROPS_CSV" ]; then
 else
   capture /usr/bin/env -u DATABASE_URL "$NFL" props --season "$SEASON" --week "$WEEK"
 fi
-soft_note
-capture /usr/bin/env -u DATABASE_URL "$NFL" dfs --season "$SEASON" --week "$WEEK" --site dk --slate main --lineups 150 --field 20000
-soft_note
-capture /usr/bin/env -u DATABASE_URL "$NFL" dfs --season "$SEASON" --week "$WEEK" --site dk --slate full --lineups 150 --field 20000
+for slate in "${SLATES[@]}"; do
+  soft_note
+  capture /usr/bin/env -u DATABASE_URL "$NFL" dfs \
+    --season "$SEASON" --week "$WEEK" --site dk --slate "$slate" --lineups 150 --field 20000
+done
 
 newest=$(capture /usr/bin/env -u DATABASE_URL "$NFL" newest-run --season "$SEASON" --week "$WEEK")
 echo "rebuild $NOTE week $WEEK $newest"
