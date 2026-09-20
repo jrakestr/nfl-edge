@@ -120,15 +120,22 @@ def run(
     ).to_dicts()
     showdown = slate_type_for(slate) == "showdown"
     opto = run_optimizer.run(export_dir, site=site, lineups=n_lineups, showdown=showdown)
-    sim = run_sim.run(export_dir, site=site, field=field, lineups_csv=Path(opto["path"]),
-                      slate_rows=salaries, showdown=showdown)
-    merged = parse.merge_sim_stats(opto["lineups"], sim["lineups"])
+    if construction == "mass":
+        sim = run_sim.run(export_dir, site=site, field=field, lineups_csv=Path(opto["path"]),
+                          slate_rows=salaries, showdown=showdown)
+        merged = parse.merge_sim_stats(opto["lineups"], sim["lineups"])
+        sim_exposure = sim["exposure"]
+        n_exposure = len(sim_exposure)
+    else:
+        merged = opto["lineups"]
+        sim_exposure = []
+        n_exposure = 0
     merged = parse.rescore_mean_fpts(
         merged, exported.get("mean_by_dk") or {}, showdown=showdown,
     )
     ours = parse.exposure_from_lineups(merged, salaries)
     field_proj = parse.field_proj_from_projections(export_dir / "projections.csv", salaries)
-    exposure = parse.merge_exposure(sim["exposure"], ours, field_proj)
+    exposure = parse.merge_exposure(sim_exposure, ours, field_proj)
     if parse.field_is_self(exposure):
         raise RuntimeError(
             "simulated field matches our own lineups; refusing to persist "
@@ -151,7 +158,7 @@ def run(
         "slate_id": slate_id,
         "export_dir": str(export_dir),
         "n_lineups": len(merged),
-        "n_exposure": len(sim["exposure"]),
+        "n_exposure": n_exposure,
         "construction": construction,
         "contest": exported.get("contest"),
         "field_size": exported.get("field_size"),

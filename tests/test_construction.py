@@ -118,6 +118,14 @@ def test_lineup_count_uses_profile_and_rejects_over_max():
         C.lineup_count(C.profile("classic", "cash"), 150)
 
 
+def test_merge_p25_keeps_existing_percentiles():
+    arr = np.array([1.0, 2.0, 3.0, 4.0])
+    merged = C.merge_p25({"fpts_ppr": {"p10": 1.0, "p90": 4.0}}, arr)
+    assert merged["fpts_ppr"]["p10"] == 1.0
+    assert merged["fpts_ppr"]["p90"] == 4.0
+    assert merged["fpts_ppr"]["p25"] == pytest.approx(float(np.percentile(arr, 25)))
+
+
 def test_summarize_includes_p25():
     arr = np.arange(1, 101, dtype=float)
     s = slate._summarize("fpts_ppr", arr)

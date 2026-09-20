@@ -236,6 +236,53 @@ def test_persist_mass_rewrites_exposure(monkeypatch):
     assert any("dfs_exposure" in s for s in deleted)
 
 
+def test_cash_and_single_skip_field_sim(monkeypatch, tmp_path):
+    sim_calls = []
+
+    class _Rows:
+        def to_dicts(self):
+            return [{"player_id": "p", "name": "A", "player_dk_id": "1"}]
+
+    monkeypatch.setattr(Pipe, "resolve_run", lambda *a, **k: {"run_id": "rid"})
+    monkeypatch.setattr(Pipe, "assert_slate_in_run", lambda *a, **k: None)
+    monkeypatch.setattr(Pipe.C, "profile", lambda *a, **k: {"lineups": 1})
+    monkeypatch.setattr(Pipe.C, "lineup_count", lambda *a, **k: 1)
+    monkeypatch.setattr(Pipe.dfs_export, "run", lambda *a, **k: {
+        "path": str(tmp_path),
+        "settings": {},
+        "mean_by_dk": {"1": 10.0},
+        "contest": "gpp",
+        "field_size": 176470,
+        "injury_dropped": [],
+    })
+    monkeypatch.setattr(Pipe, "read_sql", lambda *a, **k: _Rows())
+    monkeypatch.setattr(Pipe, "slate_type_for", lambda _s: "classic")
+    monkeypatch.setattr(Pipe.run_optimizer, "run", lambda *a, **k: {
+        "path": str(tmp_path / "lu.csv"),
+        "lineups": [{
+            "lineup_id": "0", "proj_fpts": 10, "salary_used": 50000, "stack": "",
+            "slots": ["QB"], "names": ["A"], "dk_ids": ["1"],
+        }],
+    })
+    monkeypatch.setattr(
+        Pipe.run_sim, "run",
+        lambda *a, **k: sim_calls.append(1) or {"lineups": [], "exposure": []},
+    )
+    monkeypatch.setattr(Pipe.parse, "rescore_mean_fpts", lambda lus, *a, **k: lus)
+    monkeypatch.setattr(Pipe.parse, "exposure_from_lineups", lambda *a, **k: {})
+    monkeypatch.setattr(Pipe.parse, "field_proj_from_projections", lambda *a, **k: {})
+    monkeypatch.setattr(Pipe.parse, "merge_exposure", lambda *a, **k: [])
+    monkeypatch.setattr(Pipe.parse, "field_is_self", lambda *a, **k: False)
+    monkeypatch.setattr(Pipe.parse, "upload_csv", lambda *a, **k: "csv")
+    monkeypatch.setattr(Pipe.parse, "upload_filename", lambda *a, **k: "u.csv")
+    monkeypatch.setattr(Pipe, "persist", lambda *a, **k: {"lineups": 1, "exposure": 0})
+    cash = Pipe.run(2026, 2, construction="cash")
+    single = Pipe.run(2026, 2, construction="single")
+    assert sim_calls == []
+    assert cash["n_exposure"] == 0
+    assert single["construction"] == "single"
+
+
 def test_merge_sim_stats_by_slate_ids_ignores_case():
     opto_rows = [{
         "names": ["Jahmyr Gibbs", "Rams"],

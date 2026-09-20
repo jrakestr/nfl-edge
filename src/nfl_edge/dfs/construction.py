@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ..config import CONFIG_DIR
+import numpy as np
+
+from ..config import CONFIG_DIR, ROOT
 
 CONSTRUCTIONS_PATH = CONFIG_DIR / "dfs" / "constructions.json"
 IDS = ("cash", "single", "mass")
@@ -89,3 +91,59 @@ def apply_to_tools_config(
             "limit": (out.get("stack_rules") or {}).get("limit") or [],
         }
     return out
+
+
+def merge_p25(summary: dict[str, Any], arr: np.ndarray) -> dict[str, Any]:
+    """Write fpts_ppr.p25 from draws. Leaves other percentiles untouched."""
+    out = dict(summary)
+    fpts = dict(out.get("fpts_ppr") or {})
+    fpts["p25"] = float(np.percentile(np.asarray(arr, dtype=float), 25))
+    out["fpts_ppr"] = fpts
+    return out
+
+
+def backfill_p25_from_draws(run_id: str) -> int:
+    """Fill missing p25 on proj_players from this run's player parquet."""
+    import polars as pl
+
+    from ..db import read_sql, update_from
+
+    rows = read_sql(
+        "select player_id, draws_path, stat_summary "
+        "from model.proj_players where run_id = %s",
+        (run_id,),
+    )
+    if rows.is_empty():
+        return 0
+    by_path: dict[str, list[dict[str, Any]]] = {}
+    for r in rows.to_dicts():
+        summary = r.get("stat_summary")
+        if isinstance(summary, str):
+            summary = json.loads(summary)
+        if isinstance(summary, dict) and (summary.get("fpts_ppr") or {}).get("p25") is not None:
+            continue
+        path = r.get("draws_path")
+        if not path or not r.get("player_id"):
+            continue
+        by_path.setdefault(str(path), []).append({**r, "stat_summary": summary})
+    patched: list[dict[str, Any]] = []
+    for rel, group in by_path.items():
+        pq = ROOT / rel
+        if not pq.is_file():
+            raise RuntimeError(f"draws missing at {rel}; cannot backfill p25")
+        df = pl.read_parquet(pq, columns=["player_id", "fpts_ppr"])
+        wanted = {str(r["player_id"]) for r in group}
+        for pid in wanted:
+            arr = df.filter(pl.col("player_id") == pid)["fpts_ppr"].to_numpy()
+            if arr.size == 0:
+                raise RuntimeError(f"no draws for {pid} in {rel}")
+            row = next(r for r in group if str(r["player_id"]) == pid)
+            merged = merge_p25(row.get("stat_summary") or {}, arr)
+            patched.append({
+                "run_id": run_id,
+                "player_id": pid,
+                "stat_summary": merged,
+            })
+    if not patched:
+        return 0
+    return update_from(pl.DataFrame(patched), "model.proj_players", ["run_id", "player_id"])
