@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { LineupCard, stacksFromPlayers } from "@/components/dfs/LineupCard";
-import { LineupReview } from "@/components/dfs/LineupReview";
-import type { DfsLineup } from "@/lib/types";
+import { LineupReview, isSelfField } from "@/components/dfs/LineupReview";
+import type { DfsExposure, DfsLineup } from "@/lib/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -131,6 +131,35 @@ describe("stacksFromPlayers", () => {
   });
 });
 
+describe("isSelfField", () => {
+  const row = (own_ours: number | null, own_field_sim: number | null): DfsExposure => ({
+    player_id: "x",
+    name: "X",
+    team: "DET",
+    own_ours,
+    own_field_proj: null,
+    own_field_sim,
+    leverage: null,
+  });
+  it("flags sim ownership equal to ours on the mass of rows", () => {
+    const rows = Array.from({ length: 10 }, () => row(0.4, 0.4));
+    expect(isSelfField(rows)).toBe(true);
+  });
+  it("passes a generated field", () => {
+    const rows = [
+      row(0.4, 0.294),
+      row(0.32, 0.351),
+      row(0.2, 0.2),
+      ...Array.from({ length: 7 }, () => row(0.1, 0.05)),
+    ];
+    expect(isSelfField(rows)).toBe(false);
+  });
+  it("ignores unrostered players and empty input", () => {
+    expect(isSelfField([])).toBe(false);
+    expect(isSelfField([row(0, 0), row(null, 0.1)])).toBe(false);
+  });
+});
+
 describe("LineupReview construction", () => {
   it("filters by construction, names the method, and has no Pick one", () => {
     const cash: DfsLineup = { ...SAMPLE, lineup_id: "c1", construction: "cash", proj_fpts: 99 };
@@ -226,5 +255,59 @@ describe("LineupReview with data", () => {
       />,
     );
     expect(screen.getByRole("note")).toHaveTextContent("Sunday build in progress");
+  });
+
+  it("shows mine, simulated field, and projected field with leverage", () => {
+    render(
+      <LineupReview
+        week="1"
+        site="dk"
+        slate="main"
+        runId="bda9aaf4-032b-4380-ab3a-6634696525eb"
+        slateId="2026_01_main"
+        lineups={[SAMPLE]}
+        exposure={[
+          { player_id: "g", name: "Jahmyr Gibbs", team: "DET", own_ours: 0.4, own_field_proj: 0.294, own_field_sim: 0.2, leverage: 0.2 },
+          { player_id: "p", name: "Puka Nacua", team: "LAR", own_ours: 0.1, own_field_proj: 0.12, own_field_sim: 0.15, leverage: -0.05 },
+        ]}
+        teams={TEAMS}
+      />,
+    );
+    expect(screen.getByLabelText("Jahmyr Gibbs exposure")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Mine · Field (simulated) · Field (projected)").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("+20.0%")).toBeInTheDocument();
+    expect(screen.getByText("29%")).toBeInTheDocument();
+    expect(screen.queryByText(/dfs-web/)).not.toBeInTheDocument();
+  });
+
+  it("treats a self field as invalid: hides leverage and sim stats", () => {
+    const selfRows = Array.from({ length: 10 }, (_, i) => ({
+      player_id: `p${i}`,
+      name: `Player ${i}`,
+      team: "DET",
+      own_ours: 0.4,
+      own_field_proj: 0.294,
+      own_field_sim: 0.4,
+      leverage: 0,
+    }));
+    render(
+      <LineupReview
+        week="1"
+        site="dk"
+        slate="main"
+        runId="bda9aaf4-032b-4380-ab3a-6634696525eb"
+        slateId="2026_01_main"
+        lineups={[{ ...SAMPLE, construction: "mass" }]}
+        exposure={selfRows}
+        teams={TEAMS}
+      />,
+    );
+    expect(
+      screen.getByText("The simulated field was our own lineups — rebuild lineups."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("31%")).not.toBeInTheDocument();
+    expect(screen.queryByText("+0.0%")).not.toBeInTheDocument();
   });
 });

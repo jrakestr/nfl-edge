@@ -23,6 +23,19 @@ export function recomputedExposure(rows: DfsExposure[]): DfsExposure[] {
   return rows.filter((r) => r.own_field_sim != null);
 }
 
+/**
+ * True when the sim's field was our own lineups: Sim. Own% equals our exposure
+ * on more than 90% of rostered players. Mirrors parse.field_is_self in Python.
+ */
+export function isSelfField(rows: DfsExposure[]): boolean {
+  const judged = rows.filter((r) => (r.own_ours ?? 0) > 0 && r.own_field_sim != null);
+  if (judged.length === 0) return false;
+  const hits = judged.filter(
+    (r) => Math.abs((r.own_field_sim ?? 0) - (r.own_ours ?? 0)) <= 0.001,
+  ).length;
+  return hits / judged.length > 0.9;
+}
+
 function salaryBars(lineups: DfsLineup[]): { label: string; n: number }[] {
   const buckets = [
     { label: "≤48k", lo: 0, hi: 48000 },
@@ -109,6 +122,7 @@ export function LineupReview({
   const hist = salaryBars(visible);
   const histMax = Math.max(1, ...hist.map((h) => h.n));
   const readyExposure = recomputedExposure(exposure);
+  const selfField = useMemo(() => isSelfField(readyExposure), [readyExposure]);
 
   async function onExport() {
     if (!runId || selected.size === 0) return;
@@ -230,7 +244,7 @@ export function LineupReview({
           </div>
         ) : (
           <p className="t-caption">
-            Lineups fill in with dfs-web. Export filename includes run_id when model.dfs_lineups exists.
+            No lineups for this construction yet. Export filename includes run_id when model.dfs_lineups exists.
           </p>
         )}
       </header>
@@ -264,7 +278,7 @@ export function LineupReview({
                 teams={teams}
                 positions={positions}
                 staleDkIds={staleDkIds}
-                hideSimStats={method === "cash"}
+                hideSimStats={method === "cash" || selfField}
                 runId={runId}
                 slateId={sid}
                 selected={selected.has(lu.lineup_id)}
@@ -292,12 +306,34 @@ export function LineupReview({
                 <p className="t-caption">
                   {exposure.length > 0
                     ? "Exposure not recomputed for this run."
-                    : "Sorted by leverage once dfs-web writes exposure."}
+                    : "Sorted by leverage once exposure is written."}
                 </p>
+              </>
+            ) : selfField ? (
+              <>
+                <p className="t-caption" role="note">
+                  The simulated field was our own lineups — rebuild lineups.
+                </p>
+                {readyExposure.slice(0, 20).map((e) => (
+                  <ExposureBar
+                    key={e.player_id}
+                    name={e.name}
+                    mine={e.own_ours}
+                    field={e.own_field_sim}
+                    fieldProj={e.own_field_proj}
+                    hideLeverage
+                  />
+                ))}
               </>
             ) : (
               readyExposure.slice(0, 20).map((e) => (
-                <ExposureBar key={e.player_id} name={e.name} mine={e.own_ours} field={e.own_field_sim} />
+                <ExposureBar
+                  key={e.player_id}
+                  name={e.name}
+                  mine={e.own_ours}
+                  field={e.own_field_sim}
+                  fieldProj={e.own_field_proj}
+                />
               ))
             )}
           </section>
