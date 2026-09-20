@@ -274,7 +274,7 @@ def test_qb_factor_is_one_for_the_qb_who_produced_the_lookback_and_below_one_for
     fb = pl.DataFrame({"team": ["T"], "player_id": ["star"]})
     q = qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG).row(0, named=True)
     assert q["qb_pass_factor"] == pytest.approx(1.0, abs=0.02)
-    assert 0.9 < q["qb_att_share"] < 1.0
+    assert q["qb_att_share"] == pytest.approx(1.0)  # expected starter takes the full share
     assert q["qb_lookback_id"] == "star"
     assert q["n_att"] == pytest.approx(240.0)
     assert q["qb_lookback_att"] == pytest.approx(240.0)
@@ -282,10 +282,23 @@ def test_qb_factor_is_one_for_the_qb_who_produced_the_lookback_and_below_one_for
     q2 = qb.build(_qb_weeks(), backup, fb, 2025, 9, UCFG).row(0, named=True)
     assert q2["n_att"] == pytest.approx(0.0)
     assert q2["qb_pass_factor"] == pytest.approx(1.0)  # no information, no adjustment
-    assert q2["qb_att_share"] == pytest.approx(0.97)
+    assert q2["qb_att_share"] == pytest.approx(1.0)  # full share even with no history
     assert q2["qb_id"] == "newguy"
     assert q2["qb_lookback_id"] == "star"
     assert q2["qb_lookback_att"] == pytest.approx(240.0)
+
+
+def test_qb_share_keeps_shrunk_value_when_starter_override_dampens():
+    st = pl.DataFrame({"team": ["T"], "qb_id": ["star"]})
+    fb = pl.DataFrame({"team": ["T"], "player_id": ["star"]})
+    ov = pl.DataFrame({"player_id": ["star"], "status": ["questionable"],
+                       "usage_multiplier": [0.5]})
+    q = qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG, overrides=ov).row(0, named=True)
+    assert q["qb_att_share"] < 1.0  # dampened starter keeps the shrunk share
+    ov_out = pl.DataFrame({"player_id": ["star"], "status": ["out"],
+                           "usage_multiplier": [1.0]})
+    q2 = qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG, overrides=ov_out).row(0, named=True)
+    assert q2["qb_att_share"] == pytest.approx(1.0)
 
 
 def test_qb_starter_falls_back_when_schedule_has_none():

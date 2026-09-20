@@ -25,10 +25,12 @@ def build(season: int, week: int, c: dict | None = None) -> Priors:
     pw = usage.load_player_weeks(season, week)
     starters = qb.load_starters(season, week)
     dc = depth.load_depth(season, week)
+    ov = usage.load_overrides(season, week)
     u = usage.build(pw, usage.load_roster(season, week), season, week, c, starters=starters, depth=dc,
-                    overrides=usage.load_overrides(season, week))
+                    overrides=ov)
     fallback = u.filter(pl.col("is_qb1")).select(["team", "player_id"])
-    q = qb.build(qb.load_qb_weeks(season, week), starters, fallback, season, week, c)
+    q = qb.build(qb.load_qb_weeks(season, week), starters, fallback, season, week, c,
+                 overrides=ov)
     return Priors(
         season=season,
         week=week,

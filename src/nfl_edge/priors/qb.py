@@ -7,7 +7,11 @@ Per team for (season, week):
                   1.0 when the starter is the QB who produced the lookback; < 1 for a backup.
                   Applied to team off_ppd (** elasticity) and to receiver yardage efficiency, which
                   makes receiver rates QB-neutral: they were measured under the team's lookback QB play.
-  qb_att_share    starter share of team pass attempts in weeks they played, shrunk toward the prior.
+  qb_att_share    1.0 for the expected starter: he takes the full share of team
+                  pass attempts. The shrunk history value is kept only when a
+                  raw.player_overrides row dampens that starter (usage_multiplier < 1
+                  with a status other than out/doubtful/ir). Backups are never zeroed
+                  via overrides; they simply get no passing when the share is 1.0.
   n_att           starter pass attempts in the lookback window (0 when the starter is absent).
   qb_lookback_id  player with the most attempts on that team in the same window (not "former starter").
   qb_lookback_att that player's attempts in the window.
@@ -56,8 +60,13 @@ def load_qb_weeks(season: int, week: int) -> pl.DataFrame:
 
 
 def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataFrame,
-          season: int, week: int, c: dict) -> pl.DataFrame:
-    """Pure. fallback_qb1: (team, player_id) used when schedules has no starter for the team."""
+          season: int, week: int, c: dict, overrides: pl.DataFrame | None = None) -> pl.DataFrame:
+    """Pure. fallback_qb1: (team, player_id) used when schedules has no starter for the team.
+
+    overrides: raw.player_overrides rows (player_id, status, usage_multiplier). Only a
+    dampening row on the starter himself (multiplier < 1, not out/doubtful/ir) keeps the
+    shrunk share; otherwise the expected starter takes the full attempt share.
+    """
     g = common.with_weights(qb_weeks, season, week, c)
     league_ypa = float(g.select(common.league_ratio("pass_yds", "attempts")).item()) if g.height else 7.0
     lo, hi = c.get("qb_factor_clip", [0.8, 1.2])
@@ -123,4 +132,26 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
                  "n_att", "qb_lookback_id", "qb_lookback_att"])
         .sort("team")
     )
+    if overrides is not None and not overrides.is_empty():
+        damp = overrides.select(
+            "player_id",
+            pl.col("status").str.to_lowercase().alias("_st"),
+            pl.col("usage_multiplier").cast(pl.Float64).alias("_m"),
+        )
+        out = (
+            out.join(damp, left_on="qb_id", right_on="player_id", how="left")
+            .with_columns(
+                pl.when(
+                    pl.col("_m").is_not_null()
+                    & (pl.col("_m") < 1.0)
+                    & (~pl.col("_st").is_in(["out", "doubtful", "ir"]))
+                )
+                .then(pl.col("qb_att_share"))
+                .otherwise(pl.lit(1.0))
+                .alias("qb_att_share")
+            )
+            .drop(["_st", "_m"])
+        )
+    else:
+        out = out.with_columns(pl.lit(1.0).alias("qb_att_share"))
     return out.with_columns(pl.lit(season).alias("season"), pl.lit(week).alias("week"))
