@@ -154,6 +154,12 @@ def test_upload_filename_user_optimized():
     assert stamp["run_id"] is None
 
 
+def test_upload_filename_single():
+    name = P.upload_filename("2026_02_main", "e7a5ff4e-abcd", "single")
+    assert name == "dk_upload_2026_02_main_e7a5ff4e_single.csv"
+    assert P.parse_upload_stamp(name)["source"] == "single"
+
+
 def test_merge_sim_stats_by_slate_ids_ignores_case():
     opto_rows = [{
         "names": ["Jahmyr Gibbs", "Rams"],

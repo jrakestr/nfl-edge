@@ -4,10 +4,10 @@ const SLOTS = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as co
 const SHOWDOWN_SLOTS = ["CPT", "FLEX", "FLEX2", "FLEX3", "FLEX4", "FLEX5"] as const;
 const SHOWDOWN_HEADER = "CPT,FLEX,FLEX,FLEX,FLEX,FLEX";
 
-export type UploadSource = "sim" | "user-optimized";
+export type UploadSource = "sim" | "user-optimized" | "single";
 
 const UPLOAD_NAME =
-  /^dk_upload_(.+)_([A-Za-z0-9-]{1,8})_(sim|user-optimized)\.csv$/;
+  /^dk_upload_(.+)_([A-Za-z0-9-]{1,8})_(sim|user-optimized|single)\.csv$/;
 
 /** Provenance for a DK upload: slate, first 8 of run_id, and source. */
 export function uploadFilename(

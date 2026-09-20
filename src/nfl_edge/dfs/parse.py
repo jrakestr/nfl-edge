@@ -304,7 +304,7 @@ def merge_sim_stats(opto: list[dict], gpp: list[dict]) -> list[dict]:
 
 UPLOAD_NAME = re.compile(
     r"^dk_upload_(?P<slate_id>.+)_(?P<run_id_prefix>[A-Za-z0-9-]{1,8})_"
-    r"(?P<source>sim|user-optimized)\.csv$"
+    r"(?P<source>sim|user-optimized|single)\.csv$"
 )
 
 

@@ -69,6 +69,12 @@ describe("uploadFilename", () => {
     );
   });
 
+  it("stamps source=single for a one-lineup export", () => {
+    expect(uploadFilename("2026_02_main", "e7a5ff4e-abcd", "single")).toBe(
+      "dk_upload_2026_02_main_e7a5ff4e_single.csv",
+    );
+  });
+
   it("reads the stamp back from the filename and path", () => {
     const name = uploadFilename("2026_01_full", "e7a5ff4e-abcd-1234", "sim");
     expect(parseUploadStamp(`data/dfs/e7a5ff4e-abcd-1234/dk/full/${name}`)).toEqual({
