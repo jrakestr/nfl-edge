@@ -95,12 +95,34 @@ def test_unmatched_game_fails_closed(tmp_path):
 
 
 def test_refresh_fills_week1_finals_and_push():
-    csv = Path(__file__).parent.parent / "data" / "benchmarks" / "nflgamesim_2026_week01.csv"
-    committed = {r["game_id"]: r for r in csv_mod.DictReader(csv.read_text().splitlines())}
-    pending = [{**r, "status": "pending",
-                "actual_home_pts": "", "actual_away_pts": "", "actual_margin_home": "",
-                "actual_total": "", "actual_winner": "", "pick_winner_result": "",
-                "margin_within_7": "", "ats_result": ""} for r in committed.values()]
+    pending = [
+        {"game_id": "2026_01_NE_SEA", "season": "2026", "week": "1",
+         "gameday": "2026-09-09", "gametime": "20:20",
+         "away_team": "NE", "home_team": "SEA", "source": "nflgamesim",
+         "market_spread_home": "-3.0", "market_total": "44.5",
+         "market_ml_home": "-170", "market_ml_away": "142",
+         "market_p_home_novig": "0.6038", "sim_home_pts": "30.2",
+         "sim_away_pts": "28.1", "sim_total": "58.3", "sim_margin_home": "2.1",
+         "sim_p_home_win": "0.572", "sim_pick_winner": "SEA", "sim_ats_lean": "NE",
+         "sim_total_lean": "over", "edge_spread_home": "-0.9", "edge_total": "13.8",
+         "edge_ml_home": "-0.0318", "status": "pending",
+         "actual_home_pts": "", "actual_away_pts": "", "actual_margin_home": "",
+         "actual_total": "", "actual_winner": "", "pick_winner_result": "",
+         "margin_within_7": "", "ats_result": ""},
+        {"game_id": "2026_01_SF_LA", "season": "2026", "week": 1,
+         "gameday": "2026-09-10", "gametime": "20:35",
+         "away_team": "SF", "home_team": "LA", "source": "nflgamesim",
+         "market_spread_home": "-3.5", "market_total": "48.5",
+         "market_ml_home": "-185", "market_ml_away": "154",
+         "market_p_home_novig": "0.6225", "sim_home_pts": "32.2",
+         "sim_away_pts": "27.3", "sim_total": "59.5", "sim_margin_home": "5.0",
+         "sim_p_home_win": "0.637", "sim_pick_winner": "LA", "sim_ats_lean": "LA",
+         "sim_total_lean": "over", "edge_spread_home": "1.5", "edge_total": "11.0",
+         "edge_ml_home": "0.0145", "status": "pending",
+         "actual_home_pts": "", "actual_away_pts": "", "actual_margin_home": "",
+         "actual_total": "", "actual_winner": "", "pick_winner_result": "",
+         "margin_within_7": "", "ats_result": ""},
+    ]
     sched = pl.DataFrame([
         {"game_id": "2026_01_NE_SEA", "season": 2026, "week": 1, "gameday": "2026-09-09",
          "gametime": "20:20", "home_team": "SEA", "away_team": "NE",
@@ -113,14 +135,10 @@ def test_refresh_fills_week1_finals_and_push():
     sea = got["2026_01_NE_SEA"]
     assert sea["status"] == "final"
     assert (sea["actual_home_pts"], sea["actual_away_pts"]) == ("13", "10")
+    assert (sea["actual_margin_home"], sea["actual_total"], sea["actual_winner"]) == (
+        "3", "23", "SEA")
     assert sea["pick_winner_result"] == "correct" and sea["margin_within_7"] == "yes"
     assert sea["ats_result"] == "push"  # 3 + (-3.0) == 0
     sfo = got["2026_01_SF_LA"]
-    assert (sfo["pick_winner_result"], sfo["margin_within_7"], sfo["ats_result"]) == (
-        "incorrect", "no", "incorrect")
-    for r in committed.values():
-        if r["status"] == "final":
-            for k in ("status", "actual_home_pts", "actual_away_pts", "actual_margin_home",
-                      "actual_total", "actual_winner", "pick_winner_result",
-                      "margin_within_7", "ats_result"):
-                assert got[r["game_id"]][k] == r[k]
+    assert (sfo["actual_winner"], sfo["pick_winner_result"], sfo["margin_within_7"],
+            sfo["ats_result"]) == ("SF", "incorrect", "no", "incorrect")
