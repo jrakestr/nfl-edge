@@ -82,7 +82,16 @@ export function fixtureChecks(): Record<string, GameChecks> {
   );
 }
 
-export const NO_TRACK: TrackRecord = { gradedWeeks: 0, wins: 0, losses: 0, pushes: 0, roi: null };
+export const NO_TRACK: TrackRecord = {
+  gradedWeeks: 0,
+  wins: 0,
+  losses: 0,
+  pushes: 0,
+  roi: null,
+  kellyRoi: null,
+  sides: { wins: 0, losses: 0, pushes: 0 },
+  totals: { wins: 0, losses: 0, pushes: 0 },
+};
 
 export const NO_SCOREBOARD = {
   nGames: 0,

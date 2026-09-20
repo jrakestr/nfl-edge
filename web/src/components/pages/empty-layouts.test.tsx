@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { EmptyState } from "@/components/EmptyState";
 import { GamesList } from "@/components/games/GamesList";
 
 vi.mock("next/link", () => ({
@@ -22,6 +23,7 @@ import { FairPropsIndex } from "@/components/props/FairPropsIndex";
 import { GradingPage } from "@/components/grading/GradingPage";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { Optimizer } from "@/components/optimize/Optimizer";
+import { missingSlateNotice } from "@/lib/slate";
 
 describe("empty sidebar layouts", () => {
   it("Games: table chrome and empty copy", () => {
@@ -65,6 +67,16 @@ describe("empty sidebar layouts", () => {
     expect(screen.queryByText("QB")).not.toBeInTheDocument();
   });
 
+  it("unknown slate empty state names the CSV and has no Main players", () => {
+    render(
+      <EmptyState title="afternoon has no salaries">
+        {missingSlateNotice(2026, 1, "afternoon")}
+      </EmptyState>,
+    );
+    expect(screen.getByText(/DKSalaries_2026_wk01_afternoon.csv/)).toBeInTheDocument();
+    expect(screen.queryByText("Jahmyr Gibbs")).not.toBeInTheDocument();
+  });
+
   it("Optimize: settings and empty yours tab", () => {
     render(<Optimizer week="1" site="dk" slate="main" />);
     expect(screen.getByRole("heading", { name: "Optimize" })).toBeInTheDocument();
@@ -84,7 +96,8 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByRole("heading", { name: "Grading" })).toBeInTheDocument();
     expect(screen.getAllByText("No graded weeks yet").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Actual")).toBeInTheDocument();
-    expect(screen.getByText("Chart fills in with grade-web")).toBeInTheDocument();
+    expect(screen.getByText("No graded lines yet.")).toBeInTheDocument();
     expect(screen.getByText("Flat ROI")).toBeInTheDocument();
+    expect(screen.queryByText(/grade-web/i)).not.toBeInTheDocument();
   });
 });
