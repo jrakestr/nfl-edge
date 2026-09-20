@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import polars as pl
 
-from ..db import execute, read_sql
+from ..db import read_sql, update_from
 from ..market.edge import decimal_odds
 from .dfs_grade import scores_published
 
@@ -120,22 +120,25 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
     )
     by_pid = {r["player_id"]: r.get("stats") or {} for r in weekly.to_dicts()}
     now = datetime.now(ET)
-    n = 0
+    updates = []
     for row in edges.to_dicts():
         actual = actual_stat(by_pid.get(row["player_id"]), row["stat"])
         if actual is None:
             continue
         oc = prop_outcome(row["side"], float(row["line"]), actual)
         pn = _pnl(oc, row.get("price"))
-        execute(
-            """
-            update model.prop_edges
-            set actual = %s, outcome = %s, pnl = %s, graded_at = %s
-            where run_id = %s and market_prop_id = %s and side = %s
-            """,
-            (actual, oc, pn, now, row["run_id"], row["market_prop_id"], row["side"]),
-        )
-        n += 1
+        updates.append({
+            "run_id": row["run_id"],
+            "market_prop_id": row["market_prop_id"],
+            "side": row["side"],
+            "actual": actual,
+            "outcome": oc,
+            "pnl": pn,
+            "graded_at": now,
+        })
+    n = len(updates)
+    if updates:
+        update_from(pl.DataFrame(updates), "model.prop_edges", ["run_id", "market_prop_id", "side"])
     fair = grade_fair_props(season, week, run_id=run_id)
     return {"skipped": False, "reason": None, "season": season, "week": week, "n_rows": n, "fair": fair}
 
@@ -172,24 +175,26 @@ def grade_fair_props(season: int, week: int, run_id: str | None = None) -> dict:
     )
     by_pid = {r["player_id"]: r.get("stats") or {} for r in weekly.to_dicts()}
     now = datetime.now(ET)
-    n = 0
+    updates = []
     hits = []
     for row in rows.to_dicts():
         actual = actual_stat(by_pid.get(row["player_id"]), row["stat"])
         if actual is None:
             continue
         hit = fair_over_hit(float(row["fair_line"]), actual)
-        execute(
-            """
-            update model.fair_props
-            set actual = %s, over_hit = %s, graded_at = %s
-            where run_id = %s and player_id = %s and stat = %s
-            """,
-            (actual, hit, now, row["run_id"], row["player_id"], row["stat"]),
-        )
-        n += 1
+        updates.append({
+            "run_id": row["run_id"],
+            "player_id": row["player_id"],
+            "stat": row["stat"],
+            "actual": actual,
+            "over_hit": hit,
+            "graded_at": now,
+        })
         if hit is not None:
             hits.append({"p_over": float(row["p_over"]), "over_hit": hit, "result": 1, "push": False})
+    n = len(updates)
+    if updates:
+        update_from(pl.DataFrame(updates), "model.fair_props", ["run_id", "player_id", "stat"])
     buckets = []
     if hits:
         from .calibration import calibration_buckets

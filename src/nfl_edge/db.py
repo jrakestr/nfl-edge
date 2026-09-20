@@ -105,6 +105,28 @@ def replace_where(df: pl.DataFrame, table: str, col: str, value: Any) -> int:
     return _write(df, table, "", pre=f"delete from {table} where {col} = %s", pre_params=(value,))
 
 
+def update_from_sql(table: str, columns: list[str], key_cols: list[str], stg: str) -> str:
+    """One UPDATE … FROM for a staged frame. Keys match; non-keys are assigned."""
+    set_cols = [c for c in columns if c not in key_cols]
+    if not set_cols:
+        raise ValueError("update_from needs at least one non-key column")
+    sets = ", ".join(f"{c} = s.{c}" for c in set_cols)
+    keys = " and ".join(f"t.{c} = s.{c}" for c in key_cols)
+    return f"update {table} as t set {sets} from {stg} s where {keys}"
+
+
+def update_from(df: pl.DataFrame, table: str, key_cols: list[str]) -> int:
+    """Stage via COPY then one UPDATE … FROM. Returns rows updated. Empty frame is a no-op."""
+    if df.is_empty():
+        return 0
+    with conn() as c, c.cursor() as cur:
+        stg = _stage(cur, df, table)
+        cur.execute(update_from_sql(table, list(df.columns), key_cols, stg))
+        n = cur.rowcount
+        c.commit()
+    return n
+
+
 def read_sql(sql: str, params: tuple | dict | None = None) -> pl.DataFrame:
     """Run a query and return a polars frame."""
     with conn() as c, c.cursor() as cur:
