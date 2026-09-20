@@ -1,0 +1,63 @@
+CAR @ ATL
+ML: 105 / -125 Spd: 1.5 O/U: 43.5
+ATL WIN 30.3-25.8 by 4.5 65.27%
+
+MIN @ CHI
+ML: -230 / 190 Spd: -5.5 O/U: 49.5
+CHI WIN 37.9-25.5 by 12.3 84.55%
+
+PHI @ TEN
+ML: 245 / -305 Spd: 7.0 O/U: 39.5
+PHI WIN 26.4-22.3 by 4.0 64.02%
+
+PIT @ NE
+ML: -230 / 190 Spd: -5.5 O/U: 42.5
+NE WIN 26.7-24.7 by 2.1 56.70%
+
+GB @ NYJ
+ML: 170 / -205 Spd: 4.5 O/U: 44.5
+NYJ WIN 32.8-23.1 by 9.7 78.21%
+
+CLE @ TB
+ML: -410 / 320 Spd: -8.5 O/U: 40.5
+TB WIN 35.3-28.1 by 7.2 74.82%
+
+NO @ BAL
+ML: -410 / 320 Spd: -8.5 O/U: 46.5
+BAL WIN 38.4-25.4 by 12.9 83.66%
+
+CIN @ HOU
+ML: -148 / 124 Spd: -3.0 O/U: 46.5
+HOU WIN 32.3-28.6 by 3.7 63.30%
+
+JAC @ DEN
+ML: -135 / 114 Spd: -2.5 O/U: 44.5
+JAX WIN 28.0-26.9 by 1.1 54.29%
+
+LV @ LAC
+ML: -305 / 245 Spd: -7.0 O/U: 43.5
+LAC WIN 26.6-22.5 by 4.1 64.73%
+
+WSH @ DAL
+ML: -225 / 185 Spd: -3.5 O/U: 50.5
+DAL WIN 29.1-23.2 by 5.9 68.30%
+
+SEA @ ARI
+ML: 185 / -225 Spd: 4.5 O/U: 41.5
+ARI WIN 30.2-26.2 by 4.0 61.61%
+
+Miami Dolphins @ San Francisco 49ers
+ML: -950 / 625 Spd: -13.5 O/U: 45.5
+San Francisco 49ers WIN 29.9-23.6 by 6.3 68.39%
+
+IND @ KC
+ML: -310 / 250 Spd: -6.5 O/U: 47.5
+KC WIN 33.9-21.6 by 12.4 85.89%
+
+NYG @ LAR
+ML: -355 / 280 Spd: -7.0 O/U: 48.5
+NYG WIN 29.4-27.3 by 2.0 58.21%
+
+DET @ BUF
+ML: -205 / 170 Spd: -4.5 O/U: 53.5
+BUF WIN 34.6-28.6 by 6.1 71.27%
