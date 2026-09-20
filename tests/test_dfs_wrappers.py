@@ -342,6 +342,87 @@ def test_merge_exposure_keeps_all_three_and_leverage_vs_field_sim():
     assert rows["00-p"]["leverage"] == pytest.approx(-0.20)
 
 
+def test_field_is_self_flags_own_lineups_as_field():
+    rows = [
+        {"player_id": "a", "own_ours": 0.40, "own_field_sim": 0.40},
+        {"player_id": "b", "own_ours": 0.32, "own_field_sim": 0.32},
+        {"player_id": "c", "own_ours": 1 / 150, "own_field_sim": 0.0067},
+        {"player_id": "d", "own_ours": 0.0, "own_field_sim": 0.0},
+    ]
+    assert P.field_is_self(rows) is True
+
+
+def test_field_is_self_passes_a_generated_field():
+    rows = [
+        {"player_id": "a", "own_ours": 0.40, "own_field_sim": 0.294},
+        {"player_id": "b", "own_ours": 0.32, "own_field_sim": 0.351},
+        {"player_id": "c", "own_ours": 0.20, "own_field_sim": 0.20},
+        {"player_id": "d", "own_ours": 0.0, "own_field_sim": 0.001},
+    ]
+    assert P.field_is_self(rows) is False
+
+
+def test_field_is_self_with_no_rostered_rows_is_not_self():
+    assert P.field_is_self([]) is False
+    assert P.field_is_self([
+        {"player_id": "a", "own_ours": 0.0, "own_field_sim": 0.0},
+        {"player_id": "b", "own_ours": 0.0, "own_field_sim": None},
+    ]) is False
+
+
+def test_run_sim_stages_cid_file_command(tmp_path, monkeypatch):
+    from nfl_edge.dfs import run_sim as S
+
+    exp = tmp_path / "exp"
+    exp.mkdir()
+    (exp / "optimal_lineups.csv").write_text("QB\n")
+    tools = tmp_path / "tools"
+    (tools / "dk_data").mkdir(parents=True)
+    seen: dict = {}
+    monkeypatch.setattr(O, "stage", lambda _d, site="dk": tools)
+    monkeypatch.setattr(O, "_run", lambda _t, args: seen.setdefault("args", args))
+    gpp = tmp_path / "g.csv"
+    gpp.write_text("QB\n")
+    exo = tmp_path / "e.csv"
+    exo.write_text("QB\n")
+    monkeypatch.setattr(
+        O, "_newest",
+        lambda _t, prefix: gpp if "lineups" in prefix else exo,
+    )
+    monkeypatch.setattr(S, "parse_gpp_csv", lambda _p: [{"lineup_id": "0"}])
+    monkeypatch.setattr(S, "parse_exposure_csv", lambda _p, _r: [{"player_id": "a"}])
+    out = S.run(exp, site="dk", field=20000, slate_rows=[])
+    assert seen["args"] == ["dk", "sim", "cid", "file", "20000"]
+    assert out["lineups"] == [{"lineup_id": "0"}]
+    assert (exp / "gpp_lineups.csv").is_file()
+    assert (exp / "gpp_exposure.csv").is_file()
+
+
+def test_run_sim_showdown_stages_sd_sim_cid_file(tmp_path, monkeypatch):
+    from nfl_edge.dfs import run_sim as S
+
+    exp = tmp_path / "exp"
+    exp.mkdir()
+    (exp / "optimal_lineups.csv").write_text("CPT\n")
+    tools = tmp_path / "tools"
+    (tools / "dk_data").mkdir(parents=True)
+    seen: dict = {}
+    monkeypatch.setattr(O, "stage", lambda _d, site="dk": tools)
+    monkeypatch.setattr(O, "_run", lambda _t, args: seen.setdefault("args", args))
+    gpp = tmp_path / "g.csv"
+    gpp.write_text("CPT\n")
+    exo = tmp_path / "e.csv"
+    exo.write_text("CPT\n")
+    monkeypatch.setattr(
+        O, "_newest",
+        lambda _t, prefix: gpp if "lineups" in prefix else exo,
+    )
+    monkeypatch.setattr(S, "parse_gpp_csv", lambda _p: [])
+    monkeypatch.setattr(S, "parse_exposure_csv", lambda _p, _r: [])
+    S.run(exp, site="dk", field=20000, slate_rows=[], showdown=True)
+    assert seen["args"] == ["dk", "sd_sim", "cid", "file", "20000"]
+
+
 def test_resolve_uv_fallback_when_not_on_path(monkeypatch, tmp_path):
     fake = tmp_path / "uv"
     fake.write_text("")

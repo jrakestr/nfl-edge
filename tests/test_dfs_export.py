@@ -300,3 +300,10 @@ def test_field_size_must_exceed_lineups_entered(tmp_path: Path):
         D.contest_path("gpp"), 150) == 176470
     assert D.require_field_larger_than_entries(
         D.contest_path("single"), 1) == 16646
+
+
+def test_exported_field_size_exceeds_entries(tmp_path: Path):
+    D.write_export(tmp_path, [], [], D.build_config([], {}), [])
+    assert D.contest_field_size(tmp_path / "contest_structure.csv") > 150
+    D.write_export(tmp_path, [], [], D.build_config([], {}), [], contest="single")
+    assert D.contest_field_size(tmp_path / "contest_structure.csv") > 1

@@ -1,4 +1,11 @@
-"""Run the GPP simulator against the current slate's staged files and optimizer CSV."""
+"""Run the GPP simulator against the current slate's staged files and optimizer CSV.
+
+`sim cid file <iterations>` loads our lineups as the tournament entries, then
+the tool's generate_field_lineups() fills the rest of the room (Field Size
+minus ours) from projections + Own%. No extra flag or config key: main.py calls
+generate_field_lineups() unconditionally, and it only no-ops when the room is
+already full (Supplied lineups >= contest field size).
+"""
 from __future__ import annotations
 
 import shutil

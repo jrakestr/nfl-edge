@@ -204,6 +204,30 @@ def field_proj_from_projections(path: Path, slate: list[dict]) -> dict[str, floa
     return out
 
 
+SELF_FIELD_TOL = 0.001
+
+
+def field_is_self(exposure: list[dict], tol: float = SELF_FIELD_TOL) -> bool:
+    """True when the sim's field is our own lineups.
+
+    Judges only players we rostered (own_ours > 0): in a self-played sim the
+    Sim. Own% column rounds to our exposure on nearly every such row, while a
+    generated field never reproduces our exposures at 0.1pp on 9 of 10
+    rostered players. No rostered rows means nothing to judge: not self.
+    """
+    judged = [
+        r for r in exposure
+        if (r.get("own_ours") or 0.0) > 0 and r.get("own_field_sim") is not None
+    ]
+    if not judged:
+        return False
+    hits = sum(
+        1 for r in judged
+        if abs(float(r["own_field_sim"]) - float(r["own_ours"])) <= tol
+    )
+    return hits / len(judged) > 0.9
+
+
 def merge_exposure(
     parsed: list[dict],
     ours: dict[str, float],

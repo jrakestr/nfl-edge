@@ -129,6 +129,11 @@ def run(
     ours = parse.exposure_from_lineups(merged, salaries)
     field_proj = parse.field_proj_from_projections(export_dir / "projections.csv", salaries)
     exposure = parse.merge_exposure(sim["exposure"], ours, field_proj)
+    if parse.field_is_self(exposure):
+        raise RuntimeError(
+            "simulated field matches our own lineups; refusing to persist "
+            "self-play results (contest Field Size must exceed lineups entered)"
+        )
     written = persist(
         rid, site, slate_id, slate_type_for(slate), merged, exposure,
         settings=settings, construction=construction,
