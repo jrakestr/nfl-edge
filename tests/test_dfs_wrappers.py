@@ -1,9 +1,11 @@
 """Parse NFL-DFS-Tools optimizer/GPP output. No subprocess, no database."""
+import shutil
 from pathlib import Path
 
 import pytest
 
 from nfl_edge.dfs import parse as P
+from nfl_edge.dfs import run_optimizer as O
 
 OPTO = """QB,RB,RB,WR,WR,WR,TE,FLEX,DST,Salary,Fpts Proj,Fpts Used,Ceiling,Own. Sum,Own. Product,STDDEV,Stack
 Jahmyr Gibbs (111),Saquon Barkley (222),Bijan Robinson (333),Ja'Marr Chase (444),Amon-Ra St. Brown (555),Puka Nacua (666),Sam LaPorta (777),Justin Jefferson (888),Rams (999),50000,140.1,139.9,180,80,0.01,40,DET 3
@@ -233,6 +235,15 @@ def test_merge_exposure_keeps_all_three_and_leverage_vs_field_sim():
     assert rows["00-g"]["leverage"] == pytest.approx(0.20)
     assert rows["00-p"]["own_ours"] == pytest.approx(0.0)
     assert rows["00-p"]["leverage"] == pytest.approx(-0.20)
+
+
+def test_resolve_uv_fallback_when_not_on_path(monkeypatch, tmp_path):
+    fake = tmp_path / "uv"
+    fake.write_text("")
+    fake.chmod(0o755)
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
+    monkeypatch.setattr(O, "_UV_FALLBACKS", (fake,))
+    assert O.resolve_uv() == str(fake)
 
 
 def test_exposure_from_lineups_showdown_counts_player_once():

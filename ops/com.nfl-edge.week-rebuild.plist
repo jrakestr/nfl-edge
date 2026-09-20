@@ -15,6 +15,11 @@
   <string>/Users/home/Development/nfl-edge/output/cron-rebuild.log</string>
   <key>StandardErrorPath</key>
   <string>/Users/home/Development/nfl-edge/output/cron-rebuild.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/home/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <array>
     <dict>

@@ -47,13 +47,29 @@ def _ensure_native_cbc(tools: Path) -> None:
             cbc.symlink_to(native)
 
 
+_UV_FALLBACKS = (
+    Path.home() / ".local/bin/uv",
+    Path("/opt/homebrew/bin/uv"),
+    Path("/usr/local/bin/uv"),
+)
+
+
+def resolve_uv() -> str:
+    """PATH first, then known install locations. Never fall back to bare python3."""
+    found = shutil.which("uv")
+    if found:
+        return found
+    for path in _UV_FALLBACKS:
+        if path.is_file():
+            return str(path)
+    raise RuntimeError(
+        "uv not found on PATH or at ~/.local/bin/uv, /opt/homebrew/bin/uv, /usr/local/bin/uv"
+    )
+
+
 def _run(tools: Path, args: list[str]) -> None:
     _ensure_native_cbc(tools)
-    uv = shutil.which("uv")
-    if uv:
-        cmd = [uv, "run", "src/main.py", *args]
-    else:
-        cmd = ["python3", "src/main.py", *args]
+    cmd = [resolve_uv(), "run", "src/main.py", *args]
     subprocess.run(cmd, cwd=tools, check=True)
 
 
