@@ -11,7 +11,7 @@ export type SlatePage = "players" | "dfs" | "optimize" | "games";
 
 export type ParsedGameInfo = { away: string; home: string };
 
-export type ResolvedSlate = { slate: string; fallback: boolean };
+export type ResolvedSlate = { slate: string; missing: boolean };
 
 /** DK abbr → nflverse (`LAR`→`LA`, `JAC`→`JAX`, `WSH`→`WAS`). */
 export function mapTeam(abbr: string): string {
@@ -35,8 +35,8 @@ export function parseGameInfo(raw: string | null | undefined): ParsedGameInfo | 
 
 export function resolveSlate(requested: string, available: readonly string[]): ResolvedSlate {
   const key = requested.trim();
-  if (key && available.includes(key)) return { slate: key, fallback: false };
-  return { slate: "main", fallback: true };
+  if (key && available.includes(key)) return { slate: key, missing: false };
+  return { slate: key || "main", missing: true };
 }
 
 /** Path `[slate]` wins over `?slate=`. Empty → main. */
@@ -48,9 +48,9 @@ export function requestedSlate(pathSlate: string | undefined, querySlate: string
   return "main";
 }
 
-const PICK_QUERY_KEYS = ["lock", "excl", "stack"] as const;
+const PICK_QUERY_KEYS = ["lock", "excl", "stack", "showunproj", "games"] as const;
 
-/** Copy lock/excl/stack onto an href so slate and sidebar hops keep picks. */
+/** Copy lock/excl/stack/showunproj onto an href so slate and sidebar hops keep them. */
 export function withPickParams(href: string, search?: URLSearchParams | null): string {
   if (!search) return href;
   const extra = new URLSearchParams();
@@ -77,7 +77,12 @@ export function slateHref(args: {
 }
 
 export function fallbackNotice(requested: string): string {
-  return `Unknown slate “${requested}”; showing Main.`;
+  return `${slateLabel(requested)} is listed for this week but has no salary rows.`;
+}
+
+export function missingSlateNotice(season: number, week: number, slate: string): string {
+  const ww = String(week).padStart(2, "0");
+  return `${slateLabel(slate)} has no salaries loaded for this week. Expected data/dk/DKSalaries_${season}_wk${ww}_${slate}.csv.`;
 }
 
 export function slatePairKey(away: string, home: string): string {
@@ -137,6 +142,9 @@ export function navHref(
   }
   if (label === "Optimize") {
     return slateHref({ page: "optimize", week: ctx.week, site: ctx.site, slate: ctx.slate, search });
+  }
+  if (label === "Claims") {
+    return withPickParams(`/week/${ctx.week}/claims`, search);
   }
   return withPickParams(fallback, search);
 }

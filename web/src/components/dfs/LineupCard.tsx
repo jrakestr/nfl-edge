@@ -1,5 +1,7 @@
 import { StackChip, type Stack } from "./StackChip";
+import { Button } from "@/components/ui/button";
 import { PositionPill } from "@/components/ui/PositionPill";
+import { formatUploadCsv, uploadFilename } from "@/lib/dfs-upload";
 import { pct as fmtPct } from "@/lib/edge";
 import { MetricLabel } from "@/lib/icons";
 import { REBUILD_PENDING } from "@/lib/injury-status";
@@ -53,6 +55,8 @@ export function LineupCard({
   staleDkIds = new Set(),
   ownershipSum,
   hideSimStats = false,
+  runId = null,
+  slateId = "",
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
@@ -63,6 +67,8 @@ export function LineupCard({
   staleDkIds?: Set<string>;
   ownershipSum?: number | null;
   hideSimStats?: boolean;
+  runId?: string | null;
+  slateId?: string;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
@@ -139,6 +145,23 @@ export function LineupCard({
             )}
             {stacks.length ? stacks.map((s) => <StackChip key={s.team} {...s} />) : <StackChip />}
             {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
+            {runId && slateId && lineup.players.length ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const csv = formatUploadCsv([lineup]);
+                  const a = document.createElement("a");
+                  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                  a.download = uploadFilename(slateId, runId, "single");
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                }}
+              >
+                Export this lineup
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

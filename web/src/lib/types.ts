@@ -251,6 +251,7 @@ export const DfsLineupSchema = z.object({
   proj_fpts: numOrNull,
   sim_win_pct: numOrNull,
   sim_roi: numOrNull,
+  construction: z.enum(["cash", "single", "mass"]).optional(),
   players: z.array(DfsSlotSchema),
 });
 export type DfsLineup = z.infer<typeof DfsLineupSchema>;

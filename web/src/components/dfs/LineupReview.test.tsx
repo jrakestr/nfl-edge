@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { LineupCard, stacksFromPlayers } from "@/components/dfs/LineupCard";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import type { DfsLineup } from "@/lib/types";
@@ -131,7 +131,51 @@ describe("stacksFromPlayers", () => {
   });
 });
 
+describe("LineupReview construction", () => {
+  it("filters by construction, names the method, and has no Pick one", () => {
+    const cash: DfsLineup = { ...SAMPLE, lineup_id: "c1", construction: "cash", proj_fpts: 99 };
+    const mass: DfsLineup = { ...SAMPLE, lineup_id: "m1", construction: "mass" };
+    render(
+      <LineupReview
+        week="2"
+        site="dk"
+        slate="main"
+        runId="bda9aaf4-032b-4380-ab3a-6634696525eb"
+        slateId="2026_02_main"
+        lineups={[cash, mass]}
+        teams={TEAMS}
+      />,
+    );
+    expect(screen.queryByRole("heading", { name: "Pick one" })).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Construction" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mass GPP" })).toBeInTheDocument();
+    expect(screen.getByText(/Mass GPP · 1 lineup/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cash" }));
+    expect(screen.getByText(/Cash · 1 lineup/)).toBeInTheDocument();
+    expect(screen.queryByText("Win %")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export this lineup" })).toBeInTheDocument();
+  });
+});
+
 describe("LineupReview with data", () => {
+  it("shows persisted optimizer settings instead of dashes", () => {
+    render(
+      <LineupReview
+        week="1"
+        site="dk"
+        slate="afternoon"
+        runId="bda9aaf4-032b-4380-ab3a-6634696525eb"
+        slateId="2026_01_afternoon"
+        lineups={[SAMPLE]}
+        settings={{ randomness: 25, stacksPct: 65, maxExposure: 40, numUniques: 3 }}
+      />,
+    );
+    expect(screen.getByText("Randomness 25")).toBeInTheDocument();
+    expect(screen.getByText("Stacks 65%")).toBeInTheDocument();
+    expect(screen.getByText("Max exposure 40%")).toBeInTheDocument();
+    expect(screen.queryByText("Max exposure —")).not.toBeInTheDocument();
+  });
+
   it("lists the lineup and enables export after select", () => {
     render(
       <LineupReview

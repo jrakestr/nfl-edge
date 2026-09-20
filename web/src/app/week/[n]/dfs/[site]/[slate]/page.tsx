@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
+import { EmptyState } from "@/components/EmptyState";
 import { LineupReview } from "@/components/dfs/LineupReview";
+import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
-import type { PickCtx } from "@/lib/dfs/pick-one";
 import {
   dfsExposure,
   dfsLineups,
-  dkPlayerIds,
-  playerPickFacts,
+  dfsSettings,
   salaryLookup,
   salaryPositions,
   slateId,
   slatesForWeek,
   stackCorrelations,
 } from "@/lib/queries/dfs";
-import { rtsByPlayer, staleDkIds, weekOverrides } from "@/lib/queries/players";
+import { staleDkIds } from "@/lib/queries/players";
 import { lineupRunForWeek } from "@/lib/queries/runs";
-import { requestedSlate, resolveSlate } from "@/lib/slate";
+import { missingSlateNotice, requestedSlate, resolveSlate } from "@/lib/slate";
 
 export const dynamic = "force-dynamic";
 
@@ -46,42 +46,35 @@ export default async function Page({
   const available = weekOk ? await slatesForWeek(season, week, siteKey) : [];
   const requested = requestedSlate(pathSlate, one(sp.slate));
   const resolved = resolveSlate(requested, available);
-  const fallbackFrom = resolved.fallback && requested !== "main" ? requested : null;
+  if (resolved.missing) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="t-title">{`Week ${n} · ${siteKey.toUpperCase()} · ${requested}`}</h1>
+        {available.length ? (
+          <SlateSelector week={n} site={siteKey} page="dfs" slate={available[0]!} slates={available} />
+        ) : null}
+        <EmptyState title={`${requested || "Slate"} has no salaries`}>
+          {missingSlateNotice(season, weekOk ? week : 1, requested || "main")}
+        </EmptyState>
+      </div>
+    );
+  }
   const slate = resolved.slate;
   const sid = weekOk ? slateId(season, week, slate) : "";
   const picked = weekOk ? await lineupRunForWeek(season, week, siteKey, sid, pinned) : null;
   const run = picked?.run ?? null;
 
-  const [lineups, exposure, lookup, correlations, stale, ids, facts, overrides, rts] = run
+  const [lineups, exposure, lookup, correlations, stale, settings] = run
     ? await Promise.all([
         dfsLineups(run.run_id, siteKey, sid),
         dfsExposure(run.run_id, siteKey, sid),
         salaryLookup(siteKey, sid),
         stackCorrelations(run.run_id, siteKey, sid),
         staleDkIds(season, week, run.created_at),
-        dkPlayerIds(siteKey, sid),
-        playerPickFacts(run.run_id),
-        weekOverrides(season, week),
-        rtsByPlayer(season, week),
+        dfsSettings(run.run_id, siteKey, sid),
       ])
-    : [[], [], {}, [], new Set<string>(), {}, { p10: {}, ours: {} }, {}, {}];
+    : [[], [], {}, [], new Set<string>(), null];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
-  const ownFieldSim = Object.fromEntries(
-    exposure.map((e) => [e.player_id, e.own_field_sim ?? 0]),
-  );
-  const pickCtx: PickCtx | null = run
-    ? {
-        dkToPlayerId: ids,
-        teams,
-        positions: salaryPositions(lookup),
-        p10: facts.p10,
-        ours: facts.ours,
-        ownFieldSim,
-        rts,
-        overrides,
-        staleDkIds: stale,
-      }
-    : null;
 
   return (
     <LineupReview
@@ -98,8 +91,8 @@ export default async function Page({
       staleDkIds={stale}
       buildInProgress={picked?.buildInProgress ?? false}
       slates={available}
-      fallbackFrom={fallbackFrom}
-      pickCtx={pickCtx}
+      fallbackFrom={lineups.length === 0 ? slate : null}
+      settings={settings}
     />
   );
 }

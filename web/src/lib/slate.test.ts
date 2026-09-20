@@ -5,6 +5,7 @@ import {
   pathContext,
   requestedSlate,
   resolveSlate,
+  missingSlateNotice,
   slateGameCountLabel,
   slateHref,
   slateKey,
@@ -46,15 +47,30 @@ describe("slateKey", () => {
 
 describe("resolveSlate", () => {
   it("keeps an ingested slate", () => {
-    expect(resolveSlate("full", ["main", "full"])).toEqual({ slate: "full", fallback: false });
+    expect(resolveSlate("afternoon", ["main", "full", "afternoon"])).toEqual({
+      slate: "afternoon",
+      missing: false,
+    });
   });
 
-  it("falls back to main when unknown", () => {
-    expect(resolveSlate("nope", ["main", "full"])).toEqual({ slate: "main", fallback: true });
+  it("marks an unknown key missing without rewriting to main", () => {
+    expect(resolveSlate("nope", ["main", "full"])).toEqual({ slate: "nope", missing: true });
   });
 
-  it("falls back to main when requested is empty", () => {
-    expect(resolveSlate("", ["main"])).toEqual({ slate: "main", fallback: true });
+  it("marks empty requested missing as main when main is not ingested", () => {
+    expect(resolveSlate("", ["full"])).toEqual({ slate: "main", missing: true });
+  });
+
+  it("keeps main when it is ingested", () => {
+    expect(resolveSlate("main", ["main", "full"])).toEqual({ slate: "main", missing: false });
+  });
+});
+
+describe("missingSlateNotice", () => {
+  it("names the expected DK CSV", () => {
+    expect(missingSlateNotice(2026, 1, "afternoon")).toBe(
+      "Afternoon has no salaries loaded for this week. Expected data/dk/DKSalaries_2026_wk01_afternoon.csv.",
+    );
   });
 });
 
@@ -86,12 +102,16 @@ describe("slateHref", () => {
     );
   });
 
-  it("appends lock/excl/stack and ignores other keys", () => {
-    const search = new URLSearchParams("lock=111&excl=222&q=Gibbs&stack=333");
-    expect(slateHref({ page: "optimize", week: 1, site: "dk", slate: "main", search })).toBe(
-      "/week/1/optimize/dk/main?lock=111&excl=222&stack=333",
+  it("appends lock/excl/stack/showunproj/games and ignores other keys", () => {
+    const search = new URLSearchParams(
+      "lock=111&excl=222&q=Gibbs&stack=333&showunproj=1&games=2026_01_MIA_LV",
     );
-    expect(withPickParams("/players", search)).toBe("/players?lock=111&excl=222&stack=333");
+    expect(slateHref({ page: "optimize", week: 1, site: "dk", slate: "main", search })).toBe(
+      "/week/1/optimize/dk/main?lock=111&excl=222&stack=333&showunproj=1&games=2026_01_MIA_LV",
+    );
+    expect(withPickParams("/players", search)).toBe(
+      "/players?lock=111&excl=222&stack=333&showunproj=1&games=2026_01_MIA_LV",
+    );
   });
 });
 
@@ -125,6 +145,7 @@ describe("navHref", () => {
     expect(navHref("Games", ctx, "/games")).toBe("/week/1/games?slate=full");
     expect(navHref("Lineups", ctx, "/lineups")).toBe("/week/1/dfs/dk/full");
     expect(navHref("Optimize", ctx, "/optimize")).toBe("/week/1/optimize/dk/full");
+    expect(navHref("Claims", ctx, "/week/1/claims")).toBe("/week/1/claims");
   });
 
   it("Players always goes to newest Main", () => {
@@ -161,7 +182,7 @@ describe("pathContext", () => {
 describe("PRESERVED_PARAMS", () => {
   it("keeps slate and pick keys when table state writes sort", () => {
     expect(PRESERVED_PARAMS).toEqual(
-      expect.arrayContaining(["slate", "lock", "excl", "stack", "flexTE", "stackN"]),
+      expect.arrayContaining(["slate", "lock", "excl", "stack", "flexTE", "stackN", "games"]),
     );
     const base = new URLSearchParams(
       "slate=full&run=abc&season=2026&lock=111&excl=222&stack=333&flexTE=0&stackN=1",

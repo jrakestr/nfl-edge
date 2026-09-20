@@ -11,12 +11,11 @@ import { LineupCard, stacksFromPlayers } from "./LineupCard";
 import { StackChip } from "./StackChip";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { fallbackNotice } from "@/lib/slate";
-import type { PickCtx } from "@/lib/dfs/pick-one";
+import { settingsLabels, type DfsBuildSettings } from "@/lib/dfs-settings";
+import { CONSTRUCTION_LABEL, type ConstructionId } from "@/lib/optimize/construction";
 import { MetricLabel } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { PickOne } from "./PickOne";
 
-const SETTINGS = ["Randomness —", "Stacks % —", "Max exposure —"] as const;
 type SortKey = "proj" | "win" | "roi";
 
 /** Pre-0018 rows kept the shifted parse in own_ours and never wrote own_field_sim. */
@@ -51,7 +50,7 @@ export function LineupReview({
   buildInProgress = false,
   slates = [],
   fallbackFrom,
-  pickCtx = null,
+  settings = null,
 }: {
   week: string;
   site: string;
@@ -67,36 +66,47 @@ export function LineupReview({
   buildInProgress?: boolean;
   slates?: string[];
   fallbackFrom?: string | null;
-  pickCtx?: PickCtx | null;
+  settings?: DfsBuildSettings | null;
 }) {
+  const present = useMemo(() => {
+    const have = new Set(lineups.map((l) => l.construction ?? "mass"));
+    return (["cash", "single", "mass"] as const).filter((id) => have.has(id));
+  }, [lineups]);
+  const [method, setMethod] = useState<ConstructionId>(
+    present.includes("mass") ? "mass" : (present[0] ?? "mass"),
+  );
   const [sort, setSort] = useState<SortKey>("win");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const siteKey = site === "fd" ? "fd" : "dk";
   const sid = slateId;
+  const visible = useMemo(
+    () => lineups.filter((l) => (l.construction ?? "mass") === method),
+    [lineups, method],
+  );
 
   const sorted = useMemo(() => {
-    const copy = [...lineups];
+    const copy = [...visible];
     copy.sort((a, b) => {
       const av = sort === "proj" ? a.proj_fpts : sort === "win" ? a.sim_win_pct : a.sim_roi;
       const bv = sort === "proj" ? b.proj_fpts : sort === "win" ? b.sim_win_pct : b.sim_roi;
       return (bv ?? -Infinity) - (av ?? -Infinity);
     });
     return copy;
-  }, [lineups, sort]);
+  }, [visible, sort]);
 
   const stackDist = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const lu of lineups) {
+    for (const lu of visible) {
       for (const s of stacksFromPlayers(lu.players, teams)) {
         const key = `${s.team} ${s.count}`;
         counts.set(key, (counts.get(key) ?? 0) + 1);
       }
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [lineups, teams]);
+  }, [visible, teams]);
 
-  const hist = salaryBars(lineups);
+  const hist = salaryBars(visible);
   const histMax = Math.max(1, ...hist.map((h) => h.n));
   const readyExposure = recomputedExposure(exposure);
 
@@ -165,17 +175,42 @@ export function LineupReview({
           </nav>
           <SlateSelector week={week} site={siteKey} page="dfs" slate={slate} slates={slates} />
           {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
-          <div className="flex flex-wrap gap-1.5">
-            {SETTINGS.map((s) => (
-              <span key={s} className="rounded-md border border-border px-2 py-1 t-caption">
-                {s}
-              </span>
-            ))}
-          </div>
+          {present.length ? (
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Construction">
+              {present.map((id) => (
+                <Button
+                  key={id}
+                  type="button"
+                  size="sm"
+                  variant={method === id ? "secondary" : "outline"}
+                  onClick={() => {
+                    setMethod(id);
+                    setSelected(new Set());
+                    if (id === "cash") setSort("proj");
+                  }}
+                >
+                  {CONSTRUCTION_LABEL[id]}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          <p className="t-caption text-foreground">
+            {CONSTRUCTION_LABEL[method]}
+            {visible.length ? ` · ${visible.length} lineup${visible.length === 1 ? "" : "s"}` : ""}
+          </p>
+          {method === "mass" ? (
+            <div className="flex flex-wrap gap-1.5">
+              {settingsLabels(settings).map((s) => (
+                <span key={s} className="rounded-md border border-border px-2 py-1 t-caption">
+                  {s}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
-        {lineups.length > 0 ? (
+        {visible.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {(["win", "proj", "roi"] as const).map((k) => (
+            {(method === "cash" ? (["proj"] as const) : (["win", "proj", "roi"] as const)).map((k) => (
               <Button
                 key={k}
                 type="button"
@@ -200,19 +235,6 @@ export function LineupReview({
         )}
       </header>
 
-      {runId && pickCtx && lineups.length > 0 ? (
-        <PickOne
-          lineups={lineups}
-          ctx={pickCtx}
-          runId={runId}
-          slateId={sid}
-          teams={teams}
-          positions={positions}
-          staleDkIds={staleDkIds}
-          slate={slate}
-        />
-      ) : null}
-
       <div className="flex flex-col gap-4 lg:flex-row">
         <section className="flex min-w-0 flex-[2] flex-col gap-3" aria-label="Lineups">
           {sorted.length === 0 ? (
@@ -226,6 +248,7 @@ export function LineupReview({
                   proj_fpts: null,
                   sim_win_pct: null,
                   sim_roi: null,
+                  construction: method,
                   players: [],
                 }}
                 staleDkIds={staleDkIds}
@@ -241,6 +264,9 @@ export function LineupReview({
                 teams={teams}
                 positions={positions}
                 staleDkIds={staleDkIds}
+                hideSimStats={method === "cash"}
+                runId={runId}
+                slateId={sid}
                 selected={selected.has(lu.lineup_id)}
                 onToggle={() =>
                   setSelected((prev) => {
@@ -255,6 +281,7 @@ export function LineupReview({
           )}
         </section>
         <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-[340px]">
+          {method === "mass" ? (
           <section className="card flex flex-col gap-3 p-4">
             <h2 className="t-body font-semibold">
               <MetricLabel metric="ownership">Exposure vs field</MetricLabel>
@@ -274,6 +301,7 @@ export function LineupReview({
               ))
             )}
           </section>
+          ) : null}
           <section className="card flex flex-col gap-2 p-4">
             <h2 className="t-body font-semibold">
               <MetricLabel metric="stack">Team stacks</MetricLabel>
@@ -307,7 +335,7 @@ export function LineupReview({
             <h2 className="t-body font-semibold">
               <MetricLabel metric="salary">Salary used</MetricLabel>
             </h2>
-            {lineups.length === 0 ? (
+            {visible.length === 0 ? (
               <>
                 <div className="mt-2 h-16 rounded-md bg-muted" aria-hidden />
                 <p className="mt-2 t-caption">Histogram of salary remaining across the build.</p>

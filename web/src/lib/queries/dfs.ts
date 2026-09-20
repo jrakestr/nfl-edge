@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { settingsFromLineup, type DfsBuildSettings } from "@/lib/dfs-settings";
 import type { SlateCorr } from "@/lib/optimize/stack-suggestions";
 import {
   CorrPairSchema,
@@ -39,7 +40,7 @@ export async function slateGameInfos(site: string, slateId: string): Promise<str
 
 export async function dfsLineups(runId: string, site: string, slateId: string): Promise<DfsLineup[]> {
   const rows = await sql()`
-    select lineup_id, salary_used, stack,
+    select lineup_id, salary_used, stack, construction,
            proj_fpts::float8 as proj_fpts,
            sim_win_pct::float8 as sim_win_pct,
            sim_roi::float8 as sim_roi,
@@ -56,9 +57,23 @@ export async function dfsLineups(runId: string, site: string, slateId: string): 
       proj_fpts: r.proj_fpts ?? null,
       sim_win_pct: r.sim_win_pct ?? null,
       sim_roi: r.sim_roi ?? null,
+      construction: r.construction ?? "mass",
       players: lu.players ?? [],
     });
   });
+}
+
+export async function dfsSettings(
+  runId: string,
+  site: string,
+  slateId: string,
+): Promise<DfsBuildSettings | null> {
+  const rows = await sql()`
+    select lineup
+    from model.dfs_lineups
+    where run_id = ${runId}::uuid and site = ${site} and slate_id = ${slateId}
+    limit 1`;
+  return rows.length ? settingsFromLineup(rows[0]?.lineup) : null;
 }
 
 export async function dfsExposure(runId: string, site: string, slateId: string): Promise<DfsExposure[]> {
