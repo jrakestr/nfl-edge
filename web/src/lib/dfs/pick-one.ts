@@ -146,7 +146,7 @@ function tournamentReasons(lineup: DfsLineup, ctx: PickCtx, bestProj: number): s
 }
 
 function ranks(values: number[]): number[] {
-  return values.map((v, i) => {
+  return values.map((v) => {
     let better = 0;
     for (let j = 0; j < values.length; j++) if (values[j]! > v) better += 1;
     return better + 1;

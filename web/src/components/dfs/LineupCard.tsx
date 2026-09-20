@@ -52,6 +52,7 @@ export function LineupCard({
   slate,
   staleDkIds = new Set(),
   ownershipSum,
+  hideSimStats = false,
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
@@ -61,6 +62,7 @@ export function LineupCard({
   slate?: string;
   staleDkIds?: Set<string>;
   ownershipSum?: number | null;
+  hideSimStats?: boolean;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
@@ -122,15 +124,19 @@ export function LineupCard({
                 </span>
               </MetricLabel>
             ) : null}
-            <MetricLabel metric="winPct">
-              Win %{" "}
-              <span className="tnum font-semibold text-foreground">
-                {fmtPct(lineup.sim_win_pct, Math.abs((lineup.sim_win_pct ?? 0) * 100) < 1 ? 1 : 0)}
-              </span>
-            </MetricLabel>
-            <MetricLabel metric="roi">
-              ROI <span className="tnum font-semibold text-foreground">{fmtPct(lineup.sim_roi)}</span>
-            </MetricLabel>
+            {hideSimStats ? null : (
+              <>
+                <MetricLabel metric="winPct">
+                  Win %{" "}
+                  <span className="tnum font-semibold text-foreground">
+                    {fmtPct(lineup.sim_win_pct, Math.abs((lineup.sim_win_pct ?? 0) * 100) < 1 ? 1 : 0)}
+                  </span>
+                </MetricLabel>
+                <MetricLabel metric="roi">
+                  ROI <span className="tnum font-semibold text-foreground">{fmtPct(lineup.sim_roi)}</span>
+                </MetricLabel>
+              </>
+            )}
             {stacks.length ? stacks.map((s) => <StackChip key={s.team} {...s} />) : <StackChip />}
             {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
           </div>

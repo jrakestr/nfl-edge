@@ -171,3 +171,37 @@ export function salaryPositions(lookup: Record<string, SalaryLookup>): Record<st
   }
   return out;
 }
+
+/** DK salary id → gsis / DST id for this slate. */
+export async function dkPlayerIds(site: string, slateId: string): Promise<Record<string, string>> {
+  const rows = await sql()`
+    select player_dk_id, player_id
+    from raw.dk_salaries
+    where site = ${site} and slate_id = ${slateId}
+      and player_dk_id is not null and player_id is not null`;
+  const out: Record<string, string> = {};
+  for (const r of rows) out[String(r.player_dk_id)] = String(r.player_id);
+  return out;
+}
+
+/** Floor (stat_summary p10) and our DK mean, keyed by player_id. */
+export async function playerPickFacts(runId: string): Promise<{
+  p10: Record<string, number>;
+  ours: Record<string, number>;
+}> {
+  const rows = await sql()`
+    select player_id,
+           (stat_summary -> 'fpts_ppr' ->> 'p10')::float8 as p10,
+           fpts_dk_mean::float8 as ours
+    from model.proj_players
+    where run_id = ${runId}::uuid`;
+  const p10: Record<string, number> = {};
+  const ours: Record<string, number> = {};
+  for (const r of rows) {
+    if (r.player_id == null) continue;
+    const id = String(r.player_id);
+    if (r.p10 != null) p10[id] = Number(r.p10);
+    if (r.ours != null) ours[id] = Number(r.ours);
+  }
+  return { p10, ours };
+}

@@ -146,6 +146,7 @@ Sidebar (216px expanded / 64px collapsed glass rail; Edge board, Games, Players,
 - Left 2/3: `LineupCard` list, virtualized; sort by proj / win% / ROI; select rows for export.
 - Right 1/3: exposure panel: `ExposureBar` per player, sorted by leverage; team stack distribution; salary histogram.
 - Row click → drawer with per-player `DistributionSpark`, stack correlation, "why this lineup" (top 3 correlations that drove it).
+- Pick one: Cash ranks by floor (sum of each player's p10) and hides Win % / ROI. Tournament ranks by simulated ROI among lineups within 4 points of the top projection that stack the quarterback with a same-team receiver or tight end, and shows summed field ownership. Screens (out, doubtful, usage cut, projected before the injury report, leftover salary, same player twice) each name a reason. RTS is a side-by-side total when `raw.external_players` source=rts is loaded; otherwise an em dash — never blended into our projection. Export this lineup writes `dk_upload_<slate_id>_<run_id first 8>_single.csv`.
 - Export: DK/FD CSV of selected lineups. Filename `dk_upload_<slate_id>_<run_id first 8>_sim.csv`; line 1 is the DK header.
 
 ### Player library (`/week/[n]/players/[site]/[slate]`)

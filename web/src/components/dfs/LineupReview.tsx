@@ -11,8 +11,10 @@ import { LineupCard, stacksFromPlayers } from "./LineupCard";
 import { StackChip } from "./StackChip";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { fallbackNotice } from "@/lib/slate";
+import type { PickCtx } from "@/lib/dfs/pick-one";
 import { MetricLabel } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { PickOne } from "./PickOne";
 
 const SETTINGS = ["Randomness —", "Stacks % —", "Max exposure —"] as const;
 type SortKey = "proj" | "win" | "roi";
@@ -49,6 +51,7 @@ export function LineupReview({
   buildInProgress = false,
   slates = [],
   fallbackFrom,
+  pickCtx = null,
 }: {
   week: string;
   site: string;
@@ -64,6 +67,7 @@ export function LineupReview({
   buildInProgress?: boolean;
   slates?: string[];
   fallbackFrom?: string | null;
+  pickCtx?: PickCtx | null;
 }) {
   const [sort, setSort] = useState<SortKey>("win");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -195,6 +199,19 @@ export function LineupReview({
           </p>
         )}
       </header>
+
+      {runId && pickCtx && lineups.length > 0 ? (
+        <PickOne
+          lineups={lineups}
+          ctx={pickCtx}
+          runId={runId}
+          slateId={sid}
+          teams={teams}
+          positions={positions}
+          staleDkIds={staleDkIds}
+          slate={slate}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-4 lg:flex-row">
         <section className="flex min-w-0 flex-[2] flex-col gap-3" aria-label="Lineups">

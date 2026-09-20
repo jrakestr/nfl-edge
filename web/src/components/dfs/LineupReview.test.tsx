@@ -105,6 +105,13 @@ describe("LineupCard", () => {
     expect(screen.queryByText("QB")).not.toBeInTheDocument();
   });
 
+  it("hides win% and ROI when hideSimStats is set", () => {
+    render(<LineupCard lineup={SAMPLE} hideSimStats />);
+    expect(screen.queryByText("Win %")).not.toBeInTheDocument();
+    expect(screen.queryByText("31%")).not.toBeInTheDocument();
+    expect(screen.queryByText("ROI")).not.toBeInTheDocument();
+  });
+
   it("shows one decimal on sub-1% win rates", () => {
     render(
       <LineupCard

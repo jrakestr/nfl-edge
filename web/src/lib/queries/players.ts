@@ -217,6 +217,47 @@ export async function staleDkIds(season: number, week: number, runCreatedAt: Dat
   return new Set(rows.map((r) => String(r.player_dk_id)));
 }
 
+/** Current week overrides for the pick-one screens. */
+export async function weekOverrides(
+  season: number,
+  week: number,
+): Promise<Record<string, { status: string | null; usage: number | null }>> {
+  const rows = await sql()`
+    select player_id, status, usage_multiplier::float8 as usage
+    from raw.player_overrides
+    where season = ${season} and week = ${week} and player_id is not null`;
+  const out: Record<string, { status: string | null; usage: number | null }> = {};
+  for (const r of rows) {
+    out[String(r.player_id)] = {
+      status: r.status != null ? String(r.status) : null,
+      usage: r.usage != null ? Number(r.usage) : null,
+    };
+  }
+  return out;
+}
+
+/** RTS fpts_dk per player_id; empty if the file was never loaded. Benchmark only. */
+export async function rtsByPlayer(
+  season: number,
+  week: number,
+): Promise<Record<string, number>> {
+  try {
+    const rows = await sql()`
+      select player_id, fpts_dk::float8 as rts_fpts
+      from raw.external_players
+      where source = 'rts' and season = ${season} and week = ${week}
+        and player_id is not null and fpts_dk is not null`;
+    const out: Record<string, number> = {};
+    for (const r of rows) {
+      if (r.player_id == null || r.rts_fpts == null) continue;
+      out[String(r.player_id)] = Number(r.rts_fpts);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 /** NFLGameSim fpts_dk per player_id; empty if the table is missing. Benchmark only. */
 export async function ngsByPlayer(
   season: number,

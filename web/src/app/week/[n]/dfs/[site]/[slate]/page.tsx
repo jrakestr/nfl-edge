@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
 import { LineupReview } from "@/components/dfs/LineupReview";
 import { CURRENT_SEASON } from "@/lib/config";
-import { dfsExposure, dfsLineups, salaryLookup, salaryPositions, slateId, slatesForWeek, stackCorrelations } from "@/lib/queries/dfs";
-import { staleDkIds } from "@/lib/queries/players";
+import type { PickCtx } from "@/lib/dfs/pick-one";
+import {
+  dfsExposure,
+  dfsLineups,
+  dkPlayerIds,
+  playerPickFacts,
+  salaryLookup,
+  salaryPositions,
+  slateId,
+  slatesForWeek,
+  stackCorrelations,
+} from "@/lib/queries/dfs";
+import { rtsByPlayer, staleDkIds, weekOverrides } from "@/lib/queries/players";
 import { lineupRunForWeek } from "@/lib/queries/runs";
 import { requestedSlate, resolveSlate } from "@/lib/slate";
 
@@ -41,16 +52,36 @@ export default async function Page({
   const picked = weekOk ? await lineupRunForWeek(season, week, siteKey, sid, pinned) : null;
   const run = picked?.run ?? null;
 
-  const [lineups, exposure, lookup, correlations, stale] = run
+  const [lineups, exposure, lookup, correlations, stale, ids, facts, overrides, rts] = run
     ? await Promise.all([
         dfsLineups(run.run_id, siteKey, sid),
         dfsExposure(run.run_id, siteKey, sid),
         salaryLookup(siteKey, sid),
         stackCorrelations(run.run_id, siteKey, sid),
         staleDkIds(season, week, run.created_at),
+        dkPlayerIds(siteKey, sid),
+        playerPickFacts(run.run_id),
+        weekOverrides(season, week),
+        rtsByPlayer(season, week),
       ])
-    : [[], [], {}, [], new Set<string>()];
+    : [[], [], {}, [], new Set<string>(), {}, { p10: {}, ours: {} }, {}, {}];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
+  const ownFieldSim = Object.fromEntries(
+    exposure.map((e) => [e.player_id, e.own_field_sim ?? 0]),
+  );
+  const pickCtx: PickCtx | null = run
+    ? {
+        dkToPlayerId: ids,
+        teams,
+        positions: salaryPositions(lookup),
+        p10: facts.p10,
+        ours: facts.ours,
+        ownFieldSim,
+        rts,
+        overrides,
+        staleDkIds: stale,
+      }
+    : null;
 
   return (
     <LineupReview
@@ -68,6 +99,7 @@ export default async function Page({
       buildInProgress={picked?.buildInProgress ?? false}
       slates={available}
       fallbackFrom={fallbackFrom}
+      pickCtx={pickCtx}
     />
   );
 }

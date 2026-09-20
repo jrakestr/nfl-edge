@@ -160,6 +160,13 @@ and fills `raw.players.dk_id`. DK `Status` O/OUT and IR → `player_overrides` o
 doubtful (usage 0); Q → questionable (usage 1.0). Unmatched names and skipped overrides go to
 stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `config/dk_aliases.yaml`.
 
+## RTS projections
+
+`nfl-edge benchmark rts --season S --week W` reads
+`data/benchmarks/rts_projections_<season>_week<WW>.csv` (or `--file`) and upserts
+`raw.external_players` with `source='rts'`. Lineups Pick one re-scores a lineup with those
+numbers next to ours. Missing file: em dash. Never blended into `proj_fpts`.
+
 ## Web
 
 The Next.js app in `web/` reads Supabase from server components. It does not generate verdicts.
@@ -168,11 +175,12 @@ ahead of the last `lines` run come from `proj_games.line_grid` (a lookup, not a 
 
 Player library: `/week/[n]/players/dk/{slate}`. Browser optimizer: `/week/[n]/optimize/dk/{slate}`.
 Browser-optimized lineups are **not graded** unless you export the CSV and enter that slate.
-The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Both exports put
-`run_id`, `slate_id`, and `source` (`sim` or `user-optimized`) in the filename
+The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Exports put
+`run_id`, `slate_id`, and `source` (`sim`, `user-optimized`, or `single`) in the filename
 (`dk_upload_<slate_id>_<run_id first 8>_<source>.csv`). Line 1 is the DK header — never a
 comment. Grade an entered upload from that name (and the CLI path
-`data/dfs/<run_id>/<site>/<slate>/`).
+`data/dfs/<run_id>/<site>/<slate>/`). Pick one on Lineups writes the `single` file from one
+of the 150.
 Sentences stay on the last `nfl-edge lines` write, which this Mac's LaunchAgent runs after each
 snapshot when a week is stale.
 
