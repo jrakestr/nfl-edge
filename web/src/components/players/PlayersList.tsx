@@ -10,6 +10,10 @@ import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
 import { positionRanks } from "@/lib/players/ranks";
+import { GameStrip } from "@/components/shell/GameStrip";
+import { useGamesSelection, useLiveSearchParams } from "@/components/shell/GamesSelection";
+import { selectedOnSlate } from "@/lib/games-param";
+import type { StripGame } from "@/lib/kickoff";
 import { applyPicksToParams, emptyPicks, useSlatePicks, type PickKey } from "@/lib/slate-picks";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
@@ -41,8 +45,9 @@ const PRESSED: Partial<Record<Metric, string>> = {
 };
 
 export const PLAYER_CELL =
-  "sticky left-0 z-10 bg-card border-r border-border-soft [[data-locked]_&]:shadow-[inset_3px_0_0_0_var(--edge-pos)]";
-const PLAYER_HEAD = "sticky left-0 z-20 bg-muted border-r border-border-soft";
+  "sticky left-0 z-10 bg-card border-r border-border-soft px-1! [[data-locked]_&]:shadow-[inset_3px_0_0_0_var(--edge-pos)]";
+const PLAYER_HEAD = "sticky left-0 z-20 bg-muted border-r border-border-soft px-1!";
+const TIGHT = "px-1!";
 
 function PickButton({
   metric,
@@ -89,6 +94,7 @@ export function PlayersList({
   slate = "main",
   toolbar,
   fallbackFrom,
+  strip = [],
 }: {
   players?: WeekPlayer[];
   slateId?: string;
@@ -97,20 +103,25 @@ export function PlayersList({
   slate?: string;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
+  strip?: StripGame[];
 }) {
   const { picks, toggle, setPicks } = useSlatePicks(slateId);
-  const buildQs = applyPicksToParams(picks, new URLSearchParams()).toString();
+  const live = useLiveSearchParams();
+  const { selected } = useGamesSelection();
+  const buildQs = applyPicksToParams(picks, new URLSearchParams(live.toString())).toString();
   const buildHref = `/week/${week}/optimize/${site}/${slate}${buildQs ? `?${buildQs}` : ""}`;
+  const visible = useMemo(() => {
+    const active = selectedOnSlate(selected, strip.map((g) => g.game_id));
+    if (!active.length) return players;
+    const set = new Set(active);
+    return players.filter((p) => p.game_id != null && set.has(p.game_id));
+  }, [players, selected, strip]);
   const ranks = useMemo(() => {
     const proj = positionRanks(players, (p) => p.position, (p) => p.fpts_dk_mean);
-    const val = positionRanks(players, (p) => p.position, (p) => p.value);
-    const ceil = positionRanks(players, (p) => p.position, (p) => p.ceiling);
-    const m = new Map<string, { proj: number | null; val: number | null; ceil: number | null }>();
+    const m = new Map<string, { proj: number | null }>();
     players.forEach((p, i) => {
       m.set(p.player_dk_id ?? p.player_id, {
         proj: proj[i] ?? null,
-        val: val[i] ?? null,
-        ceil: ceil[i] ?? null,
       });
     });
     return m;
@@ -129,8 +140,9 @@ export function PlayersList({
         {toolbar}
         {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
       </header>
+      {strip.length ? <GameStrip games={strip} /> : null}
       <DataTable
-        data={players}
+        data={visible}
         getRowId={(p) => p.player_dk_id ?? p.player_id}
         empty="No projections listed yet"
         ariaLabel="Players"
@@ -157,6 +169,7 @@ export function PlayersList({
           position: (p) => p.position,
           team: (p) => p.team,
           minProj: (p) => p.fpts_dk_mean,
+          hideUnproj: (p) => p.fpts_dk_mean,
           salary: (p) => p.salary,
         }}
         columns={[
@@ -196,6 +209,8 @@ export function PlayersList({
           {
             id: "team",
             header: "Team",
+            className: TIGHT,
+            headClassName: TIGHT,
             sortValue: (p) => p.team ?? "",
             cell: (p) => (
               <TeamLogo
@@ -212,6 +227,8 @@ export function PlayersList({
           {
             id: "opp",
             header: "Opp",
+            className: TIGHT,
+            headClassName: TIGHT,
             sortValue: (p) => p.opponent ?? "",
             cell: (p) => (
               <span
@@ -229,18 +246,10 @@ export function PlayersList({
           {
             id: "kickoff",
             header: "Kickoff",
+            className: TIGHT,
+            headClassName: TIGHT,
             sortValue: (p) => p.kickoff ?? "",
             cell: (p) => <span className="t-caption">{p.kickoff ?? "—"}</span>,
-          },
-          {
-            id: "dkid",
-            header: "DK ID",
-            sortValue: (p) => p.player_dk_id ?? "",
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {p.player_dk_id ?? "—"}
-              </span>
-            ),
           },
           {
             id: "salary",
@@ -272,6 +281,15 @@ export function PlayersList({
             },
           },
           {
+            id: "ngs",
+            header: "NFLGameSim",
+            align: "right",
+            sortValue: (p) => p.ngs_fpts,
+            cell: (p) => (
+              <span className="t-caption text-muted-foreground">{num(p.ngs_fpts)}</span>
+            ),
+          },
+          {
             id: "projRk",
             header: "Pts rk",
             align: "right",
@@ -283,17 +301,6 @@ export function PlayersList({
             ),
           },
           {
-            id: "floor",
-            header: "Floor",
-            align: "right",
-            sortValue: (p) => p.floor,
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {num(p.floor)}
-              </span>
-            ),
-          },
-          {
             id: "ceiling",
             header: "Ceiling",
             align: "right",
@@ -301,17 +308,6 @@ export function PlayersList({
             cell: (p) => (
               <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
                 {num(p.ceiling)}
-              </span>
-            ),
-          },
-          {
-            id: "ceilRk",
-            header: "Ceil rk",
-            align: "right",
-            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.ceil,
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {rankText(ranks.get(p.player_dk_id ?? p.player_id)?.ceil)}
               </span>
             ),
           },
@@ -336,17 +332,6 @@ export function PlayersList({
             cell: (p) => (
               <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
                 {num(p.value, 2)}
-              </span>
-            ),
-          },
-          {
-            id: "valRk",
-            header: "Val rk",
-            align: "right",
-            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.val,
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {rankText(ranks.get(p.player_dk_id ?? p.player_id)?.val)}
               </span>
             ),
           },
@@ -412,7 +397,7 @@ export function PlayersList({
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => setPicks(emptyPicks())}>
-            Clear all
+            Clear picks
           </Button>
           <Button asChild size="sm">
             <Link href={buildHref}>Build lineups with these →</Link>

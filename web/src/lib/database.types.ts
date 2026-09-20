@@ -1400,6 +1400,66 @@ export type Database = {
         }
         Relationships: []
       }
+      external_players: {
+        Row: {
+          fpts_dk: number | null
+          game_id: string | null
+          ingested_at: string | null
+          name: string
+          opponent: string | null
+          pass_int: number | null
+          pass_td: number | null
+          pass_yds: number | null
+          player_id: string | null
+          rec_td: number | null
+          rec_yds: number | null
+          rush_td: number | null
+          rush_yds: number | null
+          season: number
+          source: string
+          team: string
+          week: number
+        }
+        Insert: {
+          fpts_dk?: number | null
+          game_id?: string | null
+          ingested_at?: string | null
+          name: string
+          opponent?: string | null
+          pass_int?: number | null
+          pass_td?: number | null
+          pass_yds?: number | null
+          player_id?: string | null
+          rec_td?: number | null
+          rec_yds?: number | null
+          rush_td?: number | null
+          rush_yds?: number | null
+          season: number
+          source: string
+          team: string
+          week: number
+        }
+        Update: {
+          fpts_dk?: number | null
+          game_id?: string | null
+          ingested_at?: string | null
+          name?: string
+          opponent?: string | null
+          pass_int?: number | null
+          pass_td?: number | null
+          pass_yds?: number | null
+          player_id?: string | null
+          rec_td?: number | null
+          rec_yds?: number | null
+          rush_td?: number | null
+          rush_yds?: number | null
+          season?: number
+          source?: string
+          team?: string
+          week?: number
+        }
+        Relationships: []
+      }
       external_projections: {
         Row: {
           ingested_at: string | null

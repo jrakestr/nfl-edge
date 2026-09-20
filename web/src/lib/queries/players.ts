@@ -216,3 +216,27 @@ export async function staleDkIds(season: number, week: number, runCreatedAt: Dat
       and s.player_dk_id is not null`;
   return new Set(rows.map((r) => String(r.player_dk_id)));
 }
+
+/** NFLGameSim fpts_dk per player_id; empty if the table is missing. Benchmark only. */
+export async function ngsByPlayer(
+  season: number,
+  week: number,
+  playerIds: string[],
+): Promise<Record<string, number>> {
+  if (playerIds.length === 0) return {};
+  try {
+    const rows = await sql()`
+      select player_id, fpts_dk::float8 as ngs_fpts
+      from raw.external_players
+      where source = 'nflgamesim' and season = ${season} and week = ${week}
+        and player_id = any(${playerIds})`;
+    const out: Record<string, number> = {};
+    for (const r of rows) {
+      if (r.player_id == null || r.ngs_fpts == null) continue;
+      out[String(r.player_id)] = Number(r.ngs_fpts);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
