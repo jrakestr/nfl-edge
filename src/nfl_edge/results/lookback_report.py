@@ -331,11 +331,7 @@ def _load_games_without_location(season: int, week: int) -> pl.DataFrame:
                coalesce(m.spread_line, s.spread_line)::float8 as market_spread,
                coalesce(m.total_line, s.total_line)::float8 as market_total
         from raw.schedules s
-        left join lateral (
-            select spread_line, total_line from raw.market_lines
-            where game_id = s.game_id and source = 'nflverse'
-            order by captured_at desc limit 1
-        ) m on true
+        left join model.market_lines_latest m on m.game_id = s.game_id
         where s.season = %s and s.week = %s and s.game_type = 'REG'
         order by s.game_id
         """,

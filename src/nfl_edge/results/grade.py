@@ -16,6 +16,7 @@ from ..config import ROOT, load_yaml
 from ..db import read_sql, upsert
 from ..market import edge as edge_mod
 from ..market.edge import decimal_odds, devig_two_way
+from ..market.reference import CANDIDATE_SQL, candidate_params, is_candidate
 from . import dfs_grade, prop_grade
 from .calibration import calibration_buckets, is_monotone
 
@@ -116,30 +117,15 @@ def predated_kickoff(created_at: datetime, kickoff: datetime) -> bool:
 
 
 def pick_close(snapshots: list[dict], kickoff: datetime, schedule: dict) -> dict | None:
-    pre = []
-    for s in snapshots:
-        ts = s["captured_at"]
-        if getattr(ts, "tzinfo", None) is None:
-            ts = ts.replace(tzinfo=ET) if isinstance(ts, datetime) else ts
-        if ts < kickoff:
-            pre.append(s)
-    if pre:
-        pre.sort(key=lambda s: (s["captured_at"], s["id"]))
-        s = dict(pre[-1])
-        s["source"] = "snapshot"
-        s["market_line_id"] = s["id"]
-        return s
-    if schedule.get("spread_line") is None and schedule.get("total_line") is None:
+    from ..market.reference import pick_close as ref_close
+
+    chosen = ref_close(snapshots, kickoff)
+    if chosen is None:
         return None
-    return {
-        "source": "schedules", "market_line_id": None,
-        "spread_line": schedule.get("spread_line"), "total_line": schedule.get("total_line"),
-        "home_spread_odds": schedule.get("home_spread_odds"),
-        "away_spread_odds": schedule.get("away_spread_odds"),
-        "over_odds": schedule.get("over_odds"), "under_odds": schedule.get("under_odds"),
-        "home_moneyline": schedule.get("home_moneyline"),
-        "away_moneyline": schedule.get("away_moneyline"),
-    }
+    out = dict(chosen)
+    out["source"] = "snapshot"
+    out["market_line_id"] = chosen["id"]
+    return out
 
 
 def _price(v, default: int = DEFAULT_PRICE) -> int:
@@ -185,9 +171,8 @@ def _require_structured(verdict: dict, game: dict) -> dict:
 def grade_snapshot(edge_rows: list[dict], bet: dict, close: dict | None,
                    game: dict, verdict: dict | None) -> list[dict]:
     payload = _require_structured(verdict, game) if verdict is not None else None
-    n_snap = int(game.get("n_snapshots") or 1)
     close_id = close.get("market_line_id") if close else None
-    is_last = (close_id is not None and close_id == bet["id"]) or n_snap == 1
+    is_last = close_id is not None and close_id == bet["id"]
     result, total = float(game["result"]), float(game["total"])
 
     pick_keys: set[tuple[str, str]] = set()
@@ -433,13 +418,16 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
             continue
         game_ids = edges["game_id"].unique().to_list()
         snaps = read_sql(
-            """
-            select id, game_id, captured_at, spread_line::float8 as spread_line,
+            f"""
+            select id, game_id, captured_at, source, bookmaker,
+                   spread_line::float8 as spread_line,
                    total_line::float8 as total_line, home_spread_odds, away_spread_odds,
                    over_odds, under_odds, home_moneyline, away_moneyline
-            from raw.market_lines where game_id = any(%s) order by game_id, captured_at, id
+            from raw.market_lines
+            where game_id = any(%s) and {CANDIDATE_SQL}
+            order by game_id, captured_at, id
             """,
-            (game_ids,),
+            (game_ids, *candidate_params()),
         )
         sched = read_sql(
             """
@@ -465,7 +453,6 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
         snaps_by: dict[str, list[dict]] = {}
         for s in snaps.to_dicts():
             snaps_by.setdefault(s["game_id"], []).append(s)
-        n_by = {gid: len(ss) for gid, ss in snaps_by.items()}
         bet_by: dict[int, dict] = {s["id"]: s for ss in snaps_by.values() for s in ss}
 
         for gid, part in edges.group_by("game_id"):
@@ -479,9 +466,10 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
             if chosen is not None and rid != chosen:
                 continue
             pred = predated_kickoff(run_by_id[rid]["created_at"], kick)
-            close = pick_close(snaps_by.get(game_id, []), kick, sc)
+            cands = [s for s in snaps_by.get(game_id, []) if is_candidate(s, kick)]
+            close = pick_close(cands, kick, sc)
             game = {"game_id": game_id, "result": sc["result"], "total": sc["total"],
-                    "n_snapshots": n_by.get(game_id, 0),
+                    "n_snapshots": len(cands),
                     "home_team": sc["home_team"], "away_team": sc["away_team"]}
             meta[(rid, game_id)] = {
                 "matchup": f"{sc['away_team']}@{sc['home_team']}", "result": sc["result"],
@@ -494,7 +482,11 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
             vrow = verd_by_game.get(game_id)
             for (mlid,), erows in part.group_by("market_line_id"):
                 mlid = mlid[0] if isinstance(mlid, tuple) else mlid
+                if int(mlid) not in bet_by:
+                    continue
                 bet = dict(bet_by[int(mlid)])
+                if not is_candidate(bet, kick):
+                    continue
                 graded = grade_snapshot(erows.to_dicts(), bet, close, game, vrow)
                 for row in graded:
                     row["run_id"] = rid

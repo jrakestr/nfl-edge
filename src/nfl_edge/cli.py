@@ -40,13 +40,20 @@ def db_counts():
         typer.echo(str(unresolved_snap_pfr()))
 
 
-@app.command()
+ingest_app = typer.Typer(help="Pull data into Postgres.")
+app.add_typer(ingest_app, name="ingest")
+
+
+@ingest_app.callback(invoke_without_command=True)
 def ingest(
+    ctx: typer.Context,
     week: int = typer.Option(None, help="NFL week (optional with --lines-only: whole season)"),
     season: int = typer.Option(2026),
     lines_only: bool = typer.Option(False, help="Only snapshot market lines (the cron path)"),
 ):
     """Pull nflverse data into Postgres (idempotent). Pre-kickoff seasons load what is published."""
+    if ctx.invoked_subcommand is not None:
+        return
     from .ingest import consensus, context, opportunity, players, schedules, stats
     from .ingest import season as season_guard
 
@@ -63,6 +70,36 @@ def ingest(
     for name, mod in (("stats", stats), ("opportunity", opportunity),
                       ("consensus", consensus), ("context", context)):
         typer.echo(f"{name}: {mod.run([season], week=week)}")
+
+
+@ingest_app.command("odds-api")
+def ingest_odds_api(
+    markets: str = typer.Option("h2h,spreads,totals", help="Comma-separated Odds API markets"),
+    regions: str = typer.Option("us", help="Comma-separated Odds API regions"),
+    force: bool = typer.Option(False, "--force", help="Insert even if a recent duplicate snapshot exists"),
+):
+    """One Odds API pull into raw.market_lines. Costs markets × regions credits."""
+    from .ingest import odds_api as odds
+
+    try:
+        r = odds.run(markets=markets, regions=regions, force=force)
+    except odds.RecentDuplicate as e:
+        typer.echo(str(e))
+        raise typer.Exit(code=1) from None
+    except odds.ZeroMatch as e:
+        for s in e.skipped:
+            typer.echo(f"skipped: {s['away']} @ {s['home']} {s['date']}")
+        typer.echo(str(e))
+        raise typer.Exit(code=1) from None
+    for s in r["skipped"]:
+        typer.echo(f"skipped: {s['away']} @ {s['home']} {s['date']}")
+    warn = odds.remaining_warning(r["remaining"])
+    if warn:
+        typer.echo(warn)
+    typer.echo(
+        f"odds_api: {r['written']} rows, {r['books']} books, skipped={r['skipped_n']}, "
+        f"remaining={r['remaining']}, used={r['used']}"
+    )
 
 
 INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")
@@ -206,6 +243,10 @@ def lines(
     as_json: bool = typer.Option(False, "--json", help="Emit the payload the UI reads instead of text"),
     min_edge: float = typer.Option(0.0, help="Edge table: hide rows below this edge"),
     recompute: bool = typer.Option(False, help="Delete and recompute this run's edges and verdicts"),
+    close: bool = typer.Option(
+        False, "--close",
+        help="Pin each game to the last pre-kickoff reference snapshot; mark verdicts backfilled",
+    ),
 ):
     """Plain-English verdicts + edge table for a simulated week; persists model.edges and model.verdicts."""
     import json
@@ -214,14 +255,18 @@ def lines(
 
     from .outputs import lines_io
 
-    w, stats = lines_io.build(season, week, run_id=run, recompute=recompute)
-    n_verdicts = lines_io.persist(w)
+    w, stats = lines_io.build(season, week, run_id=run, recompute=recompute, close=close)
+    n_verdicts = lines_io.persist(w, backfilled=close)
     if as_json:
         typer.echo(json.dumps(w.to_dict(), indent=1))
         return
     typer.echo(w.summary)
     typer.echo(f"(edges: {stats.get('edges', 0)} new of {stats.get('rows', 0)} across {stats.get('snapshots', 0)} "
                f"snapshots, parity {stats.get('parity')}; verdicts: {n_verdicts} new)\n")
+    if close:
+        skipped = [g.game_id for g in w.games if g.market.get("snapshot_id") is None]
+        if skipped:
+            typer.echo("close: no pre-kickoff snapshot for " + ", ".join(skipped))
     fair = stats.get("fair_props") or {}
     if fair:
         by = fair.get("by_stat") or {}
@@ -263,6 +308,39 @@ def current_week_cmd(season: int = typer.Option(2026)):
     if week is None:
         raise typer.Exit(code=1)
     typer.echo(week)
+
+
+@app.command("completed-weeks")
+def completed_weeks_cmd(season: int = typer.Option(2026)):
+    """Print REG weeks whose last gameday is before today (one week per line)."""
+    from .rebuild import completed_weeks
+
+    for week in completed_weeks(season):
+        typer.echo(week)
+
+
+@app.command("ungraded-completed")
+def ungraded_completed_cmd(season: int = typer.Option(2026)):
+    """Print completed REG weeks that still have ungraded games (one week per line)."""
+    from .rebuild import ungraded_completed_weeks
+
+    for week in ungraded_completed_weeks(season):
+        typer.echo(week)
+
+
+@app.command("missing-finals")
+def missing_finals_cmd(
+    season: int = typer.Option(2026),
+    week: int = typer.Option(...),
+):
+    """Print game_ids with a null result. Exit 1 if any are missing."""
+    from .rebuild import games_missing_result
+
+    missing = games_missing_result(season, week)
+    for game_id in missing:
+        typer.echo(game_id)
+    if missing:
+        raise typer.Exit(code=1)
 
 
 @app.command("slate-count")
@@ -346,16 +424,29 @@ def dk_salaries(
     file: str = typer.Option(None, "--file", help="DK salary export CSV"),
     site: str = typer.Option("dk"),
     slate: str = typer.Option("main"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print Status merge; write nothing"),
+    status_from: str = typer.Option(None, "--status-from", help="Authoritative slate key for Status merge"),
+    salaries_only: bool = typer.Option(False, "--salaries-only", help="Upsert this slate's salaries; skip Status merge"),
+    merge_status: bool = typer.Option(False, "--merge-status", help="Status merge only; skip salary upsert"),
 ):
-    """Upsert raw.dk_salaries from a DK export. Status O/D/Q/OUT/IR write raw.player_overrides."""
+    """Upsert raw.dk_salaries from a DK export. Week Status is a merge across on-disk CSVs."""
     from pathlib import Path
 
     from .ingest import dk_salaries as dk
 
     path = Path(file) if file else dk.default_path(season, week, slate)
-    r = dk.run(season, week, path, site=site, slate=slate)
+    try:
+        r = dk.run(
+            season, week, path, site=site, slate=slate,
+            dry_run=dry_run, status_from=status_from,
+            salaries_only=salaries_only, merge_only=merge_status,
+        )
+    except ValueError as e:
+        typer.echo(str(e))
+        raise typer.Exit(1) from e
+    prefix = "dry-run " if r.get("dry_run") else ""
     typer.echo(
-        f"dk salaries {r['slate_id']}: {r['written']} written / {r['rows']} rows, "
+        f"{prefix}dk salaries {r['slate_id']}: {r['written']} written / {r['rows']} rows, "
         f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
         f"{r['overrides_written']} overrides"
     )
@@ -365,10 +456,12 @@ def dk_salaries(
             f"  {u.get('match_reason', 'unmatched')}: {u.get('name')} "
             f"team={u.get('team')} pos={u.get('position')} status={u.get('status')}"
         )
-    for s in r["override_skipped"]:
+    for s in r.get("override_skipped") or []:
         typer.echo(
             f"  override-{s.get('reason')}: {s.get('name')} team={s.get('team')} status={s.get('status')}"
         )
+    for line in r.get("merge_lines") or []:
+        typer.echo(line)
 
 
 @app.command()
@@ -391,6 +484,19 @@ def dfs(
         season, week, site=site, slate=slate, run_id=run,
         lineups=lineups, field=field, export=Path(export) if export else None,
     )
+    for d in r.get("injury_dropped") or []:
+        typer.echo(
+            f"  dropped {d.get('name')} {d.get('status')} "
+            f"team={d.get('team')} fpts={d.get('fpts')}"
+        )
+    s = r.get("settings") or {}
+    if s:
+        typer.echo(
+            f"  settings randomness={s.get('randomness')} "
+            f"stacks={s.get('stacks_pct')}% "
+            f"max_exposure={s.get('max_exposure')}% "
+            f"uniques={s.get('num_uniques')}"
+        )
     typer.echo(
         f"dfs {r['slate_id']}: {r['n_lineups']} lineups, {r['n_exposure']} exposure, "
         f"upload {r['upload']}"

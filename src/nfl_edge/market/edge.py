@@ -191,13 +191,19 @@ def snapshot_edges(draws: pl.DataFrame, snap: dict, c: dict) -> list[dict]:
 
 # ----------------------------------------------------------------------------- run
 def load_snapshots(game_ids: list[str]) -> pl.DataFrame:
+    from .reference import CANDIDATE_SQL, candidate_params
+
+    src, book, fallback = candidate_params()
     return read_sql(
-        """
-        select id, game_id, captured_at, spread_line::float8 as spread_line, total_line::float8 as total_line,
+        f"""
+        select id, game_id, captured_at, source, bookmaker,
+               spread_line::float8 as spread_line, total_line::float8 as total_line,
                home_moneyline, away_moneyline, home_spread_odds, away_spread_odds, over_odds, under_odds
-        from raw.market_lines where game_id = any(%s) order by game_id, captured_at
+        from raw.market_lines
+        where game_id = any(%s) and {CANDIDATE_SQL}
+        order by game_id, captured_at
         """,
-        (game_ids,),
+        (game_ids, src, book, fallback),
     )
 
 

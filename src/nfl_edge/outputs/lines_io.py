@@ -29,17 +29,17 @@ def resolve_run(season: int, week: int, run_id: str | None = None) -> dict:
 
 
 def load_games(run_id: str) -> list[dict]:
-    """proj_games + schedule names + the latest market snapshot per game."""
+    """proj_games + schedule names + the latest reference snapshot per game."""
     return read_sql(
         """
         with latest as (
-          select distinct on (game_id) id, game_id, captured_at, spread_line, total_line,
+          select id, game_id, captured_at, spread_line, total_line,
                  home_moneyline, away_moneyline, home_spread_odds, away_spread_odds, over_odds, under_odds
-          from raw.market_lines
+          from model.market_lines_latest
           where game_id in (select game_id from model.proj_games where run_id = %s)
-          order by game_id, captured_at desc
         )
         select p.game_id, s.home_team, s.away_team, s.result::float8 as result,
+               s.gameday, s.gametime, s.location,
                (s.gameday::text || ' ' || coalesce(s.gametime, '')) as kickoff,
                p.fair_spread::float8 as fair_spread, p.fair_total::float8 as fair_total,
                p.mean_spread::float8 as mean_spread, p.mean_total::float8 as mean_total,
@@ -59,16 +59,56 @@ def load_games(run_id: str) -> list[dict]:
     ).to_dicts()
 
 
-def load_edges(run_id: str) -> list[dict]:
-    return read_sql(
-        """
+_MARKET_KEYS = (
+    "market_line_id", "captured_at", "spread_line", "total_line",
+    "home_spread_odds", "away_spread_odds", "over_odds", "under_odds",
+    "home_moneyline", "away_moneyline",
+)
+
+
+def apply_close_snapshots(games: list[dict], snapshots: list[dict]) -> list[dict]:
+    """Pin each game to the last reference snapshot before kickoff. No pre-kickoff row → no market."""
+    from ..results.grade import kickoff_at, pick_close
+
+    by: dict[str, list[dict]] = {}
+    for s in snapshots:
+        by.setdefault(s["game_id"], []).append(s)
+    out = []
+    for g in games:
+        kick = kickoff_at(g["gameday"], g.get("gametime"), g.get("location"))
+        close = pick_close(by.get(g["game_id"], []), kick, g)
+        pinned = dict(g)
+        if close is None or close.get("market_line_id") is None:
+            for k in _MARKET_KEYS:
+                pinned[k] = None
+            out.append(pinned)
+            continue
+        pinned["market_line_id"] = close["market_line_id"]
+        ts = close.get("captured_at")
+        pinned["captured_at"] = ts.isoformat() if hasattr(ts, "isoformat") else ts
+        for k in _MARKET_KEYS:
+            if k in ("market_line_id", "captured_at"):
+                continue
+            if k in close:
+                pinned[k] = close[k]
+        out.append(pinned)
+    return out
+
+
+def load_edges(run_id: str, market_line_ids: list[int] | None = None) -> list[dict]:
+    cols = """
         select market_line_id, ref_id, market_type, side, model_prob::float8 as model_prob,
                market_prob::float8 as market_prob, edge::float8 as edge,
                kelly_fraction::float8 as kelly_fraction, price, p_push::float8 as p_push, hold::float8 as hold
-        from model.edges_latest where run_id = %s
-        """,
-        (run_id,),
-    ).to_dicts()
+    """
+    if market_line_ids is not None:
+        if not market_line_ids:
+            return []
+        return read_sql(
+            cols + " from model.edges where run_id = %s and market_line_id = any(%s)",
+            (run_id, market_line_ids),
+        ).to_dicts()
+    return read_sql(cols + " from model.edges_latest where run_id = %s", (run_id,)).to_dicts()
 
 
 def load_checks(run_id: str) -> list[dict]:
@@ -92,10 +132,8 @@ def stale_weeks(season: int) -> list[int]:
         from latest_run lr
         join model.proj_games p on p.run_id = lr.run_id
         left join raw.market_lines latest on latest.id = (
-          select m.id from raw.market_lines m
+          select m.id from model.market_lines_latest m
           where m.game_id = p.game_id
-          order by m.captured_at desc, m.id desc
-          limit 1
         )
         left join model.verdicts v
           on v.run_id = lr.run_id and v.game_id = p.game_id
@@ -136,7 +174,8 @@ def backfill_line_grids(run_id: str) -> int:
     return n
 
 
-def build(season: int, week: int, run_id: str | None = None, recompute: bool = False) -> tuple[lines.WeekVerdicts, dict]:
+def build(season: int, week: int, run_id: str | None = None, recompute: bool = False,
+          close: bool = False) -> tuple[lines.WeekVerdicts, dict]:
     """Compute missing edges, then the week's verdicts. Returns (verdicts, edge-run stats)."""
     run = resolve_run(season, week, run_id)
     stats = edge.run(run["run_id"], recompute=recompute)
@@ -144,20 +183,27 @@ def build(season: int, week: int, run_id: str | None = None, recompute: bool = F
     from . import props as props_out
     stats["fair_props"] = props_out.fair_props(run["run_id"])
     stats["prop_edges"] = props_out.run(run["season"], run["week"], run_id=run["run_id"])
+    from .team_inputs import backfill_missing
+    stats["run_team_inputs"] = backfill_missing(run["run_id"], run["season"], run["week"])
+    games = load_games(run["run_id"])
+    if close:
+        snaps = edge.load_snapshots([g["game_id"] for g in games])
+        games = apply_close_snapshots(games, [] if snaps.is_empty() else snaps.to_dicts())
+    mlids = [int(g["market_line_id"]) for g in games if g.get("market_line_id") is not None]
     w = lines.build_week(
         run["season"], run["week"], run["run_id"], int(run["draws_per_game"] or 0),
-        load_games(run["run_id"]), load_edges(run["run_id"]), load_checks(run["run_id"]),
+        games, load_edges(run["run_id"], mlids), load_checks(run["run_id"]),
         lines.load_teams(), edge.cfg(),
     )
     return w, stats
 
 
-def persist(w: lines.WeekVerdicts) -> int:
-    """One row per game at the latest snapshot; games without a snapshot have no row yet."""
+def persist(w: lines.WeekVerdicts, *, backfilled: bool = False) -> int:
+    """One row per game at the pinned snapshot; games without a snapshot have no row yet."""
     payloads = w.to_dict()["games"]
     rows = [
         {"run_id": w.run_id, "game_id": g["game_id"], "market_line_id": int(g["market"]["snapshot_id"]),
-         "payload": json.dumps(g)}
+         "payload": json.dumps(g), "backfilled": backfilled}
         for g in payloads if g["market"]["snapshot_id"] is not None
     ]
     if not rows:
