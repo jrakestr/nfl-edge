@@ -503,6 +503,43 @@ def dfs(
     )
 
 
+benchmark_app = typer.Typer(help="Third-party benchmark ingests (never the sim).")
+app.add_typer(benchmark_app, name="benchmark")
+
+
+@benchmark_app.command("nflgamesim")
+def benchmark_nflgamesim(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(None, "--file", help="Pasted mygamesim weekly text"),
+    refresh_actuals: bool = typer.Option(
+        False, "--refresh-actuals", help="Fill finals from raw.schedules; rewrite CSV + upsert"),
+):
+    """Parse a mygamesim weekly paste to data/benchmarks + raw.external_games."""
+    from pathlib import Path
+
+    from .benchmark import nflgamesim as ngs
+
+    if file is None and not refresh_actuals:
+        raise typer.BadParameter("--file is required unless --refresh-actuals")
+    try:
+        if file is not None:
+            r = ngs.run(season, week, Path(file))
+            typer.echo(
+                f"nflgamesim {r['season']} wk{r['week']}: "
+                f"{r['written']} written / {r['rows']} rows -> {r['csv']}"
+            )
+        if refresh_actuals:
+            r = ngs.refresh(season, week)
+            typer.echo(
+                f"nflgamesim refresh {r['season']} wk{r['week']}: "
+                f"{r['final']} final / {r['rows']} rows, {r['written']} written"
+            )
+    except (ngs.UnmatchedGame, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+
+
 @app.command()
 def bettingpros(
     week: int = typer.Option(...),
