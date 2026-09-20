@@ -4,6 +4,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from nfl_edge.dfs import construction as C
 from nfl_edge.outputs import dfs_export as D
 
 SLATE = [
@@ -77,6 +80,28 @@ def test_projections_use_mean_and_sd_and_keep_unprojected():
     assert "Puka Nacua" in below
     assert "Chiefs" not in below  # DST is not dropped by the tool's minimum
     assert all(0.5 <= r["Own%"] <= 30.0 for r in rows)
+
+
+def test_cash_fpts_is_p25_not_mean():
+    proj = {k: {**v, "p25": 8.0, "p90": 40.0, "own": 0.9} for k, v in PROJ.items()}
+    rows, _ = D.build_projections(
+        SLATE, proj, site="dk", construction=C.profile("classic", "cash"),
+    )
+    assert by_name(rows)["Patrick Mahomes"]["Fpts"] == 8.0
+
+
+def test_cash_fpts_fails_closed_without_p25():
+    with pytest.raises(RuntimeError, match="25th-percentile"):
+        D.build_projections(SLATE, PROJ, site="dk", construction=C.profile("classic", "cash"))
+
+
+def test_single_fpts_uses_named_ceiling_and_own_weights():
+    p = C.profile("classic", "single")
+    proj = {k: {**v, "p25": 8.0, "p90": 30.0, "own": 0.20} for k, v in PROJ.items()}
+    rows, _ = D.build_projections(SLATE, proj, site="dk", construction=p)
+    mean = 22.4
+    expect = mean + p["ceiling_weight"] * (30.0 - mean) - p["ownership_penalty"] * 0.20
+    assert by_name(rows)["Patrick Mahomes"]["Fpts"] == pytest.approx(expect)
 
 
 def test_projections_fd_uses_fd_points():
@@ -161,6 +186,55 @@ def test_showdown_export_uses_20k_contest(tmp_path: Path):
     assert "Field Size" in header
     assert "20000" in row
     assert "150" not in row.split(",")
+
+
+def test_injury_out_is_dropped_even_when_above_the_floor():
+    slate = [
+        {**SLATE[0]},
+        {**SLATE[1], "player_id": "00-0036900"},
+    ]
+    proj = {
+        "00-0033873": {"fpts_dk_mean": 22.4, "fpts_dk_sd": 6.1},
+        "00-0036900": {"fpts_dk_mean": 14.2, "fpts_dk_sd": 5.0},
+    }
+    kept, dropped = D.drop_injured(slate, proj, {"00-0036900": "out"}, site="dk")
+    assert [r["name"] for r in kept] == ["Patrick Mahomes"]
+    assert dropped == [{
+        "kind": "injury_out",
+        "name": "Ja'Marr Chase",
+        "team": "CIN",
+        "position": "WR",
+        "player_id": "00-0036900",
+        "status": "out",
+        "fpts": 14.2,
+    }]
+    rows, report = D.build_projections(kept, proj, site="dk")
+    assert "Ja'Marr Chase" not in {r["Name"] for r in rows}
+    assert all(r["kind"] != "injury_out" for r in report)
+
+
+def test_injury_keeps_questionable_and_drops_ir_and_doubtful():
+    overrides = {"00-0033873": "questionable", "00-0036900": "IR", "00-0039139": "doubtful"}
+    kept, dropped = D.drop_injured(SLATE, PROJ, overrides, site="dk")
+    names = {r["name"] for r in kept}
+    assert "Patrick Mahomes" in names
+    assert {d["name"] for d in dropped} == {"Ja'Marr Chase", "Jahmyr Gibbs"}
+    assert {d["status"].lower() for d in dropped} == {"ir", "doubtful"}
+
+
+def test_classic_config_has_uniques_and_exposure_cap():
+    cfg = D.build_config([], {}, showdown=False)
+    assert cfg["num_uniques"] == 3
+    assert cfg["max_exposure"] == 40
+    assert D.uniques_from_config(cfg) == 3
+    assert D.exposure_cap_count(cfg["max_exposure"], 150) == 60
+
+
+def test_two_game_slate_raises_exposure_so_150_lineups_stay_feasible():
+    assert D.exposure_for_slate(40, n_games=8, n_lineups=150) == 40
+    assert D.exposure_for_slate(40, n_games=2, n_lineups=150) == 80
+    assert D.exposure_for_slate(40, n_games=2, n_lineups=20) == 40
+    assert D.exposure_cap_count(80, 150) == 120
 
 
 def test_write_export_three_files(tmp_path: Path):

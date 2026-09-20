@@ -21,6 +21,8 @@ import numpy as np
 
 from ..config import CONFIG_DIR, DATA_DIR, load_yaml
 from ..db import read_sql
+from ..dfs import construction as C
+from ..ingest.dk_salaries import slate_game_pairs
 from ..sim import scoring
 
 PROJ_COLS = ["Name", "Position", "Team", "Salary", "Fpts", "Own%", "StdDev"]
@@ -29,6 +31,67 @@ PLAYER_ID_COLS = [
 ]
 # Matches config/dfs/dk_classic.json. Optimizer skips Fpts below this except DST.
 PROJECTION_MINIMUM = 5.0
+INJURY_OUT = frozenset({"out", "ir", "doubtful"})
+
+
+def uniques_from_config(cfg: dict) -> int:
+    return max(1, int(cfg.get("num_uniques") or 3))
+
+
+def exposure_cap_count(max_exposure: float, lineups: int) -> int:
+    """Same floor as the browser optimizer: floor(pct/100 * n)."""
+    return int((float(max_exposure) / 100.0) * max(1, int(lineups)))
+
+
+def exposure_for_slate(base: float, n_games: int, n_lineups: int) -> int:
+    """40% of 150 locks the only stacks on a 2-game slate before 150 lineups."""
+    cap = int(base)
+    if int(n_games) <= 2 and int(n_lineups) >= 100:
+        return max(cap, 80)
+    return cap
+
+
+def settings_from_config(cfg: dict, construction: str = "mass") -> dict:
+    stacks = float(cfg.get("pct_field_using_stacks") or 0)
+    stacks_pct = round(stacks * 100) if stacks <= 1 else int(stacks)
+    return {
+        "construction": construction,
+        "randomness": int(cfg.get("randomness") or 0),
+        "stacks_pct": stacks_pct,
+        "max_exposure": int(cfg.get("max_exposure") or 40),
+        "num_uniques": uniques_from_config(cfg),
+    }
+
+
+def drop_injured(
+    slate: list[dict],
+    proj: dict[str, dict],
+    overrides: dict[str, str],
+    site: str = "dk",
+) -> tuple[list[dict], list[dict]]:
+    """Remove current OUT/IR/doubtful. Floor is not an injury filter."""
+    mean_key = "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
+    kept, dropped, seen = [], [], set()
+    for row in slate:
+        pid = row.get("player_id")
+        status = overrides.get(pid) if pid else None
+        if not status or str(status).strip().lower() not in INJURY_OUT:
+            kept.append(row)
+            continue
+        if pid in seen:
+            continue
+        seen.add(pid)
+        stats = proj.get(pid) or {}
+        dropped.append({
+            "kind": "injury_out",
+            "name": row.get("name"),
+            "team": row.get("team"),
+            "position": map_position(row.get("position")),
+            "player_id": pid,
+            "status": str(status),
+            "fpts": _fnum(stats.get(mean_key)),
+        })
+    return kept, dropped
 
 
 def captain_fpts(fpts: float, site: str = "dk") -> float:
@@ -97,6 +160,7 @@ def _flex_slate(slate: list[dict]) -> list[dict]:
 def build_projections(
     slate: list[dict], proj: dict[str, dict], site: str = "dk",
     showdown: bool = False,
+    construction: dict | None = None,
 ) -> tuple[list[dict], list[dict]]:
     mean_key = "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
     sd_key = "fpts_fd_sd" if site == "fd" else "fpts_dk_sd"
@@ -125,17 +189,27 @@ def build_projections(
             })
         else:
             mean, sd = _fnum(stats.get(mean_key)), _fnum(stats.get(sd_key))
-        if mean < PROJECTION_MINIMUM and pos != "DST":
+        if construction is not None and stats is not None:
+            fpts = C.adjusted_fpts(
+                mean,
+                stats.get("p25"),
+                stats.get("p90"),
+                stats.get("own"),
+                construction,
+            )
+        else:
+            fpts = mean
+        if fpts < PROJECTION_MINIMUM and pos != "DST":
             report.append({
                 "kind": "below_projection_minimum", "name": row.get("name"),
-                "team": row.get("team"), "position": pos, "fpts": mean,
+                "team": row.get("team"), "position": pos, "fpts": fpts,
             })
         out.append({
             "Name": row.get("name") or "",
             "Position": pos,
             "Team": row.get("team") or "",
             "Salary": int(_fnum(row.get("salary"))),
-            "Fpts": mean,
+            "Fpts": fpts,
             "Own%": round(own_pct_v1(sal_ranks[i], proj_ranks[i], n), 1),
             "StdDev": sd,
         })
@@ -209,8 +283,9 @@ def write_export(
     ]
     for r in report or []:
         extra = f" fpts={r['fpts']}" if "fpts" in r else ""
+        status = f" status={r['status']}" if r.get("status") else ""
         lines.append(
-            f"  {r['kind']}: {r.get('name')} team={r.get('team')} pos={r.get('position')}{extra}"
+            f"  {r['kind']}: {r.get('name')} team={r.get('team')} pos={r.get('position')}{status}{extra}"
         )
     (out_dir / "report.txt").write_text("\n".join(lines) + "\n")
 
@@ -219,7 +294,13 @@ def export_dir(run_id: str, site: str, slate: str) -> Path:
     return DATA_DIR / "dfs" / run_id / site / slate
 
 
-def run(run_id: str, site: str = "dk", slate: str = "main") -> dict:
+def run(
+    run_id: str,
+    site: str = "dk",
+    slate: str = "main",
+    lineups: int = 150,
+    construction: str = "mass",
+) -> dict:
     meta = read_sql(
         "select run_id::text, season, week from model.sim_runs where run_id = %s",
         (run_id,),
@@ -238,11 +319,33 @@ def run(run_id: str, site: str = "dk", slate: str = "main") -> dict:
     slate_rows = salaries.to_dicts()
     proj_rows = read_sql(
         "select player_id, fpts_dk_mean::float8 as fpts_dk_mean, fpts_dk_sd::float8 as fpts_dk_sd, "
-        "fpts_fd_mean::float8 as fpts_fd_mean, fpts_fd_sd::float8 as fpts_fd_sd "
+        "fpts_fd_mean::float8 as fpts_fd_mean, fpts_fd_sd::float8 as fpts_fd_sd, "
+        "(stat_summary -> 'fpts_ppr' ->> 'p25')::float8 as p25, "
+        "(stat_summary -> 'fpts_ppr' ->> 'p90')::float8 as p90 "
         "from model.proj_players where run_id = %s",
         (run_id,),
     )
     proj = {r["player_id"]: r for r in proj_rows.to_dicts() if r.get("player_id")}
+    own_rows = read_sql(
+        "select player_id, own_field_proj::float8 as own "
+        "from model.dfs_exposure where run_id = %s and site = %s and slate_id = %s",
+        (run_id, site, slate_id),
+    )
+    for r in own_rows.to_dicts():
+        pid = r.get("player_id")
+        if pid and pid in proj:
+            proj[pid]["own"] = r.get("own")
+    ov = read_sql(
+        "select player_id, status from raw.player_overrides "
+        "where season = %s and week = %s "
+        "and lower(status) in ('out', 'ir', 'doubtful')",
+        (season, week),
+    )
+    overrides = {
+        str(r["player_id"]): str(r["status"])
+        for r in ov.to_dicts() if r.get("player_id") and r.get("status")
+    }
+    slate_rows, injury_dropped = drop_injured(slate_rows, proj, overrides, site=site)
     corr = read_sql(
         "select player_id_a, player_id_b, corr_dk::float8 as corr_dk "
         "from model.player_correlations where run_id = %s",
@@ -250,9 +353,18 @@ def run(run_id: str, site: str = "dk", slate: str = "main") -> dict:
     ).to_dicts()
     names = {r["player_id"]: r["name"] for r in slate_rows if r.get("player_id") and r.get("name")}
     showdown = slate.strip().lower() == "showdown"
-    projections, report = build_projections(slate_rows, proj, site=site, showdown=showdown)
+    prof = C.profile(slate, construction)
+    projections, report = build_projections(
+        slate_rows, proj, site=site, showdown=showdown, construction=prof,
+    )
+    report = injury_dropped + report
     ids = build_player_ids(slate_rows)
-    cfg = build_config(corr, names, showdown=showdown)
+    cfg = C.apply_to_tools_config(
+        build_config(corr, names, showdown=showdown), prof, showdown=showdown,
+    )
+    n_games = len(slate_game_pairs([str(r.get("game_info") or "") for r in slate_rows]))
+    if construction == "mass":
+        cfg["max_exposure"] = exposure_for_slate(cfg.get("max_exposure") or 40, n_games, lineups)
     out = export_dir(run_id, site, slate)
     write_export(out, projections, ids, cfg, report, showdown=showdown)
     unmatched = [r for r in slate_rows if not r.get("player_id")]
@@ -266,7 +378,17 @@ def run(run_id: str, site: str = "dk", slate: str = "main") -> dict:
         "player_ids": len(ids),
         "unprojected": sum(1 for r in report if r["kind"] == "unprojected"),
         "below_minimum": sum(1 for r in report if r["kind"] == "below_projection_minimum"),
+        "injury_dropped": injury_dropped,
         "unmatched_salaries": len(unmatched),
         "correlations": len(cfg["custom_correlations"]),
+        "construction": construction,
+        "settings": settings_from_config(cfg, construction),
+        "mean_by_dk": {
+            str(r["player_dk_id"]): _fnum((proj.get(r.get("player_id")) or {}).get(
+                "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
+            ))
+            for r in slate_rows
+            if r.get("player_dk_id") and r.get("player_id") and r.get("player_id") in proj
+        },
     }
     return summary

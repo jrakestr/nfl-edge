@@ -358,8 +358,39 @@ def upload_csv(
     return "\n".join(lines) + "\n"
 
 
-def lineup_json(row: dict) -> dict:
+def rescore_mean_fpts(
+    lineups: list[dict],
+    mean_by_dk: dict[str, float],
+    *,
+    showdown: bool = False,
+) -> list[dict]:
+    """Replace the optimizer's adjusted Fpts sum with the mean projection sum."""
+    out = []
+    for lu in lineups:
+        row = dict(lu)
+        ids = row.get("dk_ids") or []
+        slots = row.get("slots") or [""] * len(ids)
+        total = 0.0
+        for did, slot in zip(ids, slots):
+            key = str(did)
+            if key not in mean_by_dk:
+                raise RuntimeError(
+                    f"no mean projection for DraftKings id {did}; cannot re-score lineup"
+                )
+            pts = float(mean_by_dk[key])
+            if showdown and slot == "CPT":
+                pts *= 1.5
+            total += pts
+        row["proj_fpts"] = total
+        out.append(row)
+    return out
+
+
+def lineup_json(row: dict, settings: dict | None = None) -> dict:
     players = []
     for slot, name, did in zip(row["slots"], row["names"], row["dk_ids"]):
         players.append({"slot": slot, "name": name, "dk_id": did})
-    return {"players": players, "stack": row.get("stack")}
+    body = {"players": players, "stack": row.get("stack")}
+    if settings:
+        body["settings"] = settings
+    return body

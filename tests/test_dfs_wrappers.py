@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from nfl_edge.dfs import parse as P
+from nfl_edge.dfs import pipeline as Pipe
 from nfl_edge.dfs import run_optimizer as O
 
 OPTO = """QB,RB,RB,WR,WR,WR,TE,FLEX,DST,Salary,Fpts Proj,Fpts Used,Ceiling,Own. Sum,Own. Product,STDDEV,Stack
@@ -41,6 +42,18 @@ Jaxon Smith-Njigba (43782097),Drake Maye (43782035),A.J. Brown (43782036),Sam Da
 SD_GPP = """Type,CPT,FLEX,FLEX,FLEX,FLEX,FLEX,Salary,Fpts Proj,Field Fpts Proj,Ceiling,Primary Stack,Secondary Stack,Players vs DST,Win %,Top 10%,Cash %,Proj. Own. Product,Proj. Own. Sum,ROI%,ROI$,Num Dupes
 opto,Jaxon Smith-Njigba (43782097),Drake Maye (43782035),A.J. Brown (43782036),Sam Darnold (43782037),Rhamondre Stevenson (43782038),Seahawks (43782050),49800,90.1,90,120,SEA,NE,0,18.0,40.0,50.0,0.01,80,22.0,1.1,1
 """
+
+
+def test_lineup_json_stores_settings():
+    row = {
+        "slots": ["QB", "RB"],
+        "names": ["A", "B"],
+        "dk_ids": ["1", "2"],
+        "stack": "KC 2",
+    }
+    body = P.lineup_json(row, {"randomness": 25, "max_exposure": 40, "stacks_pct": 65, "num_uniques": 3})
+    assert body["settings"]["max_exposure"] == 40
+    assert body["players"][0]["name"] == "A"
 
 
 def test_parse_opto_keeps_cell_ids(tmp_path: Path):
@@ -158,6 +171,69 @@ def test_upload_filename_single():
     name = P.upload_filename("2026_02_main", "e7a5ff4e-abcd", "single")
     assert name == "dk_upload_2026_02_main_e7a5ff4e_single.csv"
     assert P.parse_upload_stamp(name)["source"] == "single"
+
+
+def test_rescore_mean_fpts_replaces_adjusted_objective():
+    lineups = [{
+        "dk_ids": ["111", "222"],
+        "slots": ["QB", "RB"],
+        "proj_fpts": 99.0,
+        "names": ["A", "B"],
+    }]
+    out = P.rescore_mean_fpts(lineups, {"111": 20.0, "222": 12.0})
+    assert out[0]["proj_fpts"] == pytest.approx(32.0)
+
+
+def test_rescore_mean_fpts_captain_is_one_and_a_half():
+    lineups = [{
+        "dk_ids": ["111", "222"],
+        "slots": ["CPT", "FLEX"],
+        "proj_fpts": 50.0,
+        "names": ["A", "B"],
+    }]
+    out = P.rescore_mean_fpts(lineups, {"111": 20.0, "222": 10.0}, showdown=True)
+    assert out[0]["proj_fpts"] == pytest.approx(40.0)
+
+
+def test_persist_delete_is_construction_scoped(monkeypatch):
+    deleted: list[tuple] = []
+    inserted: list[str] = []
+
+    def fake_execute(sql, params=None):
+        deleted.append((sql, params))
+
+    def fake_insert(df, table):
+        inserted.append(table)
+        assert "construction" in df.columns
+        return len(df)
+
+    monkeypatch.setattr(Pipe, "execute", fake_execute)
+    monkeypatch.setattr(Pipe, "insert", fake_insert)
+    lineups = [{
+        "lineup_id": "0", "proj_fpts": 120, "win_pct": None, "roi": None,
+        "salary_used": 50000, "stack": "KC 2",
+        "slots": ["QB"], "names": ["A"], "dk_ids": ["1"],
+    }]
+    Pipe.persist("rid", "dk", "2026_02_main", "classic", lineups, [], construction="cash")
+    lineup_deletes = [d for d in deleted if "dfs_lineups" in d[0]]
+    assert lineup_deletes
+    assert lineup_deletes[0][1] == ("rid", "dk", "2026_02_main", "cash")
+    assert not any("dfs_exposure" in d[0] for d in deleted)
+    assert "model.dfs_exposure" not in inserted
+
+
+def test_persist_mass_rewrites_exposure(monkeypatch):
+    deleted: list[str] = []
+
+    def fake_execute(sql, params=None):
+        deleted.append(sql)
+
+    monkeypatch.setattr(Pipe, "execute", fake_execute)
+    monkeypatch.setattr(Pipe, "insert", lambda df, table: len(df))
+    Pipe.persist("rid", "dk", "2026_02_main", "classic", [], [
+        {"player_id": "00-a", "own_ours": 0.1},
+    ], construction="mass")
+    assert any("dfs_exposure" in s for s in deleted)
 
 
 def test_merge_sim_stats_by_slate_ids_ignores_case():

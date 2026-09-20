@@ -98,6 +98,24 @@ def test_apply_profile_writes_tools_knobs_not_a_new_objective():
     assert cash["num_uniques"] == 1
     assert cash["stack_rules"]["pair"] == []
     assert "objective" not in cash
+    single = C.apply_to_tools_config(base, C.profile("classic", "single"))
+    assert single["num_uniques"] == 2
+    assert single["stack_rules"]["pair"]
+    sd = C.apply_to_tools_config(
+        {"stack_rules": {"pair": []}, "randomness": 25, "max_exposure": 40,
+         "num_uniques": 3, "min_lineup_salary": 0},
+        C.profile("showdown", "single"),
+        showdown=True,
+    )
+    assert sd["stack_rules"]["pair"] == []
+    assert sd["num_uniques"] == 2
+
+
+def test_lineup_count_uses_profile_and_rejects_over_max():
+    assert C.lineup_count(C.profile("classic", "mass"), None) == 150
+    assert C.lineup_count(C.profile("classic", "cash"), None) == 1
+    with pytest.raises(ValueError, match="max"):
+        C.lineup_count(C.profile("classic", "cash"), 150)
 
 
 def test_summarize_includes_p25():

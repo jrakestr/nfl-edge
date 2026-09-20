@@ -81,6 +81,7 @@ export type Database = {
       }
       dfs_lineups: {
         Row: {
+          construction: string
           created_at: string | null
           id: number
           lineup: Json
@@ -96,6 +97,7 @@ export type Database = {
           stack: string | null
         }
         Insert: {
+          construction?: string
           created_at?: string | null
           id?: number
           lineup: Json
@@ -111,6 +113,7 @@ export type Database = {
           stack?: string | null
         }
         Update: {
+          construction?: string
           created_at?: string | null
           id?: number
           lineup?: Json

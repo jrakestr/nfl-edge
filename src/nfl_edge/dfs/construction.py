@@ -58,14 +58,24 @@ def adjusted_fpts(
     return float(mean)
 
 
-def apply_to_tools_config(cfg: dict[str, Any], prof: dict[str, Any]) -> dict[str, Any]:
+def apply_to_tools_config(
+    cfg: dict[str, Any],
+    prof: dict[str, Any],
+    *,
+    showdown: bool = False,
+) -> dict[str, Any]:
     """Overlay knobs NFL-DFS-Tools understands. No new objective key — Fpts carries it."""
     out = dict(cfg)
     out["randomness"] = int(prof["randomness"])
     out["min_lineup_salary"] = int(prof["min_lineup_salary"])
     out["max_exposure"] = int(prof["max_exposure"])
     uniques = prof.get("num_uniques")
-    out["num_uniques"] = 1 if uniques is None else int(uniques)
+    if uniques is None:
+        out["num_uniques"] = max(1, int(prof.get("min_player_diff") or 1))
+    else:
+        out["num_uniques"] = int(uniques)
+    if showdown:
+        return out
     if int(prof.get("stack_n") or 0) == 0 and int(prof.get("bring_back") or 0) == 0:
         rules = dict(out.get("stack_rules") or {})
         rules["pair"] = []
