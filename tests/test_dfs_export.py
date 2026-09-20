@@ -259,3 +259,44 @@ def test_write_export_three_files(tmp_path: Path):
     report_text = (tmp_path / "report.txt").read_text()
     assert "Ghost Player" in report_text
     assert "Puka Nacua" in report_text
+
+
+def _structure_rows(path: Path) -> list[dict]:
+    import csv as _csv
+
+    with path.open(newline="") as f:
+        return list(_csv.DictReader(f))
+
+
+def test_classic_gpp_contest_is_a_real_large_field_room(tmp_path: Path):
+    D.write_export(tmp_path, [], [], D.build_config([], {}), [])
+    rows = _structure_rows(tmp_path / "contest_structure.csv")
+    assert len(rows) > 10
+    assert {r["Field Size"] for r in rows} == {"176470"}
+    assert {r["Entry Fee"] for r in rows} == {"20"}
+    assert rows[0]["Place"] == "1" and rows[0]["Payout"] == "1000000"
+
+
+def test_classic_single_contest_selects_the_single_entry_room(tmp_path: Path):
+    D.write_export(tmp_path, [], [], D.build_config([], {}), [], contest="single")
+    rows = _structure_rows(tmp_path / "contest_structure.csv")
+    assert len(rows) > 10
+    assert {r["Field Size"] for r in rows} == {"16646"}
+    assert {r["Entry Fee"] for r in rows} == {"5"}
+    assert rows[0]["Place"] == "1" and rows[0]["Payout"] == "7500"
+
+
+def test_unknown_contest_name_fails_closed(tmp_path: Path):
+    with pytest.raises(ValueError, match="unknown contest"):
+        D.write_export(tmp_path, [], [], D.build_config([], {}), [], contest="bogus")
+
+
+def test_field_size_must_exceed_lineups_entered(tmp_path: Path):
+    tiny = tmp_path / "tiny.csv"
+    tiny.write_text("Place,Payout,Field Size,Entry Fee\n1,1000,150,20\n")
+    with pytest.raises(RuntimeError, match="field size 150 <= 150 lineups"):
+        D.require_field_larger_than_entries(tiny, 150)
+    assert D.require_field_larger_than_entries(
+        D.contest_path("gpp"), 150) == 176470
+    assert D.require_field_larger_than_entries(
+        D.contest_path("single"), 1) == 16646

@@ -31,6 +31,57 @@ PLAYER_ID_COLS = [
 ]
 # Matches config/dfs/dk_classic.json. Optimizer skips Fpts below this except DST.
 PROJECTION_MINIMUM = 5.0
+# Real DraftKings rooms, fetched 2026-09-20 (see output/dk_milly.json,
+# output/dk_single.json for the raw contest details). Never invent payouts.
+# gpp: NFL $3M Fantasy Football Millionaire [$1M to 1st], contest 195648007,
+#   Week 2 main slate (dg 153428), 176,470 entries, $20.
+# single: NFL $70K Huddle [Single Entry] (Afternoon Only), contest 195741865,
+#   dg 153431, 16,646 entries, $5. The main-slate lobby locked at 1pm ET kickoff,
+#   so its single-entry rooms are no longer listable; this is the largest-field
+#   real single-entry Classic GPP of the week.
+CLASSIC_CONTESTS = {"gpp": "dk_classic_gpp.csv", "single": "dk_classic_single.csv"}
+
+
+def contest_path(contest: str, showdown: bool = False) -> Path:
+    """Contest structure file for this export. Showdown keeps its own room."""
+    if showdown:
+        return CONFIG_DIR / "dfs" / "dk_showdown_contest.csv"
+    key = (contest or "gpp").strip().lower()
+    if key not in CLASSIC_CONTESTS:
+        raise ValueError(
+            f"unknown contest {contest!r}; choose from {sorted(CLASSIC_CONTESTS)}"
+        )
+    return CONFIG_DIR / "dfs" / CLASSIC_CONTESTS[key]
+
+
+def contest_field_size(path: Path) -> int:
+    """The room's Field Size. Every row must agree; mixed rooms fail closed."""
+    with path.open(newline="") as f:
+        sizes = {
+            int(float(row["Field Size"]))
+            for row in csv.DictReader(f) if (row.get("Field Size") or "").strip()
+        }
+    if not sizes:
+        raise RuntimeError(f"no Field Size in {path}")
+    if len(sizes) != 1:
+        raise RuntimeError(f"mixed Field Size in {path}: {sorted(sizes)}")
+    return sizes.pop()
+
+
+def require_field_larger_than_entries(structure: Path, lineups: int) -> int:
+    """Fail closed when the room cannot hold anyone but us.
+
+    Field Size <= lineups entered means the GPP sim's field is our own lineups,
+    so Sim. Own% would just be our exposure. Refuse before optimizing.
+    """
+    fs = contest_field_size(structure)
+    if fs <= int(lineups):
+        raise RuntimeError(
+            f"contest field size {fs} <= {lineups} lineups entered; "
+            "the sim would play our lineups against themselves "
+            "(--contest gpp for the large-field room)"
+        )
+    return fs
 INJURY_OUT = frozenset({"out", "ir", "doubtful"})
 
 
@@ -262,6 +313,7 @@ def write_export(
     config: dict,
     report: list[dict] | None = None,
     showdown: bool = False,
+    contest: str = "gpp",
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "projections.csv").open("w", newline="") as f:
@@ -273,8 +325,7 @@ def write_export(
         w.writeheader()
         w.writerows(player_ids)
     (out_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
-    fname = "dk_showdown_contest.csv" if showdown else "contest_structure.csv"
-    structure = CONFIG_DIR / "dfs" / fname
+    structure = contest_path(contest, showdown=showdown)
     if structure.exists():
         (out_dir / "contest_structure.csv").write_text(structure.read_text())
     lines = [
@@ -300,7 +351,10 @@ def run(
     slate: str = "main",
     lineups: int = 150,
     construction: str = "mass",
+    contest: str = "gpp",
 ) -> dict:
+    structure = contest_path(contest, showdown=slate.strip().lower() == "showdown")
+    require_field_larger_than_entries(structure, lineups)
     meta = read_sql(
         "select run_id::text, season, week from model.sim_runs where run_id = %s",
         (run_id,),
@@ -366,7 +420,7 @@ def run(
     if construction == "mass":
         cfg["max_exposure"] = exposure_for_slate(cfg.get("max_exposure") or 40, n_games, lineups)
     out = export_dir(run_id, site, slate)
-    write_export(out, projections, ids, cfg, report, showdown=showdown)
+    write_export(out, projections, ids, cfg, report, showdown=showdown, contest=contest)
     unmatched = [r for r in slate_rows if not r.get("player_id")]
     summary = {
         "run_id": run_id,
@@ -382,6 +436,8 @@ def run(
         "unmatched_salaries": len(unmatched),
         "correlations": len(cfg["custom_correlations"]),
         "construction": construction,
+        "contest": (contest or "gpp").strip().lower(),
+        "field_size": contest_field_size(structure),
         "settings": settings_from_config(cfg, construction),
         "mean_by_dk": {
             str(r["player_dk_id"]): _fnum((proj.get(r.get("player_id")) or {}).get(

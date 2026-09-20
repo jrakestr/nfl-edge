@@ -507,6 +507,7 @@ def dfs(
     slate: str = typer.Option(..., help="Salary slate (main, full, …). IDs are per-slate; never mix."),
     run: str = typer.Option(None, help="run_id (default: newest sim for the week)"),
     construction: str = typer.Option("mass", help="cash | single | mass (default mass)"),
+    contest: str = typer.Option("gpp", help="Contest room: gpp (large-field) | single (single-entry)"),
     lineups: int = typer.Option(None, help="Override the construction's lineup count"),
     field: int = typer.Option(20000, help="GPP simulation iterations"),
     export: str = typer.Option(None, "--export", help="DK upload CSV path, stamped with run_id"),
@@ -518,7 +519,7 @@ def dfs(
 
     r = dfs_run(
         season, week, site=site, slate=slate, run_id=run,
-        construction=construction, lineups=lineups, field=field,
+        construction=construction, contest=contest, lineups=lineups, field=field,
         export=Path(export) if export else None,
     )
     for d in r.get("injury_dropped") or []:
@@ -535,7 +536,7 @@ def dfs(
             f"uniques={s.get('num_uniques')}"
         )
     typer.echo(
-        f"dfs {r['slate_id']} {r.get('construction', 'mass')}: "
+        f"dfs {r['slate_id']} {r.get('construction', 'mass')}/{r.get('contest', 'gpp')}: "
         f"{r['n_lineups']} lineups, {r['n_exposure']} exposure, "
         f"upload {r['upload']}"
     )

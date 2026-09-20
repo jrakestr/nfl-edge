@@ -100,6 +100,7 @@ def run(
     field: int = 20000,
     export: Path | None = None,
     construction: str = "mass",
+    contest: str = "gpp",
 ) -> dict:
     meta = resolve_run(season, week, run_id)
     rid = meta["run_id"]
@@ -109,6 +110,7 @@ def run(
     n_lineups = C.lineup_count(prof, lineups)
     exported = dfs_export.run(
         rid, site, slate, lineups=n_lineups, construction=construction,
+        contest=contest,
     )
     export_dir = Path(exported["path"])
     settings = exported.get("settings")
@@ -146,6 +148,8 @@ def run(
         "n_lineups": len(merged),
         "n_exposure": len(sim["exposure"]),
         "construction": construction,
+        "contest": exported.get("contest"),
+        "field_size": exported.get("field_size"),
         "persisted": written,
         "upload": str(export or upload_path),
         "draw_root": str(DATA_DIR / "dfs" / rid / site / slate),
