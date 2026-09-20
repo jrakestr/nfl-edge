@@ -397,6 +397,147 @@ def _week_pick_row(week, df: pl.DataFrame) -> dict:
     }
 
 
+# ----------------------------------------------------------------------------- player DK MAE vs NFLGameSim
+
+_MAE_SCHEMA = {
+    "week": pl.Int64, "pos": pl.Utf8,
+    "ours": pl.Float64, "ngs": pl.Float64, "actual": pl.Float64,
+}
+
+
+def player_mae_table(df: pl.DataFrame) -> pl.DataFrame:
+    """Per (week, pos) MAE of ours/ngs vs actual. Pure.
+
+    Input columns: week, pos, ours, ngs, actual. Output: week, pos, n,
+    ours_mae, ngs_mae sorted by week then pos.
+    """
+    if df.is_empty():
+        return pl.DataFrame(schema={
+            "week": pl.Int64, "pos": pl.Utf8, "n": pl.Int64,
+            "ours_mae": pl.Float64, "ngs_mae": pl.Float64,
+        })
+    return (
+        df.with_columns(
+            (pl.col("ours") - pl.col("actual")).abs().alias("ours_err"),
+            (pl.col("ngs") - pl.col("actual")).abs().alias("ngs_err"),
+        )
+        .group_by(["week", "pos"])
+        .agg(pl.len().alias("n"),
+             pl.col("ours_err").mean().alias("ours_mae"),
+             pl.col("ngs_err").mean().alias("ngs_mae"))
+        .sort(["week", "pos"])
+    )
+
+
+def load_player_mae_rows(season: int, weeks: list[int] | None = None) -> tuple[pl.DataFrame, list[str]]:
+    """Join kickoff-locked ours + NFLGameSim + actual DK per (week, player).
+
+    Ours is proj_players.fpts_dk_mean on the newest sim run predating each
+    game's kickoff (the same rule grade.run uses); NFLGameSim is
+    raw.external_players.fpts_dk for matched player_ids; actual is
+    model.player_fpts_actual.fpts_dk with had_opportunity. Nothing is
+    recomputed; NFLGameSim never enters the sim.
+
+    Returns (rows, skipped): rows has week/pos/ours/ngs/actual; skipped names
+    weeks without finals, runs, actuals, or matched rows in plain language.
+    """
+    from ..rebuild import games_missing_result
+    from .grade import kickoff_at, run_for_kickoff  # lazy: grade imports calibration
+
+    rows: list[dict] = []
+    skipped: list[str] = []
+    actual = read_sql(
+        "select distinct week from model.player_fpts_actual "
+        "where season = %s and season_type = 'REG'",
+        (season,),
+    )
+    have = sorted(actual["week"].to_list()) if not actual.is_empty() else []
+    if weeks is not None:
+        have = [w for w in have if w in weeks]
+    if not have:
+        return pl.DataFrame(schema=_MAE_SCHEMA), ["no published player actuals"]
+    for w in have:
+        missing = games_missing_result(season, int(w))
+        if missing:
+            skipped.append(
+                f"week {w}: waiting on {len(missing)} finals ({', '.join(missing)})")
+            continue
+        sched = read_sql(
+            """
+            select game_id, gameday, gametime, location, result
+            from raw.schedules
+            where season = %s and week = %s and game_type = 'REG'
+            """,
+            (season, int(w)),
+        )
+        runs = read_sql(
+            "select run_id::text as run_id, created_at from model.sim_runs "
+            "where season = %s and week = %s",
+            (season, int(w)),
+        )
+        if runs.is_empty():
+            skipped.append(f"week {w}: no sim runs")
+            continue
+        run_rows = runs.to_dicts()
+        game_run: dict[str, str] = {}
+        for s in sched.to_dicts():
+            if s.get("result") is None:
+                continue
+            kick = kickoff_at(s["gameday"], s.get("gametime"), s.get("location"))
+            chosen = run_for_kickoff(run_rows, kick)
+            if chosen is not None:
+                game_run[str(s["game_id"])] = chosen
+        if not game_run:
+            skipped.append(f"week {w}: no run predating kickoff")
+            continue
+        ours = read_sql(
+            """
+            select run_id::text as run_id, player_id, game_id, position,
+                   fpts_dk_mean::float8 as ours
+            from model.proj_players where run_id = any(%s::uuid[])
+            """,
+            (sorted(set(game_run.values())),),
+        )
+        ngs = read_sql(
+            "select player_id, fpts_dk::float8 as ngs from raw.external_players "
+            "where source = 'nflgamesim' and season = %s and week = %s "
+            "and player_id is not null",
+            (season, int(w)),
+        )
+        act = read_sql(
+            "select player_id, position, fpts_dk::float8 as actual "
+            "from model.player_fpts_actual "
+            "where season = %s and week = %s and season_type = 'REG' and had_opportunity",
+            (season, int(w)),
+        )
+        if ours.is_empty() or ngs.is_empty() or act.is_empty():
+            empty = [k for k, v in
+                     (("sim projections", ours), ("NFLGameSim rows", ngs), ("actuals", act))
+                     if v.is_empty()]
+            skipped.append(f"week {w}: no {' / '.join(empty)}")
+            continue
+        pairs = pl.DataFrame({
+            "game_id": list(game_run.keys()), "run_id": list(game_run.values())})
+        joined = (
+            pairs.join(ours, on=["game_id", "run_id"], how="inner")
+            .join(ngs, on="player_id", how="inner")
+            .join(act, on="player_id", how="inner", suffix="_act")
+            .with_columns(pl.coalesce(["position_act", "position"]).alias("pos"))
+            .filter(pl.col("pos").is_in(POSITIONS)
+                    & pl.col("ours").is_not_null()
+                    & pl.col("ngs").is_not_null()
+                    & pl.col("actual").is_not_null())
+        )
+        if joined.is_empty():
+            skipped.append(f"week {w}: no matched players")
+            continue
+        for r in joined.select(["pos", "ours", "ngs", "actual"]).to_dicts():
+            rows.append({"week": int(w), "pos": r["pos"],
+                         "ours": r["ours"], "ngs": r["ngs"], "actual": r["actual"]})
+    df = pl.DataFrame(rows, schema=_MAE_SCHEMA) if rows else pl.DataFrame(schema=_MAE_SCHEMA)
+    return df, skipped
+
+
 def results_report(season: int, weeks: list[int] | None = None) -> Path:
     """Per-week and cumulative grading from model.results.
 
@@ -512,6 +653,18 @@ def results_report(season: int, weeks: list[int] | None = None) -> Path:
         f"Brier sim {brier_sim:.4f} vs close {brier_close:.4f}.",
         "",
     ]
+    mae_df, mae_skipped = load_player_mae_rows(season, weeks)
+    mae_tbl = player_mae_table(mae_df)
+    lines += [
+        "## Player DK MAE vs NFLGameSim (matched, had_opportunity)",
+        "",
+        "Kickoff-locked runs (newest run predating each kickoff, same rule as grade).",
+        "",
+        _fmt(mae_tbl, 2) if not mae_tbl.is_empty() else "_no matched rows_",
+        "",
+    ]
+    for s in mae_skipped:
+        lines += [f"- skip: {s}", ""]
     path.write_text("\n".join(lines))
     primary.write_csv(OUT / f"grading_{season}_results.csv")
     return path
