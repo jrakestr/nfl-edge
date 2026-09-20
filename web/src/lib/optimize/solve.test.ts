@@ -1,8 +1,9 @@
 import { formatUploadCsv } from "@/lib/dfs-upload";
 import { classicForcedInError, flexConstructionError } from "./classic";
-import { applySolveControls, parseSolveControls } from "./controls-url";
+import { canonicalSearch } from "@/lib/search-canonical";
+import { applySolveControls, classicBaseline, parseSolveControls } from "./controls-url";
 import { DEFAULT_CLASSIC, DEFAULT_SHOWDOWN, type OptPlayer, type SolveControls } from "./types";
-import { solveClassic, solveShowdown } from "./solve";
+import { playerObjective, solveClassic, solveShowdown } from "./solve";
 
 vi.mock("./glpk-load", async () => {
   const GLPK = (await import("glpk.js/node")).default;
@@ -29,6 +30,8 @@ function p(
     proj,
     value: salary > 0 ? proj / (salary / 1000) : 0,
     proj_own: 0.1,
+    p25: proj * 0.7,
+    p90: proj * 1.3,
   };
 }
 
@@ -75,6 +78,17 @@ function ids(lu: { players: { dk_id: string }[] }): Set<string> {
 function posOf(lu: { players: { slot: string; position: string }[] }, slot: string): string {
   return lu.players.find((p) => p.slot === slot)?.position ?? "";
 }
+
+describe("construction objective", () => {
+  it("Cash uses p25 and ignores mean and ownership", () => {
+    const highMean = p("a", "A", "WR", "DET", "NO", 5000, 20);
+    const highFloor = { ...highMean, player_dk_id: "b", proj: 12, p25: 11, p90: 13, proj_own: 0.9 };
+    const lowFloor = { ...highMean, p25: 4, p90: 30, proj_own: 0.05 };
+    const cash: SolveControls = { ...DEFAULT_CLASSIC, construction: "cash" };
+    expect(playerObjective(highFloor, cash, "classic")).toBe(11);
+    expect(playerObjective(lowFloor, cash, "classic")).toBe(4);
+  });
+});
 
 describe("classic ILP", () => {
   it("locks two, excludes one, stacks + bring-back, 5 valid DK lineups", async () => {
@@ -211,6 +225,62 @@ describe("optimizer control URL", () => {
     expect(parseSolveControls(off, false).requireStack).toBe(false);
     const on = applySolveControls({ ...DEFAULT_CLASSIC }, new URLSearchParams("reqStack=0"), false);
     expect(on.get("reqStack")).toBeNull();
+  });
+
+  it.each([
+    ["classic baseline", classicBaseline(), false],
+    ["classic lineups non-default", { ...classicBaseline(), lineups: 8 }, false],
+    ["classic cap", { ...classicBaseline(), salaryCap: 49000 }, false],
+    ["classic minSalary", { ...classicBaseline(), minSalary: 40000 }, false],
+    ["classic maxExposure", { ...classicBaseline(), maxExposure: 40 }, false],
+    ["classic maxPerTeam", { ...classicBaseline(), maxPerTeam: 6 }, false],
+    ["classic randomness", { ...classicBaseline(), randomness: 15 }, false],
+    ["classic stackN", { ...classicBaseline(), stackN: 2 }, false],
+    ["classic bringBack", { ...classicBaseline(), bringBack: 1 }, false],
+    ["classic noQbVsDst off", { ...classicBaseline(), noQbVsDst: false }, false],
+    ["classic requireStack off", { ...classicBaseline(), requireStack: false }, false],
+    ["classic flex RB off", { ...classicBaseline(), flexEligible: { RB: false, WR: true, TE: true } }, false],
+    ["classic flex WR off", { ...classicBaseline(), flexEligible: { RB: true, WR: false, TE: true } }, false],
+    ["classic flex TE off", { ...classicBaseline(), flexEligible: { RB: true, WR: true, TE: false } }, false],
+    ["classic DEFAULT_CLASSIC lineups", { ...classicBaseline(), lineups: DEFAULT_CLASSIC.lineups }, false],
+    ["showdown baseline", { ...DEFAULT_SHOWDOWN }, true],
+    ["showdown lineups", { ...DEFAULT_SHOWDOWN, lineups: 10 }, true],
+    ["showdown minSalary", { ...DEFAULT_SHOWDOWN, minSalary: 48000 }, true],
+    ["showdown maxPerTeam", { ...DEFAULT_SHOWDOWN, maxPerTeam: 3 }, true],
+    ["showdown noQbVsDst on", { ...DEFAULT_SHOWDOWN, noQbVsDst: true }, true],
+    ["showdown requireStack off", { ...DEFAULT_SHOWDOWN, requireStack: false }, true],
+    ["showdown flex TE off", { ...DEFAULT_SHOWDOWN, flexEligible: { RB: true, WR: true, TE: false } }, true],
+  ] as const)("parse(apply(%s)) equals state", (_label, state, showdown) => {
+    const parsed = parseSolveControls(
+      applySolveControls(state, new URLSearchParams(), showdown),
+      showdown,
+    );
+    expect(parsed).toEqual(state);
+  });
+
+  const NONEMPTY = new URLSearchParams(
+    "lineups=8&lock=111&run=abc&cap=49000&games=2026_01_DET_NO&stack=333",
+  );
+
+  it("parse(apply(state, non-empty base)) equals state", () => {
+    const state = { ...classicBaseline(), lineups: 8, salaryCap: 49000, stackN: 2 };
+    expect(parseSolveControls(applySolveControls(state, NONEMPTY, false), false)).toEqual(state);
+  });
+
+  it("apply is idempotent on a non-empty base", () => {
+    const state = { ...classicBaseline(), lineups: 8, stackN: 2 };
+    const once = applySolveControls(state, NONEMPTY, false);
+    const twice = applySolveControls(state, once, false);
+    expect(once.toString()).toBe(twice.toString());
+  });
+
+  it("apply(parse(live), live) matches live canonically when control keys are not last", () => {
+    const live = new URLSearchParams("lineups=8&lock=111&run=abc&stackN=2&games=g1");
+    const applied = applySolveControls(parseSolveControls(live, false), live, false);
+    expect(canonicalSearch(applied)).toBe(canonicalSearch(live));
+    expect(applied.get("lock")).toBe("111");
+    expect(applied.get("run")).toBe("abc");
+    expect(applied.get("games")).toBe("g1");
   });
 });
 
@@ -391,6 +461,35 @@ describe("showdown lock and exposure", () => {
       if (id === "star") continue;
       expect(n).toBeLessThanOrEqual(2);
     }
+  });
+
+  it("rejects a showdown lineup that sits the same player_id as CPT and FLEX", async () => {
+    const dual = [
+      { ...p("star-cpt", "Star", "WR", "SEA", "NE", 10000, 30), player_id: "00-star" },
+      { ...p("star-flx", "Star", "WR", "SEA", "NE", 10000, 30), player_id: "00-star" },
+      p("cheap", "Cheap", "QB", "SEA", "NE", 6000, 20),
+      p("a", "A", "RB", "SEA", "NE", 8000, 12),
+      p("b", "B", "WR", "NE", "SEA", 8000, 11),
+      p("c", "C", "TE", "SEA", "NE", 8000, 10),
+      p("d", "D", "RB", "NE", "SEA", 8000, 9),
+      p("e", "E", "WR", "SEA", "NE", 8000, 8),
+    ];
+    const lineups = await solveShowdown(dual, { ...DEFAULT_SHOWDOWN, salaryCap: 50000, lineups: 1 });
+    const idsIn = lineups[0]!.players.map((pl) => pl.dk_id);
+    expect(idsIn.includes("star-cpt") && idsIn.includes("star-flx")).toBe(false);
+  });
+});
+
+describe("duplicate player_id", () => {
+  it("classic solve refuses a pool with the same player twice", async () => {
+    const dirty = [
+      ...CLASSIC,
+      { ...p("love2", "Jordan Love", "QB", "GB", "MIN", 6100, 18), player_id: "00-gof" },
+    ];
+    dirty[0] = { ...dirty[0]!, player_id: "00-gof" };
+    await expect(solveClassic(dirty, { ...DEFAULT_CLASSIC, minSalary: 0 })).rejects.toThrow(
+      /Jordan Love|Jared Goff|more than once/,
+    );
   });
 });
 

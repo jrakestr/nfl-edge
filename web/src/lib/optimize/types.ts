@@ -1,6 +1,7 @@
 export type OptPos = "QB" | "RB" | "WR" | "TE" | "DST";
 
 export type OptPlayer = {
+  player_id?: string;
   player_dk_id: string;
   name: string;
   position: OptPos;
@@ -10,6 +11,20 @@ export type OptPlayer = {
   proj: number;
   value: number;
   proj_own: number | null;
+  p25: number | null;
+  p90: number | null;
+  game_id?: string | null;
+  gameday?: string | null;
+  gametime?: string | null;
+  location?: string | null;
+  roof?: string | null;
+  homeAway?: "home" | "away" | null;
+  marketTotal?: number | null;
+  marketSpread?: number | null;
+  kickoffWindow?: "early" | "afternoon" | "primetime" | null;
+  elevated?: boolean;
+  elevatedReason?: string | null;
+  depthAsOf?: string | null;
 };
 
 export type FlexPos = "RB" | "WR" | "TE";
@@ -26,7 +41,11 @@ export const DEFAULT_POS_BOUNDS: Record<FlexPos, PosBound> = {
   TE: { min: 1, max: 2 },
 };
 
+export type ConstructionId = "cash" | "single" | "mass";
+
 export type SolveControls = {
+  construction: ConstructionId;
+  minPlayerDiff: number;
   lineups: number;
   salaryCap: number;
   minSalary: number;
@@ -45,6 +64,8 @@ export type SolveControls = {
 };
 
 export const DEFAULT_CLASSIC: SolveControls = {
+  construction: "mass",
+  minPlayerDiff: 3,
   lineups: 1,
   salaryCap: 50000,
   minSalary: 49200,

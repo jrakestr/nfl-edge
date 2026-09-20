@@ -20,6 +20,8 @@ function player(partial: Partial<OptPlayer> & Pick<OptPlayer, "player_dk_id" | "
     proj: 12,
     value: 2,
     proj_own: 0.1,
+    p25: 8,
+    p90: 16,
     ...partial,
   };
 }

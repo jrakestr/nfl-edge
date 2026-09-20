@@ -1,9 +1,21 @@
 import { addUniqueness, classicConstraints, classicForcedInError, flexConstructionError } from "./classic";
+import { adjustedFpts, profile, type SlateKind } from "./construction";
 import { solveMip } from "./glpk";
-import { jitterProj } from "./pool";
+import { assertUniquePlayerIds, jitterProj, playerKey } from "./pool";
 import { addShowdownUniqueness, showdownConstraints } from "./showdown";
 import { assignClassic, assignShowdown, idsOf } from "./slots";
 import type { OptPlayer, SolveControls, SolvedLineup } from "./types";
+
+export function playerObjective(
+  p: OptPlayer,
+  controls: SolveControls,
+  kind: SlateKind,
+  rng: () => number = () => 0,
+): number {
+  const prof = profile(kind, controls.construction);
+  const raw = adjustedFpts(p.proj, p.p25, p.p90, p.proj_own, prof);
+  return jitterProj(raw, controls.randomness, rng);
+}
 
 function selected(vars: Record<string, number>, players: OptPlayer[], prefix = "x"): OptPlayer[] {
   return players.filter((_, i) => (vars[`${prefix}${i}`] ?? 0) > 0.5);
@@ -19,6 +31,18 @@ function requiredIds(players: OptPlayer[], controls: SolveControls, showdown: bo
     }
   }
   return required;
+}
+
+function assertLineupPlayerIds(picked: OptPlayer[]): void {
+  const seen = new Map<string, OptPlayer>();
+  for (const p of picked) {
+    const id = playerKey(p);
+    const prev = seen.get(id);
+    if (prev) {
+      throw new Error(`${p.name} appears twice in one lineup; that is a bug, not a lineup.`);
+    }
+    seen.set(id, p);
+  }
 }
 
 function assertRequired(lineup: SolvedLineup, players: OptPlayer[], required: Set<string>): void {
@@ -41,7 +65,9 @@ export async function solveClassic(
   players: OptPlayer[],
   controls: SolveControls,
   rng: () => number = Math.random,
+  kind: SlateKind = "classic",
 ): Promise<SolvedLineup[]> {
+  assertUniquePlayerIds(players);
   const conflict = flexConstructionError(controls) ?? classicForcedInError(players, controls);
   if (conflict) throw new Error(conflict);
 
@@ -53,13 +79,14 @@ export async function solveClassic(
   const required = requiredIds(players, controls, false);
 
   for (let k = 0; k < controls.lineups; k++) {
-    const proj = players.map((p) => jitterProj(p.proj, controls.randomness, rng));
+    const proj = players.map((p) => playerObjective(p, controls, kind, rng));
     const live = { ...controls, excludes: [...excludes] };
     const model = classicConstraints(players, live, proj);
-    model.constraints.push(...addUniqueness(prior, players));
+    model.constraints.push(...addUniqueness(prior, players, controls.minPlayerDiff));
     const vars = await solveMip(`classic_${k}`, model.objective, model.constraints, model.binaries);
     const picked = vars ? selected(vars, players) : [];
     if (!vars || picked.length !== 9) shortfall(lineups.length, controls.lineups);
+    assertLineupPlayerIds(picked);
     const lineup = assignClassic(picked, String(k));
     assertRequired(lineup, players, required);
     lineups.push(lineup);
@@ -78,6 +105,7 @@ export async function solveShowdown(
   players: OptPlayer[],
   controls: SolveControls,
   rng: () => number = Math.random,
+  kind: SlateKind = "showdown",
 ): Promise<SolvedLineup[]> {
   const lineups: SolvedLineup[] = [];
   const prior: string[][] = [];
@@ -87,16 +115,17 @@ export async function solveShowdown(
   const required = requiredIds(players, controls, true);
 
   for (let k = 0; k < controls.lineups; k++) {
-    const proj = players.map((p) => jitterProj(p.proj, controls.randomness, rng));
+    const proj = players.map((p) => playerObjective(p, controls, kind, rng));
     const live = { ...controls, excludes: [...excludes] };
     const model = showdownConstraints(players, live, proj);
-    model.constraints.push(...addShowdownUniqueness(prior, players));
+    model.constraints.push(...addShowdownUniqueness(prior, players, controls.minPlayerDiff));
     const vars = await solveMip(`showdown_${k}`, model.objective, model.constraints, model.binaries);
     const cpt = vars ? selected(vars, players, "c") : [];
     const flex = vars ? selected(vars, players, "f") : [];
-    if (!vars || cpt.length !== 1 || flex.length !== 5 || flex.some((p) => p.player_dk_id === cpt[0]!.player_dk_id)) {
+    if (!vars || cpt.length !== 1 || flex.length !== 5 || flex.some((p) => playerKey(p) === playerKey(cpt[0]!))) {
       shortfall(lineups.length, controls.lineups);
     }
+    assertLineupPlayerIds([cpt[0]!, ...flex]);
     const lineup = assignShowdown(cpt[0]!, flex, String(k));
     assertRequired(lineup, players, required);
     lineups.push(lineup);

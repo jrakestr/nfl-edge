@@ -135,6 +135,7 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
            pp.fpts_dk_mean::float8 as fpts_dk_mean,
            pp.fpts_dk_sd::float8 as fpts_dk_sd,
            (pp.stat_summary -> 'fpts_ppr' ->> 'p10')::float8 as floor,
+           (pp.stat_summary -> 'fpts_ppr' ->> 'p25')::float8 as p25,
            (pp.stat_summary -> 'fpts_ppr' ->> 'p90')::float8 as ceiling,
            e.own_field_proj::float8 as proj_own,
            mapped.avg_points::float8 as typical_dk,

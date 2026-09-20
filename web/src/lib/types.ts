@@ -378,6 +378,8 @@ export const WeekPlayerSchema = z.object({
   opponent: z.string().nullable().optional(),
   kickoff: z.string().nullable().optional(),
   floor: numOrNull.optional(),
+  p25: numOrNull.optional(),
+  p90: numOrNull.optional(),
   ceiling: numOrNull.optional(),
   proj_own: numOrNull.optional(),
   value: numOrNull.optional(),

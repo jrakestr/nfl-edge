@@ -207,12 +207,17 @@ export function classicConstraints(
   return { objective, constraints, binaries };
 }
 
-export function addUniqueness(priorIds: string[][], players: OptPlayer[]): Constraint[] {
+export function addUniqueness(
+  priorIds: string[][],
+  players: OptPlayer[],
+  minDiff = 3,
+): Constraint[] {
+  if (minDiff <= 0) return [];
   return priorIds.map((ids, li) => {
     const set = new Set(ids);
     const vars = players
       .map((p, i) => (set.has(p.player_dk_id) ? { name: `x${i}`, coef: 1 } : null))
       .filter((v): v is { name: string; coef: number } => v != null);
-    return { name: `uniq_${li}`, vars, bound: { kind: "up" as const, val: ids.length - 3 } };
+    return { name: `uniq_${li}`, vars, bound: { kind: "up" as const, val: ids.length - minDiff } };
   });
 }

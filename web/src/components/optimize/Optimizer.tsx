@@ -16,6 +16,13 @@ import { formatUploadCsv, uploadFilename } from "@/lib/dfs-upload";
 import { fallbackNotice } from "@/lib/slate";
 import { useSlatePicks } from "@/lib/slate-picks";
 import { classicForcedInError, flexConstructionError } from "@/lib/optimize/classic";
+import {
+  CONSTRUCTION_LABEL,
+  profile,
+  profileDrift,
+  toSolveControls,
+  type ConstructionId,
+} from "@/lib/optimize/construction";
 import { applySolveControls, parseSolveControls } from "@/lib/optimize/controls-url";
 import { poolFromPlayers } from "@/lib/optimize/pool";
 import { solveSlate } from "@/lib/optimize/solve";
@@ -141,6 +148,24 @@ export function Optimizer({
     }));
   }
 
+  function chooseConstruction(id: ConstructionId) {
+    const kind = showdown ? "showdown" : "classic";
+    setControls((c) =>
+      toSolveControls(id, profile(kind, id), {
+        ...c,
+        locks: c.locks,
+        excludes: c.excludes,
+        stackIds: c.stackIds,
+        flexEligible: c.flexEligible,
+        salaryCap: c.salaryCap,
+        maxPerTeam: c.maxPerTeam,
+      }),
+    );
+  }
+
+  const kind = showdown ? "showdown" : "classic";
+  const drifted = profileDrift(controls, kind);
+
   async function generate() {
     const visibleIds = new Set(visible.map((p) => p.player_dk_id).filter((id): id is string => Boolean(id)));
     const missingLocks = picks.lock.filter(
@@ -223,6 +248,25 @@ export function Optimizer({
       {strip.length ? <GameStrip games={strip} /> : null}
 
       <section className="card p-4" aria-label="Optimizer settings">
+        <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Construction">
+          {(["cash", "single", "mass"] as const).map((id) => (
+            <Button
+              key={id}
+              type="button"
+              size="sm"
+              variant={controls.construction === id ? "secondary" : "outline"}
+              onClick={() => chooseConstruction(id)}
+            >
+              {CONSTRUCTION_LABEL[id]}
+            </Button>
+          ))}
+        </div>
+        {drifted.length ? (
+          <p className="t-caption text-foreground">
+            Differs from {CONSTRUCTION_LABEL[controls.construction]}: {drifted.join(", ")}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-end gap-3">
           {numField("Lineups", controls.lineups, (lineups) => patch({ lineups }), 1, 20)}
           {numField("Cap", controls.salaryCap, (salaryCap) => patch({ salaryCap }), 0, 100000, 100)}
@@ -327,6 +371,7 @@ export function Optimizer({
             {poolError ?? error}
           </p>
         ) : null}
+        </div>
       </section>
 
       <Tabs value={tab} onValueChange={setTab}>

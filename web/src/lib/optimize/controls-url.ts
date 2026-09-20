@@ -2,11 +2,13 @@ import {
   DEFAULT_CLASSIC,
   DEFAULT_FLEX,
   DEFAULT_SHOWDOWN,
+  type ConstructionId,
   type FlexEligible,
   type SolveControls,
 } from "./types";
 
 export const CONTROL_PARAMS = [
+  "construction",
   "lineups",
   "cap",
   "minSalary",
@@ -21,6 +23,11 @@ export const CONTROL_PARAMS = [
   "flexTE",
   "reqStack",
 ] as const;
+
+function asConstruction(raw: string | null, fallback: ConstructionId): ConstructionId {
+  if (raw === "cash" || raw === "single" || raw === "mass") return raw;
+  return fallback;
+}
 
 export function classicBaseline(): SolveControls {
   return { ...DEFAULT_CLASSIC, lineups: 5, flexEligible: { ...DEFAULT_FLEX } };
@@ -41,6 +48,8 @@ export function parseSolveControls(sp: URLSearchParams, showdown: boolean): Solv
   const base = showdown ? { ...DEFAULT_SHOWDOWN } : classicBaseline();
   return {
     ...base,
+    construction: asConstruction(sp.get("construction"), base.construction),
+    minPlayerDiff: num(sp.get("minDiff"), base.minPlayerDiff),
     lineups: num(sp.get("lineups"), base.lineups),
     salaryCap: num(sp.get("cap"), base.salaryCap),
     minSalary: num(sp.get("minSalary"), base.minSalary),
@@ -70,6 +79,8 @@ export function applySolveControls(
     if (sameAsDefault) p.delete(key);
     else p.set(key, value);
   };
+  setOrDel("construction", controls.construction, controls.construction === def.construction);
+  setOrDel("minDiff", String(controls.minPlayerDiff), controls.minPlayerDiff === def.minPlayerDiff);
   setOrDel("lineups", String(controls.lineups), controls.lineups === def.lineups);
   setOrDel("cap", String(controls.salaryCap), controls.salaryCap === def.salaryCap);
   setOrDel("minSalary", String(controls.minSalary), controls.minSalary === def.minSalary);

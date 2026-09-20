@@ -1,6 +1,6 @@
 import { hasStarted } from "@/lib/kickoff";
 import { classicForcedInError, flexConstructionError } from "./classic";
-import type { OptPlayer, SolveControls } from "./types";
+import { DEFAULT_CLASSIC, type OptPlayer, type SolveControls } from "./types";
 
 export type SortKey = "value" | "proj" | "salary" | "own" | "ceiling";
 
@@ -146,6 +146,7 @@ export function compileFilters(
   const remaining = players.filter((p) => !excl.has(p.player_dk_id));
   // sortBy/sortDir are a view, not a filter — ignored here.
   const live: SolveControls = {
+    ...DEFAULT_CLASSIC,
     lineups: tokens.lineups ?? 5,
     salaryCap: 50000,
     minSalary: 0,

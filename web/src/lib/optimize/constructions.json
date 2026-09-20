@@ -1,0 +1,102 @@
+{
+  "classic": {
+    "cash": {
+      "objective": "floor",
+      "floor_percentile": 25,
+      "ceiling_weight": 0,
+      "ownership_penalty": 0,
+      "randomness": 0,
+      "min_lineup_salary": 49700,
+      "lineups": 1,
+      "lineups_max": 3,
+      "max_exposure": 100,
+      "num_uniques": 1,
+      "min_player_diff": 0,
+      "stack_n": 0,
+      "bring_back": 0,
+      "no_qb_vs_dst": true
+    },
+    "single": {
+      "objective": "mean_ceiling_own",
+      "floor_percentile": 25,
+      "ceiling_weight": 0.25,
+      "ownership_penalty": 4,
+      "randomness": 0,
+      "min_lineup_salary": 49200,
+      "lineups": 1,
+      "lineups_max": 5,
+      "max_exposure": 100,
+      "num_uniques": null,
+      "min_player_diff": 2,
+      "stack_n": 1,
+      "bring_back": 1,
+      "no_qb_vs_dst": true
+    },
+    "mass": {
+      "objective": "jittered_mean",
+      "floor_percentile": 25,
+      "ceiling_weight": 0,
+      "ownership_penalty": 0,
+      "randomness": 25,
+      "min_lineup_salary": 49200,
+      "lineups": 150,
+      "lineups_max": 150,
+      "max_exposure": 40,
+      "num_uniques": 3,
+      "min_player_diff": 3,
+      "stack_n": 2,
+      "bring_back": 1,
+      "no_qb_vs_dst": true
+    }
+  },
+  "showdown": {
+    "cash": {
+      "objective": "floor",
+      "floor_percentile": 25,
+      "ceiling_weight": 0,
+      "ownership_penalty": 0,
+      "randomness": 0,
+      "min_lineup_salary": 49700,
+      "lineups": 1,
+      "lineups_max": 3,
+      "max_exposure": 100,
+      "num_uniques": 1,
+      "min_player_diff": 0,
+      "stack_n": 0,
+      "bring_back": 0,
+      "no_qb_vs_dst": false
+    },
+    "single": {
+      "objective": "mean_ceiling_own",
+      "floor_percentile": 25,
+      "ceiling_weight": 0.25,
+      "ownership_penalty": 4,
+      "randomness": 0,
+      "min_lineup_salary": 0,
+      "lineups": 1,
+      "lineups_max": 5,
+      "max_exposure": 100,
+      "num_uniques": null,
+      "min_player_diff": 2,
+      "stack_n": 1,
+      "bring_back": 1,
+      "no_qb_vs_dst": false
+    },
+    "mass": {
+      "objective": "jittered_mean",
+      "floor_percentile": 25,
+      "ceiling_weight": 0,
+      "ownership_penalty": 0,
+      "randomness": 25,
+      "min_lineup_salary": 0,
+      "lineups": 150,
+      "lineups_max": 150,
+      "max_exposure": 40,
+      "num_uniques": 3,
+      "min_player_diff": 3,
+      "stack_n": 0,
+      "bring_back": 0,
+      "no_qb_vs_dst": false
+    }
+  }
+}

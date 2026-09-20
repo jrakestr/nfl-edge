@@ -4,6 +4,7 @@ import {
   CONSTRUCTIONS,
   adjustedFpts,
   profile,
+  profileDrift,
   toSolveControls,
   type ConstructionId,
 } from "./construction";
@@ -20,7 +21,7 @@ describe("construction profiles", () => {
 
   it("loads Cash as floor with full cap and no stack", () => {
     const p = profile("classic", "cash");
-    const c = toSolveControls(p, DEFAULT_CLASSIC);
+    const c = toSolveControls("cash", p, DEFAULT_CLASSIC);
     expect(p.objective).toBe("floor");
     expect(p.floor_percentile).toBe(25);
     expect(c.randomness).toBe(0);
@@ -54,5 +55,14 @@ describe("construction profiles", () => {
 
   it("rejects an unknown construction", () => {
     expect(() => profile("classic", "gpp" as ConstructionId)).toThrow(/construction/);
+  });
+
+  it("names controls that drifted from the selected profile", () => {
+    const cash = toSolveControls("cash", profile("classic", "cash"), DEFAULT_CLASSIC);
+    expect(profileDrift(cash, "classic")).toEqual([]);
+    expect(profileDrift({ ...cash, minSalary: 40000, randomness: 10 }, "classic")).toEqual([
+      "Min salary",
+      "Random %",
+    ]);
   });
 });

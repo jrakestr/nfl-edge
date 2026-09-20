@@ -1,7 +1,7 @@
-import raw from "../../../../config/dfs/constructions.json";
-import { DEFAULT_CLASSIC, type SolveControls } from "./types";
+import raw from "./constructions.json";
+import { DEFAULT_CLASSIC, type ConstructionId, type SolveControls } from "./types";
 
-export type ConstructionId = "cash" | "single" | "mass";
+export type { ConstructionId };
 export type SlateKind = "classic" | "showdown";
 export type ObjectiveId = "floor" | "mean_ceiling_own" | "jittered_mean";
 
@@ -36,13 +36,20 @@ export function profile(slate: SlateKind, construction: ConstructionId): Constru
   return row;
 }
 
+export function webLineups(prof: ConstructionProfile): number {
+  return Math.min(Math.max(1, prof.lineups), 20);
+}
+
 export function toSolveControls(
+  id: ConstructionId,
   prof: ConstructionProfile,
   base: SolveControls = DEFAULT_CLASSIC,
 ): SolveControls {
   return {
     ...base,
-    lineups: prof.lineups,
+    construction: id,
+    minPlayerDiff: prof.min_player_diff,
+    lineups: webLineups(prof),
     minSalary: prof.min_lineup_salary,
     maxExposure: prof.max_exposure,
     randomness: prof.randomness,
@@ -51,6 +58,20 @@ export function toSolveControls(
     noQbVsDst: prof.no_qb_vs_dst,
     requireStack: prof.stack_n > 0,
   };
+}
+
+export function profileDrift(controls: SolveControls, kind: SlateKind): string[] {
+  const prof = profile(kind, controls.construction);
+  const out: string[] = [];
+  if (controls.lineups !== webLineups(prof) && controls.lineups !== prof.lineups) {
+    out.push("Lineups");
+  }
+  if (controls.minSalary !== prof.min_lineup_salary) out.push("Min salary");
+  if (controls.maxExposure !== prof.max_exposure) out.push("Max exposure");
+  if (controls.randomness !== prof.randomness) out.push("Random %");
+  if (controls.stackN !== prof.stack_n) out.push("QB stack");
+  if (controls.bringBack !== prof.bring_back) out.push("Bring-back");
+  return out;
 }
 
 export function adjustedFpts(

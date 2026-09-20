@@ -52,6 +52,26 @@ export function showdownConstraints(
     });
   }
 
+  const byPlayer = new Map<string, number[]>();
+  for (let i = 0; i < n; i++) {
+    const pid = players[i]!.player_id;
+    if (!pid) continue;
+    const list = byPlayer.get(pid) ?? [];
+    list.push(i);
+    byPlayer.set(pid, list);
+  }
+  for (const [pid, idxs] of byPlayer) {
+    if (idxs.length < 2) continue;
+    constraints.push({
+      name: `once_player_${pid}`,
+      vars: idxs.flatMap((i) => [
+        { name: c(i), coef: 1 },
+        { name: f(i), coef: 1 },
+      ]),
+      bound: { kind: "up", val: 1 },
+    });
+  }
+
   const lockSet = new Set(controls.locks);
   const exclSet = new Set(controls.excludes);
   for (let i = 0; i < n; i++) {
@@ -75,7 +95,12 @@ export function showdownConstraints(
   return { objective, constraints, binaries };
 }
 
-export function addShowdownUniqueness(priorIds: string[][], players: OptPlayer[]): Constraint[] {
+export function addShowdownUniqueness(
+  priorIds: string[][],
+  players: OptPlayer[],
+  minDiff = 3,
+): Constraint[] {
+  if (minDiff <= 0) return [];
   return priorIds.map((ids, li) => {
     const set = new Set(ids);
     const vars = players.flatMap((p, i) =>
@@ -86,6 +111,6 @@ export function addShowdownUniqueness(priorIds: string[][], players: OptPlayer[]
           ]
         : [],
     );
-    return { name: `uniq_${li}`, vars, bound: { kind: "up" as const, val: ids.length - 3 } };
+    return { name: `uniq_${li}`, vars, bound: { kind: "up" as const, val: ids.length - minDiff } };
   });
 }
