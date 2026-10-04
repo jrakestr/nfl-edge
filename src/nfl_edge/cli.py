@@ -542,6 +542,35 @@ def dfs(
     )
 
 
+@app.command("own-compare")
+def own_compare(
+    rts: str = typer.Option(..., "--rts", help="RTS CSV with an Own column"),
+    run: str = typer.Option(..., "--run", help="run_id (or unique prefix) under data/dfs"),
+    slate: str = typer.Option(..., "--slate"),
+    site: str = typer.Option("dk"),
+    top: int = typer.Option(10, "--top", help="Rows in each top / miss list"),
+):
+    """Compare our projected Own% to an RTS Own column. Read-only; never the sim."""
+    from pathlib import Path
+
+    from .benchmark import own_compare as oc
+    from .ingest import names as N
+    from .ingest.overrides import load_catalog
+
+    try:
+        slate_dir = oc.find_slate_dir(run, slate, site)
+        r = oc.compare(
+            oc.parse_rts_own(Path(rts)), oc.read_ours(slate_dir),
+            load_catalog(), N.load_aliases(), N.load_teams(), top_n=top,
+        )
+    except ValueError as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(f"own-compare {slate_dir}")
+    for line in oc.format_report(r):
+        typer.echo(line)
+
+
 benchmark_app = typer.Typer(help="Third-party benchmark ingests (never the sim).")
 app.add_typer(benchmark_app, name="benchmark")
 
