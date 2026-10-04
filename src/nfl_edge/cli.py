@@ -816,5 +816,36 @@ def score_actuals(season: int = typer.Option(...)):
     )
 
 
+@app.command("player-bias")
+def player_bias(
+    season: int = typer.Option(2026),
+    week: str = typer.Option(
+        "", "--week", help="Build model.player_proj_actual first for these weeks, e.g. 3 or 1,2,3"),
+):
+    """Projected vs actual DK bias by position, tier, and usage channel. Diagnostic only."""
+    from .results import player_proj_actual as P
+
+    for w in sorted({int(x) for x in week.split(",") if x.strip()}):
+        out = P.refresh_week(season, w)
+        if out["skipped"]:
+            typer.echo(f"week {w}: skipped ({out['reason']})")
+        else:
+            typer.echo(
+                f"week {w}: {out['n_rows']} rows; {out['with_parquet']} with parquet "
+                f"(DK p50 and attempts null for the rest); "
+                f"{len(out['games_without_run'])} games had no run before kickoff"
+            )
+    path, rep = P.write_report(season)
+    typer.echo(
+        f"weeks {rep['weeks'] or 'none'}: {rep['n_players']} players compared, "
+        f"{rep['did_not_play']} projected but did not play"
+    )
+    for c in rep["candidates"]:
+        typer.echo(f"  candidate {c['dimension']} / {c['label']}: {c['mean_resid']:+.2f} -> {c['owner']}")
+    if not rep["candidates"]:
+        typer.echo("no cell passes the gate; no prior change is eligible")
+    typer.echo(path)
+
+
 if __name__ == "__main__":
     app()

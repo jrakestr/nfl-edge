@@ -195,3 +195,11 @@ def test_report_lists_candidate_with_owner_channel_and_changes_nothing():
     cand = [c for c in rep["candidates"] if c["dimension"] == "tier" and c["label"] == "star"]
     assert len(cand) == 1 and cand[0]["owner"]
     assert "usage" in cand[0]["owner"] or "recency" in cand[0]["owner"] or "baseline" in cand[0]["owner"]
+
+
+def test_markdown_names_gate_and_changes_nothing_language():
+    rep = P.report([_row(1, "a", "WR", 10.0, 12.0)])
+    md = P.report_markdown(2026, rep)
+    assert "Residual is actual minus projected" in md
+    assert "None. No cell passes the gate." in md
+    assert "snake" not in md and "residual_dk" not in md
