@@ -230,3 +230,43 @@ def test_cells_frame_is_one_row_per_cell_with_plain_gate_text():
     thin = next(r for r in out if r["dimension"] == "carries" and r["label"] == "QB")
     assert thin["state"] == "not enough evidence" and thin["owner"] is None
     assert thin["n"] == 0 and thin["mean_resid"] is None
+
+
+# ----------------------------------------------------------------------------- team volume
+def test_team_volume_cells_use_team_totals_including_unprojected_actuals():
+    # Per team-week (actual, projected). Conditioning on who played hides this shortfall in the
+    # per-player cells: players projected but out are excluded there, unprojected carriers are absent.
+    tv = {
+        "RB carries": {w: [(27.0, 22.0)] * 16 for w in (1, 2)},
+        "QB carries": {w: [(3.0, 5.0)] * 16 for w in (1, 2)},
+    }
+    rep = P.report([_row(1, "a", "WR", 10.0, 12.0)], team_volume=tv)
+    cells = {c["label"]: c for c in rep["cells"] if c["dimension"] == "team volume"}
+    assert cells["RB carries"]["n"] == 32
+    assert cells["RB carries"]["mean_resid"] == pytest.approx(5.0)
+    assert cells["RB carries"]["state"] == "candidate"
+    assert cells["QB carries"]["mean_resid"] == pytest.approx(-2.0)
+    assert cells["QB carries"]["state"] == "candidate"
+
+
+def test_report_without_team_volume_has_no_such_dimension():
+    rep = P.report([_row(1, "a", "WR", 10.0, 12.0)])
+    assert all(c["dimension"] != "team volume" for c in rep["cells"])
+
+
+def test_team_volume_pairs_sum_projected_over_all_projected_and_actual_over_all_rows():
+    proj = [
+        {"week": 1, "team": "AAA", "position": "RB", "proj_carries": 10.0, "proj_targets": 2.0},
+        {"week": 1, "team": "AAA", "position": "RB", "proj_carries": 5.0, "proj_targets": 1.0},  # out
+        {"week": 1, "team": "AAA", "position": "WR", "proj_carries": 0.5, "proj_targets": 7.0},
+    ]
+    weekly = [
+        {"week": 1, "team": "AAA", "position": "RB", "carries": 12.0, "targets": 3.0},
+        {"week": 1, "team": "AAA", "position": "RB", "carries": 4.0, "targets": 0.0},  # unprojected
+        {"week": 1, "team": "AAA", "position": "WR", "carries": 1.0, "targets": 6.0},
+    ]
+    out = P.team_volume_pairs(proj, weekly)
+    assert out["RB carries"][1] == [(16.0, 15.0)]
+    assert out["RB targets"][1] == [(3.0, 3.0)]
+    assert out["WR targets"][1] == [(6.0, 7.0)]
+    assert out["all carries"][1] == [(17.0, 15.5)]

@@ -34,6 +34,7 @@ export const DIMENSION_TITLES: Record<string, string> = {
   carries: "Carries",
   attempts: "Pass attempts",
   "yards per touch": "Yards per touch",
+  "team volume": "Team volume per game",
 };
 
 export const TIER_NOTE = "Star is the top 12 QB, 24 RB, 36 WR and 12 TE by projected points that week.";

@@ -312,6 +312,9 @@ OWNER_BY_DIMENSION = {
     "attempts": "QB replacement baseline",
     "yards per touch": "efficiency shrink and recency weights",
 }
+OWNER_BY_DIMENSION["team volume"] = (
+    "team run and pass volume in the game sim, not a player prior; outside shrink, recency "
+    "and replacement-baseline work")
 OWNER_DEFAULT = "usage shrink or recency weights; read the channel cells to see which"
 
 
@@ -342,9 +345,13 @@ def _dk(r: dict):
 
 
 def _count(actual: str, proj: str):
+    """Volume pairs. A projected player with no weekly row had zero volume, so a missing actual
+    is 0; leaving them out would condition on who played and flip the sign of the bias."""
     def f(r: dict):
         a, p = r.get(actual), r.get(proj)
-        return None if a is None or p is None else (float(a), float(p))
+        if p is None:
+            return None
+        return (0.0 if a is None else float(a), float(p))
     return f
 
 
@@ -370,7 +377,65 @@ YPT_CHANNELS = (
 )
 
 
-def report(rows: list[dict]) -> dict:
+TEAM_VOLUME = (
+    ("all carries", ("QB", "RB", "WR", "TE"), "carries"),
+    ("QB carries", ("QB",), "carries"),
+    ("RB carries", ("RB",), "carries"),
+    ("all targets", ("QB", "RB", "WR", "TE"), "targets"),
+    ("RB targets", ("RB",), "targets"),
+    ("WR targets", ("WR",), "targets"),
+    ("TE targets", ("TE",), "targets"),
+)
+
+
+def team_volume_pairs(proj: list[dict], weekly: list[dict]) -> dict[str, dict[int, list]]:
+    """Per team-week (actual, projected) volume. Unlike the per-player cells this is not
+    conditioned on who played: projected counts every projected player (including ones who sat),
+    actual counts every weekly row for the team (including players we did not project)."""
+    def key(r: dict) -> tuple[int, str]:
+        return int(r["week"]), str(r["team"])
+
+    teams = {key(r) for r in proj}
+    out: dict[str, dict[int, list]] = {}
+    for label, positions, stat in TEAM_VOLUME:
+        pcol, acol = f"proj_{stat}", stat
+        proj_sum: dict[tuple[int, str], float] = {k: 0.0 for k in teams}
+        act_sum: dict[tuple[int, str], float] = {k: 0.0 for k in teams}
+        for r in proj:
+            if r["position"] in positions and r.get(pcol) is not None:
+                proj_sum[key(r)] += float(r[pcol])
+        for r in weekly:
+            pos = "RB" if r["position"] == "FB" else r["position"]
+            k = key(r)
+            if k in act_sum and pos in positions and r.get(acol) is not None:
+                act_sum[k] += float(r[acol])
+        by_week: dict[int, list] = {}
+        for (week, team) in sorted(teams):
+            by_week.setdefault(week, []).append((act_sum[(week, team)], proj_sum[(week, team)]))
+        out[label] = by_week
+    return out
+
+
+def load_team_volume(season: int) -> dict[str, dict[int, list]]:
+    proj = read_sql(
+        "select week, team, position, proj_carries, proj_targets "
+        "from model.player_proj_actual where season = %s",
+        (season,),
+    )
+    if proj.is_empty():
+        return {}
+    weeks = sorted(proj["week"].unique().to_list())
+    weekly = read_sql(
+        "select week, team, position, coalesce((stats->>'carries')::float, 0) as carries, "
+        "coalesce((stats->>'targets')::float, 0) as targets "
+        "from raw.player_stats_weekly "
+        "where season = %s and week = any(%s) and stats->>'season_type' = 'REG'",
+        (season, weeks),
+    )
+    return team_volume_pairs(proj.to_dicts(), [] if weekly.is_empty() else weekly.to_dicts())
+
+
+def report(rows: list[dict], team_volume: dict[str, dict[int, list]] | None = None) -> dict:
     """Bias cells by position, tier, position and tier, and usage channel, plus the gate."""
     active = _active(rows)
     cells: list[dict] = []
@@ -387,11 +452,13 @@ def report(rows: list[dict]) -> dict:
     for dim, positions, a, p in COUNT_CHANNELS:
         for pos in positions:
             cells.append(bias_cell(dim, pos, _by_week(
-                [r for r in active if r["position"] == pos], _count(a, p))))
+                [r for r in rows if r["position"] == pos], _count(a, p))))
     for name, positions, keys in YPT_CHANNELS:
         for pos in positions:
             cells.append(ratio_cell("yards per touch", f"{pos} {name}", _by_week(
                 [r for r in active if r["position"] == pos], _ypt(*keys))))
+    for label, by_week in (team_volume or {}).items():
+        cells.append(bias_cell("team volume", label, by_week))
     candidates = [{**c, "owner": owner_for(c)} for c in cells if c["state"] == CANDIDATE]
     return {
         "cells": cells, "candidates": candidates,
@@ -427,6 +494,9 @@ def report_markdown(season: int, rep: dict) -> str:
          f"Projected but did not play (excluded): {rep['did_not_play']}."),
         ("Diagnostic only. A candidate is eligible for a separate, backtested prior change; "
          "nothing here changes priors."),
+        ("Targets, carries and attempts count every projected player, with zero for those who sat. "
+         "Team volume compares whole-team totals and also counts players we did not project. "
+         "DK points and yards per touch exclude players with no opportunity."),
         (f"Gate: at least {MIN_N} players, at least 2 graded weeks, same residual sign every "
          "week, difference beyond one standard error."),
         "",
@@ -481,7 +551,7 @@ def persist_cells(season: int, rep: dict) -> int:
 
 
 def write_report(season: int) -> tuple[str, dict]:
-    rep = report(load_rows(season))
+    rep = report(load_rows(season), load_team_volume(season))
     persist_cells(season, rep)
     path = ROOT / "output" / f"player_bias_{season}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
