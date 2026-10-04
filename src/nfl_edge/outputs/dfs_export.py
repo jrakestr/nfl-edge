@@ -1,8 +1,12 @@
 """Write the NFL-DFS-Tools working dir from the same sim draws.
 
+Classic Own% is own_pct_v2: roster-slot-normalized (QB and DST sum to 100, RB/WR/TE
+to 700 with FLEX split by slot count), zero for players under the projection
+minimum, position-aware. Showdown still uses v1 below (the tool rewrites a 0 to 0.1).
+
 Own% v1 (until contest results exist — dfs-refine): equal blend of inverse salary
 rank and inverse projection rank among the slate. Rank 1 is highest. Mapped onto
-0.5–30.0 so the tool never sees a 0 (it rewrites 0 to 0.1). Formula:
+0.5–30.0. Formula:
 
     score = 0.5 * (n - salary_rank + 1) / n + 0.5 * (n - proj_rank + 1) / n
     own%  = 0.5 + 29.5 * score
@@ -159,6 +163,100 @@ def own_pct_v1(salary_rank: int, proj_rank: int, n: int) -> float:
     return 0.5 + 29.5 * (0.5 * inv_s + 0.5 * inv_p)
 
 
+# Ownership v2 (classic). Structural values come from the roster: one QB, two RB,
+# three WR, one TE, one FLEX (RB/WR/TE), one DST, so a slot's ownership sums to
+# 100 and the FLEX slot is split by position slot counts.
+OWN_SLOT_PCT = {"QB": 100.0, "DST": 100.0, "TE": 100.0, "RB": 200.0, "WR": 300.0}
+OWN_FLEX_SLOTS = {"RB": 2, "WR": 3, "TE": 1}
+# Documented defaults, not fitted (own-fit is deferred until several weeks of
+# comparison data exist). Concentration is the exponent on the 0-1 value score;
+# caps stop one player taking an implausible share of a slot.
+OWN_CONCENTRATION = 6.0
+OWN_PROJ_WEIGHT = 0.5
+OWN_POSITION_CAP = {"QB": 20.0, "DST": 20.0, "TE": 30.0, "RB": 45.0, "WR": 35.0}
+OWN_MIN_PCT = 0.1
+
+
+def _own_slot_total(pos: str) -> float:
+    total = OWN_SLOT_PCT[pos]
+    if pos in OWN_FLEX_SLOTS:
+        total += 100.0 * OWN_FLEX_SLOTS[pos] / sum(OWN_FLEX_SLOTS.values())
+    return total
+
+
+def _minmax(values: list[float]) -> list[float]:
+    lo, hi = min(values), max(values)
+    if hi - lo < 1e-12:
+        return [0.5] * len(values)
+    return [(v - lo) / (hi - lo) for v in values]
+
+
+def _allocate(weights: list[float], total: float, cap: float) -> list[float]:
+    """Split `total` by weight with a per-player cap; excess is redistributed."""
+    n = len(weights)
+    cap = max(cap, total / n)  # a tiny pool cannot honour a cap below its fair share
+    out = [0.0] * n
+    free = set(range(n))
+    left = total
+    while free and left > 1e-9:
+        wsum = sum(weights[i] for i in free)
+        share = {i: left * weights[i] / wsum for i in free}
+        over = [i for i in free if out[i] + share[i] > cap + 1e-12]
+        if not over:
+            for i in free:
+                out[i] += share[i]
+            break
+        for i in over:
+            left -= cap - out[i]
+            out[i] = cap
+            free.discard(i)
+    return out
+
+
+def own_pct_v2(players: list[dict]) -> list[float]:
+    """Projected ownership in percent of lineups, aligned to `players`.
+
+    Each dict needs position, salary and fpts (mean projection; None when
+    unprojected). Viable means projected at or above PROJECTION_MINIMUM (DST
+    exempt, as the optimizer treats it). Within a position, score is an equal
+    blend of projection and projection per dollar, min-max scaled, then weight =
+    exp(OWN_CONCENTRATION * score). The position's slot total is split by weight
+    with a cap; shares under OWN_MIN_PCT drop to zero and the rest are re-split.
+    No external ownership data enters this.
+    """
+    out = [0.0] * len(players)
+    by_pos: dict[str, list[int]] = {}
+    for i, p in enumerate(players):
+        pos = map_position(p.get("position"))
+        fp = p.get("fpts")
+        if pos not in OWN_SLOT_PCT or fp is None or fp == float("-inf"):
+            continue
+        if fp < PROJECTION_MINIMUM and pos != "DST":
+            continue
+        if fp <= 0 or _fnum(p.get("salary")) <= 0:
+            continue
+        by_pos.setdefault(pos, []).append(i)
+    for pos, idx in by_pos.items():
+        total, cap = _own_slot_total(pos), OWN_POSITION_CAP[pos]
+        keep = sorted(idx)
+        while keep:
+            fp = [float(players[i]["fpts"]) for i in keep]
+            val = [f / (_fnum(players[i]["salary"]) / 1000.0) for f, i in zip(fp, keep)]
+            sp, sv = _minmax(fp), _minmax(val)
+            score = [OWN_PROJ_WEIGHT * a + (1 - OWN_PROJ_WEIGHT) * b for a, b in zip(sp, sv)]
+            weights = [float(np.exp(OWN_CONCENTRATION * s)) for s in score]
+            shares = _allocate(weights, total, cap)
+            small = [k for k, s in enumerate(shares) if s < OWN_MIN_PCT]
+            if not small or len(small) == len(keep):
+                for i, s in zip(keep, shares):
+                    out[i] = s
+                break
+            # drop the single smallest share and re-split so the tail converges
+            drop = min(small, key=lambda k: (shares[k], keep[k]))
+            keep = keep[:drop] + keep[drop + 1:]
+    return [round(x, 1) for x in out]
+
+
 def map_position(pos: str | None) -> str:
     raw = "" if pos is None else str(pos).strip().upper()
     if raw in {"D", "DEF"}:
@@ -227,6 +325,16 @@ def build_projections(
             fpts.append(_fnum(stats.get(mean_key)))
     sal_ranks = _ranks([_fnum(r.get("salary")) for r in players])
     proj_ranks = _ranks(fpts)
+    # Classic ownership reads the mean projection, not the construction-adjusted
+    # Fpts: the field does not change who it plays because we picked Cash.
+    if showdown:
+        owns = [round(own_pct_v1(sal_ranks[i], proj_ranks[i], n), 1) for i in range(n)]
+    else:
+        owns = own_pct_v2([
+            {"position": r.get("position"), "salary": r.get("salary"),
+             "fpts": None if f == float("-inf") else f}
+            for r, f in zip(players, fpts)
+        ])
     out, report = [], []
     for i, row in enumerate(players):
         pid = row.get("player_id")
@@ -261,7 +369,7 @@ def build_projections(
             "Team": row.get("team") or "",
             "Salary": int(_fnum(row.get("salary"))),
             "Fpts": fpts,
-            "Own%": round(own_pct_v1(sal_ranks[i], proj_ranks[i], n), 1),
+            "Own%": owns[i],
             "StdDev": sd,
         })
     return out, report
