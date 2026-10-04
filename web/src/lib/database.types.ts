@@ -421,6 +421,63 @@ export type Database = {
         }
         Relationships: []
       }
+      player_bias: {
+        Row: {
+          actual: number | null
+          computed_at: string | null
+          dimension: string
+          label: string
+          mae: number | null
+          mean_pct: number | null
+          mean_resid: number | null
+          n: number
+          ord: number
+          owner: string | null
+          projected: number | null
+          reason: string
+          se: number | null
+          season: number
+          state: string
+          weeks_graded: number
+        }
+        Insert: {
+          actual?: number | null
+          computed_at?: string | null
+          dimension: string
+          label: string
+          mae?: number | null
+          mean_pct?: number | null
+          mean_resid?: number | null
+          n: number
+          ord: number
+          owner?: string | null
+          projected?: number | null
+          reason: string
+          se?: number | null
+          season: number
+          state: string
+          weeks_graded: number
+        }
+        Update: {
+          actual?: number | null
+          computed_at?: string | null
+          dimension?: string
+          label?: string
+          mae?: number | null
+          mean_pct?: number | null
+          mean_resid?: number | null
+          n?: number
+          ord?: number
+          owner?: string | null
+          projected?: number | null
+          reason?: string
+          se?: number | null
+          season?: number
+          state?: string
+          weeks_graded?: number
+        }
+        Relationships: []
+      }
       player_correlations: {
         Row: {
           corr_dk: number | null

@@ -213,3 +213,20 @@ def test_grade_builds_table_before_draws_are_pruned():
     src = inspect.getsource(cli.grade)
     assert "refresh_week" in src and "prune_draws" in src
     assert src.index("refresh_week") < src.index("prune_draws(")
+
+
+def test_cells_frame_is_one_row_per_cell_with_plain_gate_text():
+    rows = []
+    for w in (1, 2):
+        for i in range(20):
+            rows.append(_row(w, f"s{w}{i}", "WR", 15.0, 18.0 + (i % 3) * 0.1, tier="star"))
+    rep = P.report(rows)
+    out = P.cells_rows(2026, rep)
+    assert len(out) == len(rep["cells"])
+    assert [r["ord"] for r in out] == list(range(len(out)))
+    star = next(r for r in out if r["dimension"] == "tier" and r["label"] == "star")
+    assert star["state"] == "candidate" and star["owner"]
+    assert star["weeks_graded"] == 2 and star["season"] == 2026
+    thin = next(r for r in out if r["dimension"] == "carries" and r["label"] == "QB")
+    assert thin["state"] == "not enough evidence" and thin["owner"] is None
+    assert thin["n"] == 0 and thin["mean_resid"] is None

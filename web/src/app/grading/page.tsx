@@ -1,5 +1,6 @@
 import { GradingPage } from "@/components/grading/GradingPage";
 import { CURRENT_SEASON } from "@/lib/config";
+import { playerBias } from "@/lib/queries/player-bias";
 import { calibrationBuckets, gradedGames, trackRecord } from "@/lib/queries/results";
 
 export const metadata = { title: "Grading" };
@@ -18,10 +19,11 @@ export default async function Page({ searchParams }: PageProps<"/grading">) {
   const cal = one(sp.cal) ?? null;
   const marketFilter = cal === "spread" || cal === "total" || cal === "moneyline" ? cal : null;
 
-  const [track, games, buckets] = await Promise.all([
+  const [track, games, buckets, bias] = await Promise.all([
     trackRecord(season),
     gradedGames(season),
     calibrationBuckets(season, marketFilter),
+    playerBias(season),
   ]);
   const weeks = [...new Set(games.map((g) => g.week))].sort((a, b) => a - b);
 
@@ -31,6 +33,7 @@ export default async function Page({ searchParams }: PageProps<"/grading">) {
       games={games}
       buckets={buckets}
       weeks={weeks}
+      playerBias={bias}
       weekFilter={weekFilter}
       marketFilter={marketFilter}
       season={season}

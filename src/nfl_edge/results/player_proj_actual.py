@@ -453,8 +453,36 @@ def report_markdown(season: int, rep: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def cells_rows(season: int, rep: dict) -> list[dict]:
+    """One row per cell for model.player_bias. Owner is set only for gate-passing cells."""
+    owners = {(c["dimension"], c["label"]): c["owner"] for c in rep["candidates"]}
+    return [
+        {
+            "season": int(season), "ord": i, "dimension": c["dimension"], "label": c["label"],
+            "n": int(c["n"]), "projected": c["projected"], "actual": c["actual"],
+            "mean_resid": c["mean_resid"], "mean_pct": c["mean_pct"], "mae": c["mae"],
+            "se": c["se"], "weeks_graded": len(c["weeks"]), "state": c["state"],
+            "reason": c["reason"], "owner": owners.get((c["dimension"], c["label"])),
+        }
+        for i, c in enumerate(rep["cells"])
+    ]
+
+
+def persist_cells(season: int, rep: dict) -> int:
+    """Replace the season's cells. Skipped when no week has been compared yet."""
+    if not rep["weeks"]:
+        return 0
+    from ..db import replace_where
+
+    schema = {"projected": pl.Float64, "actual": pl.Float64, "mean_resid": pl.Float64,
+              "mean_pct": pl.Float64, "mae": pl.Float64, "se": pl.Float64, "owner": pl.Utf8}
+    df = pl.DataFrame(cells_rows(season, rep), schema_overrides=schema, infer_schema_length=None)
+    return replace_where(df, "model.player_bias", "season", int(season))
+
+
 def write_report(season: int) -> tuple[str, dict]:
     rep = report(load_rows(season))
+    persist_cells(season, rep)
     path = ROOT / "output" / f"player_bias_{season}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(report_markdown(season, rep))

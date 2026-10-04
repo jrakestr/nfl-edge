@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { GradeTable } from "@/components/grading/GradeTable";
+import { PlayerBias } from "@/components/grading/PlayerBias";
 import { CURRENT_SEASON } from "@/lib/config";
 import { signedPct } from "@/lib/edge";
 import type { CalBucket, GradedGame } from "@/lib/grade-types";
 import { MetricLabel, type Metric } from "@/lib/icons";
+import type { PlayerBiasData } from "@/lib/player-bias";
 import type { TrackRecord } from "@/lib/queries/results";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +49,7 @@ export function GradingPage({
   games = [],
   buckets = [],
   weeks = [],
+  playerBias,
   weekFilter = null,
   marketFilter = null,
   season = 2026,
@@ -55,6 +58,8 @@ export function GradingPage({
   games?: GradedGame[];
   buckets?: CalBucket[];
   weeks?: number[];
+  /** Projected against actual DK points per player, from the persisted bias cells. */
+  playerBias?: PlayerBiasData;
   weekFilter?: number | null;
   marketFilter?: string | null;
   season?: number;
@@ -115,6 +120,7 @@ export function GradingPage({
           ))}
         </nav>
       ) : null}
+      {playerBias && !empty ? <PlayerBias data={playerBias} gradedWeeks={weeks} /> : null}
       <GradeTable games={empty ? [] : shown} />
       <section className="card p-4">
         <h2 className="t-body font-semibold">Calibration</h2>

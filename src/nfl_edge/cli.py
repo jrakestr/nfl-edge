@@ -793,6 +793,7 @@ def grade(
         typer.echo(f"player_proj_actual: skipped ({ppa['reason']})")
     else:
         typer.echo(f"player_proj_actual: {ppa['n_rows']} players, {ppa['with_parquet']} with DK p50")
+        PPA.write_report(season)
     from .rebuild import prune_draws
 
     for line in prune_draws(season=season, week=week):
