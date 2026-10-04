@@ -169,6 +169,26 @@ const FULL: WeekPlayer[] = [
   },
 ];
 
+describe("PlayersList actual vs projected", () => {
+  it("shows an em dash in Actual and Diff while the week is ungraded", () => {
+    render(<PlayersList players={MAIN} />);
+    expect(screen.getByRole("columnheader", { name: "Actual" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Diff" })).toBeInTheDocument();
+    expect(screen.queryByText("DNP")).not.toBeInTheDocument();
+  });
+
+  it("shows actual points, the difference, and DNP once graded", () => {
+    const graded: WeekPlayer[] = [
+      { ...MAIN[0]!, actual_dk: 24.2, actual_state: "played" },
+      { ...MAIN[1]!, actual_dk: 0, actual_state: "dnp" },
+    ];
+    render(<PlayersList players={graded} />);
+    expect(screen.getByText("24.2")).toBeInTheDocument();
+    expect(screen.getByText("+6.0")).toBeInTheDocument();
+    expect(screen.getByText("DNP")).toBeInTheDocument();
+  });
+});
+
 describe("PlayersList slate rows", () => {
   it("shows a notice when the slate fell back to main", () => {
     render(<PlayersList players={MAIN} fallbackFrom="nope" />);

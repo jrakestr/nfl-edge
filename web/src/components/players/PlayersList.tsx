@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
+import { actualDisplay } from "@/lib/player-actual";
 import { positionRanks } from "@/lib/players/ranks";
 import { GameStrip } from "@/components/shell/GameStrip";
 import { useGamesSelection, useLiveSearchParams } from "@/components/shell/GamesSelection";
@@ -276,6 +277,42 @@ export function PlayersList({
                 <span className="flex flex-col items-end gap-0.5">
                   <span className={tone(excluded || stale)}>{num(p.fpts_dk_mean)}</span>
                   {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
+                </span>
+              );
+            },
+          },
+          {
+            id: "actual",
+            header: "Actual",
+            align: "right",
+            sortValue: (p) => (p.actual_state === "played" ? p.actual_dk : null),
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {actualDisplay(p).actual}
+              </span>
+            ),
+          },
+          {
+            id: "diff",
+            header: "Diff",
+            align: "right",
+            sortValue: (p) => actualDisplay(p).diffValue,
+            cell: (p) => {
+              const { diff, diffValue } = actualDisplay(p);
+              return (
+                <span
+                  className={cn(
+                    "tnum font-semibold",
+                    diffValue == null
+                      ? "text-muted-foreground"
+                      : diffValue > 0
+                        ? "text-edge-pos"
+                        : diffValue < 0
+                          ? "text-edge-neg"
+                          : "text-foreground",
+                  )}
+                >
+                  {diff}
                 </span>
               );
             },

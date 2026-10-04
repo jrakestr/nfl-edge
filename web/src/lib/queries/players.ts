@@ -282,3 +282,27 @@ export async function ngsByPlayer(
     return {};
   }
 }
+
+export type PlayerActual = { fpts_dk: number; had_opportunity: boolean };
+
+/**
+ * Realized DK points per player_id for a week, from model.player_fpts_actual. `graded` is false
+ * until the week has any actuals, so an ungraded week shows an em dash and not DNP.
+ */
+export async function actualsByPlayer(
+  season: number,
+  week: number,
+): Promise<{ graded: boolean; byPlayer: Record<string, PlayerActual> }> {
+  const rows = await sql()`
+    select player_id, fpts_dk::float8 as fpts_dk, had_opportunity
+    from model.player_fpts_actual
+    where season = ${season} and week = ${week} and season_type = 'REG'`;
+  const byPlayer: Record<string, PlayerActual> = {};
+  for (const r of rows) {
+    byPlayer[String(r.player_id)] = {
+      fpts_dk: Number(r.fpts_dk),
+      had_opportunity: Boolean(r.had_opportunity),
+    };
+  }
+  return { graded: rows.length > 0, byPlayer };
+}

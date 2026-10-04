@@ -492,6 +492,101 @@ export type Database = {
         }
         Relationships: []
       }
+      player_proj_actual: {
+        Row: {
+          actual_carries: number | null
+          actual_dk: number | null
+          actual_pass_att: number | null
+          actual_pass_yds: number | null
+          actual_rec_yds: number | null
+          actual_rush_yds: number | null
+          actual_targets: number | null
+          game_id: string | null
+          graded_at: string | null
+          had_opportunity: boolean
+          player_id: string
+          position: string | null
+          proj_carries: number | null
+          proj_dk_mean: number | null
+          proj_dk_p50: number | null
+          proj_pass_att: number | null
+          proj_pass_yds: number | null
+          proj_rec_yds: number | null
+          proj_rush_yds: number | null
+          proj_targets: number | null
+          residual_dk: number | null
+          run_id: string
+          season: number
+          team: string | null
+          tier: string
+          week: number
+        }
+        Insert: {
+          actual_carries?: number | null
+          actual_dk?: number | null
+          actual_pass_att?: number | null
+          actual_pass_yds?: number | null
+          actual_rec_yds?: number | null
+          actual_rush_yds?: number | null
+          actual_targets?: number | null
+          game_id?: string | null
+          graded_at?: string | null
+          had_opportunity: boolean
+          player_id: string
+          position?: string | null
+          proj_carries?: number | null
+          proj_dk_mean?: number | null
+          proj_dk_p50?: number | null
+          proj_pass_att?: number | null
+          proj_pass_yds?: number | null
+          proj_rec_yds?: number | null
+          proj_rush_yds?: number | null
+          proj_targets?: number | null
+          residual_dk?: number | null
+          run_id: string
+          season: number
+          team?: string | null
+          tier: string
+          week: number
+        }
+        Update: {
+          actual_carries?: number | null
+          actual_dk?: number | null
+          actual_pass_att?: number | null
+          actual_pass_yds?: number | null
+          actual_rec_yds?: number | null
+          actual_rush_yds?: number | null
+          actual_targets?: number | null
+          game_id?: string | null
+          graded_at?: string | null
+          had_opportunity?: boolean
+          player_id?: string
+          position?: string | null
+          proj_carries?: number | null
+          proj_dk_mean?: number | null
+          proj_dk_p50?: number | null
+          proj_pass_att?: number | null
+          proj_pass_yds?: number | null
+          proj_rec_yds?: number | null
+          proj_rush_yds?: number | null
+          proj_targets?: number | null
+          residual_dk?: number | null
+          run_id?: string
+          season?: number
+          team?: string | null
+          tier?: string
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_proj_actual_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "sim_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
       proj_games: {
         Row: {
           draws_path: string | null
