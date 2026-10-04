@@ -46,13 +46,109 @@ def by_name(rows: list[dict]) -> dict[str, dict]:
     return {r["Name"]: r for r in rows}
 
 
-def test_own_pct_higher_ranks_more_owned():
-    n = 10
-    hi = D.own_pct_v1(1, 1, n)
-    lo = D.own_pct_v1(10, 10, n)
-    mid = D.own_pct_v1(1, 10, n)
-    assert 0.5 <= lo < mid < hi <= 30.0
-    assert D.own_pct_v1(1, 10, n) == D.own_pct_v1(10, 1, n)
+def _pool(counts: dict[str, int]) -> list[dict]:
+    """Synthetic slate: salary falls and projection falls down each position's list."""
+    base = {"QB": (8000, 24.0), "RB": (8500, 20.0), "WR": (8500, 19.0),
+            "TE": (6500, 14.0), "DST": (3500, 8.0)}
+    out = []
+    for pos, n in counts.items():
+        sal0, fp0 = base[pos]
+        for i in range(n):
+            out.append({
+                "position": pos, "salary": sal0 - 100 * i,
+                "fpts": max(fp0 - 0.45 * i, 0.0),
+            })
+    return out
+
+
+def _own(pool: list[dict]) -> list[float]:
+    return D.own_pct_v2(pool)
+
+
+def _sum(pool: list[dict], own: list[float], pos: str) -> float:
+    return sum(o for p, o in zip(pool, own) if p["position"] == pos)
+
+
+BIG = {"QB": 30, "RB": 45, "WR": 70, "TE": 30, "DST": 24}
+
+
+def test_own_v2_slot_totals_hold():
+    pool = _pool(BIG)
+    own = _own(pool)
+    tol = 0.05 * len(pool)  # one-decimal rounding per player
+    assert _sum(pool, own, "QB") == pytest.approx(100.0, abs=tol)
+    assert _sum(pool, own, "DST") == pytest.approx(100.0, abs=tol)
+    # flex split by slot counts (RB 2, WR 3, TE 1) of the single FLEX slot
+    assert _sum(pool, own, "RB") == pytest.approx(200.0 + 100.0 * 2 / 6, abs=tol)
+    assert _sum(pool, own, "WR") == pytest.approx(300.0 + 100.0 * 3 / 6, abs=tol)
+    assert _sum(pool, own, "TE") == pytest.approx(100.0 + 100.0 * 1 / 6, abs=tol)
+    flex = sum(_sum(pool, own, p) for p in ("RB", "WR", "TE"))
+    assert flex == pytest.approx(700.0, abs=tol)
+
+
+def test_own_v2_zero_below_projection_minimum_dst_exempt():
+    pool = _pool({"QB": 20, "RB": 30, "WR": 50, "TE": 20, "DST": 12})
+    pool[0]["fpts"] = 4.9        # QB below minimum
+    pool[-1]["fpts"] = 4.5       # DST below 5.0 is exempt from the minimum
+    pool.append({"position": "WR", "salary": 3000, "fpts": None})  # unprojected
+    own = _own(pool)
+    assert own[0] == 0.0
+    assert own[len(pool) - 2] > 0.0   # low-projection DST keeps ownership
+    assert own[-1] == 0.0
+    assert all(o == 0.0 for p, o in zip(pool, own) if p["position"] != "DST"
+               and (p["fpts"] is None or p["fpts"] < D.PROJECTION_MINIMUM))
+
+
+def test_own_v2_position_caps_and_no_floor():
+    pool = _pool(BIG)
+    own = _own(pool)
+    for pos, cap in D.OWN_POSITION_CAP.items():
+        assert max(o for p, o in zip(pool, own) if p["position"] == pos) <= cap + 0.05
+    assert max(o for p, o in zip(pool, own) if p["position"] == "QB") <= D.OWN_POSITION_CAP["QB"] + 0.05
+    # no 0.5 floor: the tail is exactly zero or at least the minimum share
+    assert all(o == 0.0 or o >= D.OWN_MIN_PCT - 1e-9 for o in own)
+    assert sum(1 for o in own if o > 0) < len(pool)
+
+
+def test_own_v2_is_position_aware_not_slate_rank():
+    # A cheap QB with a mid projection must not outrank the RB chalk.
+    pool = _pool(BIG)
+    own = _own(pool)
+    top_qb = max(o for p, o in zip(pool, own) if p["position"] == "QB")
+    top_rb = max(o for p, o in zip(pool, own) if p["position"] == "RB")
+    assert top_rb > top_qb
+
+
+def test_own_v2_monotone_in_projection_within_position():
+    pool = _pool(BIG)
+    own = _own(pool)
+    wr = [o for p, o in zip(pool, own) if p["position"] == "WR"]
+    assert wr == sorted(wr, reverse=True)
+
+
+def test_own_v2_deterministic_and_input_order_free():
+    pool = _pool(BIG)
+    a = _own(pool)
+    idx = list(range(len(pool)))[::-1]
+    b = _own([pool[i] for i in idx])
+    assert a == [b[idx.index(i)] for i in range(len(pool))]
+    assert a == _own(pool)
+
+
+def test_own_v2_small_position_pool_still_sums_to_slot():
+    pool = _pool({"QB": 2, "RB": 4, "WR": 6, "TE": 3, "DST": 2})
+    own = _own(pool)
+    assert _sum(pool, own, "QB") == pytest.approx(100.0, abs=0.5)
+    assert _sum(pool, own, "DST") == pytest.approx(100.0, abs=0.5)
+
+
+def test_classic_projections_use_v2_showdown_keeps_v1():
+    rows, _ = D.build_projections(SLATE, PROJ, site="dk")
+    got = by_name(rows)
+    assert got["Ghost Player"]["Own%"] == 0.0
+    assert got["Puka Nacua"]["Own%"] == 0.0   # 3.2 < projection minimum
+    sd_rows, _ = D.build_projections(SLATE, PROJ, site="dk", showdown=True)
+    assert all(0.5 <= r["Own%"] <= 30.0 for r in sd_rows)
 
 
 def test_map_position_dst():
@@ -79,7 +175,7 @@ def test_projections_use_mean_and_sd_and_keep_unprojected():
     below = {r["name"] for r in report if r["kind"] == "below_projection_minimum"}
     assert "Puka Nacua" in below
     assert "Chiefs" not in below  # DST is not dropped by the tool's minimum
-    assert all(0.5 <= r["Own%"] <= 30.0 for r in rows)
+    assert all(r["Own%"] >= 0.0 for r in rows)
 
 
 def test_cash_fpts_is_p25_not_mean():
