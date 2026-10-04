@@ -203,3 +203,13 @@ def test_markdown_names_gate_and_changes_nothing_language():
     assert "Residual is actual minus projected" in md
     assert "None. No cell passes the gate." in md
     assert "snake" not in md and "residual_dk" not in md
+
+
+def test_grade_builds_table_before_draws_are_pruned():
+    import inspect
+
+    from nfl_edge import cli
+
+    src = inspect.getsource(cli.grade)
+    assert "refresh_week" in src and "prune_draws" in src
+    assert src.index("refresh_week") < src.index("prune_draws(")

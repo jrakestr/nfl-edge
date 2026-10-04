@@ -785,6 +785,14 @@ def grade(
         typer.echo(f"fair_props: skipped ({fair.get('reason')})")
     elif fair.get("n_rows"):
         typer.echo(f"fair_props: {fair['n_rows']} rows graded")
+    # Before prune: DK p50 and pass attempts for the table come from draw parquet.
+    from .results import player_proj_actual as PPA
+
+    ppa = PPA.refresh_week(season, week)
+    if ppa["skipped"]:
+        typer.echo(f"player_proj_actual: skipped ({ppa['reason']})")
+    else:
+        typer.echo(f"player_proj_actual: {ppa['n_rows']} players, {ppa['with_parquet']} with DK p50")
     from .rebuild import prune_draws
 
     for line in prune_draws(season=season, week=week):
