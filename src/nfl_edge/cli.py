@@ -698,6 +698,30 @@ def benchmark_nflgamesim_players(
         for u in r["unmatched"]:
             typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} opp={u['opponent']}")
         for g in r["games_unresolved"]:
+@benchmark_app.command("fantasypros")
+def benchmark_fantasypros(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+):
+    """One FantasyPros projections pull into raw.fantasypros_snapshots + raw.external_players."""
+    from .benchmark import fantasypros as fpb
+    from .ingest.fantasypros import FantasyProsError
+
+    try:
+        r = fpb.run(season, week)
+    except (FantasyProsError, RuntimeError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        f"fantasypros {r['season']} wk{r['week']}: {r['calls']} call, "
+        f"{r['snapshots']} snapshot rows, {r['written']} written / {r['rows']} rows, "
+        f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
+        f"{r['key_collisions_dropped']} key collisions"
+    )
+    for u in r["unmatched"]:
+        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
+
+
             typer.echo(
                 f"  unresolved game ({g['hits']} hits): {g['name']} "
                 f"team={g['team']} opp={g['opponent']}"
