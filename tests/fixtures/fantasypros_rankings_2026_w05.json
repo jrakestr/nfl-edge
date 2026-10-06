@@ -1,0 +1,352 @@
+{
+ "sport": "NFL",
+ "count": 10,
+ "season": "2026",
+ "week": "5",
+ "experts": {},
+ "players": [
+  {
+   "id": 8000,
+   "player_name": "Arizona Cardinals",
+   "short_name": "A. Cardinals",
+   "first_name": "Arizona",
+   "last_name": "Cardinals",
+   "reverse_name": "Cardinals, Arizona",
+   "position_id": "DST",
+   "positions": [
+    "DST"
+   ],
+   "team_id": "ARI",
+   "filename": "http://www.fantasypros.com/nfl/players/arizona-defense.php",
+   "rank": {
+    "ECR": {
+     "STD": {
+      "DST": 30
+     },
+     "PPR": {
+      "DST": 30
+     },
+     "HALF": {
+      "DST": 30
+     },
+     "ROS-STD": {
+      "DST": 31
+     },
+     "ROS-PPR": {
+      "DST": 31
+     },
+     "ROS-HALF": {
+      "DST": 31
+     },
+     "DYN": {
+      "DST": 25
+     }
+    }
+   }
+  },
+  {
+   "id": 8010,
+   "player_name": "Atlanta Falcons",
+   "short_name": "A. Falcons",
+   "first_name": "Atlanta",
+   "last_name": "Falcons",
+   "reverse_name": "Falcons, Atlanta",
+   "position_id": "DST",
+   "positions": [
+    "DST"
+   ],
+   "team_id": "ATL",
+   "filename": "http://www.fantasypros.com/nfl/players/atlanta-defense.php",
+   "rank": {
+    "ECR": {
+     "STD": {
+      "DST": 27
+     },
+     "PPR": {
+      "DST": 27
+     },
+     "HALF": {
+      "DST": 27
+     },
+     "ROS-STD": {
+      "ALL": 392,
+      "DST": 29
+     },
+     "ROS-PPR": {
+      "DST": 29,
+      "ALL": 393
+     },
+     "ROS-HALF": {
+      "DST": 29,
+      "ALL": 391
+     },
+     "DYN": {
+      "DST": 21
+     }
+    }
+   }
+  },
+  {
+   "id": 9001,
+   "player_name": "Aaron Rodgers",
+   "short_name": "A. Rodgers",
+   "first_name": "Aaron",
+   "last_name": "Rodgers",
+   "reverse_name": "Rodgers, Aaron",
+   "position_id": "QB",
+   "positions": [
+    "QB"
+   ],
+   "team_id": "PIT",
+   "filename": "http://www.fantasypros.com/nfl/players/aaron-rodgers.php",
+   "rank": {
+    "ECR": {
+     "STD": {
+      "QB": 19,
+      "OP": 20
+     },
+     "PPR": {
+      "QB": 19,
+      "OP": 32
+     },
+     "HALF": {
+      "QB": 19,
+      "OP": 23
+     },
+     "ROS-STD": {
+      "ALL": 219,
+      "QB": 29
+     },
+     "ROS-PPR": {
+      "QB": 29,
+      "ALL": 206
+     },
+     "ROS-HALF": {
+      "QB": 29,
+      "ALL": 222
+     },
+     "DYN": {
+      "ALL": 198,
+      "QB": 36,
+      "OP": 193
+     }
+    }
+   }
+  },
+  {
+   "id": 9300,
+   "player_name": "Joe Flacco",
+   "short_name": "J. Flacco",
+   "first_name": "Joe",
+   "last_name": "Flacco",
+   "reverse_name": "Flacco, Joe",
+   "position_id": "QB",
+   "positions": [
+    "QB"
+   ],
+   "team_id": "CIN",
+   "filename": "http://www.fantasypros.com/nfl/players/joe-flacco.php",
+   "rank": {
+    "ECR": {
+     "ROS-STD": {
+      "ALL": 382,
+      "QB": 44
+     },
+     "ROS-PPR": {
+      "QB": 44,
+      "ALL": 381
+     },
+     "ROS-HALF": {
+      "QB": 44
+     },
+     "DYN": {
+      "ALL": 386,
+      "QB": 61
+     }
+    }
+   }
+  },
+  {
+   "id": 11594,
+   "player_name": "Travis Kelce",
+   "short_name": "T. Kelce",
+   "first_name": "Travis",
+   "last_name": "Kelce",
+   "reverse_name": "Kelce, Travis",
+   "position_id": "TE",
+   "positions": [
+    "TE"
+   ],
+   "team_id": "KC",
+   "filename": "http://www.fantasypros.com/nfl/players/travis-kelce.php",
+   "rank": {
+    "ECR": {
+     "ROS-STD": {
+      "ALL": 124,
+      "TE": 9,
+      "FLX": 105
+     },
+     "ROS-PPR": {
+      "ALL": 105,
+      "TE": 7,
+      "FLX": 87
+     },
+     "ROS-HALF": {
+      "ALL": 98,
+      "TE": 8,
+      "FLX": 85
+     },
+     "DYN": {
+      "ALL": 150,
+      "TE": 22,
+      "OP": 153
+     }
+    }
+   }
+  },
+  {
+   "id": 11606,
+   "player_name": "DeAndre Hopkins",
+   "short_name": "D. Hopkins",
+   "first_name": "DeAndre",
+   "last_name": "Hopkins",
+   "reverse_name": "Hopkins, DeAndre",
+   "position_id": "WR",
+   "positions": [
+    "WR"
+   ],
+   "team_id": "BAL",
+   "filename": "http://www.fantasypros.com/nfl/players/deandre-hopkins.php",
+   "rank": {
+    "ECR": {
+     "DYN": {
+      "ALL": 446,
+      "WR": 156,
+      "OP": 386
+     }
+    }
+   }
+  },
+  {
+   "id": 11613,
+   "player_name": "Cordarrelle Patterson",
+   "short_name": "C. Patterson",
+   "first_name": "Cordarrelle",
+   "last_name": "Patterson",
+   "reverse_name": "Patterson, Cordarrelle",
+   "position_id": "RB",
+   "positions": [
+    "RB"
+   ],
+   "team_id": "FA",
+   "filename": "http://www.fantasypros.com/nfl/players/cordarrelle-patterson.php",
+   "rank": {
+    "ECR": {
+     "DYN": {
+      "RB": 155
+     }
+    }
+   }
+  },
+  {
+   "id": 11616,
+   "player_name": "Keenan Allen",
+   "short_name": "K. Allen",
+   "first_name": "Keenan",
+   "last_name": "Allen",
+   "reverse_name": "Allen, Keenan",
+   "position_id": "WR",
+   "positions": [
+    "WR"
+   ],
+   "team_id": "IND",
+   "filename": "http://www.fantasypros.com/nfl/players/keenan-allen.php",
+   "rank": {
+    "ECR": {
+     "ROS-STD": {
+      "ALL": 136,
+      "WR": 59,
+      "FLX": 117
+     },
+     "ROS-PPR": {
+      "ALL": 124,
+      "WR": 57,
+      "FLX": 105
+     },
+     "ROS-HALF": {
+      "ALL": 135,
+      "WR": 60,
+      "FLX": 117
+     },
+     "DYN": {
+      "ALL": 238,
+      "WR": 99,
+      "OP": 241
+     }
+    }
+   }
+  },
+  {
+   "id": 11689,
+   "player_name": "Zach Ertz",
+   "short_name": "Z. Ertz",
+   "first_name": "Zach",
+   "last_name": "Ertz",
+   "reverse_name": "Ertz, Zach",
+   "position_id": "TE",
+   "positions": [
+    "TE"
+   ],
+   "team_id": "PHI",
+   "filename": "http://www.fantasypros.com/nfl/players/zach-ertz.php",
+   "rank": {
+    "ECR": {
+     "ROS-STD": {
+      "ALL": 370,
+      "TE": 55,
+      "FLX": 272
+     },
+     "ROS-PPR": {
+      "ALL": 361,
+      "TE": 55,
+      "FLX": 260
+     },
+     "ROS-HALF": {
+      "ALL": 362,
+      "TE": 57,
+      "FLX": 272
+     },
+     "DYN": {
+      "ALL": 415,
+      "TE": 74,
+      "OP": 354
+     }
+    }
+   }
+  },
+  {
+   "id": 13924,
+   "player_name": "Ameer Abdullah",
+   "short_name": "A. Abdullah",
+   "first_name": "Ameer",
+   "last_name": "Abdullah",
+   "reverse_name": "Abdullah, Ameer",
+   "position_id": "RB",
+   "positions": [
+    "RB"
+   ],
+   "team_id": "JAC",
+   "filename": "http://www.fantasypros.com/nfl/players/ameer-abdullah.php",
+   "rank": {
+    "ECR": {
+     "DYN": {
+      "RB": 130
+     }
+    }
+   }
+  }
+ ],
+ "ecr_experts": {},
+ "public_api": true,
+ "tier": "premium"
+}
