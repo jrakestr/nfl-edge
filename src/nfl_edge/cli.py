@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 import typer
 
 app = typer.Typer(
@@ -540,6 +542,46 @@ def dfs(
         f"{r['n_lineups']} lineups, {r['n_exposure']} exposure, "
         f"upload {r['upload']}"
     )
+
+
+@app.command("dfs-cross")
+def dfs_cross(
+    slate: str = typer.Option(..., help="Salary slate key (e.g. monthurs)"),
+    run: str = typer.Option(..., help="Primary run_id (its first 8 chars name the upload)"),
+    extra_run: Annotated[
+        list[str] | None,
+        typer.Option("--extra-run", help="Further run_id(s) covering other weeks"),
+    ] = None,
+    season: int = typer.Option(2026),
+    week: int = typer.Option(4, help="Week in the slate_id (<season>_<week>_<slate>)"),
+    lineups: int = typer.Option(20),
+    min_diff: int = typer.Option(3, help="Min players that differ between any two lineups"),
+    max_exposure: float = typer.Option(0.5, help="Max share of lineups containing one player"),
+    seed: int = typer.Option(7),
+):
+    """Standalone classic optimizer over several runs. Means only: no field sim, ownership, or DB write."""
+    from .dfs import cross_slate as cs
+
+    slate_id = f"{season}_{week:02d}_{slate}"
+    run_ids = [run, *(extra_run or [])]
+    try:
+        pool, sources = cs.load_pool(slate_id, run_ids)
+        lus = cs.optimize(pool.players, lineups, min_diff=min_diff,
+                          max_exposure=max_exposure, seed=seed)
+    except RuntimeError as e:
+        typer.echo(str(e))
+        raise typer.Exit(1) from e
+    paths = cs.write_outputs(cs.out_dir_for(slate_id), slate_id, run_ids, lus)
+    for (a, h), s in sources.items():
+        typer.echo(f"  {a}@{h}: run {str(s['run_id'])[:8]} week {s['week']}")
+    for label, rows in (("dropped OUT", pool.dropped), ("unmatched", pool.unmatched),
+                        ("unprojected", pool.unprojected)):
+        for r in rows:
+            typer.echo(f"  {label}: {r.get('name')} team={r.get('team')} pos={r.get('position')}")
+    for k, lu in enumerate(lus, 1):
+        typer.echo(f"{k:>2} ${lu['salary']} {lu['proj_fpts']:6.2f}  {lu['stack']:<22} "
+                   + " | ".join(lu["names"]))
+    typer.echo(f"dfs-cross {slate_id}: {len(lus)} lineups, upload {paths['upload']}")
 
 
 @app.command("own-compare")
