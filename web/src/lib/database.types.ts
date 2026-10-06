@@ -1558,16 +1558,22 @@ export type Database = {
       external_players: {
         Row: {
           fpts_dk: number | null
+          fpts_ppr: number | null
+          fpts_std: number | null
           game_id: string | null
           ingested_at: string | null
           name: string
           opponent: string | null
+          pass_att: number | null
+          pass_cmp: number | null
           pass_int: number | null
           pass_td: number | null
           pass_yds: number | null
           player_id: string | null
+          rec: number | null
           rec_td: number | null
           rec_yds: number | null
+          rush_att: number | null
           rush_td: number | null
           rush_yds: number | null
           season: number
@@ -1577,16 +1583,22 @@ export type Database = {
         }
         Insert: {
           fpts_dk?: number | null
+          fpts_ppr?: number | null
+          fpts_std?: number | null
           game_id?: string | null
           ingested_at?: string | null
           name: string
           opponent?: string | null
+          pass_att?: number | null
+          pass_cmp?: number | null
           pass_int?: number | null
           pass_td?: number | null
           pass_yds?: number | null
           player_id?: string | null
+          rec?: number | null
           rec_td?: number | null
           rec_yds?: number | null
+          rush_att?: number | null
           rush_td?: number | null
           rush_yds?: number | null
           season: number
@@ -1596,16 +1608,22 @@ export type Database = {
         }
         Update: {
           fpts_dk?: number | null
+          fpts_ppr?: number | null
+          fpts_std?: number | null
           game_id?: string | null
           ingested_at?: string | null
           name?: string
           opponent?: string | null
+          pass_att?: number | null
+          pass_cmp?: number | null
           pass_int?: number | null
           pass_td?: number | null
           pass_yds?: number | null
           player_id?: string | null
+          rec?: number | null
           rec_td?: number | null
           rec_yds?: number | null
+          rush_att?: number | null
           rush_td?: number | null
           rush_yds?: number | null
           season?: number
@@ -1752,6 +1770,45 @@ export type Database = {
           season?: number
           source?: string
           team?: string
+          week?: number
+        }
+        Relationships: []
+      }
+      fantasypros_snapshots: {
+        Row: {
+          endpoint: string
+          fetched_at: string
+          fp_id: string
+          name: string | null
+          payload: Json
+          player_id: string | null
+          position: string | null
+          season: number
+          team: string | null
+          week: number
+        }
+        Insert: {
+          endpoint: string
+          fetched_at: string
+          fp_id: string
+          name?: string | null
+          payload: Json
+          player_id?: string | null
+          position?: string | null
+          season: number
+          team?: string | null
+          week: number
+        }
+        Update: {
+          endpoint?: string
+          fetched_at?: string
+          fp_id?: string
+          name?: string | null
+          payload?: Json
+          player_id?: string | null
+          position?: string | null
+          season?: number
+          team?: string | null
           week?: number
         }
         Relationships: []
