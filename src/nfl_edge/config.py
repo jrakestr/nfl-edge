@@ -32,6 +32,13 @@ def odds_api_key() -> str:
     return key
 
 
+def fantasypros_api_key() -> str:
+    key = os.environ.get("FANTASY_PROS_API_KEY")
+    if not key:
+        raise RuntimeError("FANTASY_PROS_API_KEY not set (see .env.example)")
+    return key
+
+
 def line_reference() -> dict:
     cfg = load_yaml("line_reference.yaml")
     raw = cfg["effective_from"]
