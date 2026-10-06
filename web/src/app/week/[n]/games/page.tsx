@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { EmptyState } from "@/components/EmptyState";
 import { GamesList } from "@/components/games/GamesList";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
-import { boardRows } from "@/lib/queries/board";
+import { boardRows, scheduleRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
 import { ngsByGame } from "@/lib/queries/games";
@@ -10,7 +11,8 @@ import { topPlayersByGame } from "@/lib/queries/players";
 import { teamInputsForRun } from "@/lib/queries/team-inputs";
 import { weekScoreboard } from "@/lib/queries/results";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
-import { requestedSlate, resolveSlate, filterGamesForSlate } from "@/lib/slate";
+import { noProjectionsNotice } from "@/lib/format";
+import { requestedSlate, resolveSlate, filterGamesForSlate, missingSlateNotice } from "@/lib/slate";
 import { verdictsForRun } from "@/lib/queries/verdicts";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +46,19 @@ export default async function Page({
     : [[], 0, [] as string[]];
   const requested = requestedSlate(undefined, one(sp.slate));
   const resolved = resolveSlate(requested, available);
-  const fallbackFrom = resolved.fallback && requested !== "main" ? requested : null;
+  if (resolved.missing) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="t-title">Games</h1>
+        {available.length ? (
+          <SlateSelector week={week} site="dk" page="games" slate={available[0]!} slates={available} />
+        ) : null}
+        <EmptyState title={`${requested || "Slate"} has no salaries`}>
+          {missingSlateNotice(season, weekOk ? week : 1, requested || "main")}
+        </EmptyState>
+      </div>
+    );
+  }
   const slate = resolved.slate;
   const run = pickDefaultRun(runs, weekGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
@@ -59,13 +73,21 @@ export default async function Page({
         weekScoreboard(season, week),
         teamInputsForRun(run.run_id),
       ])
-    : [[], [], new Map(), {}, [] as string[], undefined, {}];
+    : await Promise.all([
+        scheduleRows(season, week),
+        Promise.resolve([]),
+        Promise.resolve(new Map()),
+        Promise.resolve({}),
+        sid ? slateGameInfos("dk", sid) : Promise.resolve([] as string[]),
+        weekScoreboard(season, week),
+        Promise.resolve({}),
+      ]);
 
   const slateRows = infos.length ? filterGamesForSlate(allRows, infos) : allRows;
   const onSlate = new Set(slateRows.map((r) => r.game_id));
   const startedOffSlate = allRows.filter((r) => r.has_started && !onSlate.has(r.game_id));
   const filtered = [...slateRows, ...startedOffSlate];
-  const ngs = await ngsByGame(filtered.map((r) => r.game_id));
+  const ngs = run ? await ngsByGame(filtered.map((r) => r.game_id)) : {};
   const rows = filtered.map((r) => ({ ...r, ...ngs[r.game_id] }));
 
   return (
@@ -78,11 +100,13 @@ export default async function Page({
       checks={Object.fromEntries(checks)}
       playersByGame={playersByGame}
       scoreboard={scoreboard}
-      fallbackFrom={fallbackFrom}
+      fallbackFrom={slateRows.length === 0 ? slate : null}
+      notice={run ? null : weekOk ? noProjectionsNotice(week) : null}
       runCreatedAt={run ? run.created_at.toISOString() : null}
+      runId={run?.run_id ?? null}
       teamInputs={teamInputs}
       toolbar={
-        <SlateSelector week={week} site="dk" page="games" slate={slate} slates={available} />
+        <SlateSelector key="slate" week={week} site="dk" page="games" slate={slate} slates={available} />
       }
     />
   );

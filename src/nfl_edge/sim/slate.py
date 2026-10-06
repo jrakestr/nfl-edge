@@ -219,7 +219,10 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
     home, away = g["home_team"], g["away_team"]
     rng = game_rng(seed, game_id)
     hp, ap = team_prior(priors, home, cfg), team_prior(priors, away, cfg)
-    d = simulate_game(hp, ap, game_context(g, cfg), n, rng, cfg, priors.team.league)
+    ratings = getattr(priors, "elo", {}) or {}
+    elo_margin = float(ratings.get(home, 0.0)) - float(ratings.get(away, 0.0))
+    d = simulate_game(hp, ap, game_context(g, cfg), n, rng, cfg, priors.team.league,
+                      elo_margin=elo_margin)
 
     frames, proj_players, checks = [], [], []
     fpts_dk: dict[str, np.ndarray] = {}

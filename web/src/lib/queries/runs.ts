@@ -1,3 +1,4 @@
+import { DEFAULT_WEEK } from "@/lib/config";
 import { sql } from "@/lib/db";
 import { RunRowSchema, WeekRunsSchema, type RunRow, type WeekRuns } from "@/lib/types";
 
@@ -18,10 +19,42 @@ export async function weeksWithRuns(season: number): Promise<WeekRuns[]> {
   return rows.map((r) => WeekRunsSchema.parse(r));
 }
 
+/** REG weeks on the schedule, newest first. The week switcher uses this, not sim_runs. */
+export async function weeksWithSchedule(season: number): Promise<number[]> {
+  const rows = await sql()`
+    select distinct week from raw.schedules
+    where season = ${season} and game_type = 'REG'
+    order by week desc`;
+  return rows.map((r) => Number(r.week));
+}
+
+/** Lowest REG week that still has a game with a null result. */
+export async function currentWeek(season: number): Promise<number | null> {
+  const rows = await sql()`
+    select min(week)::int as week
+    from raw.schedules
+    where season = ${season} and game_type = 'REG' and result is null`;
+  return rows[0]?.week ?? null;
+}
+
 /** Newest week with a run, or null when the season has none yet. */
 export async function newestWeek(season: number): Promise<number | null> {
   const rows = await sql()`select max(week)::int as week from model.sim_runs where season = ${season}`;
   return rows[0]?.week ?? null;
+}
+
+/** Open schedule week, else newest run week, else DEFAULT_WEEK. */
+export function resolveDisplayWeek(
+  current: number | null,
+  newest: number | null,
+  fallback: number = DEFAULT_WEEK,
+): number {
+  return current ?? newest ?? fallback;
+}
+
+export async function displayWeek(season: number): Promise<number> {
+  const [current, newest] = await Promise.all([currentWeek(season), newestWeek(season)]);
+  return resolveDisplayWeek(current, newest);
 }
 
 /** Scheduled games for the week — the full-slate size a sim must match. */
@@ -108,7 +141,8 @@ export async function runsForWeek(season: number, week: number): Promise<RunWith
 
 /**
  * Newest run whose proj_games count equals the week's schedule. A pinned id wins when
- * present; a missing pin or an empty full-slate set falls through. No full run → newest.
+ * present; a missing pin falls through to the full-slate rule. No complete run → null
+ * so the schedule fallback can show.
  */
 export function pickDefaultRun<
   T extends { run_id: string; created_at: Date; n_games: number; n_player_games: number },
@@ -127,8 +161,7 @@ export function pickDefaultRun<
     slateGames > 0
       ? runs.filter((r) => r.n_games === slateGames && r.n_player_games === slateGames).sort(newest)
       : [];
-  if (full.length) return full[0];
-  return [...runs].sort(newest)[0];
+  return full[0] ?? null;
 }
 
 /**

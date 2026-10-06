@@ -128,6 +128,51 @@ def ingest_fantasypros_rankings(
         typer.echo(f"  ... {r['unmatched_n'] - 25} more unmatched")
 
 
+@ingest_app.command("fantasypros-injury-reports")
+def ingest_fantasypros_injury_reports(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+):
+    """One FantasyPros weekly injury report (practice days, probability, update date) appended to raw.fantasypros_snapshots."""
+    from .ingest import fantasypros_injury_reports as fpi
+    from .ingest.fantasypros import FantasyProsError
+
+    try:
+        r = fpi.run(season, week)
+    except (FantasyProsError, RuntimeError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        f"fantasypros injury report {r['season']} wk{r['week']}: {r['calls']} call, "
+        f"{r['snapshots']} snapshot rows, {r['matched']} matched, {r['unmatched_n']} offense unmatched"
+    )
+    for u in r["unmatched"][:25]:
+        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
+
+
+@ingest_app.command("fantasypros-points")
+def ingest_fantasypros_points(
+    season: int = typer.Option(...),
+    start: int = typer.Option(1, help="First week"),
+    end: int = typer.Option(..., help="Last week (one call covers the range)"),
+):
+    """One FantasyPros weekly PPR points pull appended to raw.fantasypros_snapshots (player_points)."""
+    from .ingest import fantasypros_points as fpp
+    from .ingest.fantasypros import FantasyProsError
+
+    try:
+        r = fpp.run(season, start, end)
+    except (FantasyProsError, RuntimeError, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        f"fantasypros points {r['season']} wk{r['start']}-{r['end']}: {r['calls']} call, "
+        f"{r['snapshots']} snapshot rows, {r['matched']} matched, {r['unmatched_n']} players unmatched"
+    )
+    for u in r["unmatched"][:25]:
+        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
+
+
 @ingest_app.command("fantasypros-status")
 def ingest_fantasypros_status(
     season: int = typer.Option(...),
@@ -151,6 +196,8 @@ def ingest_fantasypros_status(
     typer.echo(f"{len(r['already'])} players already match what is saved; "
                f"{len(r['kept_newer'])} were left alone because a saved entry from another source is newer; "
                f"{len(r['unmatched'])} could not be matched to a player.")
+    if not r["dry_run"]:
+        typer.echo(f"The full report ({r['snapshot_rows']} rows) was also kept as a snapshot.")
     for u in r["upserts"]:
         was = "no saved status" if not u["old"] else f"saved as {u['old']}"
         typer.echo(f"  {u['name']} ({u['player_id']}): {was}, now {u['status']} "
@@ -168,6 +215,46 @@ def ingest_fantasypros_status(
                    "status; nothing was saved for them because that carries no usage change.")
     if r["ignored"]["unknown_status"]:
         typer.echo(f"Skipped players with statuses I do not recognise: {', '.join(r['unknown_statuses'])}.")
+
+
+@ingest_app.command("espn-league")
+def ingest_espn_league(
+    season: int = typer.Option(2026),
+    week: int = typer.Option(None, help="Reload only this week (default: every week through the current one)"),
+    snapshot_only: bool = typer.Option(
+        False, "--snapshot-only",
+        help="Append a status snapshot and replace the available pool (no scores)"),
+):
+    """ESPN league 79530409 (League of Champions) -> fantasy.loc_* tables. Needs ESPN_S2 / ESPN_SWID."""
+    from .ingest import espn_league as espn
+
+    if snapshot_only and week is not None:
+        raise typer.BadParameter("--snapshot-only always covers the current week; drop --week")
+    if snapshot_only:
+        try:
+            s = espn.run_snapshot(season)
+        except (RuntimeError, ValueError) as e:
+            typer.echo(f"error: {e}")
+            raise typer.Exit(code=1) from None
+        typer.echo(f"espn league {s['season']} week {s['week']}: loc_status_snapshots: "
+                   f"{s['inserted']} inserted at {s['pulled_at']:%Y-%m-%d %H:%M:%S} UTC; "
+                   f"loc_available: {s['available']} replaced")
+        return
+    try:
+        r = espn.run(season, week)
+    except (RuntimeError, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(f"espn league {r['season']} weeks {r['weeks'][0]}-{r['weeks'][-1]}:")
+    for table, c in r["tables"].items():
+        removed = f", {c['removed']} removed" if c["removed"] else ""
+        typer.echo(f"  {table}: {c['inserted']} inserted, {c['updated']} updated{removed}")
+    if r["rosters_skipped"]:
+        typer.echo("  loc_rosters: skipped (a roster snapshot is the current week only)")
+    for w in r["weeks"]:
+        games = r["not_final"].get(w)
+        typer.echo(f"  week {w}: " + (f"not final, {len(games)} games without a result: {', '.join(games)}"
+                                    if games else "final"))
 
 
 INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")
@@ -686,26 +773,49 @@ app.add_typer(benchmark_app, name="benchmark")
 @benchmark_app.command("nflgamesim")
 def benchmark_nflgamesim(
     season: int = typer.Option(...),
-    week: int = typer.Option(...),
-    file: str = typer.Option(None, "--file", help="Pasted mygamesim weekly text"),
+    week: int = typer.Option(None, help="Required except for a multi-week page paste"),
+    file: str = typer.Option(None, "--file", help="Pasted mygamesim page text"),
     refresh_actuals: bool = typer.Option(
         False, "--refresh-actuals", help="Fill finals from raw.schedules; rewrite CSV + upsert"),
 ):
-    """Parse a mygamesim weekly paste to data/benchmarks + raw.external_games."""
+    """Parse a mygamesim paste to data/benchmarks + raw.external_games.
+
+    A paste with 'NFL Predictions for Week N' headers (the whole page, any number of weeks) is
+    ingested for every week in it, or only --week; finals and the site-vs-ours check come with it.
+    """
     from pathlib import Path
 
     from .benchmark import nflgamesim as ngs
 
     if file is None and not refresh_actuals:
         raise typer.BadParameter("--file is required unless --refresh-actuals")
+    is_page = file is not None and ngs.WEEK_HEADER_RE.search(Path(file).read_text()) is not None
+    if week is None and not is_page:
+        raise typer.BadParameter("--week is required unless --file is a multi-week page paste")
     try:
-        if file is not None:
+        if is_page:
+            for r in ngs.run_page(season, Path(file), week):
+                typer.echo(
+                    f"nflgamesim {r['season']} wk{r['week']}: "
+                    f"{r['written']} written / {r['rows']} rows, {r['final']} final -> {r['csv']}"
+                )
+                if r["final"]:
+                    o, s = r["ours"], r["site"]
+                    site = (f"pick {s['pick']} / margin {s['margin']} / ats {s['ats']}"
+                            if s else "no summary in paste")
+                    typer.echo(
+                        f"  ours  pick {o['pick']} / margin {o['margin']} / ats {o['ats']}"
+                        f" of {r['final']} | site {site}"
+                    )
+                for m in r["mismatches"]:
+                    typer.echo(f"  differs: {m}")
+        elif file is not None:
             r = ngs.run(season, week, Path(file))
             typer.echo(
                 f"nflgamesim {r['season']} wk{r['week']}: "
                 f"{r['written']} written / {r['rows']} rows -> {r['csv']}"
             )
-        if refresh_actuals:
+        if refresh_actuals and week is not None:
             r = ngs.refresh(season, week)
             typer.echo(
                 f"nflgamesim refresh {r['season']} wk{r['week']}: "
@@ -884,6 +994,8 @@ def grade(
     )
     for rid in report.skipped_no_parquet:
         typer.echo(f"  skipped {rid}: parquet missing")
+    for skip in (report.elo or {}).get("skipped") or []:
+        typer.echo(f"  elo {skip['reason']}: {skip['game_id']}")
     for a in report.assignments:
         typer.echo(
             f"  {a['game_id']} → {a['run_id'][:8]} created {a['created_at']} "

@@ -54,7 +54,7 @@ export function Pill({
     <span
       title={title}
       className={cn(
-        "tnum inline-flex h-6 items-center gap-1 rounded-sm bg-line-tint px-2 text-[12px] font-semibold text-line whitespace-nowrap",
+        "tnum t-body inline-flex h-7 items-center gap-1 rounded-sm bg-line-tint px-2 font-semibold text-line whitespace-nowrap",
         className,
       )}
       data-market

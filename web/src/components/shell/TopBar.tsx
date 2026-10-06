@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Fragment } from "react";
 import { crumbs } from "@/lib/breadcrumbs";
 import { SearchBox } from "./SearchBox";
+import { ThemeToggle } from "./ThemeToggle";
 import { usePageActions } from "./PageActions";
 
 export function TopBar() {
@@ -21,7 +22,7 @@ export function TopBar() {
             const last = i === items.length - 1;
             return (
               <Fragment key={`${c.href}:${c.label}`}>
-                {i > 0 && <span className="text-dim">›</span>}
+                {i > 0 && <span className="text-muted-foreground">›</span>}
                 {last ? (
                   <span className="truncate text-foreground font-semibold" aria-current="page">
                     {c.label}
@@ -38,6 +39,7 @@ export function TopBar() {
       </nav>
       <div className="ml-auto flex items-center gap-3">
         {actions}
+        <ThemeToggle />
         <SearchBox />
       </div>
     </header>

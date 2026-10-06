@@ -12,10 +12,12 @@ export function TeamLogo({
   team,
   size = 18,
   className,
+  showAbbr = true,
 }: {
   team: string;
   size?: number;
   className?: string;
+  showAbbr?: boolean;
 }) {
   const raw = team.trim();
   if (!raw) {
@@ -36,7 +38,7 @@ export function TeamLogo({
           className="object-contain"
         />
       ) : null}
-      <span className="font-semibold">{raw}</span>
+      {showAbbr ? <span className="font-semibold">{raw}</span> : null}
     </span>
   );
 }

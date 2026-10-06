@@ -1,5 +1,7 @@
 import { sql } from "@/lib/db";
 import { kickoffLabel } from "@/lib/format";
+import { kickoffWindow } from "@/lib/kickoff";
+import { elevatedByInjury } from "@/lib/queries/elevated";
 import { WeekPlayerSchema, type GameContext, type PlayerHeader, type WeekPlayer } from "@/lib/types";
 
 /** Player header from the crosswalk; null when the id does not resolve. */
@@ -131,6 +133,11 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
            end as opponent,
            to_char(sch.gameday, 'YYYY-MM-DD') as gameday,
            sch.gametime,
+           sch.location,
+           sch.roof,
+           sch.home_team,
+           sch.spread_line::float8 as market_spread,
+           sch.total_line::float8 as market_total,
            mapped.salary,
            pp.fpts_dk_mean::float8 as fpts_dk_mean,
            pp.fpts_dk_sd::float8 as fpts_dk_sd,
@@ -159,17 +166,37 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
         or sch.away_team = coalesce(pp.team, mapped.nfl_team)
       )
     order by pp.fpts_dk_mean desc nulls last, coalesce(p.display_name, mapped.name)`;
+  const runMeta = await sql()`select season, week from model.sim_runs where run_id = ${runId}::uuid`;
+  const season = Number(runMeta[0]?.season ?? 0);
+  const week = Number(runMeta[0]?.week ?? 0);
+  const elevated = season && week ? await elevatedByInjury(season, week) : new Map();
   return rows.map((r) => {
     const salary = r.salary != null ? Number(r.salary) : null;
     const fpts = r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null;
     const gameday = r.gameday != null ? String(r.gameday) : null;
     const gametime = r.gametime != null ? String(r.gametime) : null;
+    const location = r.location != null ? String(r.location) : null;
+    const nflTeam = r.team != null ? String(r.team) : null;
+    const homeTeam = r.home_team != null ? String(r.home_team) : null;
+    const homeAway = nflTeam && homeTeam ? (nflTeam === homeTeam ? "home" : "away") : null;
+    const elev = r.player_id ? elevated.get(String(r.player_id)) : undefined;
     return WeekPlayerSchema.parse({
       ...r,
       hist: null,
       salary,
       value: salary != null && salary > 0 && fpts != null ? fpts / (salary / 1000) : null,
       kickoff: gameday ? kickoffLabel(gameday, gametime) : null,
+      gameday,
+      gametime,
+      location,
+      roof: r.roof != null ? String(r.roof) : null,
+      home_away: homeAway,
+      market_total: r.market_total != null ? Number(r.market_total) : null,
+      market_spread: r.market_spread != null ? Number(r.market_spread) : null,
+      kickoff_window: gameday ? kickoffWindow(gameday, gametime, location) : null,
+      elevated: Boolean(elev),
+      elevated_reason: elev?.reason ?? null,
+      depth_as_of: elev?.depthAsOf ?? null,
     });
   });
 }
@@ -283,29 +310,6 @@ export async function ngsByPlayer(
   }
 }
 
-export type PlayerActual = { fpts_dk: number; had_opportunity: boolean };
-
-/**
- * Realized DK points per player_id for a week, from model.player_fpts_actual. `graded` is false
- * until the week has any actuals, so an ungraded week shows an em dash and not DNP.
- */
-export async function actualsByPlayer(
-  season: number,
-  week: number,
-): Promise<{ graded: boolean; byPlayer: Record<string, PlayerActual> }> {
-  const rows = await sql()`
-    select player_id, fpts_dk::float8 as fpts_dk, had_opportunity
-    from model.player_fpts_actual
-    where season = ${season} and week = ${week} and season_type = 'REG'`;
-  const byPlayer: Record<string, PlayerActual> = {};
-  for (const r of rows) {
-    byPlayer[String(r.player_id)] = {
-      fpts_dk: Number(r.fpts_dk),
-      had_opportunity: Boolean(r.had_opportunity),
-    };
-  }
-  return { graded: rows.length > 0, byPlayer };
-}
 /** FantasyPros fpts_dk per player_id (latest pull); empty if nothing was pulled. Benchmark only. */
 export async function fpByPlayer(
   season: number,
@@ -330,3 +334,26 @@ export async function fpByPlayer(
   }
 }
 
+export type PlayerActual = { fpts_dk: number; had_opportunity: boolean };
+
+/**
+ * Realized DK points per player_id for a week, from model.player_fpts_actual. `graded` is false
+ * until the week has any actuals, so an ungraded week shows an em dash and not DNP.
+ */
+export async function actualsByPlayer(
+  season: number,
+  week: number,
+): Promise<{ graded: boolean; byPlayer: Record<string, PlayerActual> }> {
+  const rows = await sql()`
+    select player_id, fpts_dk::float8 as fpts_dk, had_opportunity
+    from model.player_fpts_actual
+    where season = ${season} and week = ${week} and season_type = 'REG'`;
+  const byPlayer: Record<string, PlayerActual> = {};
+  for (const r of rows) {
+    byPlayer[String(r.player_id)] = {
+      fpts_dk: Number(r.fpts_dk),
+      had_opportunity: Boolean(r.had_opportunity),
+    };
+  }
+  return { graded: rows.length > 0, byPlayer };
+}

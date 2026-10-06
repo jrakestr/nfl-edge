@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { GradingPage } from "@/components/grading/GradingPage";
+import { GradingPage, pickAccuracy } from "@/components/grading/GradingPage";
 import type { GradedGame } from "@/lib/grade-types";
 import type { TrackRecord } from "@/lib/queries/results";
 
@@ -91,12 +91,87 @@ describe("GradingPage populated", () => {
     const tiles = screen.getByRole("list", { name: "Track record" });
     expect(tiles).toHaveTextContent("5–11–0");
     expect(tiles).toHaveTextContent("Moneyline");
-    expect(screen.getByText("Line moved our way")).toBeInTheDocument();
+    expect(screen.getAllByText("Line moved our way").length).toBeGreaterThan(0);
     expect(screen.getByText(/T01 17 – XX 20/)).toBeInTheDocument();
     expect(screen.getAllByRole("row").length).toBeGreaterThan(16);
     expect(screen.getByText("32")).toBeInTheDocument();
     expect(screen.getByText(/every graded line/i)).toBeInTheDocument();
     expect(screen.queryByText(/grade-web/i)).not.toBeInTheDocument();
     expect(screen.queryByText("No graded weeks yet")).not.toBeInTheDocument();
+  });
+
+  it("shows accuracy per week and labels the cards for the selected week", () => {
+    const games = Array.from({ length: 4 }, (_, i) => game(i));
+    const week3: TrackRecord = {
+      ...TRACK,
+      gradedWeeks: 1,
+      wins: 21,
+      losses: 23,
+      pushes: 1,
+      sides: { wins: 6, losses: 8, pushes: 0 },
+    };
+    render(
+      <GradingPage
+        track={week3}
+        games={games}
+        weeks={[1, 2, 3]}
+        weekly={[
+          { week: 1, wins: 19, losses: 28, pushes: 1 },
+          { week: 2, wins: 23, losses: 22, pushes: 0 },
+          { week: 3, wins: 21, losses: 23, pushes: 1 },
+        ]}
+        weekFilter={3}
+      />,
+    );
+    const tiles = screen.getByRole("list", { name: "Track record" });
+    expect(tiles).toHaveTextContent("Week 3 record");
+    expect(tiles).toHaveTextContent("21–23–1");
+    expect(tiles).toHaveTextContent("All bet types, this week only");
+    expect(tiles).toHaveTextContent("48%");
+    expect(tiles).toHaveTextContent("21 of 44 bets won");
+    expect(tiles).toHaveTextContent("Bet win rate");
+    expect(tiles).toHaveTextContent("Spread bets");
+    expect(tiles).toHaveTextContent("6–8–0");
+    expect(tiles).toHaveTextContent("43% won");
+    expect(tiles).not.toHaveTextContent("Sides");
+    const nav = screen.getByRole("navigation", { name: "Week" });
+    expect(nav).toHaveTextContent("Week 1 40%");
+    expect(nav).toHaveTextContent("Week 2 51%");
+    expect(nav).toHaveTextContent("Week 3 48%");
+  });
+
+  it("lines up with the NFLGameSim page and shows misses against the book", () => {
+    const games = Array.from({ length: 16 }, (_, i) => game(i));
+    render(<GradingPage track={TRACK} games={games} weeks={[1]} finalByWeek={{ 1: 16 }} />);
+    const tiles = screen.getByRole("list", { name: "Margin accuracy" });
+    expect(tiles).toHaveTextContent("Pick accuracy");
+    expect(tiles).toHaveTextContent("100.0%");
+    expect(tiles).toHaveTextContent("16 of 16 games");
+    expect(tiles).toHaveTextContent("Margin within 7 pts");
+    expect(tiles).toHaveTextContent("50.0%");
+    expect(tiles).toHaveTextContent("8 of 16 games");
+    expect(tiles).toHaveTextContent("Beat the spread");
+    expect(tiles).toHaveTextContent("1 of 16 games");
+    expect(tiles).toHaveTextContent("Margin miss, points");
+    expect(tiles).toHaveTextContent("Book 7.1");
+    expect(tiles).toHaveTextContent("0.4 farther");
+    expect(tiles).toHaveTextContent("Total miss, points");
+    expect(tiles).toHaveTextContent("0.1 closer");
+    expect(tiles).toHaveTextContent("Too high on the away team");
+    expect(screen.getByText("7.1")).toHaveClass("text-line");
+    expect(screen.getByLabelText("Games counted")).toHaveTextContent("All 16 finished games counted");
+  });
+
+  it("says how many finished games were not graded", () => {
+    const games = Array.from({ length: 15 }, (_, i) => game(i));
+    render(<GradingPage track={TRACK} games={games} weeks={[1]} finalByWeek={{ 1: 16 }} />);
+    expect(screen.getByLabelText("Games counted")).toHaveTextContent(
+      "15 of 16 finished games counted. A game with no run before kickoff is not graded.",
+    );
+  });
+
+  it("pickAccuracy leaves pushes out and is a dash with no decided picks", () => {
+    expect(pickAccuracy({ wins: 1, losses: 3 })).toBe("25%");
+    expect(pickAccuracy({ wins: 0, losses: 0 })).toBe("—");
   });
 });

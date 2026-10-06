@@ -85,8 +85,11 @@ class GameDraws:
 
 
 def ppd_adjustments(home: TeamPrior, away: TeamPrior, ctx: GameContext, cfg: dict, league: dict,
-                    drives_mean: float) -> dict[str, float]:
-    """Matchup-adjusted points per drive for each side (points-level effects / drives)."""
+                    drives_mean: float, elo_margin: float = 0.0) -> dict[str, float]:
+    """Matchup-adjusted points per drive for each side (points-level effects / drives).
+
+    elo_margin is R_home - R_away in points. Split like home field: +half home, -half away.
+    """
     lg = league["off_ppd"]
     base_home = lg + (home.off_ppd - lg) + (away.def_ppd_allowed - lg)
     base_away = lg + (away.off_ppd - lg) + (home.def_ppd_allowed - lg)
@@ -97,8 +100,9 @@ def ppd_adjustments(home: TeamPrior, away: TeamPrior, ctx: GameContext, cfg: dic
     wind_pen = 0.0
     if ctx.roof in ("outdoors", "open") and ctx.wind_mph > float(tc.get("weather_wind_threshold_mph", 99)):
         wind_pen = 1.5                                               # points per team per game
-    home_pts = hfa + rest - wind_pen
-    away_pts = -hfa - rest - wind_pen
+    elo = float(elo_margin) / 2.0
+    home_pts = hfa + rest - wind_pen + elo
+    away_pts = -hfa - rest - wind_pen - elo
     return {
         "home": max(0.3, base_home + home_pts / drives_mean),
         "away": max(0.3, base_away + away_pts / drives_mean),
@@ -148,9 +152,10 @@ def _team_plays(prior: TeamPrior, drives: np.ndarray, margin: np.ndarray, td: np
 
 
 def simulate_game(home: TeamPrior, away: TeamPrior, ctx: GameContext, n: int,
-                  rng: np.random.Generator, cfg: dict, league: dict) -> GameDraws:
+                  rng: np.random.Generator, cfg: dict, league: dict,
+                  elo_margin: float = 0.0) -> GameDraws:
     drives_mean = 0.5 * (home.drives_mean + away.drives_mean)
-    ppd_adj = ppd_adjustments(home, away, ctx, cfg, league, drives_mean)
+    ppd_adj = ppd_adjustments(home, away, ctx, cfg, league, drives_mean, elo_margin=elo_margin)
     p_td = {"home": solve_p_td(ppd_adj["home"], home.fg_per_drive),
             "away": solve_p_td(ppd_adj["away"], away.fg_per_drive)}
 

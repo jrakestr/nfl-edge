@@ -16,6 +16,7 @@ function row(over: Partial<TeamInput> = {}): TeamInput {
     qb_lookback_att: 200,
     qb_starter_att: 0,
     qb_pass_factor: 1.13,
+    elo_rating: 0,
     ...over,
   };
 }

@@ -32,6 +32,34 @@ export function fixtureVerdicts(): VerdictRow[] {
 }
 
 /** A BoardRow per game, built the way board.ts builds it from proj_games + market_lines + edges. */
+const EMPTY_EDGES = {
+  spread_home: null,
+  spread_away: null,
+  total_over: null,
+  total_under: null,
+  ml_home: null,
+  ml_away: null,
+} as const;
+
+/** Board rows as the schedule fallback writes them: market only, no model. */
+export function asScheduleRows(rows: BoardRow[]): BoardRow[] {
+  return rows.map((r) => ({
+    ...r,
+    fair_spread: null,
+    fair_total: null,
+    mean_spread: null,
+    mean_total: null,
+    home_win_prob: null,
+    p_home_cover_market: null,
+    p_over_market: null,
+    run_market_spread: null,
+    run_market_total: null,
+    edges: { ...EMPTY_EDGES },
+    graded: null,
+    graded_run_id: null,
+  }));
+}
+
 export function fixtureRows(): BoardRow[] {
   return fixturePayloads().map((p) => {
     const [gameday, gametime] = p.kickoff.split(" ");

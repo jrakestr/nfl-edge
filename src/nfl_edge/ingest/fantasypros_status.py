@@ -11,6 +11,9 @@ Q -> questionable (usage 1.0), and Q is written only to replace an older row tha
 different, since a Q with no saved row carries no usage signal. Rows this module writes carry the
 note prefix `fp `. A saved `fp ` row for a player FantasyPros no longer lists is reported and left
 in place: absence from a feed is not evidence the player is healthy.
+
+A real run also appends the whole response to raw.fantasypros_snapshots (endpoint 'injuries'), see
+fantasypros_injury_reports; a dry run writes nothing.
 """
 from __future__ import annotations
 
@@ -58,7 +61,7 @@ def decide(resp: dict, fp_map: dict[str, str], catalog: pl.DataFrame, aliases: d
     """Pure: injuries response -> override actions. `existing[pid]` = {status, note, updated_at}."""
     fetched_at = _aware(fetched_at) or datetime.now(UTC)
     prepared = catalog if "_dn" in catalog.columns else N.prepare_catalog(catalog)
-    ignored = {"non_skill": 0, "free_agent": 0, "off_week": 0, "unknown_status": 0}
+    ignored = {"non_skill": 0, "free_agent": 0, "off_week": 0, "unknown_status": 0, "no_status": 0}
     unknown_statuses: set[str] = set()
     unmatched: list[dict] = []
     wanted: dict[str, dict] = {}
@@ -69,6 +72,9 @@ def decide(resp: dict, fp_map: dict[str, str], catalog: pl.DataFrame, aliases: d
             ignored["non_skill"] += 1
             continue
         short = str(x.get("status_short") or "").strip().upper()
+        if not short and not str(x.get("status") or "").strip():
+            ignored["no_status"] += 1  # practice-report row (include_probabilities): no designation
+            continue
         if short in OUT_SHORT:
             status = "out"
         elif short == "D":
@@ -176,6 +182,11 @@ def run(season: int, week: int, dry_run: bool = False, client=None) -> dict:
     d = decide(resp, fp_map, catalog, N.load_aliases(), N.load_teams(), week_teams, existing,
                fetched_at)
 
+    snapshot = {"snapshots": 0}
+    if not dry_run:  # the body is already in hand: keep it as an as-of capture, no extra call
+        from .fantasypros_injury_reports import append_snapshot
+        snapshot = append_snapshot(resp, season, week, fetched_at, fp_map, catalog,
+                                   N.load_aliases(), N.load_teams())
     written = 0
     if d["upserts"] and not dry_run:
         frame = pl.DataFrame(
@@ -184,4 +195,4 @@ def run(season: int, week: int, dry_run: bool = False, client=None) -> dict:
             ["season", "week", "player_id", "status", "usage_multiplier", "note"])
         written = write_overrides(frame)
     return {"season": season, "week": week, "calls": client.calls, "dry_run": dry_run,
-            "written": written, **d}
+            "written": written, "snapshot_rows": snapshot["snapshots"], **d}

@@ -39,6 +39,15 @@ def fantasypros_api_key() -> str:
     return key
 
 
+def espn_credentials() -> tuple[str, str]:
+    """(espn_s2, swid) browser cookies for the private ESPN league. Never printed or logged."""
+    s2, swid = os.environ.get("ESPN_S2"), os.environ.get("ESPN_SWID")
+    for name, val in (("ESPN_S2", s2), ("ESPN_SWID", swid)):
+        if not val:
+            raise RuntimeError(f"{name} not set (see .env.example)")
+    return s2, swid
+
+
 def line_reference() -> dict:
     cfg = load_yaml("line_reference.yaml")
     raw = cfg["effective_from"]

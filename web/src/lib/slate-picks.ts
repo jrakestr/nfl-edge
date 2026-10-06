@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useLiveSearchParams } from "@/components/shell/GamesSelection";
 
 export const PICK_PARAMS = ["lock", "excl", "stack"] as const;
 export type PickKey = (typeof PICK_PARAMS)[number];
@@ -108,6 +109,7 @@ export function useSlatePicks(slateId: string): {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
+  const live = useLiveSearchParams();
   const [picks, setLocal] = useState<SlatePicks>(() => parsePicks(sp));
   const hydrated = useRef(false);
 
@@ -115,11 +117,11 @@ export function useSlatePicks(slateId: string): {
     (next: SlatePicks) => {
       setLocal(next);
       storePicks(slateId, next);
-      const params = applyPicksToParams(next, new URLSearchParams(sp.toString()));
+      const params = applyPicksToParams(next, new URLSearchParams(live.toString()));
       const qs = params.toString();
       router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
     },
-    [pathname, router, slateId, sp],
+    [pathname, router, slateId, live],
   );
 
   useEffect(() => {

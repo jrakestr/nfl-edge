@@ -97,6 +97,14 @@ def test_no_line_posted():
     assert v.max_edge == 0.0
 
 
+def test_missing_spread_edge_does_not_raise():
+    v = L.game_verdict(game(), [], "ok", TEAMS, CFG, DRAWS)
+    assert v.chips is None
+    assert v.max_edge == 0.0
+    assert v.sentences[0].startswith("Detroit is favored")
+    assert v.sentences[-1] == "No spread edge for this snapshot."
+
+
 # ----------------------------------------------------------------------------- sentence 2: cover
 def test_cover_sentence_pays():
     v = L.game_verdict(game(), edges(), "ok", TEAMS, CFG, DRAWS)

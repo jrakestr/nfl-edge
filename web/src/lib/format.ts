@@ -65,3 +65,8 @@ export function draws(n: number | null | undefined): string {
 export function shortRun(runId: string): string {
   return runId.slice(0, 6);
 }
+
+/** Board/games notice when the week has a schedule but no complete sim run. */
+export function noProjectionsNotice(week: number): string {
+  return `No projections for week ${week} yet — showing the schedule and current lines.`;
+}

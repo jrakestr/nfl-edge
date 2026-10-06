@@ -17,7 +17,7 @@ export function SummaryTiles({ payloads, track }: { payloads: VerdictPayload[]; 
   return (
     <div className="grid grid-cols-4 gap-4" role="list" aria-label="Week summary tiles">
       <Tile label="Games with a line" value={`${c.withLine}`} sub={c.withLine < c.games ? `of ${c.games}` : undefined} />
-      <Tile metric="edge" label="Sides clearing 3%" value={`${c.sides}`} sub={`of ${c.withLine}`} />
+      <Tile metric="edge" label="Spreads clearing 3%" value={`${c.sides}`} sub={`of ${c.withLine}`} />
       <Tile metric="edge" label="Totals clearing 3%" value={`${c.totals}`} sub={`of ${c.withLine}`} />
       <Tile
         metric="roi"

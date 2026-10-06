@@ -2,7 +2,8 @@
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useLiveSearchParams } from "./GamesSelection";
 import { Suspense, type ReactNode } from "react";
 import { NAV } from "@/lib/config";
 import { NAV_ICONS } from "@/lib/icons";
@@ -52,7 +53,7 @@ function NavItems({
 }
 
 function SlateNav({ collapsed, pathname }: { collapsed: boolean; pathname: string }) {
-  const sp = useSearchParams();
+  const sp = useLiveSearchParams();
   return (
     <NavItems collapsed={collapsed} pathname={pathname} querySlate={sp.get("slate")} search={sp} />
   );
@@ -71,7 +72,7 @@ export function Sidebar({
   const registered = useSidebarFooter();
   return (
     <aside
-      className="glass sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r transition-[width] duration-[var(--dur-2)] ease-[var(--ease)]"
+      className="sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r bg-card transition-[width] duration-[var(--dur-2)] ease-[var(--ease)]"
       aria-label="Primary"
     >
       <div
@@ -81,7 +82,7 @@ export function Sidebar({
         )}
       >
         {!collapsed && (
-          <Link href="/" className="t-title min-w-0 flex-1 truncate px-2 text-[15px] leading-5 tracking-tight">
+          <Link href="/" className="t-sentence min-w-0 flex-1 truncate px-2 tracking-tight">
             nfl-edge
           </Link>
         )}

@@ -1,6 +1,6 @@
 # Operations: line snapshots and the weekly run order
 
-Scheduled on this Mac as three LaunchAgents. `com.vix.cron` is not running here, so a crontab
+Scheduled on this Mac as LaunchAgents. `com.vix.cron` is not running here, so a crontab
 would never fire.
 
 - `com.nfl-edge.lines-only` runs `ops/lines-only.sh`: `nfl-edge ingest odds-api` (`h2h,spreads,totals`,
@@ -18,6 +18,19 @@ would never fire.
   refuses to grade if any game still has a null `result` (missing `game_id`s named, exit
   non-zero), and grades the ones that are complete. Always prints completed-vs-ungraded so a
   skipped week stays visible. No `RunAtLoad`. Log: `output/cron-grade.log`.
+- `com.nfl-edge.loc-snapshot` runs `ops/loc-snapshot.sh` hourly (`StartInterval` 3600) and proceeds
+  only Thursday through Monday, 06:00-19:59 America/Phoenix. It runs
+  `nfl-edge ingest espn-league --season 2026 --snapshot-only`: one ESPN league fetch that appends
+  every rostered player's status to `fantasy.loc_status_snapshots` (append-only; a trigger rejects
+  update, delete, and truncate) and replaces `fantasy.loc_available` with the current waiver and
+  free-agent pool (one player request, limit 200, plus the pro schedule so bye weeks are real).
+  An empty or failed pool writes nothing, including no status snapshot. A full `ingest espn-league`
+  run appends a status set and replaces the pool too. A status that
+  changes between two pulls is invisible; `/league` shows the pull time next to every status. Needs
+  `ESPN_S2` / `ESPN_SWID` in `.env`; expired cookies exit non-zero with the message in the log;
+  unreachable DB or ESPN logs `unreachable, skipped`. No `RunAtLoad`. Log:
+  `output/cron-loc-snapshot.log`. Check the window without calling ESPN:
+  `LOC_SNAPSHOT_DRY=1 LOC_SNAPSHOT_DOW=4 LOC_SNAPSHOT_HOUR=12 bash ops/loc-snapshot.sh`.
 
 `DATABASE_URL` is unset so `.env` (Supabase) is used. If the database or github.com is
 unreachable (Mac asleep or off Wi-Fi) both jobs log `unreachable, skipped` and exit 0.
@@ -75,6 +88,11 @@ Do not set `RunAtLoad`. Confirm both calendar intervals and that `RunAtLoad` is 
 Install `com.nfl-edge.week-grade` the same way (`ops/com.nfl-edge.week-grade.plist`).
 Do not set `RunAtLoad`. Confirm Tuesday 09:00:
 `launchctl print gui/$(id -u)/com.nfl-edge.week-grade`.
+
+Install `com.nfl-edge.loc-snapshot` (`ops/com.nfl-edge.loc-snapshot.plist`; new label, so no swap):
+`chmod +x ops/loc-snapshot.sh && cp ops/com.nfl-edge.loc-snapshot.plist ~/Library/LaunchAgents/ &&
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.loc-snapshot.plist`. Do not set
+`RunAtLoad`. Confirm: `launchctl print gui/$(id -u)/com.nfl-edge.loc-snapshot`.
 
 ## Weekly runbook
 
@@ -167,6 +185,12 @@ stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `co
 `raw.external_players` with `source='rts'`. Lineups Pick one re-scores a lineup with those
 numbers next to ours. Missing file: em dash. Never blended into `proj_fpts`.
 
+## NFLGameSim weekly paste
+
+Paste the mygamesim page (all weeks shown) into `docs/nflgamesim-weekN.md`, then run
+`nfl-edge benchmark nflgamesim --season 2026 --file docs/nflgamesim-weekN.md`. Every week in the
+paste is rewritten in `raw.external_games` and `data/benchmarks/`; the Grading page compares it to ours.
+
 ## FantasyPros API
 
 Key: `FANTASY_PROS_API_KEY` in `.env` (CLI only, never `web/.env.local`). Reference docs:
@@ -180,7 +204,17 @@ non-fatal if the key is missing or the API fails.
   when its report time, `min(injury_update_date, fetched_at)`, is later than that row's `updated_at`;
   otherwise the saved row stays and is reported. Caveat: `updated_at` moves only when the status
   changes, so a source that re-confirms an unchanged status does not look newer. A player FantasyPros
-  stops listing is reported, not cleared. Runs before the sim.
+  stops listing is reported, not cleared. Runs before the sim. A real run (not `--dry-run`) also appends
+  the whole response, practice-only rows included, to `raw.fantasypros_snapshots` (`endpoint='injuries'`);
+  no extra call.
+- `nfl-edge ingest fantasypros-injury-reports --season S --week W`: the same call, snapshot only (no
+  override writes). Rows keep status, practice days 1-3, probability of playing, and
+  `injury_update_date` (UTC). A past week's report carries updates made after the games, so a status
+  counts as known before kickoff only when its `injury_update_date` is on or before kickoff.
+- `nfl-edge ingest fantasypros-points --season S --start A --end B`: weekly PPR points per offensive
+  player-week into `raw.fantasypros_snapshots` (`endpoint='player_points'`, migration 0035). One call
+  covers the range. A 0.0 does not say whether the player played. Used by the LOC league page as an
+  independent check on ESPN actuals (`fantasy.loc_player_week_check`).
 - `nfl-edge benchmark fantasypros --season S --week W`: projections into `raw.fantasypros_snapshots`
   (one `fetched_at` per pull, never overwritten) and the latest into `raw.external_players`
   (`source='fantasypros'`; `fpts_std`, `fpts_ppr`, and `fpts_dk`: the same stat means scored with the DK
@@ -220,6 +254,8 @@ snapshot when a week is stale.
   (letters and digits only, so the URI needs no percent-encoding). The pooler user for a custom
   role is `web_reader.<project_ref>`:
   `postgresql://web_reader.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
+  Migration `0032_web_reader_fantasy.sql` adds SELECT on `fantasy.*` (and default privileges) for
+  the LOC league pages under `/league`; still no INSERT/UPDATE and no `create`.
 - **Freshness**: every page is `force-dynamic`; a new `sim` / `lines` run shows on the next
   request with no redeploy. After a snapshot the board looks up P(cover)/P(over) from
   `line_grid` against the current line. The RunBadge shows `lines as of` / `verdicts as of` in

@@ -1,0 +1,17 @@
+game_id,season,week,gameday,gametime,away_team,home_team,source,market_spread_home,market_total,market_ml_home,market_ml_away,market_p_home_novig,sim_home_pts,sim_away_pts,sim_total,sim_margin_home,sim_p_home_win,sim_pick_winner,sim_ats_lean,sim_total_lean,edge_spread_home,edge_total,edge_ml_home,status,actual_home_pts,actual_away_pts,actual_margin_home,actual_total,actual_winner,pick_winner_result,margin_within_7,ats_result
+2026_01_NE_SEA,2026,1,2026-09-09,20:20,NE,SEA,nflgamesim,-3.0,44.5,-170,142,0.6038,30.2,28.1,58.3,2.1,0.572,SEA,NE,over,-0.9,13.8,-0.0318,final,13,10,3,23,SEA,correct,yes,push
+2026_01_SF_LA,2026,1,2026-09-10,20:35,SF,LA,nflgamesim,-3.5,48.5,-185,154,0.6225,32.2,27.3,59.5,5.0,0.637,LA,LA,over,1.5,11.0,0.0145,final,7,27,-20,34,SF,incorrect,no,incorrect
+2026_01_TB_CIN,2026,1,2026-09-13,13:00,TB,CIN,nflgamesim,-3.5,50.5,-198,164,0.6369,29.9,24.0,53.9,6.0,0.6655,CIN,CIN,over,2.5,3.4,0.0286,final,33,27,6,60,CIN,correct,yes,correct
+2026_01_NO_DET,2026,1,2026-09-13,13:00,NO,DET,nflgamesim,-7.0,49.5,-310,250,0.7258,34.1,23.8,57.9,10.2,0.7855,DET,DET,over,3.2,8.4,0.0597,final,31,30,1,61,DET,correct,no,incorrect
+2026_01_NYJ_TEN,2026,1,2026-09-13,13:00,NYJ,TEN,nflgamesim,-1.5,38.5,-125,105,0.5325,26.2,23.0,49.2,3.2,0.5982,TEN,TEN,over,1.7,10.7,0.0657,final,10,23,-13,33,NYJ,incorrect,no,incorrect
+2026_01_BAL_IND,2026,1,2026-09-13,13:00,BAL,IND,nflgamesim,3.5,47.5,145,-175,0.3908,33.6,30.7,64.3,2.9,0.59,IND,IND,over,6.4,16.8,0.1992,final,23,41,-18,64,BAL,incorrect,no,incorrect
+2026_01_ATL_PIT,2026,1,2026-09-13,13:00,ATL,PIT,nflgamesim,-5.5,41.5,-230,190,0.669,30.4,22.9,53.3,7.5,0.6882,PIT,PIT,over,2.0,11.8,0.0192,final,20,13,7,33,PIT,correct,yes,correct
+2026_01_CHI_CAR,2026,1,2026-09-13,13:00,CHI,CAR,nflgamesim,3.0,47.5,142,-170,0.3962,26.1,21.7,47.8,4.4,0.6464,CAR,CAR,over,7.4,0.3,0.2502,final,37,59,-22,96,CHI,incorrect,no,incorrect
+2026_01_CLE_JAX,2026,1,2026-09-13,13:00,CLE,JAX,nflgamesim,-8.5,39.5,-470,360,0.7914,25.5,22.7,48.2,2.8,0.6018,JAX,CLE,over,-5.7,8.7,-0.1896,final,34,10,24,44,JAX,correct,no,incorrect
+2026_01_BUF_HOU,2026,1,2026-09-13,13:00,BUF,HOU,nflgamesim,1.5,44.5,102,-122,0.4739,26.7,28.4,55.1,-1.7,0.4555,BUF,BUF,over,-0.2,10.6,-0.0184,final,31,36,-5,67,BUF,correct,yes,correct
+2026_01_MIA_LV,2026,1,2026-09-13,16:25,MIA,LV,nflgamesim,-3.0,40.5,-166,140,0.5996,24.4,25.5,49.9,-1.1,0.4664,MIA,MIA,over,-4.1,9.4,-0.1332,final,27,13,14,40,LV,incorrect,no,incorrect
+2026_01_GB_MIN,2026,1,2026-09-13,16:25,GB,MIN,nflgamesim,-1.5,46.5,-122,102,0.5261,26.9,25.4,52.3,1.5,0.5436,MIN,MIN,over,0.0,5.8,0.0175,final,39,22,17,61,MIN,correct,no,correct
+2026_01_WAS_PHI,2026,1,2026-09-13,16:25,WAS,PHI,nflgamesim,-6.0,44.5,-238,195,0.675,31.4,26.8,58.2,4.6,0.6473,PHI,WAS,over,-1.4,13.7,-0.0277,final,24,22,2,46,PHI,correct,yes,correct
+2026_01_ARI_LAC,2026,1,2026-09-13,16:25,ARI,LAC,nflgamesim,-9.5,47.5,-500,380,0.8,29.0,24.0,53.0,4.9,0.6536,LAC,ARI,over,-4.6,5.5,-0.1464,final,14,26,-12,40,ARI,incorrect,no,correct
+2026_01_DAL_NYG,2026,1,2026-09-13,20:20,DAL,NYG,nflgamesim,3.0,47.5,136,-162,0.4066,28.6,26.7,55.3,1.9,0.56,NYG,NYG,over,4.9,7.8,0.1534,final,28,20,8,48,NYG,correct,yes,correct
+2026_01_DEN_KC,2026,1,2026-09-14,20:15,DEN,KC,nflgamesim,-2.5,43.5,-148,124,0.5721,29.7,22.8,52.5,6.8,0.7145,KC,KC,over,4.3,9.0,0.1424,final,31,10,21,41,KC,correct,no,correct

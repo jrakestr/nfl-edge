@@ -44,6 +44,7 @@ def snapshot_from_priors(run_id: str, priors: pr.Priors, cfg: dict) -> pl.DataFr
             "qb_pass_factor": None if q.get("qb_pass_factor") is None else float(q["qb_pass_factor"]),
             "league_off_ppd": float(league["off_ppd"]),
             "league_def_ppd_allowed": float(league["def_ppd_allowed"]),
+            "elo_rating": float((priors.elo or {}).get(team, 0.0)),
         })
     if not rows:
         return pl.DataFrame(schema={
@@ -52,6 +53,7 @@ def snapshot_from_priors(run_id: str, priors: pr.Priors, cfg: dict) -> pl.DataFr
             "neutral_pass_rate": pl.Float64, "qb_starter_id": pl.Utf8, "qb_lookback_id": pl.Utf8,
             "qb_lookback_att": pl.Float64, "qb_starter_att": pl.Float64, "qb_pass_factor": pl.Float64,
             "league_off_ppd": pl.Float64, "league_def_ppd_allowed": pl.Float64,
+            "elo_rating": pl.Float64,
         })
     return pl.DataFrame(rows)
 
@@ -61,3 +63,24 @@ def persist_snapshot(run_id: str, priors: pr.Priors, cfg: dict) -> int:
     if frame.is_empty():
         raise ValueError("run_team_inputs empty")
     return insert(frame, "model.run_team_inputs")
+
+
+def rows_absent_from(frame: pl.DataFrame, existing_teams: set[str]) -> pl.DataFrame:
+    """Keep only teams the run does not already have. Backfill never overwrites slate.run."""
+    if frame.is_empty() or not existing_teams:
+        return frame
+    return frame.filter(~pl.col("team").is_in(sorted(existing_teams)))
+
+
+def backfill_missing(run_id: str, season: int, week: int) -> int:
+    """Insert-if-absent from a fresh pr.build. Leaves any row slate.run already wrote."""
+    from ..config import load_yaml
+    from ..db import insert_ignore, read_sql
+
+    have = read_sql("select team from model.run_team_inputs where run_id = %s", (run_id,))
+    existing = set(have["team"].to_list()) if not have.is_empty() else set()
+    priors = pr.build(season, week)
+    frame = rows_absent_from(snapshot_from_priors(run_id, priors, load_yaml("sim.yaml")), existing)
+    if frame.is_empty():
+        return 0
+    return insert_ignore(frame, "model.run_team_inputs")

@@ -19,6 +19,18 @@ const ROOT: Record<string, string> = {
   props: "Props",
   lineups: "Lineups",
   grading: "Grading",
+  claims: "Claims",
+  league: "LOC league",
+};
+
+const LEAGUE: Record<string, string> = {
+  luck: "Luck",
+  weeks: "Season",
+  week: "Matchups",
+  team: "Team",
+  transactions: "Transactions",
+  wire: "Wire",
+  acquire: "Acquire",
 };
 
 export type Crumb = { href: string; label: string };
@@ -30,6 +42,24 @@ function titleCase(s: string): string {
 export function crumbs(pathname: string): Crumb[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return [];
+
+  if (parts[0] === "league") {
+    const out: Crumb[] = [{ href: "/league", label: ROOT.league! }];
+    const section = parts[1];
+    if (!section) return out;
+    const label = LEAGUE[section] ?? decodeURIComponent(section);
+    const arg = parts[2];
+    if (section === "week" && arg && /^\d+$/.test(arg)) {
+      out.push({ href: "/league/week", label: "Matchups" }, { href: `/league/week/${arg}`, label: `Week ${arg}` });
+      return out;
+    }
+    if (section === "team" && arg && /^\d+$/.test(arg)) {
+      out.push({ href: `/league/team/${arg}`, label: `Team ${arg}` });
+      return out;
+    }
+    out.push({ href: `/league/${section}`, label });
+    return out;
+  }
 
   if (parts[0] === "week") {
     if (parts.length === 1) return [{ href: "/week", label: "Edge board" }];

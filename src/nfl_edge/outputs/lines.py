@@ -171,6 +171,9 @@ def game_verdict(g: dict, edges: list[dict], status: str, teams: dict, cfg: dict
     side_team = home if mkt_side_is_home else away
     side_line = -sl if mkt_side_is_home else sl
     r = _edge_row(edges, "spread", "home" if mkt_side_is_home else "away")
+    if r is None:
+        return GameVerdict(status=status, sentences=[s1, "No spread edge for this snapshot."],
+                           chips=None, max_edge=0.0, **base)
     odds_key = "home_spread_odds" if mkt_side_is_home else "away_spread_odds"
     assumed = g.get(odds_key) is None
     p, price, e = float(r["model_prob"]), int(r["price"]), float(r["edge"])

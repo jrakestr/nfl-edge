@@ -133,6 +133,8 @@ export function navHref(
   search?: URLSearchParams | null,
 ): string {
   if (label === "Players") return withPickParams("/players", search);
+  // LOC league is a separate season-long league: no slate, games, or week params travel with it.
+  if (label === "LOC league") return fallback;
   if (ctx.week == null) return withPickParams(fallback, search);
   if (label === "Games") {
     return slateHref({ page: "games", week: ctx.week, site: ctx.site, slate: ctx.slate, search });

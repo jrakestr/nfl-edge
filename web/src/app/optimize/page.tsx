@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { newestWeek } from "@/lib/queries/runs";
+import { CURRENT_SEASON } from "@/lib/config";
+import { displayWeek } from "@/lib/queries/runs";
 import { withPickParams } from "@/lib/slate";
 
 export const dynamic = "force-dynamic";
@@ -10,12 +10,13 @@ function one(v: string | string[] | undefined): string | undefined {
 }
 
 export default async function Page({ searchParams }: PageProps<"/optimize">) {
-  const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
+  const week = await displayWeek(CURRENT_SEASON);
   const sp = await searchParams;
   const q = new URLSearchParams();
-  for (const k of ["lock", "excl", "stack"] as const) {
+  for (const k of ["lock", "excl", "stack", "games"] as const) {
     const v = one(sp[k]);
     if (v) q.set(k, v);
   }
-  redirect(withPickParams(`/week/${week}/optimize/dk/main`, q));
+  const slate = one(sp.slate) || "main";
+  redirect(withPickParams(`/week/${week}/optimize/dk/${slate}`, q));
 }

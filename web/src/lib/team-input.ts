@@ -13,6 +13,7 @@ export type TeamInput = {
   qb_lookback_att: number | null;
   qb_starter_att: number | null;
   qb_pass_factor: number | null;
+  elo_rating: number | null;
 };
 
 export function starterDiffers(row: TeamInput): boolean {

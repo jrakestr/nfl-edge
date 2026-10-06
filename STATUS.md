@@ -1,5 +1,13 @@
 # Status
 
+## LOC league tab (2026-10-05)
+
+What changed: web `/league` (Standings, Luck, Weeks, Week, Team, Transactions) reads schema `fantasy` only (migration 0032 grants `web_reader`; `types:gen` and `check-query-schema` now include `fantasy`). Luck is Python (`ingest/espn_luck.py` → `fantasy.loc_luck`); views 0034/0036 carry margins, ranks, running PA, pre-kickoff status, and the FantasyPros injury/points cross-check. `fantasy.loc_status_snapshots` is append-only (0033), written hourly Thu–Mon by `ops/com.nfl-edge.loc-snapshot.plist` (installed). Sidebar item "LOC league" is a plain `/league` link; no week, slate, or game strip.
+
+What was verified: pytest 586 passed (db marker: luck/snapshot/view tests pass; 5 `test_grade_e2e` errors need the 2025 local DB), ruff clean, web lint/typecheck/test (557)/build green, all `/league` routes return 200 against Supabase. Luck sums: projected wins 24.000, luck +0.182, all-play luck 0.000 (48 team-weeks, bias 5.33, sd 28.73).
+
+What was deferred: weeks 1–4 have no snapshot before kickoff (first snapshot was after week 4 kickoff), so those rows read "no snapshot before kickoff"; ESPN acquisitions counter vs transaction rows mismatch; CLI "weeks 3-3" label; nothing committed yet.
+
 ## FantasyPros API (2026-10-05)
 
 What changed: `docs/vendor/fantasypros/` (OpenAPI spec, Firecrawl scrape, index). `FANTASY_PROS_API_KEY` in `.env.example` and `config.fantasypros_api_key()`. Migration 0030: `raw.fantasypros_snapshots` (keyed by `fetched_at`) and `raw.external_players` columns `pass_att pass_cmp rush_att rec fpts_std fpts_ppr`. CLI: `benchmark fantasypros`, `ingest fantasypros-rankings`, `ingest fantasypros-status [--dry-run]`; `ops/week-rebuild.sh` runs them non-fatally (status before the sim). AGENTS.md benchmark-only rule rewritten to benchmark-until-promoted with a four-part gate.
@@ -7,6 +15,30 @@ What changed: `docs/vendor/fantasypros/` (OpenAPI spec, Firecrawl scrape, index)
 What was verified: probe of players/projections/injuries/rankings (all 200; no rate-limit headers; projections return stats for any week asked, including past, so past values are not proven as-of). Unit tests on trimmed fixtures; no network in tests.
 
 What was deferred: promotion of anything into `priors/`; backfill of past seasons; web FantasyPros column (`fp-web-compare`); `database.types.ts` regen for the new `external_players` columns.
+
+## Week 4 inactives re-sim (2026-10-04)
+
+What changed: `data/overrides/2026_wk04.csv` (34 manual rows, note `nfl.com wk4 inactives …`) written from the NFL.com list of 08:45 MST for the 13 posted games; ingested with `nfl-edge overrides` (34 matched, 0 unmatched). 32 skill-position inactives set `out`; GB Jayden Reed and LA Terrance Ferguson (DK `doubtful`) also set `out` because `rosters_weekly` week 4 has them `RES`, not active (first plan read them as active; corrected). 13 DK rows were overwritten (all already out/doubtful/questionable). Re-sim `dc71af56` (`sun-inactives-final`, 20k, 16/16) replaced `977617bd`; `lines` 1026 edges / 16 verdicts / 4419 fair_props; `props` 0 lines.
+
+What was verified: `newest-run` 16 16 == `slate-count` 16; sim_checks 249 pass / 9 warnings (spread/total gap vs market only). Every listed player has no positive `fpts_dk_mean` (0 of 34; 15 were positive in `977617bd`, e.g. Hall 11.1, Smith 13.7). Usage moved to teammates: PHI Ertz +3.9, Wicks +3.8; NYJ Wilson +6.8, Sadiq +3.7. Teams without a posted list (MIA MIN KC LV LAC SEA DEN SF DET CAR ATL NO): 186 players, max |Δ| 0.0. Largest gaps vs market: GB@TB total fair 48.0 vs 38.5, NYJ@CHI spread fair 10.0 vs 3.5.
+
+What was deferred: DFS for `dc71af56` was not produced. The field sim runs ~100 min per slate (176k lineups at ~29/s), so early/main/full (lock 10:00 MST) could not finish; stopped at 55%, nothing written. The 08:40 cron's own `early` DFS (old run) was killed at 13 min. Late-game lists (MIA@MIN, KC@LV, LAC@SEA, DEN@SF, ~11:35 MST; DET@CAR, ~15:50 MST) not applied; LAC Kolar stays `doubtful`. IND@WAS is live; WAS QB Mariota out / Kaliakmanis not in `raw.schedules`. Moving the 08:40 job after lists post is still open.
+
+## NFLGameSim side-by-side (2026-10-04)
+
+What changed: `benchmark nflgamesim` parses the full pasted page (weeks 1–4) into `raw.external_games`; weeks 1–2 now take the page's numbers (originals kept as `*.prev.csv`). Grading shows week-selectable cards and "Compared with NFLGameSim" (pick accuracy, margin within 7, beat the spread; summary plus game by game).
+
+What was verified: ours == site flags for every pasted week on ingest; pytest, ruff, `npm run lint && typecheck && test && build` green. Week 3 site 9/16, 10/16, 9/16; ours 8/15, 10/15, 7/15.
+
+What was deferred: Thursday games (DET@BUF wk2, ATL@GB wk3) have no run before kickoff, so ours is 15 of 16; the section adds a "Site, same games" column rather than relaxing the grading rule. Week 4 finals show as ungraded until the week is graded.
+
+## Week 3 grade + early week 4 (2026-09-29)
+
+What changed: Week 3 finals landed (LA 26–30 DEN, PHI 7–27 CHI) and the week graded. Week 4 ran early from the four downloaded salary files (`full`, `main`, `early`, `sunmon`) as `14fa5f61` (`tue-early`, 20k). `newest-run` 16 16 == slate 16. Invariants 226/226. Lines: 762 edges / 16 verdicts / 4446 fair_props. Props: 0 market lines. Odds pull 281 rows, remaining=19970. Six salary names unmatched (Singleton, Palmer, Tinsley, Moreno-Cropper, Hibner, Ogletree); no aliases added.
+
+What was verified: `missing-finals` for week 3 was empty before grade (0 unplayed, 0 runs without parquet; 600 DFS lineups and 9594 fair_props graded). DFS `full` and `main` wrote 150-lineup uploads under `data/dfs/14fa5f61-…/dk/{full,main}/`. Five spread/total gap warnings (GB@TB, IND@WAS, JAX@CIN, LA@PHI, NYJ@CHI).
+
+What was deferred: `early` finished its field sim on disk at 12:38 (`gpp_lineups.csv` / `gpp_exposure.csv`) and died before the upload write when the Supabase host stopped resolving. `sunmon` never started. Afternoon, turbo, primetime, and showdown were not in the download. Saturday 20:00 still runs. Thursday PIT@CLE grades against `14fa5f61` unless a newer run exists before kickoff.
 
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A. Gemini plan `gemini_three_phases_b63212b0.plan.md` — Phase 1 live on Gemini 3.x; Phases 2–3 wait on accept.
 

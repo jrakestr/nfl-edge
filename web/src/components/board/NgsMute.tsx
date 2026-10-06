@@ -16,7 +16,7 @@ export function NgsMute({
   return (
     <span className="t-caption text-muted-foreground">
       NFLGameSim{score ? ` ${score}` : ""}
-      {win ? ` · ${win}` : ""}
+      {win ? ` ${win}` : ""}
     </span>
   );
 }

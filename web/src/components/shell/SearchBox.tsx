@@ -25,9 +25,9 @@ export function SearchBox() {
         type="search"
         placeholder="Search players"
         aria-label="Search players"
-        className="h-8 w-56 rounded-md bg-background text-[13px] placeholder:text-dim"
+        className="h-8 w-56 rounded-md bg-background t-body placeholder:text-muted-foreground"
       />
-      <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-sm border border-border bg-card px-1 t-caption leading-4">
+      <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-sm border border-border bg-card px-1 t-caption">
         /
       </kbd>
     </div>

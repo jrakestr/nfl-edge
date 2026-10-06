@@ -14,7 +14,7 @@ export function StackChip({ team, count, bringBack }: Partial<Stack>) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-sm bg-accent px-1.5 py-0.5 t-caption text-foreground">
+    <span className="inline-flex h-6 items-center gap-1 rounded-sm bg-accent px-2 t-caption text-foreground">
       <MetricIcon metric="stack" />
       <TeamLogo team={team} size={14} />
       {count}

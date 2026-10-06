@@ -44,6 +44,7 @@ class GradeReport:
     monotone: bool | None = None
     dfs: dict = field(default_factory=dict)
     props: dict = field(default_factory=dict)
+    elo: dict = field(default_factory=dict)
 
 
 # ----------------------------------------------------------------------------- pure
@@ -508,9 +509,12 @@ def run(season: int, week: int, run_id: str | None = None) -> GradeReport:
                                    else (pl.DataFrame(), None, None, None))
     dfs = dfs_grade.run(season, week, run_id=run_id)
     props = prop_grade.run(season, week, run_id=run_id)
+    from ..priors import elo as elo_mod
+    elo_written = elo_mod.write_week(season, week)
     return GradeReport(
         season=season, week=week, run_ids=kept_runs, n_rows=df.height if not df.is_empty() else 0,
         n_verdicts=n_verdicts, skipped_unplayed=len(unplayed), skipped_no_parquet=skipped_pq,
         assignments=assignments, picks=picks, verdicts=verd_tbl, games=games_tbl, calibration=cal,
         brier_sim=brier_s, brier_close=brier_c, monotone=mono, dfs=dfs, props=props,
+        elo=elo_written,
     )

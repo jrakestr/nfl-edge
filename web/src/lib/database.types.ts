@@ -12,6 +12,559 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  fantasy: {
+    Tables: {
+      loc_available: {
+        Row: {
+          availability: string
+          espn_player_id: number
+          injury_status: string | null
+          nfl_team: string | null
+          on_bye: boolean
+          percent_owned: number | null
+          player: string
+          position: string | null
+          pulled_at: string
+          season: number
+          season_proj: number | null
+          season_pts: number | null
+          waiver_at: string | null
+          week: number
+        }
+        Insert: {
+          availability: string
+          espn_player_id: number
+          injury_status?: string | null
+          nfl_team?: string | null
+          on_bye: boolean
+          percent_owned?: number | null
+          player: string
+          position?: string | null
+          pulled_at: string
+          season: number
+          season_proj?: number | null
+          season_pts?: number | null
+          waiver_at?: string | null
+          week: number
+        }
+        Update: {
+          availability?: string
+          espn_player_id?: number
+          injury_status?: string | null
+          nfl_team?: string | null
+          on_bye?: boolean
+          percent_owned?: number | null
+          player?: string
+          position?: string | null
+          pulled_at?: string
+          season?: number
+          season_proj?: number | null
+          season_pts?: number | null
+          waiver_at?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      loc_league_settings: {
+        Row: {
+          acquisition_limit: number
+          as_of: string
+          espn_league_id: number
+          faab_budget: number
+          faab_min_bid: number
+          league_name: string
+          num_teams: number
+          playoff_teams: number
+          regular_season_weeks: number
+          roster_slots: Json
+          scoring_type: string
+          season: number
+          tie_rule: string | null
+          trade_deadline: string
+          veto_votes_required: number | null
+          waiver_process_days: string[]
+          waiver_process_hour: number
+        }
+        Insert: {
+          acquisition_limit: number
+          as_of?: string
+          espn_league_id: number
+          faab_budget: number
+          faab_min_bid: number
+          league_name: string
+          num_teams: number
+          playoff_teams: number
+          regular_season_weeks: number
+          roster_slots: Json
+          scoring_type: string
+          season: number
+          tie_rule?: string | null
+          trade_deadline: string
+          veto_votes_required?: number | null
+          waiver_process_days: string[]
+          waiver_process_hour: number
+        }
+        Update: {
+          acquisition_limit?: number
+          as_of?: string
+          espn_league_id?: number
+          faab_budget?: number
+          faab_min_bid?: number
+          league_name?: string
+          num_teams?: number
+          playoff_teams?: number
+          regular_season_weeks?: number
+          roster_slots?: Json
+          scoring_type?: string
+          season?: number
+          tie_rule?: string | null
+          trade_deadline?: string
+          veto_votes_required?: number | null
+          waiver_process_days?: string[]
+          waiver_process_hour?: number
+        }
+        Relationships: []
+      }
+      loc_luck: {
+        Row: {
+          actual_win: number
+          allplay_share: number
+          bias: number
+          computed_at: string
+          earned_win_prob: number
+          espn_team_id: number
+          n_team_weeks: number
+          proj_win_prob: number
+          sd: number
+          season: number
+          week: number
+        }
+        Insert: {
+          actual_win: number
+          allplay_share: number
+          bias: number
+          computed_at: string
+          earned_win_prob: number
+          espn_team_id: number
+          n_team_weeks: number
+          proj_win_prob: number
+          sd: number
+          season: number
+          week: number
+        }
+        Update: {
+          actual_win?: number
+          allplay_share?: number
+          bias?: number
+          computed_at?: string
+          earned_win_prob?: number
+          espn_team_id?: number
+          n_team_weeks?: number
+          proj_win_prob?: number
+          sd?: number
+          season?: number
+          week?: number
+        }
+        Relationships: []
+      }
+      loc_player_week_scores: {
+        Row: {
+          actual_pts: number | null
+          espn_team_id: number
+          nfl_team: string | null
+          opponent: string | null
+          player: string
+          position: string | null
+          proj_pts: number | null
+          pulled_at: string
+          season: number
+          slot: string
+          status_at_pull: string | null
+          week: number
+        }
+        Insert: {
+          actual_pts?: number | null
+          espn_team_id: number
+          nfl_team?: string | null
+          opponent?: string | null
+          player: string
+          position?: string | null
+          proj_pts?: number | null
+          pulled_at?: string
+          season: number
+          slot: string
+          status_at_pull?: string | null
+          week: number
+        }
+        Update: {
+          actual_pts?: number | null
+          espn_team_id?: number
+          nfl_team?: string | null
+          opponent?: string | null
+          player?: string
+          position?: string | null
+          proj_pts?: number | null
+          pulled_at?: string
+          season?: number
+          slot?: string
+          status_at_pull?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      loc_rosters: {
+        Row: {
+          espn_team_id: number
+          nfl_team: string | null
+          player: string
+          position: string | null
+          pulled_at: string
+          season: number
+          season_proj: number | null
+          season_pts: number | null
+          slot: string
+          status_at_pull: string | null
+          week: number
+        }
+        Insert: {
+          espn_team_id: number
+          nfl_team?: string | null
+          player: string
+          position?: string | null
+          pulled_at?: string
+          season: number
+          season_proj?: number | null
+          season_pts?: number | null
+          slot: string
+          status_at_pull?: string | null
+          week: number
+        }
+        Update: {
+          espn_team_id?: number
+          nfl_team?: string | null
+          player?: string
+          position?: string | null
+          pulled_at?: string
+          season?: number
+          season_proj?: number | null
+          season_pts?: number | null
+          slot?: string
+          status_at_pull?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      loc_scoring_rules: {
+        Row: {
+          abbr: string
+          points: number
+          season: number
+          stat: string
+        }
+        Insert: {
+          abbr: string
+          points: number
+          season: number
+          stat: string
+        }
+        Update: {
+          abbr?: string
+          points?: number
+          season?: number
+          stat?: string
+        }
+        Relationships: []
+      }
+      loc_status_snapshots: {
+        Row: {
+          espn_team_id: number
+          nfl_team: string | null
+          player: string
+          position: string | null
+          pulled_at: string
+          season: number
+          slot: string
+          status: string | null
+          week: number
+        }
+        Insert: {
+          espn_team_id: number
+          nfl_team?: string | null
+          player: string
+          position?: string | null
+          pulled_at: string
+          season: number
+          slot: string
+          status?: string | null
+          week: number
+        }
+        Update: {
+          espn_team_id?: number
+          nfl_team?: string | null
+          player?: string
+          position?: string | null
+          pulled_at?: string
+          season?: number
+          slot?: string
+          status?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      loc_teams: {
+        Row: {
+          abbrev: string
+          acquisitions: number
+          as_of: string
+          drops: number
+          espn_team_id: number
+          faab_remaining: number
+          faab_spent: number
+          owner: string
+          season: number
+          team: string
+          trades: number
+        }
+        Insert: {
+          abbrev: string
+          acquisitions: number
+          as_of?: string
+          drops: number
+          espn_team_id: number
+          faab_remaining: number
+          faab_spent: number
+          owner: string
+          season: number
+          team: string
+          trades: number
+        }
+        Update: {
+          abbrev?: string
+          acquisitions?: number
+          as_of?: string
+          drops?: number
+          espn_team_id?: number
+          faab_remaining?: number
+          faab_spent?: number
+          owner?: string
+          season?: number
+          team?: string
+          trades?: number
+        }
+        Relationships: []
+      }
+      loc_transactions: {
+        Row: {
+          bid: number | null
+          espn_team_id: number
+          espn_ts: string | null
+          group_key: string
+          id: number
+          item_type: string
+          note: string | null
+          player: string
+          season: number
+          status: string
+          txn_type: string
+          week: number | null
+        }
+        Insert: {
+          bid?: number | null
+          espn_team_id: number
+          espn_ts?: string | null
+          group_key: string
+          id?: never
+          item_type: string
+          note?: string | null
+          player: string
+          season: number
+          status: string
+          txn_type: string
+          week?: number | null
+        }
+        Update: {
+          bid?: number | null
+          espn_team_id?: number
+          espn_ts?: string | null
+          group_key?: string
+          id?: never
+          item_type?: string
+          note?: string | null
+          player?: string
+          season?: number
+          status?: string
+          txn_type?: string
+          week?: number | null
+        }
+        Relationships: []
+      }
+      loc_weekly_scores: {
+        Row: {
+          actual_pts: number
+          espn_team_id: number | null
+          is_final: boolean
+          opp_espn_team_id: number | null
+          opp_team: string
+          proj_pts: number
+          recorded_at: string
+          season: number
+          team: string
+          week: number
+        }
+        Insert: {
+          actual_pts: number
+          espn_team_id?: number | null
+          is_final: boolean
+          opp_espn_team_id?: number | null
+          opp_team: string
+          proj_pts: number
+          recorded_at?: string
+          season: number
+          team: string
+          week: number
+        }
+        Update: {
+          actual_pts?: number
+          espn_team_id?: number | null
+          is_final?: boolean
+          opp_espn_team_id?: number | null
+          opp_team?: string
+          proj_pts?: number
+          recorded_at?: string
+          season?: number
+          team?: string
+          week?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      loc_player_week_check: {
+        Row: {
+          ambiguous: boolean | null
+          comparable: boolean | null
+          diff: number | null
+          espn_actual: number | null
+          espn_team_id: number | null
+          fp_fetched_at: string | null
+          fp_points: number | null
+          nfl_team: string | null
+          no_match: boolean | null
+          player: string | null
+          position: string | null
+          season: number | null
+          slot: string | null
+          week: number | null
+        }
+        Relationships: []
+      }
+      loc_standings: {
+        Row: {
+          all_final: boolean | null
+          allplay_losses: number | null
+          allplay_wins: number | null
+          losses: number | null
+          pa: number | null
+          pf: number | null
+          plus_minus: number | null
+          proj_pf: number | null
+          pts_back_of_pf_leader: number | null
+          season: number | null
+          team: string | null
+          ties: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
+      loc_starter_fp_injury: {
+        Row: {
+          actual_pts: number | null
+          ambiguous: boolean | null
+          espn_team_id: number | null
+          fp_fetched_at: string | null
+          fp_id: string | null
+          fp_matched: boolean | null
+          fp_status: string | null
+          fp_status_name: string | null
+          injury_type: string | null
+          injury_update_date: string | null
+          kickoff: string | null
+          known_before_kickoff: boolean | null
+          nfl_team: string | null
+          player: string | null
+          position: string | null
+          practice_1: string | null
+          practice_2: string | null
+          practice_3: string | null
+          practice_injury_type: string | null
+          probability_of_playing: number | null
+          proj_pts: number | null
+          season: number | null
+          slot: string | null
+          week: number | null
+        }
+        Relationships: []
+      }
+      loc_starter_status_asof: {
+        Row: {
+          actual_pts: number | null
+          espn_team_id: number | null
+          kickoff: string | null
+          nfl_team: string | null
+          player: string | null
+          position: string | null
+          proj_pts: number | null
+          season: number | null
+          slot: string | null
+          snapshot_pulled_at: string | null
+          snapshot_status: string | null
+          week: number | null
+        }
+        Relationships: []
+      }
+      loc_team_week: {
+        Row: {
+          actual_margin: number | null
+          actual_pts: number | null
+          allplay_losses: number | null
+          allplay_wins: number | null
+          cum_pa: number | null
+          cum_pf: number | null
+          cum_pf_rank: number | null
+          espn_team_id: number | null
+          is_final: boolean | null
+          league_avg: number | null
+          league_sd: number | null
+          opp_actual_pts: number | null
+          opp_espn_team_id: number | null
+          opp_pm: number | null
+          opp_proj_pts: number | null
+          opp_team: string | null
+          own_pm: number | null
+          proj_margin: number | null
+          proj_pts: number | null
+          pts_back_of_pf_leader: number | null
+          sd_from_avg: number | null
+          season: number | null
+          swing: number | null
+          team: string | null
+          week: number | null
+          week_rank: number | null
+          win: number | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      loc_name_key: { Args: { n: string }; Returns: string }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   model: {
     Tables: {
       _migrations: {
@@ -200,6 +753,48 @@ export type Database = {
             referencedColumns: ["run_id"]
           },
         ]
+      }
+      elo_updates: {
+        Row: {
+          actual_margin: number
+          away_team: string
+          expected_margin: number
+          game_id: string
+          home_team: string
+          k: number
+          rating_away_before: number
+          rating_home_before: number
+          run_id: string
+          season: number
+          week: number
+        }
+        Insert: {
+          actual_margin: number
+          away_team: string
+          expected_margin: number
+          game_id: string
+          home_team: string
+          k: number
+          rating_away_before: number
+          rating_home_before: number
+          run_id: string
+          season: number
+          week: number
+        }
+        Update: {
+          actual_margin?: number
+          away_team?: string
+          expected_margin?: number
+          game_id?: string
+          home_team?: string
+          k?: number
+          rating_away_before?: number
+          rating_home_before?: number
+          run_id?: string
+          season?: number
+          week?: number
+        }
+        Relationships: []
       }
       external_grades: {
         Row: {
@@ -965,6 +1560,7 @@ export type Database = {
         Row: {
           def_ppd_allowed: number | null
           drives_mean: number | null
+          elo_rating: number | null
           league_def_ppd_allowed: number | null
           league_off_ppd: number | null
           neutral_pass_rate: number | null
@@ -982,6 +1578,7 @@ export type Database = {
         Insert: {
           def_ppd_allowed?: number | null
           drives_mean?: number | null
+          elo_rating?: number | null
           league_def_ppd_allowed?: number | null
           league_off_ppd?: number | null
           neutral_pass_rate?: number | null
@@ -999,6 +1596,7 @@ export type Database = {
         Update: {
           def_ppd_allowed?: number | null
           drives_mean?: number | null
+          elo_rating?: number | null
           league_def_ppd_allowed?: number | null
           league_off_ppd?: number | null
           neutral_pass_rate?: number | null
@@ -1102,6 +1700,27 @@ export type Database = {
           note?: string | null
           run_id?: string
           season?: number
+          week?: number
+        }
+        Relationships: []
+      }
+      team_elo: {
+        Row: {
+          rating: number
+          season: number
+          team: string
+          week: number
+        }
+        Insert: {
+          rating: number
+          season: number
+          team: string
+          week: number
+        }
+        Update: {
+          rating?: number
+          season?: number
+          team?: string
           week?: number
         }
         Relationships: []
@@ -2561,6 +3180,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  fantasy: {
+    Enums: {},
+  },
   model: {
     Enums: {},
   },

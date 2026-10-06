@@ -7,57 +7,61 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 ## Principles
 
 1. **Plain English first, numbers second.** Every screen leads with a sentence a normal person can read ("Detroit is favored to beat New Orleans by 10.4 points. The book has them by 7."). Numbers support the sentence as chips and columns; a Plain English / Table toggle exposes the dense view. Column headers say what the number means ("Cleared it, last 10", "Chance of over"), never the abbreviation.
-2. **Signal only.** Color means one thing: **edge and its direction**, plus **position identity**. Position is a small filled pill next to the name (one token per real position: QB, RB, WR, TE, DST). FLEX slots show the player's actual position, never a FLEX chip. Team colors appear only as an 8px dot next to an abbreviation.
+2. **Signal only.** Color means one thing: **edge and its direction**, plus **position identity**. Position is a small filled pill next to the name (one token per real position: QB, RB, WR, TE, DST). FLEX slots show the player's actual position, never a FLEX chip. Logos on card surfaces (`TeamLogo` + abbr); 8px color dots in dense tables. `Matchup` defaults to dots.
 3. **One typeface, no monospace.** Plus Jakarta Sans for everything. Numbers use `font-variant-numeric: tabular-nums` at weight 600–700 so columns align without a mono face.
-4. **The summary screams, the table whispers.** One number per screen at display size. Player names, team abbreviations, and every primary number are `--foreground` at weight 600. Labels and column headers use `--muted-foreground`. `--dim` is never used for anything a person needs to read.
+4. **The summary screams, the table whispers.** One number per screen at display size. Player names, team abbreviations, and every primary number are `--foreground` at weight 600. Labels and column headers use `--muted-foreground`.
 5. **Drawer, not page.** Clicking a game or a lineup opens a right-side drawer. Filters, sort, scroll position never reset.
 6. **Every number has a run.** A `run_id` badge is visible on every screen. Stale runs are marked; two runs can be compared.
-7. **Light, app-shaped.** Light is the only theme. Cool-to-warm field gradient (`#E8ECF2` → `#F4F5F7` → `#F3F1EC`). White cards with a 1px `#E6E8EC` border and 12px radius. Sidebar (216px / 64px collapsed), top bar, and drawers use `--glass` (white at 72% plus 12px blur). Cards stay solid `--card`; no blur under a table. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
+7. **Dual theme, app-shaped.** Theme lives in tokens: light on bare `:root`; dark on `[data-theme="dark"]` and on `:root:not([data-theme="light"])` when the OS prefers dark. A stored `nfl-edge.theme` of `light` or `dark` sets `data-theme` before paint. No component color forks. Field gradient uses `--field-cool` / `--field-mid` / `--field-warm` (light cool-to-warm; dark stays dark). Cards are solid `--card` with a structural `--border` — no card shadow, no `backdrop-blur`. Glass is the overlay layer only. It is a tool, not a landing page: no hero, no marketing copy, no oversized display type.
 
 ## Tokens (`globals.css`, shadcn variable names where they exist)
 
 ### Color — neutral
 
-| Token | Value | Use |
-|---|---|---|
-| `--background` | `#F4F5F7` | mid-tone fill; field is a cool-to-warm gradient |
-| `--glass` | `rgb(255 255 255 / 0.72)` | sidebar, top bar, Sheet, optimizer settings shell |
-| `--glass-border` | `#E6E8EC` | hairline on glass shells |
-| `--card` | `#FFFFFF` | cards and any table surface (never glass) |
-| `--muted` | `#FAFBFC` | table header |
-| `--accent` | `#F7F8FA` | hover row |
-| `--border` | `#E6E8EC` | card and bar borders |
-| `--border-soft` | `#EEF0F3` | row dividers |
-| `--foreground` | `#111318` | text, numbers |
-| `--muted-foreground` | `#5B6270` | labels, captions, column headers |
-| `--dim` | `#A0A6B1` | decorative punctuation and placeholders only |
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--background` | `#F4F5F7` | `#12141A` | mid-tone fill; field is the gradient |
+| `--field-cool` | `#E8ECF2` | `#0E1016` | field gradient top |
+| `--field-mid` | `#F4F5F7` | `#12141A` | field gradient mid |
+| `--field-warm` | `#F3F1EC` | `#16140F` | field gradient bottom |
+| `--glass` | `rgb(255 255 255 / 0.72)` | `rgb(28 30 38 / 0.72)` | overlay fill only |
+| `--glass-border` | `#B8BCC4` | `#4A5060` | edge on glass overlays |
+| `--card` | `#FFFFFF` | `#1C1E26` | cards and any table surface (never glass) |
+| `--muted` | `#FAFBFC` | `#2A2E38` | table header; GapTrack rail |
+| `--accent` | `#F7F8FA` | `#242832` | hover row |
+| `--border` | `#B8BCC4` | `#4A5060` | structural: card edge, ledger header underline, rule after a market+sentence |
+| `--border-soft` | `#E4E7EC` | `#2E323C` | intra-row only (the two vertical group rails) |
+| `--foreground` | `#111318` | `#F2F3F6` | text, numbers |
+| `--muted-foreground` | `#5B6270` | `#A8AFBC` | labels, captions, column headers, leftover punctuation |
 
-Four-step elevation: background → card → muted → accent. Cards get one shadow, `0 1px 2px rgb(27 26 23 / 0.06)`, and a `--border` hairline; nothing else casts a shadow.
+Field is deeper than the card in light; the card is lighter than the field in dark. Cards are solid `--card` plus `--border`. No card shadow. `--border` is the structural line (~1.5–2:1 vs field and card). `--border-soft` stays quieter and is only used inside a row.
 
 ### Color — semantic (the only saturated colors)
 
-| Token | Value | Meaning |
-|---|---|---|
-| `--edge-pos` | `#0B7A4C` (tint `#E5F6EE`) | model likes it (positive edge / over / favorite covers) |
-| `--edge-neg` | `#B8342A` (tint `#FCE9E6`) | model fades it |
-| `--edge-flat` | `--muted-foreground` | |edge| below threshold |
-| `--warn` | `#9A5A00` | stale run, check warning, injury override active |
-| `--line` | `#1F56D9` (tint `#EEF3FF`) | market line / market side of any comparison |
-| `--model` | `--foreground` | model side of any comparison |
+Dark values are lifted, not inverted. `#0B7A4C` / `#1F56D9` fail ~3:1 on a dark card.
 
-All semantic colors are ≥ 4.5:1 on `--card` and `--background`. Tinted backgrounds for chips use the semantic color at 10% opacity.
+| Token | Light | Dark | Meaning |
+|---|---|---|---|
+| `--edge-pos` | `#0B7A4C` (tint `#E5F6EE`) | `#3DCC8A` (tint `#1A3D2E`) | model likes it (positive edge / over / favorite covers) |
+| `--edge-neg` | `#B8342A` (tint `#FCE9E6`) | `#F07167` (tint `#3D2422`) | model fades it |
+| `--edge-flat` | `--muted-foreground` | `--muted-foreground` | \|edge\| below threshold |
+| `--warn` | `#9A5A00` | `#E8A040` | stale run, check warning, injury override active |
+| `--line` | `#1F56D9` (tint `#EEF3FF`) | `#7B9CFF` (tint `#1A2744`) | market line / market side of any comparison |
+| `--model` | `--foreground` | `--foreground` | model side of any comparison |
+
+All readable roles are ≥ 4.5:1 on every surface in both themes. GapTrack tints must stay visible as a band on `--card` — named hexes, not implied by “semantics get a counterpart.”
 
 ### Color — position (identity, not edge)
 
 | Token | Fill / tint | Use |
 |---|---|---|
-| `--pos-qb` | `#2C4A8C` / `#E6E9F1` | QB pill |
-| `--pos-rb` | `#1A5F52` / `#E4ECEA` | RB pill |
-| `--pos-wr` | `#8A4B0A` / `#F1E9E2` | WR pill |
-| `--pos-te` | `#5A3D8A` / `#EBE8F1` | TE pill |
-| `--pos-dst` | `#4A5564` / `#E9EBEC` | DST pill |
+| `--pos-qb` | `#1F3D99` / `#E4E8F5` | QB pill |
+| `--pos-rb` | `#2F6A14` / `#E8EFE3` | RB pill |
+| `--pos-wr` | `#A31D4C` / `#F6E6ED` | WR pill |
+| `--pos-te` | `#7A14A8` / `#F2E6F8` | TE pill |
+| `--pos-dst` | `#B84400` / `#F9EFE8` | DST pill |
 
-`PositionPill`: `h-5`, radius 6, abbreviation, `aria-label`. Text is the position color on the tint. FLEX never has its own token.
+`PositionPill`: `h-7` (carries `t-body` 15/22), radius 6, abbreviation, `aria-label`. Ink is `--pos-ink` (`#FFFFFF` in both themes) on the fill (not tint-on-tint, never `--card` — a dark card would fail). Fills keep the same hex in both themes. FLEX never has its own token. Caption chips (`StatusPill`, `StackChip`) stay `h-6`.
 
 Rule: model values are neutral foreground; **market** values are `--line` blue; the **difference** is the only thing that goes green/red. Never color a raw projection.
 
@@ -69,21 +73,21 @@ Plus Jakarta Sans throughout (Google Fonts), fallback `system-ui`. No second fam
 
 | Role | Size / line | Weight |
 |---|---|---|
-| Page/tile number | 26/32 | 800, tracking −0.02em |
-| Player/game title | 18/24 | 800 |
-| Sentence copy (verdicts, callouts) | 14/21 | 400, key facts in 700 |
-| Body, table cell | 13/18 | 500 |
-| Column header | 11/16 | 600, uppercase, 0.04em |
-| Caption | 11–12 | 500, `--muted-foreground` |
+| Page/tile number | 32/40 | 800, tracking −0.02em |
+| Player/game title | 22/28 | 800 |
+| Sentence copy (verdicts, callouts) | 16/24 | 400, key facts in 700 |
+| Body, table cell | 15/22 | 500; `.t-body.tnum` 600 |
+| Column header | 14/20 | 600, uppercase, 0.04em |
+| Caption | 14/20 | 500, `--muted-foreground` |
 
-Numbers: `tabular-nums`, weight 600–700, right-aligned in tables. Signs always shown (`+3.4`, `−7`). Probabilities as `61%`.
+Numbers: `tabular-nums`, weight 600 on `.t-body.tnum` so 15px numbers read heavier than 14px labels. Right-aligned in tables. Signs always shown (`+3.4`, `−7`). Probabilities as `61%`. Nothing renders below 14px.
 
 ### Spacing, radius, motion
 
 - Spacing scale: 4, 8, 12, 16, 24, 32. Table cell padding 8×12. Card padding 16. Drawer padding 24.
 - Radius: 6 (pills, segmented controls), 8 (buttons, sidebar items), 12 (cards).
 - Motion: 120ms (hover, focus), 200ms (drawer open, row expand), 350ms (page-level). Easing `cubic-bezier(0.2, 0, 0, 1)`. No motion that isn't a response to a click.
-- Rows: 44px in tables, 40px in compact logs. Sidebar items 36px.
+- Rows: 48px in tables and compact logs. Sidebar items 36px.
 
 ## Components
 
@@ -92,10 +96,13 @@ shadcn primitives used as-is: `Table`, `Sheet` (drawer), `Badge`, `Tabs`, `Toggl
 Custom, built on top:
 
 ### `MetricIcon`
-Lucide only, 14px, `strokeWidth={1.5}`. Map in `web/src/lib/icons.ts`: projection `Target`, salary `CircleDollarSign`, value `Ratio`, ownership `Users`, leverage `UnfoldVertical`, win% `Trophy`, ROI `Percent`, edge `Crosshair`, stack `Layers`, lock `Lock`, exclude `CircleSlash`. Sits immediately before the matching column header or tile label. Never emoji. Sidebar nav: Edge board `LayoutDashboard`, Games `Calendar`, Players `Users`, Optimize `Wand2`, Props `Crosshair`, Lineups `Layers`, Grading `ClipboardCheck`.
+Lucide only, 14px, `strokeWidth={1.5}`. Map in `web/src/lib/icons.ts`: projection `Target`, salary `CircleDollarSign`, value `Ratio`, ownership `Users`, leverage `UnfoldVertical`, win% `Trophy`, ROI `Percent`, edge `Crosshair`, stack `Layers`, lock `Lock`, exclude `CircleSlash`. Sits immediately before the matching column header or tile label. Never emoji. Sidebar nav: Edge board `LayoutDashboard`, Games `Calendar`, Players `Users`, Optimize `Wand2`, Props `Crosshair`, Lineups `Layers`, Grading `ClipboardCheck`, Claims `ClipboardList`, LOC league `Trophy`.
 
 ### `VerdictCard`
-One game on the edge board in Plain English mode. Three lines generated from `proj_games` + `market_lines`: (1) who is favored and by how much vs the book, (2) whether the market side covers often enough to pay (needs ~52% at −110), (3) expected total vs line with over/under hit rate. Right column: `Side`, `Total`, `Home wins` chips. Grammar handles plural nicknames ("The Rams are").
+One game on the edge board in Plain English mode. Three-row ledger — spread, total, moneyline — not a paragraph plus a chip stack. Columns once per card: Pick, Ours, Book, Needs, Gap, Price, Edge. Ledger header is solid `--card` with a `--border` underline — not sticky, not glass. Vertical `--border-soft` rails sit only between the three groups: Pick | Ours Book Needs Gap | Price Edge. The sentence is indented under its own market row; the `--border` divider is after the sentence. No zebra. Ours is `--foreground`; Book is `--line`; Needs is `americanToProb(price)` (the price break-even, never the de-vigged market prob); only the gap/edge is green or red. Gap is a `GapTrack`: spread on a fixed −14…+14 home-book domain (clamped; fill width comparable across cards); total and moneyline on 0–1. Sentences stay persisted: `[0]` (and `[1]` when kept) on spread, `[2]` on total, optional `[3]` on moneyline. Team abbreviations only — never “Home”. Warning captions sit once in the header. Grammar is Python; the UI never invents it.
+
+### `GapTrack`
+144px recessed rail (`--muted`, `--border-soft` hairline). Two 2×10px ticks: model `--foreground`, book `--line`. Fill between them is `--edge-pos-tint` or `--edge-neg-tint`. Dark rail is `#2A2E38`; dark fills are `#1A3D2E` / `#3D2422` — visible bands on the dark card. No axis labels. Spread domain is shared (−14…+14); do not self-scale to the two marks.
 
 ### `PropCallout`
 Tinted `--line` block under a player header: "Gibbs goes over 89.5 rush + receiving yards in 61% of our 20,000 simulated games. At −115 the book is pricing it like a 53% shot..." with a Lean over/under pill. Generated from `proj_players.stat_summary` and the entered line.
@@ -106,7 +113,7 @@ Outlier-style bar chart: one bar per recent game, green if it cleared the curren
 ### `EdgeCell`
 The atom of the edge board. Shows model value, market value, and their difference.
 Props: `model: number`, `market: number`, `kind: 'spread'|'total'|'prob'|'pct'`, `threshold?: number`.
-Renders: `−4.1 · −3.5 · +0.6` with market in `--line`, difference colored by sign and scaled by intensity ramp. Tooltip shows P(cover) at market and the draw count.
+Renders model, market, and difference (no middot) with market in `--line`, difference colored by sign and scaled by intensity ramp. Tooltip shows P(cover) at market and the draw count.
 
 ### `MarketPill`
 Market line as a compact chip: `SEA −3.5 (−110)`. Always `--line`. Click opens line-movement sparkline (from `raw.market_lines` snapshots).
@@ -132,11 +139,24 @@ Invariant/warning results for a run: green dot = all invariants passed; `--warn`
 ## Patterns
 
 ### App shell
-Sidebar (216px expanded / 64px collapsed glass rail; Edge board, Games, Players, Optimize, Props, Lineups, Grading; `RunBadge` pinned at bottom) + glass top bar (breadcrumb, search with `/`, page actions). Breadcrumbs use `›` and product labels (`Week 1 › Lineups › DK Main`); nested week routes skip a redundant “Edge board” prefix; the current page is weight 600, not a link. Players and Optimize point at `/week/{n}/players|optimize/dk/main` via `/players` and `/optimize` redirects. Drawers are glass shells; tables inside sit on solid `--card`. Content is a 16px-gapped grid inside 20px padding.
+Sidebar (216px expanded / 64px collapsed **solid** `--card` rail; Edge board, Games, Players, Optimize, Props, Lineups, Grading, Claims, LOC league; `RunBadge` pinned at bottom) + glass top bar (breadcrumb, theme toggle, search with `/`, page actions). Breadcrumbs use `›` and product labels (`Week 1 › Lineups › DK Main`); nested week routes skip a redundant “Edge board” prefix; the current page is weight 600, not a link. Players and Optimize point at `/week/{n}/players|optimize/dk/main` via `/players` and `/optimize` redirects. Content is a 16px-gapped grid inside 20px padding. **LOC league** (`/league`, season-long fantasy) is outside the NFL week: its sidebar href is plain `/league`, it has no week selector, slate, or game strip, and its sections (Standings, Season, Matchups, Acquire, Wire, Transactions) are a link tab strip. Luck is a table on Season. Only differences are colored (actual minus projected, luck); scores, projections, and win counts stay foreground.
+
+**Glass on the overlay layer, solid cards.** `backdrop-filter: blur` only on surfaces that overlay moving content:
+
+- TopBar
+- WeekHeader (`sticky top-[var(--topbar-height)]`)
+- Players pick-summary bar
+- Players filter bar (when it exists)
+- Sheet drawer
+
+Each glass surface keeps a `--glass-border` (or `--border`) edge. The Edge ledger header is **not** on this list — it is solid `--card` with a `--border` underline. Cards, sidebar, DataTable, and the optimizer settings panel are solid `--card`. Forbidden to add blur to cards or stacked panels.
+
+### Game strip
+Horizontally scrollable kickoff-grouped chips on the Edge board (below WeekHeader), Games, Players, Optimize, and Props — not Lineups, Grading, or Claims. Solid, in-flow, not sticky and not glass. Each chip is away logo, `@`, home logo, and kickoff (or `{away}–{home} Final`). Selected chips invert (`bg-foreground text-background`). Window headers toggle that group. **Clear games** sits next to the strip; Players pick-bar **Clear picks** is a different control. URL is `games=` comma-separated full `game_id`s.
 
 ### Edge board (`/week/[n]`)
-- Week summary sentence card with Plain English / Table toggle.
-- Plain English: stack of `VerdictCard`s sorted by |max edge|. Table: four summary tiles then the dense table below.
+- Week summary sentence card with Plain English / Table toggle. Plain English also has Full / Compact (`?density=compact`; omitted when Full).
+- Plain English: stack of `VerdictCard`s sorted by |max edge|. Compact collapses each game to one 48px row (matchup, three market edges, warning dot) that expands on click. Table: four summary tiles then the dense table below.
 - Table, one row per game, sorted by |max edge| desc. Columns: matchup (dots + abbrs, kickoff), `EdgeCell` spread, `EdgeCell` total, `EdgeCell` ML (as prob), P(cover) at market, `MarketPill`, `CheckStatus`.
 - Row click → `Sheet` drawer: score distribution (two-team histogram), fair vs. market history, top-10 player projections with `DistributionSpark`, correlation heat strip for that game.
 - Filters (top-left, persistent): slate (main/early/late/primetime), min |edge|, hide flat.
@@ -151,12 +171,12 @@ Sidebar (216px expanded / 64px collapsed glass rail; Edge board, Games, Players,
 
 ### Player library (`/week/[n]/players/[site]/[slate]`)
 - `SlateSelector` from ingested slates. Rows from `slatePlayers` (one DK id; real position, never FLEX).
-- Columns: name + `PositionPill` + injury, team, opponent, kickoff, DK id, salary, DK pts, Pts rk, floor, ceiling (`fpts_ppr` p90) + Ceil rk, ownership, value + Val rk, typical game. Ranks are position-relative `tnum` text over the slate, not badges. No Leverage column until `parse_exposure_csv` reads by position.
+- Columns: name + `PositionPill` + injury, team, opponent, kickoff, salary, DK pts, Pts rk, ceiling (`fpts_ppr` p90), ownership, value, typical game. No DK id, Floor, Val rk, or Ceil rk — dropped so the 15px scale fits. Ranks are position-relative `tnum` text over the slate, not badges. No Leverage column until `parse_exposure_csv` reads by position. Game filter is the strip (`games=`), not a table select.
 - Row actions: Lock, Exclude, Add to stack. Persisted as comma-separated `player_dk_id`s in URL (`lock`, `excl`, `stack`) and `localStorage` key `nfl-edge.slate:{slateId}`. URL wins on load.
 - Stale OUT/D (override after the run) grey the projection and drop from the optimizer pool. Q stays in.
 
 ### Optimizer (`/week/[n]/optimize/[site]/[slate]`)
-- Glass settings panel (no table on glass): lineups 1–20, cap, min salary, max exposure, max per team, randomness, QB+n WR/TE, bring-back, no-QB-vs-DST (default on). Showdown hides stack rules. With one or more locks, a suggestions panel lists same-game partners ranked by `corr × fpts_dk_sd`. Add-to-stack requires both players in every lineup while Require stacked group is on. Suggestions are additive to `stackN` / `bringBack`.
+- Solid `--card` settings panel (no table on glass): lineups 1–20, cap, min salary, max exposure, max per team, randomness, QB+n WR/TE, bring-back, no-QB-vs-DST (default on). Showdown hides stack rules. With one or more locks, a suggestions panel lists same-game partners ranked by `corr × fpts_dk_sd`. Add-to-stack requires both players in every lineup while Require stacked group is on. Suggestions are additive to `stackN` / `bringBack`.
 - Classic: 1 QB, 2–3 RB, 3–4 WR, 1–2 TE, 1 DST, 9 players. Stack / bring-back / no-QB-vs-DST are per-team (`Σ WR/TE_T ≥ n·QB_T`, `Σ opp_T ≥ k·QB_T`, `QB_T + DST_opp ≤ 1`). Showdown: CPT ≠ FLEX; CPT is 1.5× points and salary.
 - Tabs: **Yours** (`LineupCard` with salary, projection, ownership sum, stack chips; Win%/ROI are —) and **Sim 150** (`model.dfs_lineups`). “Start from this lineup” writes those DK ids into locks.
 - Export selected: filename `dk_upload_<slate_id>_<run_id first 8>_user-optimized.csv`. Line 1 is the DK header. IDs are `player_dk_id` only.
@@ -172,10 +192,10 @@ Same tokens and components; `DistributionSpark` becomes a full-width histogram i
 ## Accessibility
 
 - Color never carries meaning alone: every colored difference also has a sign character, and `CheckStatus` has a label on hover and in the DOM.
-- Contrast: all text ≥ 4.5:1 on its surface. Player names, team abbreviations, and primary numbers are `--foreground` at 600. `--muted-foreground` is labels only. `--dim` is decorative only. The test suite fails the build on any readable pair below 4.5:1.
+- Contrast: all text ≥ 4.5:1 on its surface in **both** themes. Player names, team abbreviations, and primary numbers are `--foreground` at 600. `--muted-foreground` is labels only. The test suite fails the build on any readable pair below 4.5:1.
 - Keyboard: `j/k` row navigation, `Enter` opens drawer, `Esc` closes, `/` focuses player search, `[` `]` change week.
 - Drawer is a `Sheet` with focus trap and `aria-labelledby` set to the matchup or lineup id.
 
 ## Not in the system
 
-Dark mode, team-color themes, headshots, animated odds tickers, gradient cards, a pure-white app field, and anything that colors a number that isn't a difference against the market. A field gradient is allowed; glass is the shell only.
+Team-color themes, headshots, animated odds tickers, gradient cards, a pure-white app field, glass on cards or stacked panels, and anything that colors a number that isn't a difference against the market. Dual theme is tokens only. A field gradient is allowed; glass is the overlay layer only.

@@ -11,7 +11,10 @@ import sharp from "sharp";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
 const SRC_DIR = path.join(ROOT, "docs/nfl-team-logos/png");
+const HAND_DIR = path.join(ROOT, "docs/nfl-team-logos/hand-masked");
 const OUT_DIR = path.join(ROOT, "web/public/logos");
+/** White outline ring is connected to the JPEG background. Do not flood-fill. */
+const HAND_MASKED = new Set(["GB"]);
 const BUDGET = 400 * 1024;
 const MAX_SIDE = 64;
 const WHITE_TOL = 20;
@@ -87,61 +90,6 @@ function floodFillCorners(data, width, height) {
   }
 }
 
-/**
- * Hand-mask for the Packers oval: keep non-white pixels plus a 3px white ring
- * around them. Exterior white becomes transparent. Does not change WHITE_TOL.
- */
-function handMaskOval(data, width, height) {
-  const n = width * height;
-  const logo = new Uint8Array(n);
-  for (let i = 0; i < n; i++) {
-    const o = i * 4;
-    if (!isNearWhite(data[o], data[o + 1], data[o + 2], data[o + 3])) logo[i] = 1;
-  }
-  const ring = 3;
-  const keep = new Uint8Array(n);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (!logo[y * width + x]) continue;
-      for (let dy = -ring; dy <= ring; dy++) {
-        for (let dx = -ring; dx <= ring; dx++) {
-          if (dx * dx + dy * dy > ring * ring) continue;
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height) keep[ny * width + nx] = 1;
-        }
-      }
-    }
-  }
-  for (let i = 0; i < n; i++) {
-    if (keep[i]) continue;
-    data[i * 4 + 3] = 0;
-  }
-}
-
-/** True if any opaque near-white pixel sits on the outer edge of the opaque region. */
-function opaqueWhiteOnPerimeter(data, width, height) {
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      const o = i * 4;
-      if (data[o + 3] === 0) continue;
-      if (!isNearWhite(data[o], data[o + 1], data[o + 2], data[o + 3])) continue;
-      const edge =
-        x === 0 ||
-        y === 0 ||
-        x === width - 1 ||
-        y === height - 1 ||
-        data[((y - 1) * width + x) * 4 + 3] === 0 ||
-        data[((y + 1) * width + x) * 4 + 3] === 0 ||
-        data[(y * width + x - 1) * 4 + 3] === 0 ||
-        data[(y * width + x + 1) * 4 + 3] === 0;
-      if (edge) return true;
-    }
-  }
-  return false;
-}
-
 async function loadRgba(src) {
   const { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   if (info.channels !== 4) throw new Error(`expected RGBA: ${src}`);
@@ -161,6 +109,13 @@ async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const missing = [];
   for (const [abbr, slug] of Object.entries(SLUGS)) {
+    if (HAND_MASKED.has(abbr)) {
+      const masked = path.join(HAND_DIR, `${abbr}.png`);
+      if (!fs.existsSync(masked) || fs.statSync(masked).size === 0) {
+        missing.push(`${abbr} (hand-masked/${abbr}.png)`);
+      }
+      continue;
+    }
     const src = path.join(SRC_DIR, `${slug}.png`);
     if (!fs.existsSync(src) || fs.statSync(src).size === 0) missing.push(`${abbr} (${slug}.png)`);
   }
@@ -169,25 +124,23 @@ async function main() {
     process.exit(1);
   }
 
-  let gbMode = "flood";
   for (const [abbr, slug] of Object.entries(SLUGS)) {
-    const src = path.join(SRC_DIR, `${slug}.png`);
     const dest = path.join(OUT_DIR, `${abbr}.png`);
-    const rgba = await loadRgba(src);
-    if (abbr === "ARI") {
-      floodFillCorners(rgba.data, rgba.width, rgba.height);
-    } else if (abbr === "GB") {
-      const trial = Buffer.from(rgba.data);
-      floodFillCorners(trial, rgba.width, rgba.height);
-      if (opaqueWhiteOnPerimeter(trial, rgba.width, rgba.height)) {
-        rgba.data = trial;
-        gbMode = "flood";
-      } else {
-        handMaskOval(rgba.data, rgba.width, rgba.height);
-        gbMode = "hand-mask";
+    if (HAND_MASKED.has(abbr)) {
+      // copy the verified mask; do not flood-fill (GB ring is connected to the JPEG white)
+      const rgba = await loadRgba(path.join(HAND_DIR, `${abbr}.png`));
+      await writeResized(rgba, dest);
+    } else {
+      const rgba = await loadRgba(path.join(SRC_DIR, `${slug}.png`));
+      if (abbr === "ARI") floodFillCorners(rgba.data, rgba.width, rgba.height);
+      await writeResized(rgba, dest);
+      // Second pass on the 64px output: downsample can leave a 1px white fringe.
+      if (abbr === "ARI") {
+        const out = await loadRgba(dest);
+        floodFillCorners(out.data, out.width, out.height);
+        await writeResized(out, dest);
       }
     }
-    await writeResized(rgba, dest);
     const out = fs.statSync(dest);
     if (out.size === 0) {
       console.error(`empty output: ${dest}`);
@@ -199,7 +152,7 @@ async function main() {
   for (const abbr of Object.keys(SLUGS)) {
     total += fs.statSync(path.join(OUT_DIR, `${abbr}.png`)).size;
   }
-  console.log(`wrote ${Object.keys(SLUGS).length} logos (${total} bytes), GB=${gbMode}`);
+  console.log(`wrote ${Object.keys(SLUGS).length} logos (${total} bytes)`);
   if (total > BUDGET) {
     console.error(`logo set ${total} bytes exceeds ${BUDGET} budget (likely unsized originals)`);
     process.exit(1);

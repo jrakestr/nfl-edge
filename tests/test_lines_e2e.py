@@ -68,7 +68,7 @@ def test_verdicts_render_persist_and_match_json(run):
     assert len(w.games) == 14
     for g in w.games:
         assert g.status in {"ok", "warn", "fail"}
-        assert len(g.sentences) in {1, 3}
+        assert len(g.sentences) in {1, 2, 3}
     lines_io.persist(w)
     n = read_sql("select count(*) n from model.verdicts where run_id = %s", (run["run_id"],))["n"][0]
     assert n == 14

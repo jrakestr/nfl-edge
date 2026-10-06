@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export type EdgeKind = "spread" | "total" | "prob" | "pct";
 
 /**
- * The atom of the edge board: model · market · difference.
+ * The atom of the edge board: model, market, difference.
  * - `model` / `market` are already in display terms (book-convention home line for spreads,
  *   total points for totals, probabilities for prob/pct).
  * - `edge` is the probability edge from model.edges (home side / over); it drives color and
@@ -26,10 +26,23 @@ export function EdgeCell({
   title?: string;
   className?: string;
 }) {
+  const fmt = (n: number) =>
+    kind === "spread" ? line(n) : kind === "total" ? n.toFixed(1) : pct(n);
+  if (model == null && market == null) {
+    return (
+      <span className={cn("tnum text-muted-foreground", className)} data-edge="none">
+        —
+      </span>
+    );
+  }
   if (model == null || market == null) {
     return (
-      <span className={cn("tnum text-dim", className)} data-edge="none">
-        —
+      <span
+        className={cn("tnum inline-flex items-baseline gap-1 whitespace-nowrap", className)}
+        data-edge="none"
+      >
+        <span className="text-foreground font-semibold">{model == null ? "—" : fmt(model)}</span>
+        <span className="text-line font-semibold">{market == null ? "—" : fmt(market)}</span>
       </span>
     );
   }
@@ -59,9 +72,7 @@ export function EdgeCell({
       data-intensity={inten}
     >
       <span className="text-foreground font-semibold">{modelText}</span>
-      <span className="text-dim">·</span>
       <span className="text-line font-semibold">{marketText}</span>
-      <span className="text-dim">·</span>
       <EdgeDiff dir={dir} inten={inten}>
         {diffText}
       </EdgeDiff>

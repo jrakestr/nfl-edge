@@ -12,11 +12,9 @@ function outcomeLabel(outcome: number | null): string {
 function Delta({ actual, predicted }: { actual: number; predicted: number }) {
   const diff = actual - predicted;
   return (
-    <span className="tnum">
+    <span className="tnum inline-flex items-baseline gap-1">
       <span className="font-semibold text-foreground">{signed(actual)}</span>
-      <span className="text-dim"> · </span>
       <span className="font-semibold text-foreground">{signed(predicted)}</span>
-      <span className="text-dim"> · </span>
       <EdgeDiff dir={direction(diff)} inten={intensity(Math.abs(diff) >= 1 ? 0.03 : 0.005)}>
         {signed(diff)}
       </EdgeDiff>
@@ -32,10 +30,7 @@ function MarketLine({ name, market }: { name: string; market: GradedMarket | nul
       <span className="t-body">
         <span className="font-semibold text-foreground">{outcomeLabel(market.outcome)}</span>
         {market.clv != null ? (
-          <>
-            <span className="text-dim"> · </span>
-            <span className="t-caption text-muted-foreground">CLV {signedPct(market.clv)}</span>
-          </>
+          <span className="t-caption text-muted-foreground"> CLV {signedPct(market.clv)}</span>
         ) : null}
       </span>
     </div>

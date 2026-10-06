@@ -3,6 +3,7 @@ import {
   CircleDollarSign,
   CircleSlash,
   ClipboardCheck,
+  ClipboardList,
   Crosshair,
   Layers,
   LayoutDashboard,
@@ -28,6 +29,8 @@ export const NAV_ICONS = {
   props: Crosshair,
   lineups: Layers,
   grading: ClipboardCheck,
+  claims: ClipboardList,
+  league: Trophy,
 } as const satisfies Record<string, LucideIcon>;
 
 export type NavIcon = keyof typeof NAV_ICONS;

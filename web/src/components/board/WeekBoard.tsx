@@ -195,6 +195,7 @@ export function WeekBoard(p: WeekBoardProps) {
               draws={run.draws_per_game}
               filters={p.filters}
               runCreatedAt={run.created_at}
+              teamInputs={p.teamInputs ?? {}}
             />
           </div>
         )}

@@ -31,13 +31,14 @@ export type WeekScoreboard = {
  * Season track record from model.results. Only rows grade.py marked
  * predated_kickoff — the board does not re-derive which run was live.
  */
-export async function trackRecord(season: number): Promise<TrackRecord> {
+export async function trackRecord(season: number, week: number | null = null): Promise<TrackRecord> {
   const rows = await sql()`
     with picks as (
       select r.outcome, r.pnl, r.pnl_kelly, r.market_type, s.week
       from model.results r
       join model.sim_runs s on s.run_id = r.run_id
       where s.season = ${season}
+        and (${week}::int is null or s.week = ${week}::int)
         and r.predated_kickoff and r.is_last_snapshot and r.edge > 0
     )
     select count(distinct week)::int as graded_weeks,
@@ -68,6 +69,39 @@ export async function trackRecord(season: number): Promise<TrackRecord> {
     totals: { wins: r?.totals_w ?? 0, losses: r?.totals_l ?? 0, pushes: r?.totals_p ?? 0 },
     moneyline: { wins: r?.ml_w ?? 0, losses: r?.ml_l ?? 0, pushes: r?.ml_p ?? 0 },
   };
+}
+
+/** Finished regular-season games per week, graded or not, so the page can say how many it skips. */
+export async function finalGamesByWeek(season: number): Promise<Record<number, number>> {
+  const rows = await sql()`
+    select week::int as week, count(*)::int as n
+    from raw.schedules
+    where season = ${season} and game_type = 'REG' and result is not null
+    group by week`;
+  return Object.fromEntries(rows.map((r) => [Number(r.week), Number(r.n)]));
+}
+
+export type WeekPicks = { week: number } & Wlp;
+
+/** Pick record per graded week, same pick set as trackRecord, for the per-week accuracy strip. */
+export async function weeklyPicks(season: number): Promise<WeekPicks[]> {
+  const rows = await sql()`
+    select s.week::int as week,
+           count(*) filter (where r.outcome = 1)::int as wins,
+           count(*) filter (where r.outcome = 0)::int as losses,
+           count(*) filter (where r.outcome is null)::int as pushes
+    from model.results r
+    join model.sim_runs s on s.run_id = r.run_id
+    where s.season = ${season}
+      and r.predated_kickoff and r.is_last_snapshot and r.edge > 0
+    group by s.week
+    order by s.week`;
+  return rows.map((r) => ({
+    week: Number(r.week),
+    wins: Number(r.wins),
+    losses: Number(r.losses),
+    pushes: Number(r.pushes),
+  }));
 }
 
 /**

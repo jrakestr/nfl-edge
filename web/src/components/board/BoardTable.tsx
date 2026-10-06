@@ -13,6 +13,7 @@ import { CheckStatus } from "./CheckStatus";
 import { EdgeCell } from "./EdgeCell";
 import { GameOutcome } from "./GameOutcome";
 import { MarketPill } from "./MarketPill";
+import type { TeamInput } from "@/lib/team-input";
 import { Matchup } from "./TeamDot";
 import { type Filters, applyFilters } from "./filters";
 import { useGameOpen } from "./useGameOpen";
@@ -27,12 +28,14 @@ export function BoardTable({
   draws,
   filters,
   runCreatedAt,
+  teamInputs,
 }: {
   rows: BoardRow[];
   checks: Record<string, GameChecks>;
   draws: number | null;
   filters: Filters;
   runCreatedAt?: string | null;
+  teamInputs?: Record<string, TeamInput>;
 }) {
   const visible = useMemo(() => {
     const next = applyFilters(rows, filters, (r) => kickoffSlot(r.gameday, r.gametime));
@@ -96,7 +99,12 @@ export function BoardTable({
               const gaps = runCreatedAt ? marketGapCaptions(checks[r.game_id], runCreatedAt) : [];
               return (
                 <div className="flex items-center gap-3">
-                  <Matchup home={r.home} away={r.away} />
+                  <Matchup
+                    home={r.home}
+                    away={r.away}
+                    awayElo={teamInputs ? (teamInputs[r.away]?.elo_rating ?? null) : undefined}
+                    homeElo={teamInputs ? (teamInputs[r.home]?.elo_rating ?? null) : undefined}
+                  />
                   <span className="flex flex-col gap-0.5">
                     <span className="t-caption">{kickoffLabel(r.gameday, r.gametime)}</span>
                     {gaps.map((c) => (

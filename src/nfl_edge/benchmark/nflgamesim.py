@@ -117,6 +117,102 @@ def parse_cards(text: str) -> list[dict]:
     return cards
 
 
+WEEK_HEADER_RE = re.compile(r"NFL Predictions for Week (\d+)")
+PAGE_WIN_RE = re.compile(r"WIN\s+(?P<wpts>\d+(?:\.\d+)?)\s*-\s*(?P<lpts>\d+(?:\.\d+)?)")
+PAGE_PCT_RE = re.compile(
+    r"won\s+(?P<pct>\d+(?:\.\d+)?)%\s+of sims,\s+average margin of\s+(?P<margin>\d+(?:\.\d+)?)"
+)
+SUMMARY_RES = {
+    "pick": re.compile(r"Pick Accuracy\s+Pick\s+(\d+)"),
+    "margin": re.compile(r"Final Margin within 7 Pts\s+Margin\s+(\d+)"),
+    "ats": re.compile(r"Beat the Spread\s+Vs Spread\s+(\d+)"),
+}
+
+
+def _page_card(block: list[str], away: str, home: str, week: int) -> dict:
+    """One game block of the current page grammar -> a parse_cards-shaped card plus site flags."""
+    joined = " ".join(block)
+    where = f"week {week} {away} @ {home}"
+    mkt = MARKET_RE.search(joined)
+    if mkt is None:
+        raise ValueError(f"{where}: no ML / Spd / O/U lines")
+    win_i = next((i for i, ln in enumerate(block) if PAGE_WIN_RE.search(ln)), None)
+    if win_i is None or win_i == 0:
+        raise ValueError(f"{where}: no 'WIN a-b' line with a winner above it")
+    win = PAGE_WIN_RE.search(block[win_i])
+    pct = PAGE_PCT_RE.search(joined)
+    if pct is None:
+        raise ValueError(f"{where}: no 'won p% of sims, average margin of m' line")
+    pick_line = next((ln for ln in block if ln.startswith("Pick:")), None)
+    return {
+        "away_raw": away,
+        "home_raw": home,
+        "ml_home": int(mkt.group("ml_home")),
+        "ml_away": int(mkt.group("ml_away")),
+        "spread": float(mkt.group("spd")),
+        "total": float(mkt.group("ou")),
+        "winner_raw": block[win_i - 1],
+        "win_pts": float(win.group("wpts")),
+        "lose_pts": float(win.group("lpts")),
+        "margin": float(pct.group("margin")),
+        "pct": float(pct.group("pct")),
+        "site_final": pick_line is not None,
+        "site_pick": pick_line.split(":", 1)[1].strip().lower() if pick_line else None,
+        "site_margin_hit": "Margin Hit" in block,
+        "site_ats_hit": "Vs Spread Hit" in block,
+    }
+
+
+def parse_page(text: str) -> dict[int, dict]:
+    """Parse a whole mygamesim page paste (any number of weeks) in the current grammar.
+
+    Returns {week: {"cards": [...], "summary": {"pick", "margin", "ats"} | None}}. Cards have the
+    parse_cards shape plus the site's own result flags (site_final / site_pick / site_margin_hit /
+    site_ats_hit); absence of "Margin Hit" or "Vs Spread Hit" on a final game means a miss.
+    """
+    lines = [ln.strip() for ln in (text or "").splitlines()]
+    heads = [(i, int(m.group(1))) for i, ln in enumerate(lines) if (m := WEEK_HEADER_RE.fullmatch(ln))]
+    if not heads:
+        raise ValueError("no 'NFL Predictions for Week N' header found in the paste")
+    out: dict[int, dict] = {}
+    for k, (start, week) in enumerate(heads):
+        end = heads[k + 1][0] if k + 1 < len(heads) else len(lines)
+        section = lines[start:end]
+        legend = next((i for i, ln in enumerate(section) if ln == "Legend/Totals"), len(section))
+        games = [i for i in range(2, legend - 1) if section[i] == "@" and section[i - 1] and section[i + 1]]
+        cards = []
+        for n, at in enumerate(games):
+            stop = games[n + 1] - 2 if n + 1 < len(games) else legend
+            cards.append(_page_card(section[at - 2 : stop], section[at - 1], section[at + 1], week))
+        tail = " ".join(section[legend:])
+        counts = {name: rx.search(tail) for name, rx in SUMMARY_RES.items()}
+        summary = {name: int(m.group(1)) for name, m in counts.items()} if all(counts.values()) else None
+        out[week] = {"cards": cards, "summary": summary}
+    return out
+
+
+def flag_mismatches(cards: list[dict], rows: list[dict]) -> list[str]:
+    """Where the site's own result flags disagree with ours (apply_actuals). Report only."""
+    by_teams = {(r["away_team"], r["home_team"]): r for r in rows}
+    out: list[str] = []
+    for c in cards:
+        if not c.get("site_final"):
+            continue
+        row = by_teams.get((map_team_token(c["away_raw"]), map_team_token(c["home_raw"])))
+        if row is None or row.get("status") != "final":
+            continue
+        tag = f"{row['game_id']} {row['away_team']}@{row['home_team']}"
+        if c["site_pick"] != row["pick_winner_result"]:
+            out.append(f"{tag} pick: site {c['site_pick']}, ours {row['pick_winner_result']}")
+        if c["site_margin_hit"] != (row["margin_within_7"] == "yes"):
+            site = "hit" if c["site_margin_hit"] else "miss"
+            out.append(f"{tag} margin within 7: site {site}, ours {row['margin_within_7']}")
+        if c["site_ats_hit"] != (row["ats_result"] == "correct"):
+            site = "hit" if c["site_ats_hit"] else "miss"
+            out.append(f"{tag} vs spread: site {site}, ours {row['ats_result']}")
+    return out
+
+
 def _as_date(v) -> date:
     if isinstance(v, date) and not isinstance(v, datetime):
         return v
@@ -315,6 +411,75 @@ def run(season: int, week: int, path: Path, schedules: pl.DataFrame | None = Non
     n = upsert(_to_db_frame(rows), "raw.external_games", ["source", "game_id"])
     return {"season": season, "week": week, "rows": len(rows), "written": n,
             "csv": str(out)}
+
+
+def build_page_week(
+    cards: list[dict], schedules: pl.DataFrame, season: int, week: int
+) -> list[dict]:
+    """Rows for one page week with finals applied from raw.schedules.
+
+    The page shows margins to 0.1 but the site leans on the unrounded number, so a rounded edge
+    of exactly 0 leaves the lean as "push". When the site itself called that game a spread hit,
+    the lean is the side that covered; otherwise it stays "push" (a miss).
+    """
+    rows = build_rows(cards, schedules, season, week)
+    finals = {r["game_id"]: r for r in schedules.iter_rows(named=True)} if not schedules.is_empty() else {}
+    by_teams = {(r["away_team"], r["home_team"]): r for r in rows}
+    for c in cards:
+        row = by_teams[(map_team_token(c["away_raw"]), map_team_token(c["home_raw"]))]
+        s = finals.get(row["game_id"], {})
+        if not (c.get("site_ats_hit") and row["sim_ats_lean"] == "push" and s.get("result") is not None):
+            continue
+        cover_at = round(int(s["result"]) + float(row["market_spread_home"]), 1)
+        if cover_at != 0:
+            row["sim_ats_lean"] = row["home_team"] if cover_at > 0 else row["away_team"]
+    return apply_actuals(rows, schedules)
+
+
+def backup_csv(path: Path) -> Path | None:
+    """Keep the previous file next to the new one as <name>.prev.csv."""
+    path = Path(path)
+    if not path.exists():
+        return None
+    prev = path.with_suffix(".prev.csv")
+    prev.write_bytes(path.read_bytes())
+    return prev
+
+
+def run_page(season: int, path: Path, week: int | None = None) -> list[dict]:
+    """Parse a multi-week page paste, rebuild each week's rows, write CSVs, upsert. Fail closed.
+
+    Every week is parsed and matched to raw.schedules before anything is written, so an
+    unmatched game writes nothing. Returns one summary dict per week.
+    """
+    from ..db import upsert
+
+    parsed = parse_page(Path(path).read_text())
+    if week is not None:
+        if week not in parsed:
+            raise ValueError(f"week {week} is not in the paste (has {sorted(parsed)})")
+        parsed = {week: parsed[week]}
+    built: dict[int, list[dict]] = {}
+    for w, pw in sorted(parsed.items()):
+        built[w] = build_page_week(pw["cards"], load_schedules(season, w), season, w)
+    out = []
+    for w, rows in built.items():
+        backup_csv(csv_path(season, w))
+        csv_out = write_csv(rows, csv_path(season, w))
+        n = upsert(_to_db_frame(rows), "raw.external_games", ["source", "game_id"])
+        fin = [r for r in rows if r["status"] == "final"]
+        out.append({
+            "season": season, "week": w, "rows": len(rows), "written": n, "final": len(fin),
+            "csv": str(csv_out),
+            "ours": {
+                "pick": sum(r["pick_winner_result"] == "correct" for r in fin),
+                "margin": sum(r["margin_within_7"] == "yes" for r in fin),
+                "ats": sum(r["ats_result"] == "correct" for r in fin),
+            },
+            "site": parsed[w]["summary"],
+            "mismatches": flag_mismatches(parsed[w]["cards"], rows),
+        })
+    return out
 
 
 def refresh(season: int, week: int, schedules: pl.DataFrame | None = None) -> dict:

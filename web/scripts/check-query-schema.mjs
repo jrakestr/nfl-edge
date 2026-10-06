@@ -12,7 +12,7 @@ const WEB_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_TYPES = path.join(WEB_ROOT, "src/lib/database.types.ts");
 const DEFAULT_QUERIES = path.join(WEB_ROOT, "src/lib/queries");
 
-const SCHEMAS = new Set(["model", "raw"]);
+const SCHEMAS = new Set(["model", "raw", "fantasy"]);
 const JOIN_KEYWORDS = new Set([
   "on",
   "where",

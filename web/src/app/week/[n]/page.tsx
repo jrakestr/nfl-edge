@@ -3,14 +3,15 @@ import { notFound } from "next/navigation";
 import { WeekBoard } from "@/components/board/WeekBoard";
 import { parseFilters } from "@/components/board/filters";
 import type { RunOption } from "@/components/board/RunBadge";
+import type { Density } from "@/components/board/PlainVerdictList";
 import type { View } from "@/components/board/WeekHeader";
 import { CURRENT_SEASON } from "@/lib/config";
-import { boardRows } from "@/lib/queries/board";
+import { boardRows, scheduleRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { topPlayersByGame } from "@/lib/queries/players";
 import { teamInputsForRun } from "@/lib/queries/team-inputs";
 import { trackRecord, weekScoreboard } from "@/lib/queries/results";
-import { newerRunExists, pickDefaultRun, runsForWeek, slateGameCount, weeksWithRuns } from "@/lib/queries/runs";
+import { newerRunExists, pickDefaultRun, runsForWeek, slateGameCount, weeksWithSchedule } from "@/lib/queries/runs";
 import { verdictsForRun } from "@/lib/queries/verdicts";
 import type { GameChecks, RunRow } from "@/lib/types";
 
@@ -46,11 +47,12 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
   const seasonParam = Number(one(sp.season));
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
   const view: View = one(sp.view) === "table" ? "table" : "plain";
+  const density: Density = one(sp.density) === "compact" ? "compact" : "full";
   const pinned = one(sp.run);
   const filters = parseFilters(sp);
 
   const [weeks, runs, slateGames, track, scoreboard] = await Promise.all([
-    weeksWithRuns(season),
+    weeksWithSchedule(season),
     runsForWeek(season, week),
     slateGameCount(season, week),
     trackRecord(season),
@@ -66,14 +68,15 @@ export default async function WeekPage({ params, searchParams }: PageProps<"/wee
         topPlayersByGame(run.run_id),
         teamInputsForRun(run.run_id),
       ])
-    : [[], [], new Map<string, GameChecks>(), {}, {}];
+    : [[], await scheduleRows(season, week), new Map<string, GameChecks>(), {}, {}];
 
   return (
     <WeekBoard
       season={season}
       week={week}
-      weeks={weeks.map((w) => w.week)}
+      weeks={weeks}
       view={view}
+      density={density}
       filters={filters}
       run={run ? toOption(run) : null}
       runs={runs.map(toOption)}

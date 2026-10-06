@@ -11,6 +11,7 @@ priors:
   # priors-refine
   shrink_k_qb_att: 400       # QB yards/att: Kish-attempts toward league YPA (8 changed-QB teams out of score)
   qb_factor_clip: [0.8, 1.2] # qb_pass_factor = starter YPA / team lookback YPA, clipped
+  elo_k: 0             # margin Elo; 0 unless 2025 actual-margin MAE beats K=0 by more than 0.15
   qb_ppd_elasticity: 0.6     # team off_ppd scales by qb_pass_factor ** elasticity
   qb_att_share_prior: 0.97   # starter share of team pass attempts, shrunk toward this
   shrink_k_qb_share: 6       # Kish start-weeks for qb_att_share

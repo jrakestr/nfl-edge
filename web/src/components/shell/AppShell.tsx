@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useSyncExternalStore, type ReactNode } from "react";
+import { Suspense, useCallback, useSyncExternalStore, type ReactNode } from "react";
 import { SIDEBAR_COLLAPSED_KEY } from "@/lib/config";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { GamesSelectionProvider } from "./GamesSelection";
 import { PageActionsProvider } from "./PageActions";
 
 const SIDEBAR_EVENT = "nfl-edge-sidebar-collapsed";
@@ -47,6 +48,8 @@ export function AppShell({
 
   return (
     <PageActionsProvider>
+      <Suspense>
+      <GamesSelectionProvider>
       <div
         className="flex min-h-screen"
         data-sidebar-collapsed={collapsed ? "true" : "false"}
@@ -60,6 +63,8 @@ export function AppShell({
           </main>
         </div>
       </div>
+      </GamesSelectionProvider>
+      </Suspense>
     </PageActionsProvider>
   );
 }

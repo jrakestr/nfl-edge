@@ -18,7 +18,9 @@ export function GameOpenShell({
   checks,
   players = [],
   runCreatedAt,
+  runId,
   teamInputs = {},
+  scheduleOnly = false,
   children,
 }: {
   openId: string | null;
@@ -27,7 +29,9 @@ export function GameOpenShell({
   checks: GameChecks | null;
   players?: DrawerPlayer[];
   runCreatedAt?: string | null;
+  runId?: string | null;
   teamInputs?: Record<string, TeamInput>;
+  scheduleOnly?: boolean;
   children: ReactNode;
 }) {
   const setGame = useGameOpen();
@@ -40,7 +44,9 @@ export function GameOpenShell({
         checks={checks}
         players={players}
         runCreatedAt={runCreatedAt}
+        runId={runId}
         teamInputs={teamInputs}
+        scheduleOnly={scheduleOnly}
         open={openId != null && row != null}
         onOpenChange={(o) => {
           if (!o) setGame(null);

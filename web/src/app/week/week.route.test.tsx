@@ -27,6 +27,7 @@ vi.mock("@/lib/queries/runs", async (importOriginal) => {
   return {
     ...orig,
     weeksWithRuns: async () => [{ week: 1, newest_run_id: runId, created_at: run.created_at, runs: 1 }],
+    weeksWithSchedule: async () => [1],
     runsForWeek: async () => [{ ...run, n_games: 16, n_player_games: 16, draws_pruned: false }],
     slateGameCount: async () => 16,
     newerRunExists: () => false,
@@ -47,6 +48,7 @@ vi.mock("@/lib/queries/board", async (importOriginal) => {
   return {
     ...orig,
     boardRows: async () => rows().sort((a, b) => me(b) - me(a)),
+    scheduleRows: async () => [],
   };
 });
 vi.mock("@/lib/queries/checks", async (importOriginal) => {

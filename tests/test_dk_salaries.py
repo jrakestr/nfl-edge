@@ -125,7 +125,95 @@ def test_parse_dk_csv_strips_bom(tmp_path: Path):
 def test_slate_type_full_is_classic():
     assert D.slate_type_for("main") == "classic"
     assert D.slate_type_for("full") == "classic"
+    assert D.slate_type_for("afternoon") == "classic"
     assert D.slate_type_for("showdown") == "showdown"
+
+
+def test_is_dk_note():
+    assert D.is_dk_note("dk OUT")
+    assert D.is_dk_note("dk afternoon OUT")
+    assert not D.is_dk_note("promoted claim")
+    assert not D.is_dk_note("NFL commissioner's exempt list")
+    assert not D.is_dk_note(None)
+
+
+def test_parse_game_info_maps_aliases():
+    assert D.parse_game_info("ARI@LAC 09/13/2026 04:25PM ET") == ("ARI", "LAC")
+    assert D.parse_game_info("LAR@SF 09/13/2026 04:25PM ET") == ("LA", "SF")
+    assert D.parse_game_info("JAC@WSH 09/14/2026 08:15PM ET") == ("JAX", "WAS")
+    assert D.parse_game_info("") is None
+
+
+def test_missing_run_pairs_names_the_gap():
+    pairs = [("ARI", "LAC"), ("GB", "MIN"), ("MIA", "LV"), ("WAS", "PHI")]
+    have = {("ARI", "LAC"), ("GB", "MIN"), ("MIA", "LV")}
+    assert D.missing_run_pairs(pairs, have) == [("WAS", "PHI")]
+    assert D.missing_run_pairs(pairs, set(pairs)) == []
+
+
+def test_order_status_files_mtime_then_status_from():
+    files = [
+        ("afternoon", Path("a.csv"), 200.0),
+        ("main", Path("m.csv"), 100.0),
+    ]
+    by_mtime = D.order_status_files(files, None)
+    assert [s for s, _, _ in by_mtime] == ["main", "afternoon"]
+    by_flag = D.order_status_files(files, "main")
+    assert [s for s, _, _ in by_flag] == ["afternoon", "main"]
+
+
+def test_order_status_files_unknown_status_from():
+    try:
+        D.order_status_files([("main", Path("m.csv"), 1.0)], "nope")
+    except ValueError as e:
+        assert "status-from" in str(e)
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_winning_status_newer_file_wins_including_blank():
+    older = ("afternoon", 1.0, [
+        {"player_id": "00-a", "name": "A", "status": "OUT"},
+        {"player_id": "00-b", "name": "B", "status": "Q"},
+    ])
+    newer = ("main", 2.0, [
+        {"player_id": "00-a", "name": "A", "status": None},
+        {"player_id": "00-c", "name": "C", "status": "IR"},
+    ])
+    win = D.winning_status([older, newer])
+    assert win["00-a"]["mapped"] is None
+    assert win["00-a"]["slate"] == "main"
+    assert win["00-b"]["mapped"] == ("questionable", 1.0)
+    assert win["00-b"]["slate"] == "afternoon"
+    assert win["00-c"]["mapped"] == ("out", 0.0)
+
+
+def test_decide_override_actions_clears_dk_protects_manual():
+    winning = {
+        "00-dk": {
+            "player_id": "00-dk", "name": "Dk", "mapped": None,
+            "raw_status": None, "slate": "main", "mtime": 2.0,
+        },
+        "00-man": {
+            "player_id": "00-man", "name": "Man", "mapped": None,
+            "raw_status": None, "slate": "main", "mtime": 2.0,
+        },
+        "00-new": {
+            "player_id": "00-new", "name": "New", "mapped": ("out", 0.0),
+            "raw_status": "OUT", "slate": "afternoon", "mtime": 1.0,
+        },
+    }
+    existing = {
+        "00-dk": {"status": "out", "note": "dk afternoon OUT"},
+        "00-man": {"status": "out", "note": "NFL exempt; verified"},
+    }
+    actions = D.decide_override_actions(winning, existing, authority_slate="main")
+    assert [c["player_id"] for c in actions["clears"]] == ["00-dk"]
+    assert actions["clears"][0]["new"] == "cleared"
+    assert [p["player_id"] for p in actions["protected"]] == ["00-man"]
+    assert actions["protected"][0]["would"] == "clear"
+    assert [u["player_id"] for u in actions["upserts"]] == ["00-new"]
+    assert [h["player_id"] for h in actions["held"]] == ["00-new"]
 
 
 def test_attach_ids_dk_lar_to_nflverse_la():

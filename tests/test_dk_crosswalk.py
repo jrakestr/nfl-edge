@@ -112,6 +112,17 @@ def test_unknown_stays_unmatched():
     assert r.reason == "unmatched"
 
 
+def test_hollywood_brown_alias_is_marquise():
+    r = resolve_row(
+        {"name": "Hollywood Brown", "team": "PHI", "position": "WR", "player_dk_id": "44096067"},
+        CATALOG, TEAMS,
+        aliases={N.merge_key("Hollywood Brown"): "00-0035662"},
+    )
+    assert r.gsis_id == "00-0035662"
+    assert r.source == "alias"
+    assert r.reason is None
+
+
 def test_last_name_only_is_not_a_match():
     catalog = CATALOG.vstack(pl.DataFrame({
         "gsis_id": ["00-0028020"],

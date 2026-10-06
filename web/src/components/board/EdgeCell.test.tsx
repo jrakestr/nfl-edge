@@ -31,25 +31,36 @@ describe("intensity ramp", () => {
 });
 
 describe("EdgeCell text", () => {
-  it("spread: model · market · point gap, positive when the model likes the home side", () => {
+  it("spread: model, market, point gap, positive when the model likes the home side", () => {
     const el = cell({ model: -3, market: -3.5, kind: "spread", edge: 0.02 });
-    expect(el).toHaveTextContent("−3·−3.5·−0.5");
+    expect(el).toHaveTextContent("−3−3.5−0.5");
+    expect(el.textContent).not.toContain("·");
   });
 
   it("total: positive gap means the model likes the over", () => {
     const el = cell({ model: 43, market: 40.5, kind: "total", edge: 0.05 });
-    expect(el).toHaveTextContent("43.0·40.5·+2.5");
+    expect(el).toHaveTextContent("43.040.5+2.5");
+    expect(el.textContent).not.toContain("·");
   });
 
   it("prob: percentages with a signed percentage gap", () => {
     const el = cell({ model: 0.409, market: 0.631, kind: "prob", edge: -0.22 });
-    expect(el).toHaveTextContent("41%·63%·−22.2%");
+    expect(el).toHaveTextContent("41%63%−22.2%");
+    expect(el.textContent).not.toContain("·");
   });
 
-  it("missing model or market renders an em dash with no edge", () => {
-    const el = cell({ market: null });
+  it("missing both model and market renders an em dash with no edge", () => {
+    const el = cell({ model: null, market: null });
     expect(el).toHaveTextContent("—");
     expect(el.dataset.edge).toBe("none");
+  });
+
+  it("market-only shows an em dash then the book line in --line", () => {
+    const el = cell({ model: null, market: -3.5, kind: "spread" });
+    expect(el).toHaveTextContent("—−3.5");
+    expect(el.textContent).not.toContain("·");
+    expect(el.dataset.edge).toBe("none");
+    expect(el.querySelector(".text-line")).toHaveTextContent("−3.5");
   });
 });
 

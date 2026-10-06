@@ -64,6 +64,7 @@ describe("GameWhy", () => {
             qb_lookback_att: 35,
             qb_starter_att: 0,
             qb_pass_factor: 1.0,
+            elo_rating: 0,
           },
         }}
       />,

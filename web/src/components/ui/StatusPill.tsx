@@ -14,7 +14,7 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-sm bg-warn/15 px-1.5 t-caption font-semibold text-warn",
+        "inline-flex h-6 items-center rounded-sm bg-warn/15 px-1.5 t-caption font-semibold text-warn",
         className,
       )}
       aria-label={label}

@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EdgeDiff } from "@/components/board/EdgeCell";
+import { GameStrip } from "@/components/shell/GameStrip";
+import { useGamesSelection } from "@/components/shell/GamesSelection";
 import { DataTable } from "@/components/ui/DataTable";
+import { selectedOnSlate } from "@/lib/games-param";
+import type { StripGame } from "@/lib/kickoff";
 import { Input } from "@/components/ui/input";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { saveMarketLine } from "@/lib/actions/save-market-line";
@@ -101,22 +105,33 @@ export function FairPropsIndex({
   season = 2026,
   week = 1,
   drawsPruned = false,
+  strip = [],
 }: {
   rows?: FairProp[];
   season?: number;
   week?: number;
   drawsPruned?: boolean;
+  strip?: StripGame[];
 }) {
   const [stat, setStat] = useState("all");
+  const { selected } = useGamesSelection();
   const data = useMemo(() => {
-    const base = stat === "all" ? rows : rows.filter((r) => r.stat === stat);
+    const active = selectedOnSlate(
+      selected,
+      strip.map((g) => g.game_id),
+    );
+    const scoped =
+      active.length === 0
+        ? rows
+        : rows.filter((r) => r.game_id != null && active.includes(r.game_id));
+    const base = stat === "all" ? scoped : scoped.filter((r) => r.stat === stat);
     return [...base].sort(
       (a, b) =>
         (b.fpts_dk_mean ?? 0) - (a.fpts_dk_mean ?? 0) ||
         a.player_name.localeCompare(b.player_name) ||
         (STAT_RANK[a.stat] ?? 99) - (STAT_RANK[b.stat] ?? 99),
     );
-  }, [rows, stat]);
+  }, [rows, stat, selected, strip]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -148,6 +163,7 @@ export function FairPropsIndex({
           </select>
         </label>
       </header>
+      {strip.length ? <GameStrip games={strip} /> : null}
       <DataTable
         data={data}
         getRowId={(r) => `${r.player_id}-${r.stat}`}

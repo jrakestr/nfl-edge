@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { CURRENT_SEASON, DEFAULT_WEEK } from "@/lib/config";
-import { newestWeek } from "@/lib/queries/runs";
+import { CURRENT_SEASON } from "@/lib/config";
+import { displayWeek } from "@/lib/queries/runs";
 
 export const dynamic = "force-dynamic";
 
 export default async function WeekIndex() {
-  const week = (await newestWeek(CURRENT_SEASON)) ?? DEFAULT_WEEK;
+  const week = await displayWeek(CURRENT_SEASON);
   redirect(`/week/${week}`);
 }

@@ -41,9 +41,23 @@ function clvCell(r: GradedGame) {
   );
 }
 
+function ColorKey() {
+  return (
+    <p className="flex flex-wrap items-baseline gap-3 t-caption" aria-label="How to read the numbers">
+      <span className="text-muted-foreground">Spread, Total, and Home wins</span>
+      <span className="font-semibold text-foreground">Ours</span>
+      <span className="font-semibold text-line">Book</span>
+      <span className="font-semibold text-edge-pos">+ We like it</span>
+      <span className="font-semibold text-edge-neg">− We fade it</span>
+    </p>
+  );
+}
+
 export function GradeTable({ games }: { games: GradedGame[] }) {
   return (
     <DataTable
+      stickyHeader
+      headerNote={<ColorKey />}
       data={games}
       getRowId={(r) => r.gameId}
       empty="No graded weeks yet"

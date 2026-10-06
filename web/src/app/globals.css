@@ -2,10 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /*
   nfl-edge design tokens — docs/design-system.md is the spec.
-  Light is the only theme: no .dark block, <html> carries no theme class.
-  shadcn variable names are used where they exist; project tokens follow.
+  Dual theme via tokens. Light on bare :root. Dark on [data-theme="dark"]
+  and on :root:not([data-theme="light"]) when the OS prefers dark.
+  No component color forks.
 */
 
 @theme inline {
@@ -46,7 +49,6 @@
 
   /* project tokens */
   --color-border-soft: var(--border-soft);
-  --color-dim: var(--dim);
   --color-glass: var(--glass);
   --color-glass-border: var(--glass-border);
   --color-edge-pos: var(--edge-pos);
@@ -58,6 +60,7 @@
   --color-line: var(--line);
   --color-line-tint: var(--line-tint);
   --color-model: var(--foreground);
+  --color-pos-ink: var(--pos-ink);
   --color-pos-qb: var(--pos-qb);
   --color-pos-qb-tint: var(--pos-qb-tint);
   --color-pos-rb: var(--pos-rb);
@@ -78,12 +81,12 @@
   --radius-3xl: 20px;
   --radius-4xl: 24px;
 
-  --shadow-card: 0 1px 2px rgb(27 26 23 / 0.06);
-
   --ease-app: cubic-bezier(0.2, 0, 0, 1);
 }
 
 :root {
+  color-scheme: light;
+
   /* neutral */
   --background: #f4f5f7;
   --foreground: #111318;
@@ -100,13 +103,16 @@
   --accent: #f7f8fa;
   --accent-foreground: #111318;
   --destructive: #b8342a;
-  --border: #e6e8ec;
-  --border-soft: #eef0f3;
-  --input: #e6e8ec;
-  --ring: #a0a6b1;
-  --dim: #a0a6b1;
+  --border: #b8bcc4;
+  --border-soft: #e4e7ec;
+  --input: #b8bcc4;
+  --ring: #5b6270;
   --glass: rgb(255 255 255 / 0.72);
-  --glass-border: #e6e8ec;
+  --glass-border: #b8bcc4;
+  --pos-ink: #ffffff;
+  --field-cool: #e8ecf2;
+  --field-mid: #f4f5f7;
+  --field-warm: #f3f1ec;
   --radius: 12px;
   --sidebar: #ffffff;
   --sidebar-foreground: #111318;
@@ -114,8 +120,8 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f7f8fa;
   --sidebar-accent-foreground: #111318;
-  --sidebar-border: #e6e8ec;
-  --sidebar-ring: #a0a6b1;
+  --sidebar-border: #b8bcc4;
+  --sidebar-ring: #5b6270;
   --chart-1: #111318;
   --chart-2: #2f6bff;
   --chart-3: #6f7683;
@@ -132,16 +138,16 @@
   --line-tint: #eef3ff;
 
   /* position identity — not edge */
-  --pos-qb: #2c4a8c;
-  --pos-qb-tint: #e6e9f1;
-  --pos-rb: #1a5f52;
-  --pos-rb-tint: #e4ecea;
-  --pos-wr: #8a4b0a;
-  --pos-wr-tint: #f1e9e2;
-  --pos-te: #5a3d8a;
-  --pos-te-tint: #ebe8f1;
-  --pos-dst: #4a5564;
-  --pos-dst-tint: #e9ebec;
+  --pos-qb: #1f3d99;
+  --pos-qb-tint: #e4e8f5;
+  --pos-rb: #2f6a14;
+  --pos-rb-tint: #e8efe3;
+  --pos-wr: #a31d4c;
+  --pos-wr-tint: #f6e6ed;
+  --pos-te: #7a14a8;
+  --pos-te-tint: #f2e6f8;
+  --pos-dst: #b84400;
+  --pos-dst-tint: #f9efe8;
 
   /* motion */
   --dur-1: 120ms;
@@ -154,6 +160,127 @@
   --topbar-height: 52px;
 }
 
+/* Dark block — keep in sync with the prefers-color-scheme copy below. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #12141a;
+  --foreground: #f2f3f6;
+  --card: #1c1e26;
+  --card-foreground: #f2f3f6;
+  --popover: #1c1e26;
+  --popover-foreground: #f2f3f6;
+  --primary: #f2f3f6;
+  --primary-foreground: #12141a;
+  --secondary: #242832;
+  --secondary-foreground: #f2f3f6;
+  --muted: #2a2e38;
+  --muted-foreground: #a8afbc;
+  --accent: #242832;
+  --accent-foreground: #f2f3f6;
+  --destructive: #f07167;
+  --border: #4a5060;
+  --border-soft: #2e323c;
+  --input: #4a5060;
+  --ring: #a8afbc;
+  --glass: rgb(28 30 38 / 0.72);
+  --glass-border: #4a5060;
+  --pos-ink: #ffffff;
+  --field-cool: #0e1016;
+  --field-mid: #12141a;
+  --field-warm: #16140f;
+  --sidebar: #1c1e26;
+  --sidebar-foreground: #f2f3f6;
+  --sidebar-primary: #f2f3f6;
+  --sidebar-primary-foreground: #12141a;
+  --sidebar-accent: #242832;
+  --sidebar-accent-foreground: #f2f3f6;
+  --sidebar-border: #4a5060;
+  --sidebar-ring: #a8afbc;
+  --chart-1: #f2f3f6;
+  --chart-2: #7b9cff;
+  --chart-3: #a8afbc;
+  --chart-4: #6a7180;
+  --chart-5: #4a5060;
+  --edge-pos: #3dcc8a;
+  --edge-pos-tint: #1a3d2e;
+  --edge-neg: #f07167;
+  --edge-neg-tint: #3d2422;
+  --warn: #e8a040;
+  --line: #7b9cff;
+  --line-tint: #1a2744;
+  --pos-qb: #1f3d99;
+  --pos-qb-tint: #1a2040;
+  --pos-rb: #2f6a14;
+  --pos-rb-tint: #1a2a14;
+  --pos-wr: #a31d4c;
+  --pos-wr-tint: #3a1524;
+  --pos-te: #7a14a8;
+  --pos-te-tint: #2a1540;
+  --pos-dst: #b84400;
+  --pos-dst-tint: #3a2010;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #12141a;
+    --foreground: #f2f3f6;
+    --card: #1c1e26;
+    --card-foreground: #f2f3f6;
+    --popover: #1c1e26;
+    --popover-foreground: #f2f3f6;
+    --primary: #f2f3f6;
+    --primary-foreground: #12141a;
+    --secondary: #242832;
+    --secondary-foreground: #f2f3f6;
+    --muted: #2a2e38;
+    --muted-foreground: #a8afbc;
+    --accent: #242832;
+    --accent-foreground: #f2f3f6;
+    --destructive: #f07167;
+    --border: #4a5060;
+    --border-soft: #2e323c;
+    --input: #4a5060;
+    --ring: #a8afbc;
+    --glass: rgb(28 30 38 / 0.72);
+    --glass-border: #4a5060;
+    --pos-ink: #ffffff;
+    --field-cool: #0e1016;
+    --field-mid: #12141a;
+    --field-warm: #16140f;
+    --sidebar: #1c1e26;
+    --sidebar-foreground: #f2f3f6;
+    --sidebar-primary: #f2f3f6;
+    --sidebar-primary-foreground: #12141a;
+    --sidebar-accent: #242832;
+    --sidebar-accent-foreground: #f2f3f6;
+    --sidebar-border: #4a5060;
+    --sidebar-ring: #a8afbc;
+    --chart-1: #f2f3f6;
+    --chart-2: #7b9cff;
+    --chart-3: #a8afbc;
+    --chart-4: #6a7180;
+    --chart-5: #4a5060;
+    --edge-pos: #3dcc8a;
+    --edge-pos-tint: #1a3d2e;
+    --edge-neg: #f07167;
+    --edge-neg-tint: #3d2422;
+    --warn: #e8a040;
+    --line: #7b9cff;
+    --line-tint: #1a2744;
+    --pos-qb: #1f3d99;
+    --pos-qb-tint: #1a2040;
+    --pos-rb: #2f6a14;
+    --pos-rb-tint: #1a2a14;
+    --pos-wr: #a31d4c;
+    --pos-wr-tint: #3a1524;
+    --pos-te: #7a14a8;
+    --pos-te-tint: #2a1540;
+    --pos-dst: #b84400;
+    --pos-dst-tint: #3a2010;
+  }
+}
+
 [data-sidebar-collapsed="true"] {
   --sidebar-width: 64px;
 }
@@ -164,34 +291,38 @@
   }
   html {
     @apply font-sans;
-    color-scheme: light;
   }
   body {
     @apply text-foreground;
     background-color: var(--background);
-    background-image: linear-gradient(180deg, #e8ecf2 0%, #f4f5f7 42%, #f3f1ec 100%);
+    background-image: linear-gradient(
+      180deg,
+      var(--field-cool) 0%,
+      var(--field-mid) 42%,
+      var(--field-warm) 100%
+    );
     background-attachment: fixed;
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 15px;
+    line-height: 22px;
   }
 }
 
 @layer components {
   /* type roles (docs/design-system.md → Typography) */
   .t-tile {
-    font-size: 26px;
-    line-height: 32px;
+    font-size: 32px;
+    line-height: 40px;
     font-weight: 800;
     letter-spacing: -0.02em;
   }
   .t-title {
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 22px;
+    line-height: 28px;
     font-weight: 800;
   }
   .t-sentence {
-    font-size: 14px;
-    line-height: 21px;
+    font-size: 16px;
+    line-height: 24px;
     font-weight: 400;
   }
   .t-sentence b,
@@ -199,33 +330,35 @@
     font-weight: 700;
   }
   .t-body {
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 15px;
+    line-height: 22px;
     font-weight: 500;
   }
   .t-colhead {
-    font-size: 11px;
-    line-height: 16px;
+    font-size: 14px;
+    line-height: 20px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
   .t-caption {
-    font-size: 11px;
-    line-height: 16px;
+    font-size: 14px;
+    line-height: 20px;
     font-weight: 500;
     color: var(--muted-foreground);
   }
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+  .t-body.tnum {
+    font-weight: 600;
+  }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: var(--shadow-card);
   }
-  /* Shell only. Never on a surface that holds a table. */
+  /* Overlay layer only. Never on a card, table, sidebar, or settings panel. */
   .glass {
     background: var(--glass);
     border-color: var(--glass-border);

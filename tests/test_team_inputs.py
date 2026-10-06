@@ -4,7 +4,7 @@ from __future__ import annotations
 import polars as pl
 import pytest
 
-from nfl_edge.outputs.team_inputs import snapshot_from_priors
+from nfl_edge.outputs.team_inputs import rows_absent_from, snapshot_from_priors
 from nfl_edge.priors import Priors, qb, team
 from nfl_edge.sim import slate
 
@@ -77,3 +77,12 @@ def test_empty_priors_frame_is_empty():
         qb=pl.DataFrame(),
     )
     assert snapshot_from_priors("run-1", p, {"priors": {}}).is_empty()
+
+
+def test_backfill_leaves_existing_slate_rows():
+    cfg = {"priors": {"qb_ppd_elasticity": 0.6}}
+    frame = snapshot_from_priors("run-1", _priors(), cfg)
+    kept = rows_absent_from(frame, {"T"})
+    assert "T" not in kept["team"].to_list()
+    assert "U" in kept["team"].to_list()
+    assert rows_absent_from(frame, set()).height == frame.height

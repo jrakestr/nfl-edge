@@ -6,11 +6,15 @@ import { GameOutcome } from "@/components/board/GameOutcome";
 import { NgsMute } from "@/components/board/NgsMute";
 import { Matchup } from "@/components/board/TeamDot";
 import { WeekScoreboard } from "@/components/board/WeekScoreboard";
+import { GameStrip } from "@/components/shell/GameStrip";
+import { useGamesSelection } from "@/components/shell/GamesSelection";
 import { DataTable } from "@/components/ui/DataTable";
 import { sortBoardRows } from "@/lib/board-sort";
-import { displayValue, homeLine, line } from "@/lib/edge";
+import { displayValue, homeLine, line, price } from "@/lib/edge";
+import { selectedOnSlate } from "@/lib/games-param";
 import { simScore } from "@/lib/implied";
 import { kickoffLabel } from "@/lib/format";
+import { toStripGame } from "@/lib/kickoff";
 import type { WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import { fallbackNotice, slateGameCountLabel } from "@/lib/slate";
 import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
@@ -31,7 +35,9 @@ export function GamesList({
   scoreboard,
   toolbar,
   fallbackFrom,
+  notice,
   runCreatedAt,
+  runId,
   teamInputs = {},
 }: {
   week?: number;
@@ -44,12 +50,25 @@ export function GamesList({
   scoreboard?: WeekScoreboardData;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
+  notice?: string | null;
   runCreatedAt?: string | null;
+  runId?: string | null;
   teamInputs?: Record<string, TeamInput>;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const ordered = useMemo(() => sortBoardRows(rows), [rows]);
-  const open = ordered.find((r) => r.game_id === openId) ?? null;
+  const { selected } = useGamesSelection();
+  const strip = useMemo(() => rows.map(toStripGame), [rows]);
+  const ordered = useMemo(() => {
+    const sorted = sortBoardRows(rows);
+    const active = selectedOnSlate(
+      selected,
+      strip.map((g) => g.game_id),
+    );
+    if (!active.length) return sorted;
+    const set = new Set(active);
+    return sorted.filter((r) => set.has(r.game_id));
+  }, [rows, selected, strip]);
+  const open = ordered.find((r) => r.game_id === openId) ?? rows.find((r) => r.game_id === openId) ?? null;
   const total = weekTotal ?? rows.length;
   const onSlate = slateCount ?? rows.length;
   return (
@@ -57,13 +76,21 @@ export function GamesList({
       <header className="flex flex-col gap-3">
         <h1 className="t-title">Games</h1>
         {toolbar}
+        {notice ? (
+          <p className="t-body text-foreground" role="note">
+            {notice}
+          </p>
+        ) : null}
         {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
         <p className="t-caption">
           {week != null ? `Week ${week}. ` : ""}
           {total > 0 ? `${slateGameCountLabel(onSlate, total)} ` : ""}
-          Sim score summary from the same draws as the Edge board. Click a row for the game drawer.
+          {runId
+            ? "Sim score summary from the same draws as the Edge board. Click a row for the game drawer."
+            : "Click a row for the game drawer."}
         </p>
       </header>
+      {strip.length ? <GameStrip games={strip} /> : null}
       {scoreboard ? <WeekScoreboard board={scoreboard} /> : null}
       <DataTable
         data={ordered}
@@ -138,7 +165,7 @@ export function GamesList({
             align: "right",
             sortValue: (r) => r.spread_line,
             cell: (r) => (
-              <span className="tnum font-semibold text-foreground">
+              <span className="tnum font-semibold text-line">
                 {r.spread_line == null ? "—" : line(homeLine(r.spread_line))}
               </span>
             ),
@@ -161,8 +188,19 @@ export function GamesList({
             align: "right",
             sortValue: (r) => r.total_line,
             cell: (r) => (
-              <span className="tnum font-semibold text-foreground">
+              <span className="tnum font-semibold text-line">
                 {r.total_line == null ? "—" : r.total_line.toFixed(1)}
+              </span>
+            ),
+          },
+          {
+            id: "ml",
+            header: "Moneyline",
+            align: "right",
+            sortValue: (r) => r.home_moneyline,
+            cell: (r) => (
+              <span className="tnum font-semibold text-line">
+                {r.away} {price(r.away_moneyline)} {r.home} {price(r.home_moneyline)}
               </span>
             ),
           },
@@ -174,6 +212,8 @@ export function GamesList({
         checks={open ? (checks[open.game_id] ?? null) : null}
         players={open ? (playersByGame[open.game_id] ?? []) : []}
         runCreatedAt={runCreatedAt}
+        runId={runId}
+        scheduleOnly={!runId}
         teamInputs={open ? inputsForMatchup(teamInputs, open.away, open.home) : {}}
         open={open != null}
         onOpenChange={(v) => {

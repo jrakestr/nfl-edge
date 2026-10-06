@@ -23,6 +23,7 @@ export async function teamInputsForRun(runId: string): Promise<Record<string, Te
              t.qb_lookback_att::float8 as qb_lookback_att,
              t.qb_starter_att::float8 as qb_starter_att,
              t.qb_pass_factor::float8 as qb_pass_factor,
+             t.elo_rating::float8 as elo_rating,
              s.display_name as qb_starter_name,
              l.display_name as qb_lookback_name
       from model.run_team_inputs t
@@ -47,6 +48,7 @@ export async function teamInputsForRun(runId: string): Promise<Record<string, Te
         qb_lookback_att: num(r.qb_lookback_att),
         qb_starter_att: num(r.qb_starter_att),
         qb_pass_factor: num(r.qb_pass_factor),
+        elo_rating: num(r.elo_rating),
       };
     }
     return out;

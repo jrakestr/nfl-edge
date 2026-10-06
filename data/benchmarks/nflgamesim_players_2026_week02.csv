@@ -1,0 +1,951 @@
+"Player","Pass Yds","Pass TD","Pass INT","Rush Yds","Rush TD","Rec Yds","Rec TD","FantasyPoints"
+"Justin Jefferson 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","9.0","0.0","152.0","1.5","39.4"
+"Baker Mayfield 
+Tampa Bay Buccaneers vs Cleveland Browns","326.9","3.8","0.6","25.8","0.2","0.0","0.0","34.2"
+"Jaxon Smith-njigba 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","6.9","0.0","131.3","1.1","33.6"
+"Bijan Robinson 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","92.2","0.6","90.4","0.8","33.3"
+"Chris Olave 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","134.2","1.1","32.6"
+"Derrick Henry 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","149.1","1.4","20.2","0.3","31.8"
+"Josh Allen 
+Buffalo Bills vs Detroit Lions","308.2","3.4","0.7","31.6","0.1","0.0","0.0","31.5"
+"Amon-ra St. Brown 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","110.8","1.1","31.2"
+"Jaxson Dart 
+New York Giants vs Los Angeles Rams","307.1","2.9","0.5","26.8","0.3","0.0","0.0","31.0"
+"Caleb Williams 
+Chicago Bears vs Minnesota Vikings","288.6","3.3","0.3","40.1","0.4","0.0","0.0","30.9"
+"Deshaun Watson 
+Cleveland Browns vs Tampa Bay Buccaneers","308.7","3.1","0.9","23.8","0.1","0.0","0.0","29.7"
+"Jahmyr Gibbs 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","101.5","0.8","42.2","0.4","29.4"
+"Joe Burrow 
+Cincinnati Bengals vs Houston Texans","336.4","3.0","0.7","15.4","0.0","0.0","0.0","29.3"
+"C.J. Stroud 
+Houston Texans vs Cincinnati Bengals","321.5","3.0","0.5","13.0","0.1","0.0","0.0","29.2"
+"Drew Lock 
+Seattle Seahawks vs Arizona Cardinals","319.0","2.7","0.1","10.0","0.1","0.0","0.0","27.9"
+"Tyler Shough 
+New Orleans Saints vs Baltimore Ravens","344.6","2.6","1.4","12.2","0.1","0.0","0.0","27.3"
+"Carson Wentz 
+Minnesota Vikings vs Chicago Bears","316.1","2.9","0.1","-0.1","0.0","0.0","0.0","27.1"
+"Jacoby Brissett 
+Arizona Cardinals vs Seattle Seahawks","311.6","2.5","0.7","14.0","0.1","0.0","0.0","27.0"
+"Christian Mccaffrey 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","65.3","0.4","62.8","0.8","26.8"
+"Lamar Jackson 
+Baltimore Ravens vs New Orleans Saints","243.6","2.5","0.3","51.5","0.3","0.0","0.0","26.4"
+"Trevor Lawrence 
+Jacksonville Jaguars vs Denver Broncos","316.8","2.7","0.4","0.0","0.0","0.0","0.0","26.1"
+"Jalen Hurts 
+Philadelphia Eagles vs Tennessee Titans","253.8","2.1","0.1","29.7","0.5","0.0","0.0","24.6"
+"Drake Maye 
+New England Patriots vs Pittsburgh Steelers","285.6","2.2","1.6","44.6","0.2","0.0","0.0","24.5"
+"Dalton Schultz 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","98.6","0.9","23.9"
+"Trey Mcbride 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","86.9","1.1","23.7"
+"Kenneth Walker III 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","95.1","1.0","31.7","0.2","23.6"
+"Puka Nacua 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","11.4","0.1","91.5","0.8","23.5"
+"Garrett Wilson 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","97.0","1.1","23.4"
+"Ashton Jeanty 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","60.5","0.4","62.7","0.3","22.9"
+"Justin Herbert 
+Los Angeles Chargers vs Las Vegas Raiders","272.6","2.3","0.6","24.0","0.1","0.0","0.0","22.8"
+"Patrick Mahomes 
+Kansas City Chiefs vs Indianapolis Colts","247.2","2.1","0.3","31.1","0.2","0.0","0.0","22.7"
+"Brock Purdy 
+San Francisco 49ers vs Miami Dolphins","256.8","2.5","0.8","20.9","0.1","0.0","0.0","22.7"
+"Dak Prescott 
+Dallas Cowboys vs Washington Commanders","280.0","2.3","0.4","16.7","0.1","0.0","0.0","22.3"
+"Bryce Young 
+Carolina Panthers vs Atlanta Falcons","295.9","2.4","0.6","8.9","0.1","0.0","0.0","22.1"
+"Aaron Rodgers 
+Pittsburgh Steelers vs New England Patriots","296.6","2.5","0.1","3.2","0.0","0.0","0.0","22.1"
+"Geno Smith 
+New York Jets vs Green Bay Packers","258.1","2.6","0.8","14.6","0.0","0.0","0.0","21.5"
+"Matthew Stafford 
+Los Angeles Rams vs New York Giants","294.5","2.5","0.4","0.0","0.0","0.0","0.0","21.4"
+"Malik Willis 
+Miami Dolphins vs San Francisco 49ers","272.1","2.0","0.9","23.4","0.1","0.0","0.0","21.1"
+"Jared Goff 
+Detroit Lions vs Buffalo Bills","280.6","2.5","0.3","1.6","0.0","0.0","0.0","21.0"
+"Bo Nix 
+Denver Broncos vs Jacksonville Jaguars","264.6","2.0","0.6","15.8","0.1","0.0","0.0","20.7"
+"Isaiah Likely 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","87.2","0.8","20.4"
+"Bucky Irving 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","49.9","0.1","47.7","0.8","20.4"
+"Jayden Daniels 
+Washington Commanders vs Dallas Cowboys","245.8","1.6","0.2","26.6","0.2","0.0","0.0","20.0"
+"Tua Tagovailoa 
+Atlanta Falcons vs Carolina Panthers","271.4","2.5","0.9","0.0","0.0","0.0","0.0","20.0"
+"Javonte Williams 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","72.0","0.4","36.0","0.5","19.9"
+"Dj Moore 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","84.4","1.0","19.9"
+"David Montgomery 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","54.2","0.2","49.7","0.4","19.5"
+"Chris Godwin Jr. 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","76.7","1.1","19.5"
+"Chase Brown 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","45.0","0.4","50.6","0.2","19.3"
+"Ceedee Lamb 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","7.6","0.1","84.3","0.6","19.2"
+"Drake London 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","6.2","0.0","77.3","0.8","19.1"
+"Jordan Love 
+Green Bay Packers vs New York Jets","274.1","1.9","0.6","9.6","0.1","0.0","0.0","19.1"
+"Cam Ward 
+Tennessee Titans vs Philadelphia Eagles","268.4","1.8","0.2","9.1","0.1","0.0","0.0","19.1"
+"Breece Hall 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","71.4","0.5","35.7","0.3","18.9"
+"Jonathan Taylor 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","62.2","0.3","45.5","0.2","18.7"
+"Mark Andrews 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","73.0","0.8","18.6"
+"Malik Nabers 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","72.3","0.8","18.3"
+"James Cook III 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","76.5","0.4","31.6","0.3","18.1"
+"Emeka Egbuka 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","71.0","0.9","17.8"
+"De'Von Achane 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","46.4","0.4","41.0","0.3","17.7"
+"Harold Fannin Jr. 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","74.1","0.7","17.6"
+"Jaylen Warren 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","42.0","0.3","44.8","0.3","17.2"
+"Ja'Marr Chase 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","68.6","0.7","16.9"
+"Jadarian Price 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","60.0","0.5","37.5","0.2","16.8"
+"Matthew Golden 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","9.0","0.3","60.8","0.5","16.8"
+"Daniel Jones 
+Indianapolis Colts vs Kansas City Chiefs","281.6","1.4","0.7","7.1","0.0","0.0","0.0","16.7"
+"Ladd Mcconkey 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","70.4","0.8","16.7"
+"Devonta Smith 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","0.0","0.0","77.5","0.7","16.7"
+"Pat Freiermuth 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","67.6","0.6","16.6"
+"Rhamondre Stevenson 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","45.9","0.4","36.3","0.3","16.4"
+"Kalif Raymond 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","61.6","0.9","16.2"
+"Dk Metcalf 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","62.2","0.7","16.0"
+"Jerry Jeudy 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","57.6","0.9","15.9"
+"Aaron Jones Sr. 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","84.7","0.3","22.4","0.2","15.8"
+"Tee Higgins 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","72.0","0.5","15.4"
+"George Pickens 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","63.7","0.7","15.4"
+"Hunter Henry 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","60.5","0.7","15.2"
+"Fernando Mendoza 
+Las Vegas Raiders vs Los Angeles Chargers","230.6","1.4","0.9","6.5","0.1","0.0","0.0","15.1"
+"Bhayshul Tuten 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","62.2","0.5","26.3","0.3","15.1"
+"Parker Washington 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","61.4","0.6","14.8"
+"Kyle Monangai 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","61.9","0.2","23.8","0.4","14.8"
+"Cam Skattebo 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","69.6","0.3","23.7","0.1","14.7"
+"Dallas Goedert 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","0.0","0.0","60.6","0.8","14.7"
+"Jalen Coker 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","68.7","0.4","14.5"
+"Marvin Harrison Jr. 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","72.1","0.5","14.4"
+"Rashee Rice 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","65.2","0.6","14.4"
+"D'Andre Swift 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","70.7","0.5","19.2","0.1","14.4"
+"T.J. Hockenson 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","61.0","0.3","14.2"
+"Michael Wilson 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","60.6","0.6","14.1"
+"Brian Thomas Jr. 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","66.3","0.5","13.8"
+"Alec Pierce 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","69.0","0.3","13.8"
+"Saquon Barkley 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","66.7","0.3","22.3","0.1","13.7"
+"Davante Adams 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","64.0","0.5","13.7"
+"Jakobi Meyers 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","60.2","0.5","13.7"
+"Mike Evans 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","53.6","0.4","13.5"
+"Khalil Shakir 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","51.0","0.6","13.5"
+"Justice Hill 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","20.1","0.2","44.6","0.5","13.5"
+"Jameson Williams 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","58.0","0.6","13.4"
+"Christian Watson 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","65.8","0.4","13.3"
+"Cooper Kupp 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","51.2","0.7","13.2"
+"Tyler Warren 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","52.0","0.2","13.1"
+"Chuba Hubbard 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","39.5","0.3","29.8","0.2","13.1"
+"Juwan Johnson 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","58.8","0.5","13.0"
+"Travis Kelce 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","58.4","0.5","13.0"
+"Kc Concepcion 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","4.7","0.1","47.6","0.4","12.8"
+"Carnell Tate 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","53.6","0.5","12.8"
+"Dalton Kincaid 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","57.6","0.5","12.8"
+"Xavier Hutchinson 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","42.4","0.7","12.7"
+"Brenton Strange 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","50.8","0.6","12.7"
+"Quinshon Judkins 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","46.3","0.1","26.6","0.2","12.7"
+"Tetairoa Mcmillan 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","59.4","0.3","12.6"
+"Travis Etienne Jr. 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","39.1","0.1","29.9","0.1","12.5"
+"Terry Mclaurin 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","59.8","0.4","12.4"
+"Josh Downs 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","54.6","0.3","12.4"
+"Rj Harvey 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","21.1","0.3","24.6","0.4","12.4"
+"Wan'Dale Robinson 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","48.0","0.3","12.1"
+"Cade Otton 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","51.8","0.4","12.0"
+"Rome Odunze 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","51.7","0.6","11.9"
+"Luther Burden III 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","52.6","0.5","11.9"
+"Mike Gesicki 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","47.8","0.6","11.9"
+"Kendrick Bourne 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","54.2","0.2","11.7"
+"George Kittle 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","47.5","0.4","11.6"
+"John Metchie III 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","39.1","0.7","11.5"
+"Tony Pollard 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","36.5","0.3","24.8","0.1","11.5"
+"Kyle Pitts Sr. 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","46.3","0.5","11.3"
+"Jeremiyah Love 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","33.7","0.2","24.9","0.1","11.3"
+"Courtland Sutton 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","43.8","0.6","11.2"
+"Jaylen Waddle 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","49.5","0.4","11.0"
+"Tucker Kraft 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","52.0","0.3","11.0"
+"Germie Bernard 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","46.5","0.5","11.0"
+"Jordan Addison 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","43.6","0.6","10.9"
+"Colston Loveland 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","46.4","0.4","10.9"
+"Antonio Williams 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","47.8","0.4","10.9"
+"Malik Washington 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","44.8","0.4","10.8"
+"Sam Laporta 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","44.1","0.2","10.8"
+"Denzel Boston 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","48.0","0.4","10.7"
+"Jake Ferguson 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","44.3","0.3","10.6"
+"Omarion Hampton 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","51.8","0.0","21.9","0.1","10.5"
+"Jayden Reed 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","43.8","0.2","10.5"
+"Jonathon Brooks 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","27.7","0.1","31.2","0.3","10.4"
+"Cam Little 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","0.0","0.0","10.3"
+"Woody Marks 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","31.6","0.2","21.7","0.2","10.3"
+"Jack Bech 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","44.4","0.3","10.2"
+"Tyler Loop 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","0.0","0.0","10.2"
+"Chase Mclaughlin 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","0.0","0.0","10.2"
+"Evan Engram 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","52.0","0.1","10.1"
+"Rachaad White 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","25.1","0.1","24.3","0.3","10.1"
+"David Njoku 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","47.3","0.3","10.0"
+"Cairo Santos 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","0.0","0.0","10.0"
+"Michael Mayer 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","39.9","0.2","9.9"
+"Brandon Aubrey 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","0.0","0.0","9.9"
+"Jalen Nailor 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","38.3","0.4","9.8"
+"Tyjae Spears 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","16.2","0.2","27.9","0.1","9.8"
+"Romeo Doubs 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","48.1","0.2","9.8"
+"Adonai Mitchell 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","41.5","0.5","9.8"
+"Tyler Bass 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","0.0","0.0","9.8"
+"Harrison Butker 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","0.0","0.0","9.8"
+"Xavier Worthy 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","11.7","0.0","36.7","0.3","9.7"
+"Harrison Mevis 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","0.0","0.0","9.7"
+"Makai Lemon 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","0.0","0.0","37.5","0.3","9.6"
+"Gunnar Helm 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","34.6","0.3","9.4"
+"Darnell Mooney 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","3.7","0.0","39.0","0.3","9.4"
+"Ka'Imi Fairbairn 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","0.0","0.0","9.3"
+"Kenyon Sadiq 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","35.1","0.3","9.2"
+"Cole Kmet 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","42.1","0.4","9.1"
+"Jake Elliott 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","0.0","0.0","0.0","0.0","9.1"
+"Theo Wease Jr. 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","1.0","0.0","35.7","0.4","9.0"
+"Quentin Johnston 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","33.9","0.4","8.9"
+"Oronde Gadsden 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","46.3","0.2","8.9"
+"Devaughn Vele 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","40.1","0.2","8.9"
+"Kayshon Boutte 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","40.1","0.4","8.8"
+"Jason Myers 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.7"
+"Will Reichard 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.7"
+"Chad Ryland 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.6"
+"Jason Sanders 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.6"
+"Ryan Fitzgerald 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.6"
+"Tyrone Tracy Jr. 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","28.8","0.3","15.6","0.1","8.4"
+"Josh Oliver 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","37.9","0.4","8.4"
+"Pat Bryant 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","41.0","0.2","8.4"
+"Josh Jacobs 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","28.9","0.1","16.6","0.2","8.3"
+"Rashod Bateman 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","40.3","0.3","8.3"
+"Chris Boswell 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.3"
+"Greg Dulcich 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","33.7","0.3","8.2"
+"Tyler Allgeier 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","38.0","0.2","8.8","0.1","8.2"
+"Kenny Gainwell 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","22.9","0.1","20.2","0.1","8.1"
+"Samaje Perine 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","16.3","0.1","18.1","0.3","8.1"
+"Alvin Kamara 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","13.3","0.1","23.5","0.3","8.1"
+"Eddy Pineiro 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.1"
+"Cameron Dicker 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.1"
+"Wil Lutz 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","0.0","0.0","8.1"
+"Joshua Palmer 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","33.4","0.5","8.0"
+"Demario Douglas 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","26.7","0.3","7.9"
+"Andy Borregales 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","7.8"
+"Jake Bates 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","0.0","0.0","7.8"
+"Caleb Douglas 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","34.5","0.3","7.7"
+"Dontayvion Wicks 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","0.0","0.0","40.0","0.3","7.7"
+"Jaylin Noel 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","37.7","0.2","7.6"
+"Jacory Croskey-merritt 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","40.6","0.2","7.1","0.0","7.5"
+"Tre Tucker 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","33.6","0.2","7.5"
+"Jack Endries 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","23.4","0.5","7.5"
+"Tre' Harris 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","32.6","0.2","7.4"
+"Evan Mcpherson 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","0.0","0.0","7.3"
+"Ted Hurst III 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","25.6","0.4","7.3"
+"Darnell Washington 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","35.1","0.1","7.3"
+"Chris Rodriguez Jr. 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","23.2","0.2","9.9","0.2","7.3"
+"Marlin Klein 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","33.2","0.2","7.2"
+"Andre Szmyt 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","7.2"
+"Devontez Walker 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","25.4","0.5","7.1"
+"Tyquan Thornton 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","37.9","0.2","7.1"
+"Tyler Higbee 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","29.9","0.2","7.0"
+"Mack Hollins 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","39.2","0.1","7.0"
+"Nick Folk 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","7.0"
+"Andrei Iosivas 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","30.8","0.2","6.9"
+"Foster Moreau 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","29.1","0.2","6.9"
+"Calvin Ridley 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","31.5","0.2","6.8"
+"Theo Johnson 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","21.9","0.4","6.8"
+"Matt Gay 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","6.8"
+"Colby Parkinson 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","24.3","0.3","6.7"
+"Elic Ayomanor 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","29.4","0.2","6.7"
+"Aj Barner 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","26.8","0.1","6.7"
+"Cedric Tillman 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","27.7","0.3","6.5"
+"Terrance Ferguson 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","34.5","0.1","6.5"
+"Tory Horton 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","23.4","0.4","6.4"
+"Kyren Williams 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","45.5","0.3","0.0","0.0","6.4"
+"Joey Slye 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","0.0","0.0","6.3"
+"Emmett Johnson 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","16.4","0.1","19.2","0.2","6.3"
+"Jalen Mcmillan 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","33.2","0.1","6.2"
+"Trey Smack 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","0.0","0.0","6.2"
+"Noah Fant 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","19.8","0.2","6.1"
+"Jaylin Lane 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","26.2","0.2","6.1"
+"Mason Taylor 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","18.7","0.3","6.1"
+"Bub Means 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","27.2","0.2","6.1"
+"Skyler Bell 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","21.0","0.4","6.0"
+"Blake Corum 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","41.2","0.3","0.0","0.0","5.9"
+"Jordan James 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","19.9","0.1","17.2","0.1","5.9"
+"Tank Bigsby 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","25.8","0.3","4.8","0.0","5.8"
+"Treveyon Henderson 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","40.1","0.3","0.0","0.0","5.8"
+"Dyami Brown 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","25.9","0.2","5.8"
+"Ben Sauls 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","0.0","0.0","5.8"
+"Demarcus Robinson 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","24.2","0.2","5.7"
+"Troy Franklin 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","20.4","0.3","5.7"
+"Kevin Coleman Jr. 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","29.3","0.1","5.7"
+"Drew Sample 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","24.2","0.1","5.7"
+"J.K. Dobbins 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","44.9","0.2","0.0","0.0","5.7"
+"Jake Moody 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","0.0","0.0","5.7"
+"Kyle Juszczyk 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","20.2","0.2","5.6"
+"Chris Bell 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","30.9","0.1","5.6"
+"Jahan Dotson 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","23.6","0.2","5.6"
+"Hollywood Brown 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","0.0","0.0","26.4","0.2","5.6"
+"Stefon Diggs 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","21.2","0.2","5.6"
+"Deebo Samuel Sr. 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","18.8","0.2","5.5"
+"Kaelon Black 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","39.9","0.2","0.0","0.0","5.5"
+"Spencer Shrader 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","0.0","0.0","5.5"
+"Zachariah Branch 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","16.5","0.4","5.4"
+"Jalen Tolbert 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","26.3","0.1","5.4"
+"Elijah Sarratt 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","21.4","0.3","5.4"
+"Ryan Flournoy 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","22.1","0.1","5.3"
+"Nick Westbrook-ikhine 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","25.1","0.1","5.3"
+"Keaton Mitchell 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","13.2","0.1","18.1","0.1","5.3"
+"Matthew Hibner 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","24.9","0.1","5.3"
+"Jawhar Jordan 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","9.4","0.1","9.0","0.2","5.2"
+"Juju Smith-schuster 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","7.0","0.5","5.2"
+"Malachi Fields 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","19.6","0.3","5.2"
+"Kimani Vidal 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","13.9","0.1","15.5","0.1","5.1"
+"Elijah Arroyo 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","24.5","0.1","5.1"
+"Roman Wilson 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","22.3","0.1","5.1"
+"Darius Slayton 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","26.1","0.1","5.0"
+"Bryce Lance 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","24.4","0.0","4.9"
+"Eli Raridon 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","21.4","0.1","4.9"
+"Connor Heyward 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","5.0","0.1","10.9","0.1","4.9"
+"Drake Dabney 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","14.3","0.3","4.9"
+"Kayshon Boutte 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","12.0","0.3","4.8"
+"Olamide Zaccheaus 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","23.5","0.1","4.8"
+"Tommy Tremble 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","20.9","0.1","4.8"
+"Chimere Dike 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","3.7","0.0","20.5","0.1","4.8"
+"Mitchell Evans 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","19.9","0.2","4.8"
+"Keenan Allen 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","17.0","0.1","4.8"
+"Ja'Tavion Sanders 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","23.1","0.1","4.7"
+"Adam Trautman 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","16.1","0.2","4.7"
+"Kavontae Turpin 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","16.2","0.2","4.7"
+"Tanner Koziol 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","7.0","0.5","4.7"
+"Brashard Smith 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","5.7","0.1","11.1","0.2","4.7"
+"Keon Coleman 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","17.9","0.2","4.7"
+"Charlie Smyth 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","0.0","0.0","4.7"
+"Dawson Knox 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","23.9","0.1","4.6"
+"Raheim Sanders 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","18.3","0.2","4.6"
+"Rico Dowdle 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","36.5","0.1","0.0","0.0","4.6"
+"Jahdae Walker 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","18.0","0.2","4.5"
+"Lajohntay Wester 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","23.3","0.1","4.5"
+"Riley Patterson 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","4.4"
+"Xavier Legette 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","21.9","0.1","4.4"
+"Emanuel Wilson 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","13.2","0.1","9.1","0.1","4.4"
+"Braelon Allen 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","32.2","0.2","0.0","0.0","4.4"
+"Charlie Kolar 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","16.8","0.2","4.4"
+"Durham Smythe 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","21.0","0.1","4.4"
+"Brenden Bates 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","11.9","0.3","4.4"
+"Nick Vannett 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","10.1","0.4","4.3"
+"John Bates 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","19.3","0.1","4.3"
+"Darren Waller 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","15.0","0.2","4.3"
+"Tanner Hudson 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","9.3","0.3","4.2"
+"Mo Alie-cox 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","18.7","0.2","4.2"
+"Jonnu Smith 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","23.9","0.1","4.2"
+"Will Kacmarek 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","18.1","0.1","4.2"
+"Aj Dillon 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","23.1","0.0","7.6","0.0","4.1"
+"Brian Robinson Jr. 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","31.6","0.1","0.0","0.0","4.1"
+"Lequint Allen Jr. 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","12.8","0.2","4.0"
+"Noah Gray 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","12.9","0.2","4.0"
+"Nate Boerkircher 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","14.2","0.1","4.0"
+"Jeremy Ruckert 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","17.1","0.1","3.9"
+"Brock Wright 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","15.9","0.1","3.9"
+"Davis Allen 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","18.2","0.0","3.8"
+"Daniel Bellinger 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","0.0","0.0","17.6","0.1","3.8"
+"Ben Sims 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","14.4","0.1","3.8"
+"Isaac Teslaa 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","17.4","0.1","3.8"
+"Ben Skowronek 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","0.0","0.0","11.6","0.2","3.8"
+"Luke Farrell 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","20.6","0.0","3.8"
+"Brady Russell 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","17.5","0.1","3.8"
+"Zane Gonzalez 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","3.7"
+"Ben Sinnott 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","15.0","0.1","3.7"
+"Odell Beckham Jr. 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","17.8","0.1","3.7"
+"Van Jefferson 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","18.1","0.0","3.6"
+"Luke Schoonmaker 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","8.0","0.2","3.5"
+"Dallen Bentley 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","23.3","0.0","3.5"
+"Josh Cameron 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","16.7","0.0","3.4"
+"Jalen Royals 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","18.1","0.1","3.4"
+"Ian Thomas 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","21.5","0.0","3.4"
+"Bauer Sharp 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","12.7","0.1","3.4"
+"Jackson Hawes 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","12.2","0.1","3.3"
+"Cj Donaldson 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","6.6","0.2","3.3"
+"Reggie Gilliam 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","20.6","0.0","3.3"
+"Adrian Martinez 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","2.5","0.5","0.0","0.0","3.2"
+"Blake Whiteheart 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","17.4","0.0","3.2"
+"Elijah Higgins 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","12.5","0.1","3.1"
+"Jake Brendel 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","8.1","0.2","3.1"
+"Tutu Atwell 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","14.9","0.0","3.1"
+"Nate Adkins 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","16.4","0.0","3.0"
+"Brevyn Spann-ford 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","14.3","0.0","3.0"
+"Cam Grandy 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","12.2","0.1","3.0"
+"Hayden Rucci 
+San Francisco 49ers vs Miami Dolphins","0.0","0.0","0.0","0.0","0.0","10.4","0.1","3.0"
+"Luke Mccaffrey 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","17.1","0.0","3.0"
+"Mike Washington Jr. 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","20.4","0.1","0.0","0.0","2.9"
+"Ameer Abdullah 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","10.1","0.1","2.5","0.0","2.9"
+"Erick All Jr. 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","14.4","0.0","2.9"
+"Drew Stevens 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","0.0","0.0","2.9"
+"Lan Larison 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","6.8","0.1","2.8"
+"Kyle Williams 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","8.3","0.1","2.8"
+"Isaiah Williams 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","15.6","0.0","2.8"
+"Sam Roush 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","0.0","0.0","4.6","0.2","2.7"
+"Patrick Ricard 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","12.3","0.0","2.7"
+"Dominic Zvada 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","0.0","0.0","2.7"
+"Max Klare 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","8.0","0.1","2.6"
+"Justin Watson 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","4.0","0.2","2.6"
+"Brenen Thompson 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","7.1","0.1","2.6"
+"Bo Melton 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","10.8","0.2","0.0","0.0","2.6"
+"Blake Grupe 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","0.0","0.0","2.6"
+"Seth Mcgowan 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","5.7","0.0","4.9","0.0","2.5"
+"Jerome Ford 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","6.6","0.0","8.1","0.0","2.5"
+"Andrew Beck 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","14.7","0.0","2.5"
+"Cade York 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","2.4"
+"Mitch Tinsley 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","10.4","0.0","2.4"
+"Ollie Gordon II 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","7.4","0.3","0.0","0.0","2.4"
+"Ty Johnson 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","21.2","0.1","0.0","0.0","2.4"
+"Kaytron Allen 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","12.7","0.2","0.0","0.0","2.4"
+"Austin Hooper 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","9.6","0.0","2.4"
+"Max Bredeson 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","10.3","0.0","2.4"
+"Treylon Burks 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.0","0.0","10.9","0.0","2.4"
+"Michael Burton 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","0.0","0.0","4.9","0.1","2.3"
+"Charlie Woerner 
+Atlanta Falcons vs Carolina Panthers","0.0","0.0","0.0","0.0","0.0","11.5","0.0","2.3"
+"Anthony Gould 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","4.0","0.1","2.3"
+"Alec Ingold 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","0.0","0.0","4.0","0.1","2.3"
+"Josh Cuevas 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","0.0","0.0","8.8","0.0","2.3"
+"Cj Dippre 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","0.0","0.0","9.3","0.0","2.3"
+"Tyler Badie 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","10.4","0.0","2.2"
+"Marshawn Lloyd 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","18.6","0.1","0.0","0.0","2.2"
+"Lucas Krull 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","9.0","0.0","2.1"
+"Jonathan Mingo 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","0.0","0.0","9.4","0.0","2.1"
+"Emari Demercado 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","18.2","0.1","0.0","0.0","2.1"
+"George Holani 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","14.7","0.1","0.0","0.0","2.1"
+"Jared Wayne 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","0.0","0.0","10.4","0.0","2.0"
+"Colbie Young 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","10.0","0.0","2.0"
+"Dohnte Meyers 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","0.0","0.0","8.6","0.0","2.0"
+"Josh Whyle 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","0.0","0.0","9.6","0.0","2.0"
+"Dameon Pierce 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","11.0","0.1","0.0","0.0","1.9"
+"Justin Joly 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","8.0","0.0","1.9"
+"Chris Brooks 
+Green Bay Packers vs New York Jets","0.0","0.0","0.0","12.6","0.1","0.0","0.0","1.9"
+"Devin Culp 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","8.8","0.0","1.9"
+"Eric Saubert 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","0.0","0.0","8.5","0.0","1.9"
+"Cyrus Allen 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","8.0","0.0","1.8"
+"Hunter Long 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","8.0","0.0","1.8"
+"Mitchell Trubisky 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","18.0","0.0","0.0","0.0","1.8"
+"Tai Felton 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","8.0","0.0","1.8"
+"David Moore 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","0.0","0.0","7.7","0.0","1.8"
+"Tez Johnson 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","3.6","0.0","4.0","0.0","1.8"
+"Daniel Carlson 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","0.0","0.0","1.8"
+"Greg Dortch 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","7.3","0.0","1.7"
+"Reggie Virgil 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","0.0","0.0","7.3","0.0","1.7"
+"Israel Abanikanda 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","8.8","0.1","0.0","0.0","1.7"
+"Tyler Conklin 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","7.0","0.0","1.7"
+"Drew Ogletree 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","0.0","0.0","7.0","0.0","1.7"
+"Jonah Coleman 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","0.0","0.0","6.5","0.0","1.6"
+"Oscar Delp 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","0.0","0.0","6.0","0.0","1.6"
+"Konata Mumpfield 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","4.6","0.0","1.6"
+"Demond Claiborne 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","12.2","0.1","0.0","0.0","1.6"
+"Devin Singletary 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","11.9","0.1","0.0","0.0","1.6"
+"Jam Miller 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","5.7","0.1","0.0","0.0","1.5"
+"Sione Vaki 
+Detroit Lions vs Buffalo Bills","0.0","0.0","0.0","0.0","0.0","4.7","0.0","1.5"
+"Stetson Bennett Iv 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","14.7","0.0","0.0","0.0","1.5"
+"Dj Giddens 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","6.8","0.1","0.0","0.0","1.5"
+"Jake Briningstool 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","0.0","0.0","4.5","0.0","1.4"
+"Xavier Smith 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","0.0","0.0","4.3","0.0","1.4"
+"Payne Durham 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","0.0","0.0","4.2","0.0","1.4"
+"Deejay Dallas 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","0.0","0.0","4.2","0.0","1.4"
+"Donovan Edwards 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","8.8","0.1","0.0","0.0","1.4"
+"Adam Prentice 
+Denver Broncos vs Jacksonville Jaguars","0.0","0.0","0.0","13.5","0.0","0.0","0.0","1.4"
+"Ray Davis 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","0.0","0.0","3.2","0.0","1.3"
+"Chris Manhertz 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","0.0","0.0","3.0","0.0","1.3"
+"Ty Simpson 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","12.5","0.0","0.0","0.0","1.2"
+"Kendre Miller 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","5.9","0.1","0.0","0.0","1.2"
+"Shedeur Sanders 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","8.2","0.1","0.0","0.0","1.2"
+"Carlos Washington Jr. 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","7.5","0.1","0.0","0.0","1.2"
+"Sean Tucker 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","7.9","0.1","0.0","0.0","1.1"
+"Isaiah Bond 
+Cleveland Browns vs Tampa Bay Buccaneers","0.0","0.0","0.0","2.7","0.1","0.0","0.0","1.1"
+"Jaydon Blue 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","11.1","0.0","0.0","0.0","1.1"
+"Rashid Shaheed 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","10.8","0.0","0.0","0.0","1.1"
+"Roschon Johnson 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","5.5","0.1","0.0","0.0","1.0"
+"Jarquez Hunter 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","9.6","0.0","0.0","0.0","1.0"
+"Isaiah Davis 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","9.2","0.0","0.0","0.0","0.9"
+"Jalen Milroe 
+Seattle Seahawks vs Arizona Cardinals","0.0","0.0","0.0","9.0","0.0","0.0","0.0","0.9"
+"Salvon Ahmed 
+Chicago Bears vs Minnesota Vikings","0.0","0.0","0.0","5.2","0.1","0.0","0.0","0.9"
+"Frank Gore Jr. 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","8.4","0.0","0.0","0.0","0.8"
+"Elijah Mitchell 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","4.6","0.1","0.0","0.0","0.8"
+"Justin Fields 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","8.0","0.0","0.0","0.0","0.8"
+"Joe Milton III 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","8.0","0.0","0.0","0.0","0.8"
+"Jake Browning 
+Tampa Bay Buccaneers vs Cleveland Browns","0.0","0.0","0.0","7.7","0.0","0.0","0.0","0.8"
+"Jaylen Wright 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","7.7","0.0","0.0","0.0","0.8"
+"J.J. Mccarthy 
+Minnesota Vikings vs Chicago Bears","0.0","0.0","0.0","7.0","0.0","0.0","0.0","0.7"
+"Najee Harris 
+Los Angeles Chargers vs Las Vegas Raiders","0.0","0.0","0.0","6.9","0.0","0.0","0.0","0.7"
+"Phil Mafah 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","6.6","0.0","0.0","0.0","0.7"
+"Kyle Allen 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","6.5","0.0","0.0","0.0","0.7"
+"Jimmy Horn Jr. 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","6.2","0.0","0.0","0.0","0.6"
+"Spencer Rattler 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","6.0","0.0","0.0","0.0","0.6"
+"Hunter Luepke 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","5.9","0.0","0.0","0.0","0.6"
+"Shane Buechele 
+Buffalo Bills vs Detroit Lions","0.0","0.0","0.0","5.8","0.0","0.0","0.0","0.6"
+"Andy Dalton 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","5.6","0.0","0.0","0.0","0.6"
+"Malik Benson 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","5.5","0.0","0.0","0.0","0.6"
+"Corey Kiner 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","2.5","0.1","0.0","0.0","0.6"
+"Barion Brown 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","5.3","0.0","0.0","0.0","0.5"
+"Ronnie Rivers 
+Los Angeles Rams vs New York Giants","0.0","0.0","0.0","5.2","0.0","0.0","0.0","0.5"
+"Cade Klubnik 
+New York Jets vs Green Bay Packers","0.0","0.0","0.0","5.0","0.0","0.0","0.0","0.5"
+"Mason Rudolph 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","5.0","0.0","0.0","0.0","0.5"
+"Will Levis 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","5.0","0.0","0.0","0.0","0.5"
+"Carson Beck 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","4.8","0.0","0.0","0.0","0.5"
+"Devin Neal 
+New Orleans Saints vs Baltimore Ravens","0.0","0.0","0.0","4.8","0.0","0.0","0.0","0.5"
+"Cole Payton 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","4.7","0.0","0.0","0.0","0.5"
+"Nicholas Singleton 
+Tennessee Titans vs Philadelphia Eagles","0.0","0.0","0.0","4.3","0.0","0.0","0.0","0.4"
+"Riley Leonard 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","4.2","0.0","0.0","0.0","0.4"
+"Gardner Minshew II 
+Arizona Cardinals vs Seattle Seahawks","0.0","0.0","0.0","4.0","0.0","0.0","0.0","0.4"
+"Tyler Huntley 
+Baltimore Ravens vs New Orleans Saints","0.0","0.0","0.0","4.0","0.0","0.0","0.0","0.4"
+"Tanner Mckee 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","4.0","0.0","0.0","0.0","0.4"
+"Tahj Brooks 
+Cincinnati Bengals vs Houston Texans","0.0","0.0","0.0","3.9","0.0","0.0","0.0","0.4"
+"Chris Oladokun 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","3.8","0.0","0.0","0.0","0.4"
+"Anthony Richardson Sr. 
+Indianapolis Colts vs Kansas City Chiefs","0.0","0.0","0.0","3.7","0.0","0.0","0.0","0.4"
+"Davis Mills 
+Houston Texans vs Cincinnati Bengals","0.0","0.0","0.0","3.0","0.0","0.0","0.0","0.3"
+"Kaden Wetjen 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","3.0","0.0","0.0","0.0","0.3"
+"Emari Demercado 
+Dallas Cowboys vs Washington Commanders","0.0","0.0","0.0","2.7","0.0","0.0","0.0","0.3"
+"Will Shipley 
+Philadelphia Eagles vs Tennessee Titans","0.0","0.0","0.0","2.4","0.0","0.0","0.0","0.2"
+"Kaleb Johnson 
+Pittsburgh Steelers vs New England Patriots","0.0","0.0","0.0","2.2","0.0","0.0","0.0","0.2"
+"Kenny Pickett 
+Carolina Panthers vs Atlanta Falcons","0.0","0.0","0.0","2.2","0.0","0.0","0.0","0.2"
+"Garrett Nussmeier 
+Kansas City Chiefs vs Indianapolis Colts","0.0","0.0","0.0","1.5","0.0","0.0","0.0","0.2"
+"Behren Morton 
+New England Patriots vs Pittsburgh Steelers","0.0","0.0","0.0","1.5","0.0","0.0","0.0","0.2"
+"Jameis Winston 
+New York Giants vs Los Angeles Rams","0.0","0.0","0.0","1.0","0.0","0.0","0.0","0.1"
+"Marcus Mariota 
+Washington Commanders vs Dallas Cowboys","0.0","0.0","0.0","0.5","0.0","0.0","0.0","0.1"
+"Quinn Ewers 
+Miami Dolphins vs San Francisco 49ers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","0.0"
+"Kirk Cousins 
+Las Vegas Raiders vs Los Angeles Chargers","0.0","0.0","0.0","0.0","0.0","0.0","0.0","0.0"
+"Nick Mullens 
+Jacksonville Jaguars vs Denver Broncos","0.0","0.0","0.0","0.0","0.0","0.0","0.0","0.0"

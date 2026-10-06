@@ -38,7 +38,7 @@ describe("icons", () => {
       expect(METRICS[key]).toBeTypeOf("object");
     }
     expect(Object.keys(NAV_ICONS).sort()).toEqual(
-      ["board", "games", "grading", "lineups", "optimize", "players", "props"].sort(),
+      ["board", "claims", "games", "grading", "league", "lineups", "optimize", "players", "props"].sort(),
     );
   });
 

@@ -4,11 +4,11 @@ export const POSITIONS = ["QB", "RB", "WR", "TE", "DST"] as const;
 export type Position = (typeof POSITIONS)[number];
 
 const STYLE: Record<Position, string> = {
-  QB: "bg-pos-qb-tint text-pos-qb",
-  RB: "bg-pos-rb-tint text-pos-rb",
-  WR: "bg-pos-wr-tint text-pos-wr",
-  TE: "bg-pos-te-tint text-pos-te",
-  DST: "bg-pos-dst-tint text-pos-dst",
+  QB: "bg-pos-qb",
+  RB: "bg-pos-rb",
+  WR: "bg-pos-wr",
+  TE: "bg-pos-te",
+  DST: "bg-pos-dst",
 };
 
 /** Real position only. FLEX slots pass the player's actual position, never "FLEX". */
@@ -32,7 +32,7 @@ export function PositionPill({
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-sm px-1.5 t-caption font-semibold",
+        "inline-flex h-7 items-center justify-center rounded-sm px-2 t-body font-bold tracking-wide text-pos-ink",
         STYLE[pos],
         className,
       )}

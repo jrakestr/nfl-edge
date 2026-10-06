@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { GradeTable } from "@/components/grading/GradeTable";
+import { NgsCompare } from "@/components/grading/NgsCompare";
 import { PlayerBias } from "@/components/grading/PlayerBias";
 import { CURRENT_SEASON } from "@/lib/config";
-import { signedPct } from "@/lib/edge";
+import { signed, signedPct } from "@/lib/edge";
+import { marginAccuracy, type ErrorPair } from "@/lib/margin-accuracy";
 import type { CalBucket, GradedGame } from "@/lib/grade-types";
 import { MetricLabel, type Metric } from "@/lib/icons";
+import type { SiteCompare } from "@/lib/ngs-compare";
 import type { PlayerBiasData } from "@/lib/player-bias";
-import type { TrackRecord } from "@/lib/queries/results";
+import type { TrackRecord, WeekPicks } from "@/lib/queries/results";
 import { cn } from "@/lib/utils";
 
 function Tile({
@@ -18,7 +21,7 @@ function Tile({
   metric?: Metric;
   label: string;
   value: string;
-  sub?: string;
+  sub?: React.ReactNode;
 }) {
   return (
     <div className="card flex flex-col gap-1 p-4" role="listitem">
@@ -31,8 +34,47 @@ function Tile({
   );
 }
 
+/** Our average miss next to the book's on the same games. Smaller is better. */
+function ErrorTile({ label, pair }: { label: string; pair: ErrorPair | null }) {
+  if (!pair) return <Tile label={label} value="—" />;
+  const diff = pair.model - pair.book;
+  const even = Math.abs(diff) < 0.05;
+  return (
+    <Tile
+      label={label}
+      value={pair.model.toFixed(1)}
+      sub={
+        <span className="flex flex-col">
+          <span>
+            Book <span className="font-semibold text-line tnum">{pair.book.toFixed(1)}</span>
+          </span>
+          <span
+            className={cn(
+              "font-semibold tnum",
+              even ? "text-muted-foreground" : diff < 0 ? "text-edge-pos" : "text-edge-neg",
+            )}
+          >
+            {even ? "Even with the book" : `${Math.abs(diff).toFixed(1)} ${diff < 0 ? "closer" : "farther"}`}
+          </span>
+        </span>
+      }
+    />
+  );
+}
+
 function wlp(w: number, l: number, p: number): string {
   return `${w}–${l}–${p}`;
+}
+
+/** Share of decided picks that won; pushes are not decided. */
+export function pickAccuracy(w: { wins: number; losses: number }): string {
+  const n = w.wins + w.losses;
+  return n === 0 ? "—" : `${Math.round((w.wins / n) * 100)}%`;
+}
+
+/** Right over games counted, one decimal like the NFLGameSim page (62.5%). */
+function share(c: { right: number; n: number }): string {
+  return c.n === 0 ? "—" : `${((c.right / c.n) * 100).toFixed(1)}%`;
 }
 
 function href(season: number, week: number | null, cal: string | null): string {
@@ -49,6 +91,9 @@ export function GradingPage({
   games = [],
   buckets = [],
   weeks = [],
+  weekly = [],
+  finalByWeek = {},
+  ngs,
   playerBias,
   weekFilter = null,
   marketFilter = null,
@@ -58,6 +103,11 @@ export function GradingPage({
   games?: GradedGame[];
   buckets?: CalBucket[];
   weeks?: number[];
+  weekly?: WeekPicks[];
+  /** Finished REG games per week, graded or not. */
+  finalByWeek?: Record<number, number>;
+  /** Our metrics next to the NFLGameSim page's, for the selected week. */
+  ngs?: SiteCompare;
   /** Projected against actual DK points per player, from the persisted bias cells. */
   playerBias?: PlayerBiasData;
   weekFilter?: number | null;
@@ -75,6 +125,11 @@ export function GradingPage({
     : wlp(track.moneyline.wins, track.moneyline.losses, track.moneyline.pushes);
   const shown = weekFilter == null ? games : games.filter((g) => g.week === weekFilter);
   const nBuckets = buckets.reduce((s, b) => s + b.n, 0);
+  const acc = marginAccuracy(empty ? [] : shown);
+  const finishedInScope =
+    weekFilter == null
+      ? Object.values(finalByWeek).reduce((a, b) => a + b, 0)
+      : (finalByWeek[weekFilter] ?? 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,11 +140,29 @@ export function GradingPage({
           ten graded weeks.
         </p>
       </header>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5" role="list" aria-label="Track record">
+      <div className="flex flex-col gap-2">
+        <h2 className="t-body font-semibold">Bets the model flagged</h2>
+        <p className="t-caption">
+          Every pick where the model beat the posted price. Record = Spread + Total + Moneyline bets,
+          each shown as wins–losses–pushes.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6" role="list" aria-label="Track record">
         <Tile
-          label="Record"
+          label={weekFilter == null ? "All bets" : `Week ${weekFilter} record`}
           value={record}
-          sub={empty ? "No graded weeks yet" : `${track.gradedWeeks} graded week${track.gradedWeeks === 1 ? "" : "s"}`}
+          sub={
+            empty
+              ? "No graded weeks yet"
+              : weekFilter != null
+                ? "All bet types, this week only"
+                : `${track.gradedWeeks} graded week${track.gradedWeeks === 1 ? "" : "s"}`
+          }
+        />
+        <Tile
+          label="Bet win rate"
+          value={empty ? "—" : pickAccuracy(track)}
+          sub={empty ? undefined : `${track.wins} of ${track.wins + track.losses} bets won`}
         />
         <Tile
           metric="roi"
@@ -97,9 +170,75 @@ export function GradingPage({
           value={roi}
           sub={[kelly, "Headline until ten weeks"].filter(Boolean).join(" ")}
         />
-        <Tile label="Sides" value={sides} />
-        <Tile label="Totals" value={totals} />
-        <Tile label="Moneyline" value={moneyline} />
+        <Tile
+          label="Spread bets"
+          value={sides}
+          sub={empty ? undefined : `${pickAccuracy(track.sides)} won`}
+        />
+        <Tile
+          label="Total bets"
+          value={totals}
+          sub={empty ? undefined : `${pickAccuracy(track.totals)} won`}
+        />
+        <Tile
+          label="Moneyline bets"
+          value={moneyline}
+          sub={empty ? undefined : `${pickAccuracy(track.moneyline)} won`}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <h2 className="t-body font-semibold">Every game, bet or not</h2>
+        <p className="t-caption">
+          Pick accuracy asks who won. Beat the spread asks who covered the line. Neither depends on
+          whether the model flagged a bet.
+        </p>
+        <div
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6"
+          role="list"
+          aria-label="Margin accuracy"
+        >
+          <Tile
+            label="Pick accuracy"
+            value={share(acc.pick)}
+            sub={acc.pick.n === 0 ? undefined : `${acc.pick.right} of ${acc.pick.n} games, winner only`}
+          />
+          <Tile
+            label="Margin within 7 pts"
+            value={share(acc.within7)}
+            sub={acc.within7.n === 0 ? undefined : `${acc.within7.right} of ${acc.within7.n} games`}
+          />
+          <Tile
+            label="Beat the spread"
+            value={share(acc.ats)}
+            sub={
+              acc.ats.n === 0
+                ? undefined
+                : `${acc.ats.right} of ${acc.ats.n} games vs the line${acc.ats.pushes ? `, ${acc.ats.pushes} push` : ""}`
+            }
+          />
+          <ErrorTile label="Margin miss, points" pair={acc.margin} />
+          <ErrorTile label="Total miss, points" pair={acc.total} />
+          <Tile
+            label="Margin lean"
+            value={acc.bias == null ? "—" : signed(acc.bias)}
+            sub={
+              acc.bias == null
+                ? undefined
+                : Math.abs(acc.bias) < 0.05
+                  ? "No lean"
+                  : acc.bias > 0
+                    ? "Too high on the home team"
+                    : "Too high on the away team"
+            }
+          />
+        </div>
+        {!empty && finishedInScope > 0 ? (
+          <p className="t-caption" aria-label="Games counted">
+            {acc.pick.n === finishedInScope
+              ? `All ${finishedInScope} finished games counted, every game rather than only the bets.`
+              : `${acc.pick.n} of ${finishedInScope} finished games counted. A game with no run before kickoff is not graded.`}
+          </p>
+        ) : null}
       </div>
       {weeks.length > 1 ? (
         <nav className="flex flex-wrap items-center gap-2" aria-label="Week">
@@ -109,17 +248,23 @@ export function GradingPage({
           >
             All weeks
           </Link>
-          {weeks.map((w) => (
-            <Link
-              key={w}
-              href={href(season, w, marketFilter)}
-              className={cn("t-caption", weekFilter === w ? "font-semibold text-foreground" : "text-muted-foreground")}
-            >
-              Week {w}
-            </Link>
-          ))}
+          {weeks.map((w) => {
+            const picks = weekly.find((p) => p.week === w);
+            return (
+              <Link
+                key={w}
+                href={href(season, w, marketFilter)}
+                aria-current={weekFilter === w ? "page" : undefined}
+                className={cn("t-caption", weekFilter === w ? "font-semibold text-foreground" : "text-muted-foreground")}
+              >
+                Week {w}
+                {picks ? ` ${pickAccuracy(picks)}` : ""}
+              </Link>
+            );
+          })}
         </nav>
       ) : null}
+      {ngs && !empty ? <NgsCompare compare={ngs} week={weekFilter} /> : null}
       {playerBias && !empty ? <PlayerBias data={playerBias} gradedWeeks={weeks} /> : null}
       <GradeTable games={empty ? [] : shown} />
       <section className="card p-4">

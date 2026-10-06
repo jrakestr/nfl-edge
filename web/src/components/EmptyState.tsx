@@ -12,7 +12,7 @@ export function EmptyState({
 }) {
   return (
     <section className={`card flex flex-col gap-1 p-4 ${className ?? ""}`}>
-      <h2 className="t-title text-[15px] leading-5">{title}</h2>
+      <h2 className="t-sentence font-semibold">{title}</h2>
       {children ? <p className="t-sentence text-muted-foreground">{children}</p> : null}
     </section>
   );

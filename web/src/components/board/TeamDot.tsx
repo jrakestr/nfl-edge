@@ -13,22 +13,36 @@ export function TeamDot({ abbr, className }: { abbr: string; className?: string 
   );
 }
 
+function Elo({ rating }: { rating: number | null | undefined }) {
+  if (rating === undefined) return null;
+  const text =
+    rating == null || !Number.isFinite(rating) ? "—" : Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
+  return <span className="t-body tnum text-foreground">{text}</span>;
+}
+
 export function Matchup({
   home,
   away,
   className,
   variant = "dot",
+  homeElo,
+  awayElo,
 }: {
   home: string;
   away: string;
   className?: string;
   variant?: "dot" | "logo";
+  /** Stored run Elo. Omit to hide. Null is an em dash. 0 is shown as 0. */
+  homeElo?: number | null;
+  awayElo?: number | null;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
       {variant === "logo" ? <TeamLogo team={away} /> : <TeamDot abbr={away} />}
+      <Elo rating={awayElo} />
       <span className="text-muted-foreground">@</span>
       {variant === "logo" ? <TeamLogo team={home} /> : <TeamDot abbr={home} />}
+      <Elo rating={homeElo} />
     </span>
   );
 }

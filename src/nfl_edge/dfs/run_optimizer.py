@@ -1,11 +1,13 @@
 """Stage a slate working dir into NFL-DFS-Tools and run the classic optimizer."""
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
 
 from ..config import dfs_tools_path
+from ..outputs.dfs_export import uniques_from_config
 from .parse import parse_opto_csv
 
 _TIMEDELTA_STUB = '"""Unused import in nfl_optimizer.py; lets the module load on macOS."""\n'
@@ -80,14 +82,17 @@ def _newest(tools: Path, prefix: str) -> Path:
     return files[0]
 
 
-def run(export_dir: Path, site: str = "dk", lineups: int = 150, uniques: int = 1,
+def run(export_dir: Path, site: str = "dk", lineups: int = 150, uniques: int | None = None,
         showdown: bool = False) -> dict:
     tools = stage(export_dir, site)
+    cfg_path = export_dir / "config.json"
+    cfg = json.loads(cfg_path.read_text()) if cfg_path.is_file() else {}
+    n_uniques = uniques if uniques is not None else uniques_from_config(cfg)
     if showdown:
-        _run(tools, [site, "sd_opto", str(lineups), str(uniques)])
+        _run(tools, [site, "sd_opto", str(lineups), str(n_uniques)])
         out = _newest(tools, f"{site}_sd_optimal_lineups_*.csv")
     else:
-        _run(tools, [site, "opto", str(lineups), str(uniques)])
+        _run(tools, [site, "opto", str(lineups), str(n_uniques)])
         out = _newest(tools, f"{site}_optimal_lineups_*.csv")
     shutil.copy2(out, export_dir / "optimal_lineups.csv")
     parsed = parse_opto_csv(out)

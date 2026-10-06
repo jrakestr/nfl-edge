@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nfl-edge.week-grade</string>
+  <key>WorkingDirectory</key>
+  <string>/Users/home/Development/nfl-edge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/home/Development/nfl-edge/ops/week-grade.sh</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/home/Development/nfl-edge/output/cron-grade.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/home/Development/nfl-edge/output/cron-grade.log</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>2</integer>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+</dict>
+</plist>

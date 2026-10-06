@@ -10,7 +10,8 @@ import pytest
 from nfl_edge.benchmark import nflgamesim as G
 
 FIXTURE = Path(__file__).parent / "fixtures" / "nflgamesim_week02.txt"
-WEEK02_CSV = Path(__file__).parent.parent / "data" / "benchmarks" / "nflgamesim_2026_week02.csv"
+# Frozen copy of the old-grammar week 2 output; data/benchmarks is rewritten by every page ingest.
+WEEK02_CSV = Path(__file__).parent / "fixtures" / "nflgamesim_week02_expected.csv"
 
 
 def _schedules(rows: list[dict], finals: bool) -> pl.DataFrame:

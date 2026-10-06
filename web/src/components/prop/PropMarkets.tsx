@@ -28,7 +28,7 @@ export function PropMarkets() {
       </Tabs>
       <ToggleGroup type="single" defaultValue="L10" size="sm" spacing={0} className="w-fit">
         {WINDOWS.map((w) => (
-          <ToggleGroupItem key={w} value={w} className="t-caption h-7 px-2">
+          <ToggleGroupItem key={w} value={w} className="t-caption h-8 px-2">
             {w}
           </ToggleGroupItem>
         ))}

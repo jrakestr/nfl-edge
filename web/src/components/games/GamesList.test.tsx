@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { GamesList, simScore } from "@/components/games/GamesList";
-import { fixtureRows } from "@/test/fixture";
+import { asScheduleRows, fixtureRows } from "@/test/fixture";
+import { noProjectionsNotice } from "@/lib/format";
 
 describe("simScore", () => {
   it("splits total and spread into away–home points", () => {
@@ -28,6 +29,16 @@ describe("GamesList", () => {
     expect(screen.getByText(rows[0].home)).toBeInTheDocument();
     expect(screen.getByText(/NFLGameSim 28.1–30.2/)).toBeInTheDocument();
     expect(screen.queryByText("No games listed yet")).not.toBeInTheDocument();
+  });
+
+  it("no-run week shows the notice, 16 schedule rows, and market lines", () => {
+    const rows = asScheduleRows(fixtureRows());
+    render(<GamesList week={2} rows={rows} weekTotal={16} slateCount={16} notice={noProjectionsNotice(2)} />);
+    expect(screen.getByRole("note")).toHaveTextContent(noProjectionsNotice(2));
+    expect(screen.getByRole("table").querySelectorAll("tbody tr")).toHaveLength(16);
+    const withLine = rows.find((r) => r.spread_line != null)!;
+    expect(screen.getByRole("table")).toHaveTextContent(String(withLine.home));
+    expect(screen.queryByText(/Sim score summary from the same draws/)).not.toBeInTheDocument();
   });
 
   it("shows the final score and hides the week scoreboard when nothing is graded", () => {

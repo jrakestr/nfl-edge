@@ -32,16 +32,55 @@ def week_from_gamedays(rows: list[tuple[int, date]], today: date) -> int | None:
     return min(hits) if hits else None
 
 
-def current_week(season: int, today: date | None = None) -> int | None:
+def completed_weeks_from_gamedays(rows: list[tuple[int, date]], today: date) -> list[int]:
+    """REG weeks whose last gameday is strictly before today."""
+    by_week: dict[int, list[date]] = {}
+    for week, gameday in rows:
+        if gameday is None:
+            continue
+        by_week.setdefault(int(week), []).append(gameday)
+    return sorted(week for week, days in by_week.items() if max(days) < today)
+
+
+def _schedule_week_rows(season: int) -> list[tuple[int, date]]:
     df = read_sql(
         "select week, gameday::date as gameday from raw.schedules "
         "where season = %s and game_type = 'REG'",
         (season,),
     )
     if df.is_empty():
+        return []
+    return [(int(r["week"]), r["gameday"]) for r in df.to_dicts()]
+
+
+def current_week(season: int, today: date | None = None) -> int | None:
+    rows = _schedule_week_rows(season)
+    if not rows:
         return None
-    rows = [(int(r["week"]), r["gameday"]) for r in df.to_dicts()]
     return week_from_gamedays(rows, today or datetime.now(tz=UTC).date())
+
+
+def completed_weeks(season: int, today: date | None = None) -> list[int]:
+    rows = _schedule_week_rows(season)
+    if not rows:
+        return []
+    return completed_weeks_from_gamedays(rows, today or datetime.now(tz=UTC).date())
+
+
+def games_missing_result(season: int, week: int) -> list[str]:
+    df = read_sql(
+        "select game_id from raw.schedules "
+        "where season = %s and week = %s and game_type = 'REG' and result is null "
+        "order by game_id",
+        (season, week),
+    )
+    if df.is_empty():
+        return []
+    return [str(r["game_id"]) for r in df.to_dicts()]
+
+
+def ungraded_completed_weeks(season: int, today: date | None = None) -> list[int]:
+    return [w for w in completed_weeks(season, today) if _ungraded_games(season, w)]
 
 
 def newest_run(season: int, week: int) -> tuple[str, int, int] | None:

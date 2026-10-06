@@ -1,4 +1,4 @@
-import { pickDefaultRun, pickLineupRun } from "./runs";
+import { pickDefaultRun, pickLineupRun, resolveDisplayWeek } from "./runs";
 
 const t = (iso: string) => new Date(iso);
 
@@ -32,8 +32,8 @@ describe("pickDefaultRun", () => {
     );
   });
 
-  it("falls back to newest when no run covers the slate", () => {
-    expect(pickDefaultRun([newerPartial], FULL)?.run_id).toBe(newerPartial.run_id);
+  it("returns null when no run covers the slate so the schedule fallback can show", () => {
+    expect(pickDefaultRun([newerPartial], FULL)).toBeNull();
   });
 
   it("returns null when there are no runs", () => {
@@ -71,5 +71,19 @@ describe("pickLineupRun", () => {
     const picked = pickLineupRun([sunSimNoLu], FULL);
     expect(picked?.run.run_id).toBe(sunSimNoLu.run_id);
     expect(picked?.buildInProgress).toBe(false);
+  });
+});
+
+describe("resolveDisplayWeek", () => {
+  it("prefers the open schedule week over the newest run week", () => {
+    expect(resolveDisplayWeek(2, 1, 1)).toBe(2);
+  });
+
+  it("uses the newest run week when every scheduled game has a result", () => {
+    expect(resolveDisplayWeek(null, 1, 1)).toBe(1);
+  });
+
+  it("falls back to DEFAULT_WEEK when the season has neither", () => {
+    expect(resolveDisplayWeek(null, null, 1)).toBe(1);
   });
 });

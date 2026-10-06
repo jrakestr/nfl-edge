@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 import polars as pl
 
-from . import common, depth, efficiency, qb, team, usage
+from . import common, depth, efficiency, elo, qb, team, usage
 
 
 @dataclass
@@ -18,6 +18,7 @@ class Priors:
     usage: pl.DataFrame
     efficiency: pl.DataFrame
     qb: pl.DataFrame = field(default_factory=pl.DataFrame)
+    elo: dict[str, float] = field(default_factory=dict)
 
 
 def build(season: int, week: int, c: dict | None = None) -> Priors:
@@ -38,4 +39,5 @@ def build(season: int, week: int, c: dict | None = None) -> Priors:
         usage=u,
         efficiency=efficiency.build(pw, season, week, c),
         qb=q,
+        elo=elo.load_ratings(season, week),
     )

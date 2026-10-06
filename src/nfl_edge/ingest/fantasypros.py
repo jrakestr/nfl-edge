@@ -96,9 +96,24 @@ class Client:
         return body
 
     def injuries(self, season: int, week: int) -> dict:
+        # include_probabilities adds the practice-report rows (practice 1-3, probability of playing)
+        # for players with no injury status; the status importer skips those rows.
         path = "/nfl/injuries"
-        body = self._get(path, {"year": season, "week": week})
+        body = self._get(path, {"year": season, "week": week, "include_probabilities": "true"})
         self._non_empty(body, "injuries", path)
+        return body
+
+    def player_points(self, season: int, start: int, end: int, scoring: str = "PPR") -> dict:
+        path = f"/nfl/{season}/player-points"
+        body = self._get(path, {"scoring": scoring, "start": start, "end": end,
+                                "position": "ALL", "min": "false"})
+        if str(body.get("season")) != str(season):
+            raise FantasyProsError(f"FantasyPros {path} answered season {body.get('season')}, "
+                                   f"asked season {season}; nothing written")
+        if str(body.get("scoring")) != scoring:
+            raise FantasyProsError(f"FantasyPros {path} answered scoring {body.get('scoring')}, "
+                                   f"asked {scoring}; nothing written")
+        self._non_empty(body, "players", path)
         return body
 
     def players(self) -> dict:

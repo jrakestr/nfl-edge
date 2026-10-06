@@ -60,7 +60,7 @@ export function stackSuggestions(
 ): { positive: StackSuggestion[]; negative: StackSuggestion[] } {
   if (locks.length === 0) return { positive: [], negative: [] };
 
-  const poolIds = new Set(poolFromPlayers(players).map((p) => p.player_dk_id));
+  const poolIds = new Set(poolFromPlayers(players, { uniquePlayerId: false }).map((p) => p.player_dk_id));
   const excl = new Set(excludes);
   const lockSet = new Set(locks);
   const stackSet = new Set(stacked);

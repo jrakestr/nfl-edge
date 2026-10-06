@@ -95,7 +95,7 @@ describe("empty sidebar layouts", () => {
     render(<GradingPage />);
     expect(screen.getByRole("heading", { name: "Grading" })).toBeInTheDocument();
     expect(screen.getAllByText("No graded weeks yet").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Actual")).toBeInTheDocument();
+    expect(screen.getAllByText("Actual").length).toBeGreaterThan(0);
     expect(screen.getByText("No graded lines yet.")).toBeInTheDocument();
     expect(screen.getByText("Flat ROI")).toBeInTheDocument();
     expect(screen.queryByText(/grade-web/i)).not.toBeInTheDocument();

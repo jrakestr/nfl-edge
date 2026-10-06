@@ -17,6 +17,7 @@ import { Matchup } from "./TeamDot";
 import { emphasize } from "./emphasize";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { MetricLabel } from "@/lib/icons";
+import { WhyExplain } from "./WhyExplain";
 
 const SIDE_LABEL: Record<keyof BoardRow["edges"], (r: BoardRow) => string> = {
   spread_home: (r) => `${r.home} spread`,
@@ -38,7 +39,9 @@ export function GameDrawer({
   checks,
   players = [],
   runCreatedAt,
+  runId,
   teamInputs = {},
+  scheduleOnly = false,
   open,
   onOpenChange,
 }: {
@@ -47,7 +50,9 @@ export function GameDrawer({
   checks: GameChecks | null;
   players?: DrawerPlayer[];
   runCreatedAt?: string | null;
+  runId?: string | null;
   teamInputs?: Record<string, TeamInput>;
+  scheduleOnly?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -70,11 +75,19 @@ export function GameDrawer({
                   awaySpreadOdds={row.away_spread_odds}
                 />
                 <TotalPill totalLine={row.total_line} />
+                {row.away_moneyline != null || row.home_moneyline != null ? (
+                  <span className="tnum t-body font-semibold text-line">
+                    {row.away} {price(row.away_moneyline)} {row.home} {price(row.home_moneyline)}
+                  </span>
+                ) : null}
                 {checks ? <CheckStatus status={checks.status} failed={checks.failed} showLabel /> : null}
               </SheetDescription>
             </SheetHeader>
 
             <div className="flex flex-col gap-6 p-6">
+              {scheduleOnly ? (
+                row.has_started ? <GameOutcome row={row} /> : null
+              ) : (
               <section aria-label="Verdict" className="flex flex-col gap-1 t-sentence">
                 {row.has_started ? (
                   <GameOutcome row={row} />
@@ -84,8 +97,9 @@ export function GameDrawer({
                   <p className="text-muted-foreground">No verdict at the newest line yet.</p>
                 )}
               </section>
+              )}
 
-              {row.has_started ? null : (
+              {!scheduleOnly && !row.has_started ? (
               <section aria-label="Edges">
                 <h4 className="t-colhead mb-2 text-muted-foreground">Model vs market at the newest line</h4>
                 <DataTable
@@ -161,9 +175,13 @@ export function GameDrawer({
                   ]}
                 />
               </section>
-              )}
+              ) : null}
 
+              {!scheduleOnly ? (
+              <>
               <GameWhy row={row} runCreatedAt={runCreatedAt} inputs={teamInputs} />
+
+              <WhyExplain runId={runId} gameId={row.game_id} open={open} />
 
               <section aria-label="Checks" className="flex flex-col gap-1">
                 <h4 className="t-colhead text-muted-foreground">Checks</h4>
@@ -227,6 +245,8 @@ export function GameDrawer({
                   </div>
                 ))}
               </section>
+              </>
+              ) : null}
             </div>
           </>
         ) : null}

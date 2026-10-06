@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { WeekBoard, type WeekBoardProps } from "./WeekBoard";
 import { DEFAULT_FILTERS } from "./filters";
-import { NO_SCOREBOARD, NO_TRACK, asFailed, fixture, fixtureChecks, fixtureRows, fixtureSummary, fixtureVerdicts } from "@/test/fixture";
+import { NO_SCOREBOARD, NO_TRACK, asFailed, asScheduleRows, fixture, fixtureChecks, fixtureRows, fixtureSummary, fixtureVerdicts } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
-import { maxEdge } from "@/lib/edge";
+import { homeLine, line, maxEdge } from "@/lib/edge";
+import { noProjectionsNotice } from "@/lib/format";
 
 // The board's client children (WeekHeader, RunBadge) read the router; the route test stubs it.
 vi.mock("next/navigation", () => ({
@@ -67,7 +68,7 @@ describe("/week/[n] against the Week 1 fixture", () => {
     expect(cards[0]).toHaveTextContent("spread 9.0 from market");
     expect(cards[1]).toHaveTextContent("spread 2.0 from market");
     expect(cards[0]).toHaveTextContent("at run");
-    expect(within(cards[0]).getByRole("complementary", { name: "Chips" })).toBeInTheDocument();
+    expect(cards[0].querySelector('[data-market="spread"]')).toBeTruthy();
   });
 
   it("lists failing games on the checks panel with the run-stored gap", () => {
@@ -86,6 +87,18 @@ describe("/week/[n] against the Week 1 fixture", () => {
     expect(panel).toHaveTextContent("spread_gap_vs_market");
     expect(panel).toHaveTextContent(`${row.away}@${row.home} 7.5 (limit 4.0)`);
     expect(panel).toHaveTextContent("at run");
+  });
+
+  it("compact: one row per game expands to the full card", () => {
+    render(<WeekBoard {...props({ density: "compact" })} />);
+    const list = document.querySelector("[data-density=compact]");
+    expect(list).toBeTruthy();
+    const rowBtn = list!.querySelector(":scope > [data-game] > button[aria-expanded]") as HTMLButtonElement;
+    expect(rowBtn).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(rowBtn);
+    expect(rowBtn).toHaveAttribute("aria-expanded", "true");
+    expect(list!.querySelector("article[data-market], article [data-market], article")).toBeTruthy();
+    expect(list!.querySelector("article")).toHaveAttribute("data-game", rowBtn.closest("[data-game]")?.getAttribute("data-game"));
   });
 
   it("plain english: the week summary and one card per game, biggest edge first", () => {
@@ -116,15 +129,42 @@ describe("/week/[n] against the Week 1 fixture", () => {
     const cards = screen.getAllByRole("article");
     const failed = cards.filter((c) => c.dataset.status === "fail");
     expect(failed).toHaveLength(1);
-    expect(within(failed[0]).queryByRole("complementary", { name: "Chips" })).toBeNull();
+    expect(failed[0].querySelector("[data-market]")).toBeNull();
     expect(cards.at(-1)).toBe(failed[0]); // fail rows sort last
-    expect(cards.filter((c) => within(c).queryByRole("complementary", { name: "Chips" }))).toHaveLength(15);
+    expect(cards.filter((c) => c.querySelector("[data-market]"))).toHaveLength(15);
   });
 
-  it("no run for the week: empty state with the commands to run", () => {
+  it("no run and no schedule: empty state with the commands to run", () => {
     render(<WeekBoard {...props({ run: null, runs: [], verdicts: [], rows: [], checks: {} })} />);
     expect(screen.getByText(/No simulation for this week yet/)).toBeInTheDocument();
     expect(screen.queryAllByRole("article")).toHaveLength(0);
+  });
+
+  it("no-run week renders 16 schedule rows with market lines and the notice", () => {
+    const rows = asScheduleRows(fixtureRows()).map((r, i) =>
+      i === 0
+        ? {
+            ...r,
+            game_id: "2026_02_DET_BUF",
+            away: "DET",
+            home: "BUF",
+            has_started: true,
+            is_final: true,
+            away_score: 21,
+            home_score: 30,
+            result: 9,
+          }
+        : r,
+    );
+    render(
+      <WeekBoard {...props({ week: 2, weeks: [2, 1], run: null, runs: [], verdicts: [], rows, checks: {} })} />,
+    );
+    expect(screen.getByRole("note")).toHaveTextContent(noProjectionsNotice(2));
+    expect(screen.getByRole("region", { name: "Edge table" }).querySelectorAll("tbody tr[data-game]")).toHaveLength(16);
+    expect(screen.queryAllByRole("article")).toHaveLength(0);
+    const live = rows.find((r) => !r.has_started && r.spread_line != null)!;
+    expect(screen.getByRole("region", { name: "Edge table" })).toHaveTextContent(line(homeLine(live.spread_line!)));
+    expect(screen.getByText("DET 21 – BUF 30")).toBeInTheDocument();
   });
 
   it("flags games whose newest line is newer than their verdict", () => {

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nfl-edge.loc-snapshot</string>
+  <key>WorkingDirectory</key>
+  <string>/Users/home/Development/nfl-edge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/home/Development/nfl-edge/ops/loc-snapshot.sh</string>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/home/Development/nfl-edge/output/cron-loc-snapshot.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/home/Development/nfl-edge/output/cron-loc-snapshot.log</string>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+</dict>
+</plist>

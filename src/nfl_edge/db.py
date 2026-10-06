@@ -105,6 +105,11 @@ def replace_where(df: pl.DataFrame, table: str, col: str, value: Any) -> int:
     return _write(df, table, "", pre=f"delete from {table} where {col} = %s", pre_params=(value,))
 
 
+def replace_scope(df: pl.DataFrame, table: str, where: str, params: tuple) -> int:
+    """Delete rows matching a parameterized `where`, then insert the frame, in one transaction."""
+    return _write(df, table, "", pre=f"delete from {table} where {where}", pre_params=params)
+
+
 def update_from_sql(table: str, columns: list[str], key_cols: list[str], stg: str) -> str:
     """One UPDATE … FROM for a staged frame. Keys match; non-keys are assigned."""
     set_cols = [c for c in columns if c not in key_cols]

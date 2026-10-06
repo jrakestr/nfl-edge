@@ -51,11 +51,20 @@ function base(over: Partial<GradedGame> = {}): GradedGame {
 }
 
 describe("GradeTable", () => {
+  it("names the three colors and freezes that key with the column header", () => {
+    render(<GradeTable games={[base()]} />);
+    expect(screen.getByLabelText("How to read the numbers")).toHaveTextContent("Ours");
+    expect(screen.getByText("Book")).toHaveClass("text-line");
+    expect(screen.getByText("+ We like it")).toHaveClass("text-edge-pos");
+    expect(screen.getByText("− We fade it")).toHaveClass("text-edge-neg");
+    expect(document.querySelector("thead")).toHaveClass("sticky");
+  });
+
   it("2026_01_GB_MIN shows Won, not pays", () => {
     render(<GradeTable games={[base()]} />);
     expect(screen.getByText("Won")).toBeInTheDocument();
     expect(screen.queryByText("pays")).not.toBeInTheDocument();
-    expect(screen.getByText(/Line moved our way/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Line moved our way/).length).toBeGreaterThan(0);
     expect(screen.getByTitle(/3 snapshots/)).toHaveTextContent("+1.5");
     expect(screen.queryByText("0.0")).not.toBeInTheDocument();
   });
