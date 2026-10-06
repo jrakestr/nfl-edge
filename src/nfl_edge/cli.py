@@ -128,6 +128,41 @@ def ingest_fantasypros_rankings(
         typer.echo(f"  ... {r['unmatched_n'] - 25} more unmatched")
 
 
+@ingest_app.command("fantasypros-status")
+def ingest_fantasypros_status(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print the diff; write nothing"),
+):
+    """One FantasyPros injuries pull into raw.player_overrides (note prefix 'fp ', out/doubtful only)."""
+    from .ingest import fantasypros_status as fps
+    from .ingest.fantasypros import FantasyProsError
+
+    try:
+        r = fps.run(season, week, dry_run=dry_run)
+    except (FantasyProsError, RuntimeError, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    tag = "dry-run " if r["dry_run"] else ""
+    typer.echo(
+        f"fantasypros status {tag}{r['season']} wk{r['week']}: {r['calls']} call, "
+        f"{r['written']} written, {len(r['upserts'])} to write, {len(r['already'])} unchanged, "
+        f"{len(r['protected'])} protected (other source), {len(r['stale'])} stale, "
+        f"{len(r['unmatched'])} unmatched"
+    )
+    for u in r["upserts"]:
+        typer.echo(f"  {u['old'] or '-'} -> {u['status']}: {u['name']} ({u['player_id']}) [{u['note']}]")
+    for p in r["protected"]:
+        typer.echo(f"  protected: {p['name']} ({p['player_id']}) has {p['old']} [{p['note']}]; "
+                   f"fantasypros says {p['would']}")
+    for s in r["stale"]:
+        typer.echo(f"  stale fp row, not cleared: {s['player_id']} {s['status']} [{s['note']}]")
+    for u in r["unmatched"]:
+        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
+    if r["ignored"]["unknown_status"]:
+        typer.echo(f"  unknown statuses skipped: {', '.join(r['unknown_statuses'])}")
+
+
 INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")
 
 
