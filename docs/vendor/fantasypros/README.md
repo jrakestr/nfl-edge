@@ -35,7 +35,7 @@ Documentation only. No ingest code exists for this API.
 
 ## Repo constraints
 
-- FantasyPros output is a display benchmark only. Never a sim input (AGENTS.md).
+- FantasyPros output is a display benchmark until promoted; promotion gate is in AGENTS.md. Availability enters only via source-scoped `raw.player_overrides`.
 - Free tier is limited: single explicit pulls, no polling.
 - Key lives in `.env` only. Never print it or the request headers.
 - Any ingest module needs its own plan; print actual response fields before writing code.
