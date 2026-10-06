@@ -132,9 +132,9 @@ def ingest_fantasypros_rankings(
 def ingest_fantasypros_status(
     season: int = typer.Option(...),
     week: int = typer.Option(...),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print the diff; write nothing"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be saved; save nothing"),
 ):
-    """One FantasyPros injuries pull into raw.player_overrides (note prefix 'fp ', out/doubtful only)."""
+    """One FantasyPros injuries pull into raw.player_overrides; the newest information wins."""
     from .ingest import fantasypros_status as fps
     from .ingest.fantasypros import FantasyProsError
 
@@ -143,24 +143,31 @@ def ingest_fantasypros_status(
     except (FantasyProsError, RuntimeError, ValueError) as e:
         typer.echo(f"error: {e}")
         raise typer.Exit(code=1) from None
-    tag = "dry-run " if r["dry_run"] else ""
-    typer.echo(
-        f"fantasypros status {tag}{r['season']} wk{r['week']}: {r['calls']} call, "
-        f"{r['written']} written, {len(r['upserts'])} to write, {len(r['already'])} unchanged, "
-        f"{len(r['protected'])} protected (other source), {len(r['stale'])} stale, "
-        f"{len(r['unmatched'])} unmatched"
-    )
+    head = f"FantasyPros injuries for {r['season']} week {r['week']}"
+    if r["dry_run"]:
+        head += " (dry run, nothing was saved)"
+    typer.echo(f"{head}: {len(r['upserts'])} players {'would be' if r['dry_run'] else 'were'} "
+               f"saved as out, doubtful or questionable ({r['written']} rows written).")
+    typer.echo(f"{len(r['already'])} players already match what is saved; "
+               f"{len(r['kept_newer'])} were left alone because a saved entry from another source is newer; "
+               f"{len(r['unmatched'])} could not be matched to a player.")
     for u in r["upserts"]:
-        typer.echo(f"  {u['old'] or '-'} -> {u['status']}: {u['name']} ({u['player_id']}) [{u['note']}]")
-    for p in r["protected"]:
-        typer.echo(f"  protected: {p['name']} ({p['player_id']}) has {p['old']} [{p['note']}]; "
-                   f"fantasypros says {p['would']}")
+        was = "no saved status" if not u["old"] else f"saved as {u['old']}"
+        typer.echo(f"  {u['name']} ({u['player_id']}): {was}, now {u['status']} "
+                   f"because FantasyPros reports it as of {u['note'].rsplit(' ', 1)[-1]}.")
+    for k in r["kept_newer"]:
+        typer.echo(f"  {k['name']} ({k['player_id']}): kept {k['saved_status']} ({k['saved_note']}) "
+                   f"because it was saved after FantasyPros' report; FantasyPros says {k['fp_status']}.")
     for s in r["stale"]:
-        typer.echo(f"  stale fp row, not cleared: {s['player_id']} {s['status']} [{s['note']}]")
+        typer.echo(f"  Saved FantasyPros row for {s['player_id']} ({s['status']}, {s['note']}) is no longer "
+                   "in the FantasyPros list; I left it in place because a missing player is not proof he is healthy.")
     for u in r["unmatched"]:
-        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
+        typer.echo(f"  Could not match {u['name']} ({u['team']}, {u['position']}): {u['reason']}.")
+    if r["questionable_without_saved_row"]:
+        typer.echo(f"{r['questionable_without_saved_row']} players are listed as questionable with no saved "
+                   "status; nothing was saved for them because that carries no usage change.")
     if r["ignored"]["unknown_status"]:
-        typer.echo(f"  unknown statuses skipped: {', '.join(r['unknown_statuses'])}")
+        typer.echo(f"Skipped players with statuses I do not recognise: {', '.join(r['unknown_statuses'])}.")
 
 
 INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")

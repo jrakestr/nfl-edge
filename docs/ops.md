@@ -174,10 +174,13 @@ Key: `FANTASY_PROS_API_KEY` in `.env` (CLI only, never `web/.env.local`). Refere
 non-fatal if the key is missing or the API fails.
 
 - `nfl-edge ingest fantasypros-status --season S --week W [--dry-run]`: injuries to
-  `raw.player_overrides`, note prefix `fp `. Writes only out/doubtful (O, IR, PUP, S, NFI → out; D →
-  doubtful) for QB/RB/WR/TE on teams playing the week. Questionable is ignored. Rows from manual, claims,
-  DK and RTS are never touched; a player FantasyPros stops listing is reported stale, not cleared.
-  Runs before the sim.
+  `raw.player_overrides`, note prefix `fp `. O, IR, PUP, S, NFI → out; D → doubtful; Q → questionable
+  (written only to replace an older saved row that disagrees). QB/RB/WR/TE on teams playing the week.
+  Newest information wins across all sources, manual included: FantasyPros replaces a saved row only
+  when its report time, `min(injury_update_date, fetched_at)`, is later than that row's `updated_at`;
+  otherwise the saved row stays and is reported. Caveat: `updated_at` moves only when the status
+  changes, so a source that re-confirms an unchanged status does not look newer. A player FantasyPros
+  stops listing is reported, not cleared. Runs before the sim.
 - `nfl-edge benchmark fantasypros --season S --week W`: projections into `raw.fantasypros_snapshots`
   (one `fetched_at` per pull, never overwritten) and the latest into `raw.external_players`
   (`source='fantasypros'`; `fpts_std`, `fpts_ppr`, and `fpts_dk`: the same stat means scored with the DK
