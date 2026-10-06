@@ -104,6 +104,30 @@ def ingest_odds_api(
     )
 
 
+@ingest_app.command("fantasypros-rankings")
+def ingest_fantasypros_rankings(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+):
+    """One FantasyPros weekly rankings pull into raw.fantasypros_snapshots (as-of, never overwritten)."""
+    from .ingest import fantasypros_rankings as fpr
+    from .ingest.fantasypros import FantasyProsError
+
+    try:
+        r = fpr.run(season, week)
+    except (FantasyProsError, RuntimeError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        f"fantasypros rankings {r['season']} wk{r['week']}: {r['calls']} call, "
+        f"{r['snapshots']} snapshot rows, {r['matched']} matched, {r['unmatched_n']} unmatched"
+    )
+    for u in r["unmatched"][:25]:
+        typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
+    if r["unmatched_n"] > 25:
+        typer.echo(f"  ... {r['unmatched_n'] - 25} more unmatched")
+
+
 INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")
 
 
@@ -675,29 +699,6 @@ def benchmark_rts(
         typer.echo(f"  {u['reason']}: {u['name']} team={u['team']}")
 
 
-@benchmark_app.command("nflgamesim-players")
-def benchmark_nflgamesim_players(
-    season: int = typer.Option(...),
-    week: int = typer.Option(...),
-    file: str = typer.Option(None, "--file", help="NFLGameSim weekly player CSV"),
-):
-    """Load an NFLGameSim player CSV into raw.external_players (benchmark only)."""
-    from pathlib import Path
-
-    from .benchmark import nflgamesim_players as ngp
-    from .ingest.odds_api import UnmappedTeam
-
-    try:
-        r = ngp.run(season, week, Path(file) if file else None)
-        typer.echo(
-            f"nflgamesim-players {r['season']} wk{r['week']}: "
-            f"{r['written']} written / {r['rows']} rows, "
-            f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
-            f"{r['games_unresolved_n']} unresolved games"
-        )
-        for u in r["unmatched"]:
-            typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} opp={u['opponent']}")
-        for g in r["games_unresolved"]:
 @benchmark_app.command("fantasypros")
 def benchmark_fantasypros(
     season: int = typer.Option(...),
@@ -722,6 +723,29 @@ def benchmark_fantasypros(
         typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
 
 
+@benchmark_app.command("nflgamesim-players")
+def benchmark_nflgamesim_players(
+    season: int = typer.Option(...),
+    week: int = typer.Option(...),
+    file: str = typer.Option(None, "--file", help="NFLGameSim weekly player CSV"),
+):
+    """Load an NFLGameSim player CSV into raw.external_players (benchmark only)."""
+    from pathlib import Path
+
+    from .benchmark import nflgamesim_players as ngp
+    from .ingest.odds_api import UnmappedTeam
+
+    try:
+        r = ngp.run(season, week, Path(file) if file else None)
+        typer.echo(
+            f"nflgamesim-players {r['season']} wk{r['week']}: "
+            f"{r['written']} written / {r['rows']} rows, "
+            f"{r['matched']} matched, {r['unmatched_n']} unmatched, "
+            f"{r['games_unresolved_n']} unresolved games"
+        )
+        for u in r["unmatched"]:
+            typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} opp={u['opponent']}")
+        for g in r["games_unresolved"]:
             typer.echo(
                 f"  unresolved game ({g['hits']} hits): {g['name']} "
                 f"team={g['team']} opp={g['opponent']}"
