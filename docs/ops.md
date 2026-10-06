@@ -180,7 +180,8 @@ non-fatal if the key is missing or the API fails.
   Runs before the sim.
 - `nfl-edge benchmark fantasypros --season S --week W`: projections into `raw.fantasypros_snapshots`
   (one `fetched_at` per pull, never overwritten) and the latest into `raw.external_players`
-  (`source='fantasypros'`; `fpts_std`, `fpts_ppr`; `fpts_dk` stays null).
+  (`source='fantasypros'`; `fpts_std`, `fpts_ppr`, and `fpts_dk`: the same stat means scored with the DK
+  rules in `config/scoring.yaml`, bonuses as probability x bonus points).
 - `nfl-edge ingest fantasypros-rankings --season S --week W`: weekly ECR into
   `raw.fantasypros_snapshots`. `raw.ff_rankings_weekly` stays the nflreadpy archive.
 

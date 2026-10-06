@@ -37,7 +37,7 @@ Documentation only. No ingest code exists for this API.
 
 - Env var: `FANTASY_PROS_API_KEY` (`.env`, CLI only).
 - Client: `src/nfl_edge/ingest/fantasypros.py`. Commands and behavior: `docs/ops.md` (FantasyPros API).
-- Observed 2026-10-05: projections `stats` keys `points` (STD), `points_ppr`, `points_half`, `pass_*`, `rush_*`, `rec_rec`, `rec_yds`, `rec_tds`; no DK scoring, no targets. Team codes `JAC`/`LAR` (mapped by `names.TEAM_ALIASES`). Injury `status_short` values seen: `IR`, `PUP`, `O`, `Q`, `S`. The `scoring` query param did not change the response (`STD`). No rate-limit headers were returned.
+- Observed 2026-10-05: projections `stats` keys `points` (STD), `points_ppr`, `points_half`, `pass_*`, `rush_*`, `rec_rec`, `rec_yds`, `rec_tds`; no DK scoring (we convert the stat means with `config/scoring.yaml`; `fumbles` is fumbles lost), no targets. Team codes `JAC`/`LAR` (mapped by `names.TEAM_ALIASES`). Injury `status_short` values seen: `IR`, `PUP`, `O`, `Q`, `S`. The `scoring` query param did not change the response (`STD`). No rate-limit headers were returned.
 
 ## Repo constraints
 

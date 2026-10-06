@@ -52,7 +52,31 @@ def test_dst_maps_to_team_dst_id():
     assert r.player_id == "ARI_DST"
 
 
-def test_project_rows_stats_unmatched_and_no_dk_points():
+DK = {"pass_yd": 0.04, "pass_td": 4, "int": -1, "pass_300_bonus": 3, "rush_yd": 0.1, "rush_td": 6,
+      "rush_100_bonus": 3, "rec": 1.0, "rec_yd": 0.1, "rec_td": 6, "rec_100_bonus": 3,
+      "fumble_lost": -1, "two_pt": 2}
+
+
+def test_dk_points_scores_bonus_probabilities_and_returns():
+    stats = {"pass_yds": 250, "pass_tds": 2, "pass_ints": 1, "pass_yds_300": 0.25,
+             "rush_yds": 20, "rush_tds": 0.5, "rec_rec": 5, "rec_yds": 60, "rec_tds": 0.3,
+             "rec_yds_100": 0.1, "fumbles": 0.2, "2pt_tds": 0.1, "ret_tds": 0.01}
+    want = (250 * 0.04 + 2 * 4 - 1 + 0.25 * 3 + 20 * 0.1 + 0.5 * 6 + 5 + 60 * 0.1 + 0.3 * 6
+            + 0.1 * 3 - 0.2 + 0.1 * 2 + 0.01 * 6)
+    assert B.dk_points(stats, DK) == pytest.approx(want)
+    assert B.dk_points({}, DK) == 0.0
+
+
+def test_fp_points_identity_confirms_stat_meaning():
+    """FantasyPros' own PPR points are reproduced by scoring the stats with its published rules,
+    which only works if `fumbles` is fumbles lost (-2). Guards the DK conversion's reading."""
+    ppr = {**DK, "int": -1, "fumble_lost": -2, "pass_300_bonus": 0, "rush_100_bonus": 0,
+           "rec_100_bonus": 0, "two_pt": 2}
+    for p in proj()["players"]:
+        assert B.dk_points(p["stats"], ppr) == pytest.approx(p["stats"]["points_ppr"], abs=0.1), p["name"]
+
+
+def test_project_rows_stats_unmatched_and_dk_points():
     rows, unmatched = B.project_rows(proj(), {"17298": "00-0000001"}, CATALOG, {}, TEAMS)
     allen = next(r for r in rows if r["name"] == "Josh Allen")
     assert allen["player_id"] == "00-0000001"
@@ -60,7 +84,7 @@ def test_project_rows_stats_unmatched_and_no_dk_points():
     assert allen["pass_att"] == pytest.approx(31.04)
     assert allen["pass_td"] == pytest.approx(1.73)
     assert allen["pass_int"] == pytest.approx(0.69)
-    assert allen["fpts_dk"] is None
+    assert allen["fpts_dk"] == pytest.approx(22.9226, abs=1e-3)
     gibbs = next(r for r in rows if r["name"] == "Jahmyr Gibbs")
     assert gibbs["fpts_ppr"] == pytest.approx(23.45)
     assert gibbs["rec"] is not None and gibbs["rec_yds"] is not None
@@ -96,7 +120,7 @@ def test_external_frame_schema_and_dedupe():
     assert df.select(["source", "season", "week", "name", "team"]).is_unique().all()
     assert set(df["source"]) == {"fantasypros"}
     assert {"pass_att", "pass_cmp", "rush_att", "rec", "fpts_std", "fpts_ppr", "fpts_dk"} <= set(df.columns)
-    assert df["fpts_dk"].null_count() == df.height
+    assert df["fpts_dk"].null_count() == 0
     # keep the larger projection when keys collide
     first = rows[0]
     assert df.filter(pl.col("name") == first["name"])["fpts_ppr"][0] == pytest.approx(first["fpts_ppr"])

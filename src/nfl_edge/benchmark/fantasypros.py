@@ -3,7 +3,8 @@
 Every pull inserts snapshot rows keyed by one `fetched_at` (never overwritten, so a later backtest
 can read only what existed before a run's cutoff); the latest values upsert into
 raw.external_players with source='fantasypros'. Stats are stored as the API returns them: fpts_std
-and fpts_ppr are FantasyPros points, fpts_dk stays null (the API has no DK scoring).
+and fpts_ppr are FantasyPros points. fpts_dk is the same stat means scored with config/scoring.yaml
+DK rules (see dk_points): the API has no DK scoring of its own.
 Benchmark only until promoted (AGENTS.md); nothing in sim/ or priors/ reads these tables.
 Unmatched players are kept with a null player_id and reported, never dropped.
 """
@@ -73,9 +74,38 @@ def _num(v) -> float | None:
         return None
 
 
+def dk_points(stats: dict, rules: dict) -> float:
+    """Expected DK points from FantasyPros stat means, scored with config/scoring.yaml (`dk`).
+
+    `pass_yds_300`, `rush_yds_100` and `rec_yds_100` are FantasyPros' expected counts of a bonus
+    game (a probability), so each bonus is probability x bonus points rather than a threshold on
+    the mean. `fumbles` is fumbles lost: FantasyPros' own STD points reproduce only when it is
+    scored at -2 (see test_fp_points_identity). `ret_tds` are return TDs at 6, as results/actuals.py
+    adds them to realized points. This converts an external projection for display; it is not a sim.
+    """
+    def g(key: str) -> float:
+        return _num(stats.get(key)) or 0.0
+
+    return (
+        g("pass_yds") * rules["pass_yd"] + g("pass_tds") * rules["pass_td"]
+        + g("pass_ints") * rules["int"] + g("pass_yds_300") * rules.get("pass_300_bonus", 0)
+        + g("rush_yds") * rules["rush_yd"] + g("rush_tds") * rules["rush_td"]
+        + g("rush_yds_100") * rules.get("rush_100_bonus", 0)
+        + g("rec_rec") * rules["rec"] + g("rec_yds") * rules["rec_yd"] + g("rec_tds") * rules["rec_td"]
+        + g("rec_yds_100") * rules.get("rec_100_bonus", 0)
+        + g("fumbles") * rules["fumble_lost"] + g("2pt_tds") * rules["two_pt"]
+        + g("ret_tds") * 6
+    )
+
+
 def project_rows(resp: dict, fp_map: dict[str, str], catalog: pl.DataFrame,
-                 aliases: dict[str, str], teams: dict) -> tuple[list[dict], list[dict]]:
-    """Map the projections response to rows + the unmatched list. Pure."""
+                 aliases: dict[str, str], teams: dict,
+                 dk_rules: dict | None = None) -> tuple[list[dict], list[dict]]:
+    """Map the projections response to rows + the unmatched list. Pure given dk_rules."""
+    if dk_rules is None:
+        from ..config import load_yaml
+
+        dk_rules = load_yaml("scoring.yaml")["dk"]
     prepared = catalog if "_dn" in catalog.columns else N.prepare_catalog(catalog)
     rows, unmatched = [], []
     for p in resp["players"]:
@@ -93,8 +123,8 @@ def project_rows(resp: dict, fp_map: dict[str, str], catalog: pl.DataFrame,
             "player_id": m.player_id,
             "match_reason": m.reason or "matched",
             "stats": stats,
-            "fpts_dk": None,
             **{col: _num(stats.get(key)) for key, col in STAT_MAP.items()},
+            "fpts_dk": dk_points(stats, dk_rules) if stats else None,
         }
         rows.append(row)
         if m.player_id is None:
@@ -111,7 +141,7 @@ def to_external_frame(rows: list[dict], season: int, week: int) -> tuple[pl.Data
         "player_id": r["player_id"], "name": r["name"], "team": r["team"],
         "opponent": None, "game_id": None,
         **{c: r.get(c) for c in STAT_COLS},
-        "fpts_dk": None,
+        "fpts_dk": r.get("fpts_dk"),
     } for r in rows]
     if not recs:
         return pl.DataFrame(schema=EXTERNAL_SCHEMA), 0
