@@ -327,6 +327,15 @@ export function PlayersList({
             ),
           },
           {
+            id: "fp",
+            header: "FantasyPros",
+            align: "right",
+            sortValue: (p) => p.fp_fpts,
+            cell: (p) => (
+              <span className="t-caption text-muted-foreground">{num(p.fp_fpts)}</span>
+            ),
+          },
+          {
             id: "projRk",
             header: "Pts rk",
             align: "right",

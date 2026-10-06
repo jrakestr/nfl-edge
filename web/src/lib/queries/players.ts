@@ -306,3 +306,27 @@ export async function actualsByPlayer(
   }
   return { graded: rows.length > 0, byPlayer };
 }
+/** FantasyPros fpts_dk per player_id (latest pull); empty if nothing was pulled. Benchmark only. */
+export async function fpByPlayer(
+  season: number,
+  week: number,
+  playerIds: string[],
+): Promise<Record<string, number>> {
+  if (playerIds.length === 0) return {};
+  try {
+    const rows = await sql()`
+      select player_id, fpts_dk::float8 as fp_fpts
+      from raw.external_players
+      where source = 'fantasypros' and season = ${season} and week = ${week}
+        and player_id = any(${playerIds})`;
+    const out: Record<string, number> = {};
+    for (const r of rows) {
+      if (r.player_id == null || r.fp_fpts == null) continue;
+      out[String(r.player_id)] = Number(r.fp_fpts);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+

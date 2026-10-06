@@ -407,6 +407,28 @@ describe("PlayersList NFLGameSim", () => {
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
   });
 
+  it("shows the FantasyPros benchmark column and a dash when it is absent", () => {
+    render(<PlayersList players={[{ ...MAIN[0]!, fp_fpts: 31.4 }, { ...MAIN[1]! }]} />);
+    expect(screen.getByRole("columnheader", { name: /FantasyPros/i })).toBeInTheDocument();
+    expect(screen.getByText("31.4")).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /main only/i })).toHaveTextContent("—");
+  });
+
+  it("sorts by FantasyPros from ?sort=fp&dir=desc", () => {
+    search = new URLSearchParams("sort=fp&dir=desc");
+    render(
+      <PlayersList
+        players={[
+          { ...MAIN[0]!, fp_fpts: 10.5 },
+          { ...MAIN[1]!, fp_fpts: 22.5 },
+        ]}
+      />,
+    );
+    const rows = screen.getAllByRole("row");
+    expect(rows[1]).toHaveTextContent("Main Only");
+    expect(rows[2]).toHaveTextContent("Jahmyr Gibbs");
+  });
+
   it("sorts by the bench from ?sort=ngs&dir=desc", () => {
     search = new URLSearchParams("sort=ngs&dir=desc");
     render(<PlayersList players={[...NGS].reverse()} />);

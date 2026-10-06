@@ -4,7 +4,7 @@ import { PlayersList } from "@/components/players/PlayersList";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
-import { actualsByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
+import { actualsByPlayer, fpByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
 import { stripGames } from "@/lib/queries/strip-games";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
 import { filterGamesForSlate, missingSlateNotice, requestedSlate, resolveSlate } from "@/lib/slate";
@@ -74,12 +74,21 @@ export default async function Page({
           players.map((p) => p.player_id),
         )
       : {};
+  const fp =
+    weekOk && players.length
+      ? await fpByPlayer(
+          season,
+          week,
+          players.map((p) => p.player_id),
+        )
+      : {};
   const actuals = weekOk && players.length ? await actualsByPlayer(season, week) : null;
   const merged = players.map((p) => {
     const a = actuals?.byPlayer[p.player_id];
     return {
       ...p,
       ngs_fpts: ngs[p.player_id] ?? null,
+      fp_fpts: fp[p.player_id] ?? null,
       actual_dk: a?.fpts_dk ?? null,
       actual_state: !actuals?.graded ? null : a?.had_opportunity ? ("played" as const) : ("dnp" as const),
     };
