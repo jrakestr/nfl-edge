@@ -1,5 +1,13 @@
 # Status
 
+## FantasyPros API (2026-10-05)
+
+What changed: `docs/vendor/fantasypros/` (OpenAPI spec, Firecrawl scrape, index). `FANTASY_PROS_API_KEY` in `.env.example` and `config.fantasypros_api_key()`. Migration 0030: `raw.fantasypros_snapshots` (keyed by `fetched_at`) and `raw.external_players` columns `pass_att pass_cmp rush_att rec fpts_std fpts_ppr`. CLI: `benchmark fantasypros`, `ingest fantasypros-rankings`, `ingest fantasypros-status [--dry-run]`; `ops/week-rebuild.sh` runs them non-fatally (status before the sim). AGENTS.md benchmark-only rule rewritten to benchmark-until-promoted with a four-part gate.
+
+What was verified: probe of players/projections/injuries/rankings (all 200; no rate-limit headers; projections return stats for any week asked, including past, so past values are not proven as-of). Unit tests on trimmed fixtures; no network in tests.
+
+What was deferred: promotion of anything into `priors/`; backfill of past seasons; web FantasyPros column (`fp-web-compare`); `database.types.ts` regen for the new `external_players` columns.
+
 Plans: `~/.cursor/plans/nfl_edge_master_a0a368ca.plan.md` (master, in progress); earlier steps 1–4 and 7 are done (see below). Web v2 plan `nfl_edge_web_v2_b29c8aae.plan.md` through Checkpoint A. Gemini plan `gemini_three_phases_b63212b0.plan.md` — Phase 1 live on Gemini 3.x; Phases 2–3 wait on accept.
 
 ## RTS injuries + starter share (2026-09-20)

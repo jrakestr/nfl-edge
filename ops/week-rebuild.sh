@@ -31,6 +31,21 @@ capture() {
   printf '%s\n' "$out"
 }
 
+# FantasyPros is optional and never aborts the rebuild: a missing key, an API error, or a
+# fail-closed response prints one line and the run continues. One call per command (free tier).
+fp_soft() {
+  local out code
+  set +e
+  out=$(/usr/bin/env -u DATABASE_URL "$NFL" "$@" 2>&1)
+  code=$?
+  set -e
+  printf '%s\n' "$out"
+  if [ "$code" -ne 0 ]; then
+    echo "fantasypros: skipped (exit $code), continuing"
+  fi
+  return 0
+}
+
 phx_today() { TZ=$TZ_PHX date "+%Y-%m-%d"; }
 phx_at() { TZ=$TZ_PHX date -j -f "%Y-%m-%d %H:%M:%S" "$(phx_today) $1" "+%s"; }
 is_sunday() { [ "$(TZ=$TZ_PHX date "+%u")" = "7" ]; }
@@ -104,6 +119,9 @@ OV_CSV="$ROOT/data/overrides/${SEASON}_wk${WW}.csv"
 if [ -f "$OV_CSV" ]; then
   capture /usr/bin/env -u DATABASE_URL "$NFL" overrides --season "$SEASON" --week "$WEEK" --file "$OV_CSV"
 fi
+
+# FantasyPros injuries (out/doubtful, note prefix "fp "): before the sim so the sim reads them.
+fp_soft ingest fantasypros-status --season "$SEASON" --week "$WEEK"
 
 if is_sunday && [ "$(date +%s)" -ge "$(phx_at "08:50:00")" ]; then
   echo "sun-inactives: sim not complete by 08:50, Saturday run kept"
@@ -179,6 +197,10 @@ for slate in "${SLATES[@]}"; do
   capture /usr/bin/env -u DATABASE_URL "$NFL" dfs \
     --season "$SEASON" --week "$WEEK" --site dk --slate "$slate" --lineups 150 --field 20000
 done
+
+# FantasyPros benchmark captures (display only until promoted): as-of snapshots, after the sim.
+fp_soft benchmark fantasypros --season "$SEASON" --week "$WEEK"
+fp_soft ingest fantasypros-rankings --season "$SEASON" --week "$WEEK"
 
 newest=$(capture /usr/bin/env -u DATABASE_URL "$NFL" newest-run --season "$SEASON" --week "$WEEK")
 echo "rebuild $NOTE week $WEEK $newest"

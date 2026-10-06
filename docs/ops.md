@@ -167,6 +167,26 @@ stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `co
 `raw.external_players` with `source='rts'`. Lineups Pick one re-scores a lineup with those
 numbers next to ours. Missing file: em dash. Never blended into `proj_fpts`.
 
+## FantasyPros API
+
+Key: `FANTASY_PROS_API_KEY` in `.env` (CLI only, never `web/.env.local`). Reference docs:
+`docs/vendor/fantasypros/`. One call per command (free tier); `week-rebuild.sh` runs all three,
+non-fatal if the key is missing or the API fails.
+
+- `nfl-edge ingest fantasypros-status --season S --week W [--dry-run]`: injuries to
+  `raw.player_overrides`, note prefix `fp `. Writes only out/doubtful (O, IR, PUP, S, NFI → out; D →
+  doubtful) for QB/RB/WR/TE on teams playing the week. Questionable is ignored. Rows from manual, claims,
+  DK and RTS are never touched; a player FantasyPros stops listing is reported stale, not cleared.
+  Runs before the sim.
+- `nfl-edge benchmark fantasypros --season S --week W`: projections into `raw.fantasypros_snapshots`
+  (one `fetched_at` per pull, never overwritten) and the latest into `raw.external_players`
+  (`source='fantasypros'`; `fpts_std`, `fpts_ppr`; `fpts_dk` stays null).
+- `nfl-edge ingest fantasypros-rankings --season S --week W`: weekly ECR into
+  `raw.fantasypros_snapshots`. `raw.ff_rankings_weekly` stays the nflreadpy archive.
+
+Benchmark only until promoted (gate in AGENTS.md). Nothing in `sim/` or `priors/` reads the snapshot
+tables. Unmatched players are kept with a null `player_id` and listed.
+
 ## Web
 
 The Next.js app in `web/` reads Supabase from server components. It does not generate verdicts.
