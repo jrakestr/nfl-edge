@@ -287,28 +287,30 @@ export function GradingPage({
                 </Link>
               ))}
             </nav>
-            <table className="mt-3 w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Bucket</th>
-                  <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Lines</th>
-                  <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Hit rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {buckets.map((b) => (
-                  <tr key={`${b.lo}-${b.hi}`} className="border-b border-border-soft">
-                    <td className="t-body px-3 py-2">
-                      {Math.round(b.lo * 100)}–{Math.round(b.hi * 100)}%
-                    </td>
-                    <td className="t-body tnum px-3 py-2 text-right">{b.n}</td>
-                    <td className="t-body tnum px-3 py-2 text-right">
-                      {b.hitRate == null ? "—" : `${Math.round(b.hitRate * 100)}%`}
-                    </td>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Bucket</th>
+                    <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Lines</th>
+                    <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Hit rate</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {buckets.map((b) => (
+                    <tr key={`${b.lo}-${b.hi}`} className="border-b border-border-soft">
+                      <td className="t-body px-3 py-2">
+                        {Math.round(b.lo * 100)}–{Math.round(b.hi * 100)}%
+                      </td>
+                      <td className="t-body tnum px-3 py-2 text-right">{b.n}</td>
+                      <td className="t-body tnum px-3 py-2 text-right">
+                        {b.hitRate == null ? "—" : `${Math.round(b.hitRate * 100)}%`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <p className="mt-2 t-caption">
               Every graded line (home side, or over on totals), not just the bets. One week makes
               most buckets small — the counts are the story, not a curve. Monotone against the close

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
 import { crumbs } from "@/lib/breadcrumbs";
+import { MobileNav } from "./MobileNav";
 import { SearchBox } from "./SearchBox";
 import { ThemeToggle } from "./ThemeToggle";
 import { usePageActions } from "./PageActions";
@@ -13,8 +14,9 @@ export function TopBar() {
   const items = crumbs(pathname);
   const actions = usePageActions();
   return (
-    <header className="glass sticky top-0 z-10 flex h-[var(--topbar-height)] items-center gap-4 border-b px-5">
-      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 t-body">
+    <header className="glass sticky top-0 z-10 flex h-[var(--topbar-height)] items-center gap-2 border-b px-3 md:gap-4 md:px-5">
+      <MobileNav />
+      <nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-1.5 t-body">
         {items.length === 0 ? (
           <span className="text-foreground">Home</span>
         ) : (
@@ -37,7 +39,7 @@ export function TopBar() {
           })
         )}
       </nav>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
         {actions}
         <ThemeToggle />
         <SearchBox />

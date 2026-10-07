@@ -11,16 +11,18 @@ import { navHref, pathContext } from "@/lib/slate";
 import { cn } from "@/lib/utils";
 import { useSidebarFooter } from "./PageActions";
 
-function NavItems({
+export function NavItems({
   collapsed,
   pathname,
   querySlate,
   search,
+  onNavigate,
 }: {
   collapsed: boolean;
   pathname: string;
   querySlate?: string | null;
   search?: URLSearchParams | null;
+  onNavigate?: () => void;
 }) {
   const ctx = pathContext(pathname, querySlate);
   return (
@@ -35,6 +37,7 @@ function NavItems({
             aria-label={item.label}
             aria-current={active ? "page" : undefined}
             title={item.label}
+            onClick={onNavigate}
             className={cn(
               "flex h-9 items-center rounded-md t-body transition-colors duration-[var(--dur-1)]",
               collapsed ? "justify-center px-0" : "gap-2 px-3",
@@ -52,10 +55,24 @@ function NavItems({
   );
 }
 
-function SlateNav({ collapsed, pathname }: { collapsed: boolean; pathname: string }) {
+export function SlateNav({
+  collapsed,
+  pathname,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  pathname: string;
+  onNavigate?: () => void;
+}) {
   const sp = useLiveSearchParams();
   return (
-    <NavItems collapsed={collapsed} pathname={pathname} querySlate={sp.get("slate")} search={sp} />
+    <NavItems
+      collapsed={collapsed}
+      pathname={pathname}
+      querySlate={sp.get("slate")}
+      search={sp}
+      onNavigate={onNavigate}
+    />
   );
 }
 
@@ -72,7 +89,7 @@ export function Sidebar({
   const registered = useSidebarFooter();
   return (
     <aside
-      className="sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col border-r bg-card transition-[width] duration-[var(--dur-2)] ease-[var(--ease)]"
+      className="sticky top-0 hidden h-screen w-[var(--sidebar-width)] md:flex shrink-0 flex-col border-r bg-card transition-[width] duration-[var(--dur-2)] ease-[var(--ease)]"
       aria-label="Primary"
     >
       <div

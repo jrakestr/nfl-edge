@@ -74,4 +74,13 @@ describe("GameDrawer checks", () => {
     expect(within(section).getByText(/spread_gap_vs_market/)).toBeInTheDocument();
     expect(section).toHaveTextContent(`${row.away}@${row.home} 7.5 (limit 4.0) · at run Sat 14:00`);
   });
+
+  it("is full width under sm and 520px from sm up", () => {
+    render(
+      <GameDrawer row={fixtureRows()[0]!} verdict={null} checks={null} scheduleOnly open onOpenChange={() => {}} />,
+    );
+    const content = document.querySelector('[data-slot="sheet-content"]')!;
+    expect(content.className).toContain("data-[side=right]:w-full");
+    expect(content.className).toContain("data-[side=right]:sm:w-[520px]");
+  });
 });
