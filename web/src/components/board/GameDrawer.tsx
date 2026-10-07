@@ -58,7 +58,7 @@ export function GameDrawer({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[520px] gap-0 overflow-y-auto p-0 sm:max-w-[520px]">
+      <SheetContent side="right" className="gap-0 overflow-y-auto p-0 data-[side=right]:w-full data-[side=right]:sm:w-[520px] data-[side=right]:sm:max-w-[520px]">
         {row ? (
           <>
             <SheetHeader className="border-b border-border-soft p-6 pb-4">
