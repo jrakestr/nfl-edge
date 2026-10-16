@@ -164,42 +164,44 @@ export function NgsCompare({ compare, week }: { compare: SiteCompare; week: numb
             ? ` ${compare.ungraded} finished game${compare.ungraded === 1 ? " is" : "s are"} not graded on our side (no run before kickoff, or the week is not graded yet); the gap uses the site on the same games.`
             : ""}
         </p>
-        <table className="mt-3 w-full" aria-label="Ours against the site">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Measure</th>
-              <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Ours</th>
-              <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Site</th>
-              {like ? (
-                <th className="t-colhead px-3 py-2 text-right text-muted-foreground">
-                  Site, same games
-                </th>
-              ) : null}
-              <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Gap</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map(({ key, label }) => (
-              <tr key={key} className="border-b border-border-soft">
-                <td className="t-body px-3 py-2">{label}</td>
-                <td className="px-3 py-2">
-                  <Cell m={compare.ours[key]} />
-                </td>
-                <td className="px-3 py-2">
-                  <Cell m={compare.site[key]} />
-                </td>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full" aria-label="Ours against the site">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Measure</th>
+                <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Ours</th>
+                <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Site</th>
                 {like ? (
-                  <td className="px-3 py-2">
-                    <Cell m={compare.siteSame[key]} />
-                  </td>
+                  <th className="t-colhead px-3 py-2 text-right text-muted-foreground">
+                    Site, same games
+                  </th>
                 ) : null}
-                <td className="px-3 py-2 text-right">
-                  <Gap ours={compare.ours[key]} base={like ? compare.siteSame[key] : compare.site[key]} />
-                </td>
+                <th className="t-colhead px-3 py-2 text-right text-muted-foreground">Gap</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ROWS.map(({ key, label }) => (
+                <tr key={key} className="border-b border-border-soft">
+                  <td className="t-body px-3 py-2">{label}</td>
+                  <td className="px-3 py-2">
+                    <Cell m={compare.ours[key]} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Cell m={compare.site[key]} />
+                  </td>
+                  {like ? (
+                    <td className="px-3 py-2">
+                      <Cell m={compare.siteSame[key]} />
+                    </td>
+                  ) : null}
+                  <td className="px-3 py-2 text-right">
+                    <Gap ours={compare.ours[key]} base={like ? compare.siteSame[key] : compare.site[key]} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
       <DataTable
         data={compare.games}

@@ -151,6 +151,15 @@ Sidebar (216px expanded / 64px collapsed **solid** `--card` rail; Edge board, Ga
 
 Each glass surface keeps a `--glass-border` (or `--border`) edge. The Edge ledger header is **not** on this list — it is solid `--card` with a `--border` underline. Cards, sidebar, DataTable, and the optimizer settings panel are solid `--card`. Forbidden to add blur to cards or stacked panels.
 
+### Mobile (under `md`, 768px)
+
+- The sidebar is hidden. A 36px menu button at the left of the top bar opens a left sheet with the same nav links and the pinned run badge; following a link closes it.
+- Top bar: 12px side padding, breadcrumb truncates, search becomes an icon that opens a full-width bar over the top bar (Escape or blur closes it). Content padding is 12px.
+- The game drawer is full width under `sm`, 520px from `sm` up.
+- Tables scroll inside their own card; the page body never scrolls sideways.
+- Type stays on the 14px floor; touch targets grow in height/padding, not smaller type.
+- Not yet done: card-per-row board, and an unsticky week header (it wraps and stays sticky).
+
 ### Game strip
 Horizontally scrollable kickoff-grouped chips on the Edge board (below WeekHeader), Games, Players, Optimize, and Props — not Lineups, Grading, or Claims. Solid, in-flow, not sticky and not glass. Each chip is away logo, `@`, home logo, and kickoff (or `{away}–{home} Final`). Selected chips invert (`bg-foreground text-background`). Window headers toggle that group. **Clear games** sits next to the strip; Players pick-bar **Clear picks** is a different control. URL is `games=` comma-separated full `game_id`s.
 

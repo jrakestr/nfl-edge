@@ -58,52 +58,54 @@ export function PlayerBias({ data, gradedWeeks }: { data: PlayerBiasData; graded
         <div key={g.dimension} className="flex flex-col gap-1">
           <h3 className="t-body font-semibold">{g.title}</h3>
           {g.dimension === "tier" ? <p className="t-caption">{TIER_NOTE}</p> : null}
-          <table className="w-full" aria-label={g.title}>
-            <thead>
-              <tr className="border-b border-border">
-                <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Group</th>
-                <th className={TH}>Players</th>
-                <th className={TH}>Projected</th>
-                <th className={TH}>Actual</th>
-                <th className={TH}>Residual</th>
-                <th className={TH}>Residual %</th>
-                <th className={TH}>Miss</th>
-                <th className={TH}>Std error</th>
-                <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Gate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {g.cells.map((c) => (
-                <tr key={c.label} className="border-b border-border-soft">
-                  <td className="t-body px-3 py-2">{c.label}</td>
-                  <td className="t-body tnum px-3 py-2 text-right">{c.n}</td>
-                  <td className="t-body tnum px-3 py-2 text-right">{fixed(c.projected)}</td>
-                  <td className="t-body tnum px-3 py-2 text-right">{fixed(c.actual)}</td>
-                  <td
-                    className={cn(
-                      "t-body tnum px-3 py-2 text-right font-semibold",
-                      c.meanResid == null || Math.abs(c.meanResid) < 0.005
-                        ? "text-foreground"
-                        : c.meanResid > 0
-                          ? "text-edge-pos"
-                          : "text-edge-neg",
-                    )}
-                  >
-                    {resid(c.meanResid)}
-                  </td>
-                  <td className="t-body tnum px-3 py-2 text-right">{residPct(c.meanPct)}</td>
-                  <td className="t-body tnum px-3 py-2 text-right">{fixed(c.mae)}</td>
-                  <td className="t-body tnum px-3 py-2 text-right">{fixed(c.se)}</td>
-                  <td className="t-body px-3 py-2">
-                    <span className={c.state === "candidate" ? "font-semibold" : undefined}>
-                      {gateText(c)}
-                    </span>
-                    {c.owner ? <span className="block t-caption">Would go through {c.owner}</span> : null}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full" aria-label={g.title}>
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Group</th>
+                  <th className={TH}>Players</th>
+                  <th className={TH}>Projected</th>
+                  <th className={TH}>Actual</th>
+                  <th className={TH}>Residual</th>
+                  <th className={TH}>Residual %</th>
+                  <th className={TH}>Miss</th>
+                  <th className={TH}>Std error</th>
+                  <th className="t-colhead px-3 py-2 text-left text-muted-foreground">Gate</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {g.cells.map((c) => (
+                  <tr key={c.label} className="border-b border-border-soft">
+                    <td className="t-body px-3 py-2">{c.label}</td>
+                    <td className="t-body tnum px-3 py-2 text-right">{c.n}</td>
+                    <td className="t-body tnum px-3 py-2 text-right">{fixed(c.projected)}</td>
+                    <td className="t-body tnum px-3 py-2 text-right">{fixed(c.actual)}</td>
+                    <td
+                      className={cn(
+                        "t-body tnum px-3 py-2 text-right font-semibold",
+                        c.meanResid == null || Math.abs(c.meanResid) < 0.005
+                          ? "text-foreground"
+                          : c.meanResid > 0
+                            ? "text-edge-pos"
+                            : "text-edge-neg",
+                      )}
+                    >
+                      {resid(c.meanResid)}
+                    </td>
+                    <td className="t-body tnum px-3 py-2 text-right">{residPct(c.meanPct)}</td>
+                    <td className="t-body tnum px-3 py-2 text-right">{fixed(c.mae)}</td>
+                    <td className="t-body tnum px-3 py-2 text-right">{fixed(c.se)}</td>
+                    <td className="t-body px-3 py-2">
+                      <span className={c.state === "candidate" ? "font-semibold" : undefined}>
+                        {gateText(c)}
+                      </span>
+                      {c.owner ? <span className="block t-caption">Would go through {c.owner}</span> : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </section>

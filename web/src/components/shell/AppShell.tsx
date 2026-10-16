@@ -58,7 +58,7 @@ export function AppShell({
         <Sidebar collapsed={collapsed} onToggle={toggle} footer={sidebarFooter} />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar />
-          <main className="flex-1 p-5">
+          <main className="flex-1 p-3 md:p-5">
             <div className="mx-auto flex max-w-[1280px] flex-col gap-4">{children}</div>
           </main>
         </div>
