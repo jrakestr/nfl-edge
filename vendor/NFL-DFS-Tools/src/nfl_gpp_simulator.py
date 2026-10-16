@@ -28,6 +28,157 @@ import yaml
 def salary_boost(salary, max_salary):
     return (salary / max_salary) ** 2
 
+# --- nfl-edge: compiled field-lineup generator ---------------------------------------------
+# Same attempts and rules as the Python generate_lineups it replaced (kept below as
+# generate_lineups_py): up to max_retries attempts; every 100 attempts the salary floor drops
+# 1% of its start and the projection factor drops 0.05; a stack team gets a uniform QB and
+# stack_len - 1 ownership-weighted pass catchers without replacement (WR into a free WR slot,
+# else TE, a second TE overwriting the first as before); the other slots fill in shuffled
+# order, each ownership-weighted among players eligible for the slot, unused, affordable,
+# under the per-team cap (DST: opponent count <= overlap_limit). Accept when every slot is
+# filled, floor <= salary <= ceiling, and projection >= optimal * (1 - factor) (the original
+# passes the factor where is_valid_lineup expects max_pct_off_optimal; kept as is).
+# Slot columns follow roster_positions: QB RB1 RB2 WR1 WR2 WR3 TE FLEX DST.
+
+@jit(nopython=True, cache=True)
+def _weighted_index(cand, m, ownership):
+    total = 0.0
+    for k in range(m):
+        total += ownership[cand[k]]
+    if total <= 0.0:
+        return cand[np.random.randint(m)]
+    u = np.random.random() * total
+    acc = 0.0
+    for k in range(m):
+        acc += ownership[cand[k]]
+        if u < acc:
+            return cand[k]
+    return cand[m - 1]
+
+
+@jit(nopython=True, cache=True)
+def _field_lineup(seed, pos_matrix, ownership, salaries, projections, team_of, opp_of, n_teams,
+                  stack_team, stack_len, salary_ceiling, salary_floor0, optimal_score,
+                  max_per_team, overlap_limit, max_retries):
+    np.random.seed(seed)
+    n = salaries.shape[0]
+    n_slots = pos_matrix.shape[1]
+    lineup = np.full(n_slots, -1, dtype=np.int64)
+    in_lineup = np.zeros(n, dtype=np.bool_)
+    counts = np.zeros(n_teams + 1, dtype=np.int64)
+    cand = np.empty(n, dtype=np.int64)
+    order = np.arange(n_slots)
+    wr_free = np.empty(3, dtype=np.int64)
+    floor = salary_floor0
+    decrement = salary_floor0 * 0.01
+    factor = 1.0
+    for attempt in range(max_retries):
+        lineup[:] = -1
+        in_lineup[:] = False
+        counts[:] = 0
+        total_salary = 0.0
+        total_projection = 0.0
+        if attempt % 100 == 0 and attempt != 0:
+            floor -= decrement
+            factor -= 0.05
+        if stack_team >= 0:
+            m = 0
+            for i in range(n):
+                if team_of[i] == stack_team and pos_matrix[i, 0] > 0:
+                    cand[m] = i
+                    m += 1
+            if m == 0:
+                continue
+            qb = cand[np.random.randint(m)]
+            m = 0
+            for i in range(n):
+                if team_of[i] == stack_team and (pos_matrix[i, 3] > 0 or pos_matrix[i, 4] > 0
+                                                 or pos_matrix[i, 5] > 0 or pos_matrix[i, 6] > 0):
+                    cand[m] = i
+                    m += 1
+            need = stack_len - 1
+            if m < need:
+                continue
+            lineup[0] = qb
+            in_lineup[qb] = True
+            counts[team_of[qb]] += 1
+            total_salary += salaries[qb]
+            total_projection += projections[qb]
+            wr_used0 = False
+            wr_used1 = False
+            wr_used2 = False
+            for _ in range(need):
+                pick = _weighted_index(cand, m, ownership)
+                # drop pick from the pool (without replacement)
+                for k in range(m):
+                    if cand[k] == pick:
+                        cand[k] = cand[m - 1]
+                        m -= 1
+                        break
+                if pos_matrix[pick, 3] > 0 or pos_matrix[pick, 4] > 0 or pos_matrix[pick, 5] > 0:
+                    f = 0
+                    if not wr_used0:
+                        wr_free[f] = 0
+                        f += 1
+                    if not wr_used1:
+                        wr_free[f] = 1
+                        f += 1
+                    if not wr_used2:
+                        wr_free[f] = 2
+                        f += 1
+                    w = wr_free[np.random.randint(f)]
+                    if w == 0:
+                        wr_used0 = True
+                    elif w == 1:
+                        wr_used1 = True
+                    else:
+                        wr_used2 = True
+                    slot = 3 + w
+                else:
+                    slot = 6
+                lineup[slot] = pick
+                in_lineup[pick] = True
+                counts[team_of[pick]] += 1
+                total_salary += salaries[pick]
+                total_projection += projections[pick]
+        np.random.shuffle(order)
+        failed = False
+        for oi in range(n_slots):
+            s = order[oi]
+            if lineup[s] >= 0:
+                continue
+            remaining = salary_ceiling - total_salary
+            m = 0
+            for i in range(n):
+                if pos_matrix[i, s] <= 0 or in_lineup[i] or salaries[i] > remaining:
+                    continue
+                if s == n_slots - 1:
+                    o = opp_of[i]
+                    if o >= 0 and counts[o] > overlap_limit:
+                        continue
+                elif counts[team_of[i]] >= max_per_team:
+                    continue
+                cand[m] = i
+                m += 1
+            if m == 0:
+                failed = True
+                break
+            pick = _weighted_index(cand, m, ownership)
+            lineup[s] = pick
+            in_lineup[pick] = True
+            counts[team_of[pick]] += 1
+            total_salary += salaries[pick]
+            total_projection += projections[pick]
+        if failed:
+            continue
+        if total_salary < floor or total_salary > salary_ceiling:
+            continue
+        if total_projection < optimal_score * (1.0 - factor):
+            continue
+        return lineup, total_projection, True
+    return lineup, 0.0, False
+
+
 class NFL_GPP_Simulator:
     config = None
     player_dict = {}
@@ -1174,6 +1325,45 @@ class NFL_GPP_Simulator:
     
     @staticmethod
     def generate_lineups(params):
+        """nfl-edge: same inputs and output as generate_lineups_py, run by _field_lineup."""
+        (lu_num, ids, original_in_lineup, pos_matrix, ownership, initial_salary_floor, salary_ceiling, optimal_score, salaries,
+        projections, max_pct_off_optimal, teams, opponents, team_stack, stack_len, overlap_limit,
+        max_players_per_team, site, roster_positions) = params
+        team_names, team_of = np.unique(np.asarray(teams), return_inverse=True)
+        opponents = np.asarray(opponents)
+        opp_of = np.searchsorted(team_names, opponents)
+        clipped = np.minimum(opp_of, len(team_names) - 1)
+        opp_of = np.where((opp_of < len(team_names)) & (team_names[clipped] == opponents), opp_of, -1)
+        if team_stack:
+            hit = np.flatnonzero(team_names == team_stack)
+            stack_team = int(hit[0]) if hit.size else len(team_names)
+        else:
+            stack_team = -1
+        seed = int(np.random.default_rng().integers(0, 2**31 - 1))
+        lineup, projection, ok = _field_lineup(
+            seed, np.asarray(pos_matrix, dtype=np.int64), np.asarray(ownership, dtype=np.float64),
+            np.asarray(salaries, dtype=np.float64), np.asarray(projections, dtype=np.float64),
+            team_of.astype(np.int64), opp_of.astype(np.int64), len(team_names), stack_team,
+            int(stack_len), float(salary_ceiling), float(initial_salary_floor), float(optimal_score),
+            int(max_players_per_team), int(overlap_limit), 1000,
+        )
+        if not ok:
+            return None
+        isStack = bool(team_stack)
+        return {
+            "Lineup": {roster_positions[s]: ids[lineup[s]] for s in range(len(roster_positions))},
+            "Wins": 0,
+            "Top1Percent": 0,
+            "ROI": 0,
+            "Cashes": 0,
+            "Type": "generated_stack" if isStack else "generated_nostack",
+            "Count": 1,
+            "Ceiling": 0,
+            "Projection": projection,
+        }
+
+    @staticmethod
+    def generate_lineups_py(params):
         
         rng = np.random.default_rng()
         (lu_num, ids, original_in_lineup, pos_matrix, ownership, initial_salary_floor, salary_ceiling, optimal_score, salaries,
