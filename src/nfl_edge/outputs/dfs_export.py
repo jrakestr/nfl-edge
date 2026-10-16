@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import csv
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -72,13 +73,92 @@ def contest_field_size(path: Path) -> int:
     return sizes.pop()
 
 
-def require_field_larger_than_entries(structure: Path, lineups: int) -> int:
+CONTEST_COLS = ["Place", "Payout", "Field Size", "Entry Fee"]
+
+
+def read_contest(path: Path) -> list[dict]:
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        return [dict(r) for r in csv.DictReader(f)]
+
+
+def write_contest(path: Path, rows: list[dict]) -> None:
+    with path.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=CONTEST_COLS)
+        w.writeheader()
+        w.writerows({k: r[k] for k in CONTEST_COLS} for r in rows)
+
+
+def effective_field_size(structure: Path, field_size: int | None) -> int:
+    """The room the sim plays: field_size, capped at the real room; None is the real room."""
+    real = contest_field_size(structure)
+    return real if field_size is None else min(int(field_size), real)
+
+
+def _payout_by_place(rows: list[dict]) -> np.ndarray:
+    """Payout per place, index 0 = 1st, through the last paid place."""
+    tiers = []
+    for r in rows:
+        lo, _, hi = str(r["Place"]).strip().partition("-")
+        tiers.append((int(lo), int(hi or lo), float(str(r["Payout"]).replace(",", ""))))
+    pay = np.zeros(max(hi for _, hi, _ in tiers))
+    for lo, hi, amount in tiers:
+        pay[lo - 1:hi] = amount
+    return pay
+
+
+def scale_contest(rows: list[dict], field_size: int) -> list[dict]:
+    """The same room at field_size entries.
+
+    Ratio r = field_size / real Field Size. Real places are a step function of rank; new
+    place p pays r times that function's area over the real-rank window ((p-1)/r, p/r].
+    Every window has the same width, so the payout curve by rank share keeps its shape
+    and stays non-increasing, min cash stays near the real one, and the share of the
+    field paid holds (floor(paid * r) places). A uniform factor puts the sliver past the
+    last new window back in, so the pool is exactly r times the real pool before
+    rounding. Payouts are whole dollars (the tool reads the integer part); equal
+    neighbours merge into one "a-b" row. At or above the real room, rows come back as is.
+    """
+    real = int(float(rows[0]["Field Size"]))
+    n = int(field_size)
+    if n >= real:
+        return rows
+    r = n / real
+    pay = _payout_by_place(rows)
+    cum = np.concatenate([[0.0], np.cumsum(pay)])
+    paid_real = len(pay)
+
+    def area(x: float) -> float:
+        if x >= paid_real:
+            return float(cum[paid_real])
+        k = int(x)
+        return float(cum[k] + (x - k) * pay[k])
+
+    paid_new = max(1, int(paid_real * r))
+    edges = [area(p / r) for p in range(paid_new + 1)]
+    fix = float(cum[paid_real]) / edges[-1]
+    new = [max(1, round(r * fix * (b - a))) for a, b in pairwise(edges)]
+    fee = rows[0]["Entry Fee"]
+    out: list[dict] = []
+    start = 1
+    for i, amount in enumerate(new, start=1):
+        if i == len(new) or new[i] != amount:
+            place = str(start) if start == i else f"{start}-{i}"
+            out.append({"Place": place, "Payout": str(amount), "Field Size": str(n),
+                        "Entry Fee": fee})
+            start = i + 1
+    return out
+
+
+def require_field_larger_than_entries(
+    structure: Path, lineups: int, field_size: int | None = None,
+) -> int:
     """Fail closed when the room cannot hold anyone but us.
 
     Field Size <= lineups entered means the GPP sim's field is our own lineups,
-    so Sim. Own% would just be our exposure. Refuse before optimizing.
+    so Sim. Own% would just be our exposure. Refuse before optimizing. A scaled
+    room (field_size) is checked at its scaled size.
     """
-    fs = contest_field_size(structure)
+    fs = effective_field_size(structure, field_size)
     if fs <= int(lineups):
         raise RuntimeError(
             f"contest field size {fs} <= {lineups} lineups entered; "
@@ -422,7 +502,9 @@ def write_export(
     report: list[dict] | None = None,
     showdown: bool = False,
     contest: str = "gpp",
+    field_size: int | None = None,
 ) -> None:
+    """field_size None copies the real room; a number writes it scaled (scale_contest)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "projections.csv").open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=PROJ_COLS)
@@ -435,7 +517,11 @@ def write_export(
     (out_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     structure = contest_path(contest, showdown=showdown)
     if structure.exists():
-        (out_dir / "contest_structure.csv").write_text(structure.read_text())
+        if field_size is None:
+            (out_dir / "contest_structure.csv").write_text(structure.read_text())
+        else:
+            write_contest(out_dir / "contest_structure.csv",
+                          scale_contest(read_contest(structure), field_size))
     lines = [
         f"projections {len(projections)}  player_ids {len(player_ids)}",
         "",
@@ -460,9 +546,10 @@ def run(
     lineups: int = 150,
     construction: str = "mass",
     contest: str = "gpp",
+    field_size: int | None = None,
 ) -> dict:
     structure = contest_path(contest, showdown=slate.strip().lower() == "showdown")
-    require_field_larger_than_entries(structure, lineups)
+    require_field_larger_than_entries(structure, lineups, field_size=field_size)
     meta = read_sql(
         "select run_id::text, season, week from model.sim_runs where run_id = %s",
         (run_id,),
@@ -528,7 +615,8 @@ def run(
     if construction == "mass":
         cfg["max_exposure"] = exposure_for_slate(cfg.get("max_exposure") or 40, n_games, lineups)
     out = export_dir(run_id, site, slate)
-    write_export(out, projections, ids, cfg, report, showdown=showdown, contest=contest)
+    write_export(out, projections, ids, cfg, report, showdown=showdown, contest=contest,
+                 field_size=field_size)
     unmatched = [r for r in slate_rows if not r.get("player_id")]
     summary = {
         "run_id": run_id,
@@ -545,7 +633,7 @@ def run(
         "correlations": len(cfg["custom_correlations"]),
         "construction": construction,
         "contest": (contest or "gpp").strip().lower(),
-        "field_size": contest_field_size(structure),
+        "field_size": effective_field_size(structure, field_size),
         "settings": settings_from_config(cfg, construction),
         "mean_by_dk": {
             str(r["player_dk_id"]): _fnum((proj.get(r.get("player_id")) or {}).get(
