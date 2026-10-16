@@ -5,7 +5,7 @@ from pathlib import Path
 
 import polars as pl
 
-from ..config import DATA_DIR
+from ..config import DATA_DIR, dfs_settings
 from ..db import execute, insert, read_sql
 from ..ingest.dk_salaries import missing_run_pairs, slate_game_pairs, slate_type_for
 from ..outputs import dfs_export
@@ -97,11 +97,17 @@ def run(
     slate: str = "main",
     run_id: str | None = None,
     lineups: int | None = None,
-    field: int = 20000,
+    iterations: int | None = None,
     export: Path | None = None,
     construction: str = "mass",
     contest: str = "gpp",
+    field_size: int | None = None,
+    full_field: bool = False,
 ) -> dict:
+    """iterations / field_size default to config/sim.yaml `dfs:`; full_field plays the real room."""
+    knobs = dfs_settings()
+    iterations = int(iterations or knobs["iterations"])
+    room = None if full_field else int(field_size or knobs["field_size"])
     meta = resolve_run(season, week, run_id)
     rid = meta["run_id"]
     slate_id = f"{season}_{week:02d}_{slate}"
@@ -110,7 +116,7 @@ def run(
     n_lineups = C.lineup_count(prof, lineups)
     exported = dfs_export.run(
         rid, site, slate, lineups=n_lineups, construction=construction,
-        contest=contest,
+        contest=contest, field_size=room,
     )
     export_dir = Path(exported["path"])
     settings = exported.get("settings")
@@ -121,7 +127,8 @@ def run(
     showdown = slate_type_for(slate) == "showdown"
     opto = run_optimizer.run(export_dir, site=site, lineups=n_lineups, showdown=showdown)
     if construction == "mass":
-        sim = run_sim.run(export_dir, site=site, field=field, lineups_csv=Path(opto["path"]),
+        sim = run_sim.run(export_dir, site=site, iterations=iterations,
+                          lineups_csv=Path(opto["path"]),
                           slate_rows=salaries, showdown=showdown)
         merged = parse.merge_sim_stats(opto["lineups"], sim["lineups"])
         sim_exposure = sim["exposure"]
@@ -162,6 +169,7 @@ def run(
         "construction": construction,
         "contest": exported.get("contest"),
         "field_size": exported.get("field_size"),
+        "iterations": iterations,
         "persisted": written,
         "upload": str(export or upload_path),
         "draw_root": str(DATA_DIR / "dfs" / rid / site / slate),

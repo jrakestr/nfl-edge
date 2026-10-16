@@ -137,7 +137,7 @@ Wednesday 2026-09-09 ~15:00 MST (before NE@SEA lock, 20:20 ET / 18:20 MST)
 4. `nfl-edge sim --season 2026 --week 1 --draws 20000 --note wed-final`
 5. `nfl-edge lines --season 2026 --week 1`
 6. `nfl-edge props --season 2026 --week 1 --file data/props/props_2026_wk01.csv`
-7. `nfl-edge dfs --season 2026 --week 1 --site dk --slate showdown --lineups 150 --field 20000`
+7. `nfl-edge dfs --season 2026 --week 1 --site dk --slate showdown --lineups 150` (field size and iterations from `config/sim.yaml` `dfs:`; `--field-size`, `--iterations`, `--full-field` override)
 8. `cd web && vercel` (preview, not `--prod`)
 
 Report: `run_id`, invariants, override delta vs `output/overrides_2026_wk01_pre_wed.csv` (202 rows at bf9a11f4: 127 out / 75 Q), upload path `data/dfs/<run_id>/dk/showdown/dk_upload_<slate_id>_<run_id first 8>_sim.csv`.

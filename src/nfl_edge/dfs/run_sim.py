@@ -2,9 +2,10 @@
 
 `sim cid file <iterations>` loads our lineups as the tournament entries, then
 the tool's generate_field_lineups() fills the rest of the room (Field Size
-minus ours) from projections + Own%. No extra flag or config key: main.py calls
-generate_field_lineups() unconditionally, and it only no-ops when the room is
-already full (Supplied lineups >= contest field size).
+minus ours) from projections + Own%. Field Size comes from the staged
+contest_structure.csv, which dfs_export scales to sim.yaml dfs.field_size.
+main.py calls generate_field_lineups() unconditionally; it only no-ops when the
+room is already full (Supplied lineups >= contest field size).
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ from .parse import parse_exposure_csv, parse_gpp_csv
 def run(
     export_dir: Path,
     site: str = "dk",
-    field: int = 20000,
+    iterations: int = 5000,
     lineups_csv: Path | None = None,
     slate_rows: list[dict] | None = None,
     showdown: bool = False,
@@ -29,11 +30,11 @@ def run(
         raise RuntimeError(f"no optimizer CSV at {src}")
     shutil.copy2(src, tools / f"{site}_data" / "tournament_lineups.csv")
     if showdown:
-        opto._run(tools, [site, "sd_sim", "cid", "file", str(field)])
+        opto._run(tools, [site, "sd_sim", "cid", "file", str(iterations)])
         gpp = opto._newest(tools, f"{site}_sd_sim_lineups_*.csv")
         exp = opto._newest(tools, f"{site}_sd_sim_player_exposure_*.csv")
     else:
-        opto._run(tools, [site, "sim", "cid", "file", str(field)])
+        opto._run(tools, [site, "sim", "cid", "file", str(iterations)])
         gpp = opto._newest(tools, f"{site}_gpp_sim_lineups_*.csv")
         exp = opto._newest(tools, f"{site}_gpp_sim_player_exposure_*.csv")
     shutil.copy2(gpp, export_dir / "gpp_lineups.csv")

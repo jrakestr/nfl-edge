@@ -664,17 +664,26 @@ def dfs(
     construction: str = typer.Option("mass", help="cash | single | mass (default mass)"),
     contest: str = typer.Option("gpp", help="Contest room: gpp (large-field) | single (single-entry)"),
     lineups: int = typer.Option(None, help="Override the construction's lineup count"),
-    field: int = typer.Option(20000, help="GPP simulation iterations"),
+    iterations: int = typer.Option(None, help="GPP sim iterations (default: sim.yaml dfs.iterations)"),
+    field_size: int = typer.Option(
+        None, help="Entries in the simulated room, scaled prizes (default: sim.yaml dfs.field_size)",
+    ),
+    full_field: bool = typer.Option(False, help="Play the real contest room (176k for gpp; slow)"),
+    field: int = typer.Option(None, hidden=True, help="Deprecated: use --iterations"),
     export: str = typer.Option(None, "--export", help="DK upload CSV path, stamped with run_id"),
 ):
     """Export this slate, run the optimizer + GPP sim, persist lineups/exposure."""
     from pathlib import Path
 
-    from .dfs.pipeline import run as dfs_run
+    from .dfs import pipeline
 
-    r = dfs_run(
+    if field is not None:
+        typer.echo("--field is deprecated; it means --iterations")
+        iterations = iterations or field
+    r = pipeline.run(
         season, week, site=site, slate=slate, run_id=run,
-        construction=construction, contest=contest, lineups=lineups, field=field,
+        construction=construction, contest=contest, lineups=lineups, iterations=iterations,
+        field_size=field_size, full_field=full_field,
         export=Path(export) if export else None,
     )
     for d in r.get("injury_dropped") or []:
@@ -690,6 +699,8 @@ def dfs(
             f"max_exposure={s.get('max_exposure')}% "
             f"uniques={s.get('num_uniques')}"
         )
+    if r.get("field_size"):
+        typer.echo(f"  field {r['field_size']} entries, {r.get('iterations')} iterations")
     typer.echo(
         f"dfs {r['slate_id']} {r.get('construction', 'mass')}/{r.get('contest', 'gpp')}: "
         f"{r['n_lineups']} lineups, {r['n_exposure']} exposure, "

@@ -195,7 +195,7 @@ fi
 for slate in "${SLATES[@]}"; do
   soft_note
   capture /usr/bin/env -u DATABASE_URL "$NFL" dfs \
-    --season "$SEASON" --week "$WEEK" --site dk --slate "$slate" --lineups 150 --field 20000
+    --season "$SEASON" --week "$WEEK" --site dk --slate "$slate" --lineups 150
 done
 
 # FantasyPros benchmark captures (display only until promoted): as-of snapshots, after the sim.
