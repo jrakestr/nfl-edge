@@ -227,3 +227,36 @@ def test_sql_recorder_writes_start_and_finish(monkeypatch):
     assert got["phase"] == "dfs" and got["slate"] == "main" and got["status"] == "success"
     assert got["gh_run_url"] == "https://github.com/o/r/actions/runs/123"
     assert got["host"] == "github" and got["finished_at"] is not None
+
+
+def test_refresh_order_and_never_sims():
+    steps = W.plan("refresh", W.Context(2026, 7))
+    run = FakeRunner(out="")
+    W.run_phase("refresh", W.Context(2026, 7), runner=run, recorder=FakeRecorder())
+    heads = [c[:2] for c in run.calls]
+    assert heads == [["ingest", "odds-api"], ["ingest", "--season"], ["stale-weeks", "--season"],
+                     ["ingest", "fantasypros-status"], ["ingest", "espn-league"],
+                     ["ungraded-completed", "--season"], ["change-check", "--season"]]
+    assert not any(c[0] == "sim" for c in run.calls)
+    assert all(s.soft for s in steps if s.args and s.args[0] == "ingest")
+
+
+def test_refresh_lines_each_stale_week_and_grades_finished_ones():
+    class Weeks(FakeRunner):
+        def __call__(self, args):
+            self.calls.append(list(args))
+            if args[0] == "stale-weeks":
+                return "6\n7\n"
+            if args[0] == "ungraded-completed":
+                return "5\n6\n"
+            if args[0] == "missing-finals" and args[-1] == "6":
+                raise W.StepFailed(args, "2026_06_KC_LV")
+            return ""
+
+    run = Weeks()
+    W.run_phase("refresh", W.Context(2026, 7), runner=run, recorder=FakeRecorder())
+    assert ["lines", "--season", "2026", "--week", "6"] in run.calls
+    assert ["lines", "--season", "2026", "--week", "7"] in run.calls
+    assert ["grade", "--season", "2026", "--week", "5"] in run.calls
+    assert ["grade", "--season", "2026", "--week", "6"] not in run.calls
+    assert run.calls[-1][0] == "change-check"

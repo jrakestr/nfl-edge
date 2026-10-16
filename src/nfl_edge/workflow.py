@@ -176,12 +176,70 @@ def plan(phase: str, ctx: Context) -> list[Step]:
         return _props(ctx)
     if phase == "dfs":
         return _dfs(ctx)
+    if phase == "refresh":
+        return _refresh(ctx)
     if phase == "grade":
         return [_step("ingest", *ctx.sw()),
                 _step("benchmark", "nflgamesim", *ctx.sw(), "--refresh-actuals", soft=True),
                 _step("missing-finals", *ctx.sw()),
                 _step("grade", *ctx.sw())]
-    raise PhaseFailed(f"unknown phase {phase!r}; choose from {', '.join(PHASES)}")
+    raise PhaseFailed(f"unknown phase {phase!r}; choose from {', '.join(PHASES)}, refresh")
+
+
+def board_week(season: int) -> int | None:
+    """The week being played, else the lowest REG week with a game still to play."""
+    from .db import read_sql
+
+    week = rebuild.current_week(season)
+    if week is not None:
+        return week
+    df = read_sql(
+        "select min(week)::int as w from raw.schedules "
+        "where season = %s and game_type = 'REG' and result is null",
+        (season,),
+    )
+    return None if df.is_empty() or df[0, "w"] is None else int(df[0, "w"])
+
+
+def _each_week(cmd: str, then: Callable[[int], list[list[str]]]) -> Callable:
+    """A soft step over the weeks printed by `nfl-edge <cmd> --season S` (one per line)."""
+
+    def fn(ctx: Context, run: Runner) -> None:
+        try:
+            weeks = [int(w) for w in run([cmd, "--season", str(ctx.season)]).split()
+                     if w.strip().isdigit()]
+        except StepFailed as e:
+            print(f"(soft) {cmd}: {_last_line(e.output)}", flush=True)
+            return
+        for week in weeks:
+            for args in then(week):
+                try:
+                    run(args)
+                except StepFailed as e:
+                    print(f"(soft) {' '.join(args)}: {_last_line(e.output)}", flush=True)
+                    break
+        return
+
+    return fn
+
+
+def _refresh(ctx: Context) -> list[Step]:
+    """Lines and scores, injuries, league status, grade what finished, then the change check."""
+    sw = ctx.sw()
+    season = ["--season", str(ctx.season)]
+    return [
+        _step("ingest", "odds-api", "--markets", "h2h,spreads,totals", "--regions", "us",
+              soft=True),
+        _step("ingest", *season, "--lines-only", soft=True),
+        Step(fn=_each_week("stale-weeks", lambda w: [["lines", *season, "--week", str(w)]])),
+        _step("ingest", "fantasypros-status", *sw, soft=True),
+        _step("ingest", "espn-league", *season, "--snapshot-only", soft=True),
+        Step(fn=_each_week("ungraded-completed", lambda w: [
+            ["missing-finals", *season, "--week", str(w)],
+            ["grade", *season, "--week", str(w)],
+        ])),
+        _step("change-check", *sw),
+    ]
 
 
 def chain(start: str, slates: list[str]) -> list[tuple[str, str | None]]:

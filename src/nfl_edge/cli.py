@@ -500,8 +500,9 @@ def missing_finals_cmd(
 
 @app.command()
 def phase(
-    name: str = typer.Argument(..., help="ingest | salaries | sim | lines | props | dfs | grade"),
-    week: int = typer.Option(None, help="Default: current-week"),
+    name: str = typer.Argument(
+        ..., help="ingest | salaries | sim | lines | props | dfs | grade | refresh"),
+    week: int = typer.Option(None, help="Default: the week being played, else the next one"),
     season: int = typer.Option(2026),
     slate: str = typer.Option(None, help="DFS: the salary file's slate key"),
     draws: int = typer.Option(None, help="Sim draws per game (default: sim.yaml draws_per_game)"),
@@ -514,10 +515,9 @@ def phase(
 ):
     """Run one phase of the week (or --from it onward), logged to ops.workflow_runs."""
     from . import workflow as W
-    from .rebuild import current_week
 
     if week is None:
-        week = current_week(season)
+        week = W.board_week(season)
         if week is None:
             typer.echo(f"no current week for {season}; pass --week")
             raise typer.Exit(1)
@@ -540,6 +540,31 @@ def phase(
             typer.echo(f"{ph} failed: {e}")
             raise typer.Exit(1) from e
         typer.echo(f"{ph} done: {msg}")
+
+
+@app.command("change-check")
+def change_check_cmd(
+    week: int = typer.Option(None, help="Default: the week being played, else the next one"),
+    season: int = typer.Option(2026),
+):
+    """What changed since the newest complete sim (overrides, ESPN status). Never sims."""
+    from . import change_check, workflow
+
+    week = week or workflow.board_week(season)
+    if week is None:
+        typer.echo(f"no week to check for {season}")
+        raise typer.Exit(1)
+    r = change_check.run(season, week)
+    verdict = "re-sim suggested" if r["suggest_resim"] else "no re-sim needed"
+    typer.echo(f"change-check {season} week {week}: {verdict}; "
+               f"{len(r['reasons'])} changes, {len(r['info'])} line moves")
+    for x in r["reasons"]:
+        if x["source"] == "no-sim":
+            typer.echo("  no complete sim for this week yet")
+            continue
+        typer.echo(f"  {x['player']} {x['team'] or ''} {x['source']}: "
+                   f"{x['before'] or '-'} -> {x['after'] or '-'}"
+                   f"{'' if x['affects_sim'] else ' (listed only)'}")
 
 
 @app.command("slate-count")
