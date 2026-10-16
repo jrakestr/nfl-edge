@@ -33,7 +33,7 @@ The full model is in `docs/architecture.md` §4.
 
 ## Constraints I'm holding to
 
-- No paid data. nflverse for stats and free market lines (opening spread, total, moneyline ship with the schedule). Prop lines are entered manually.
+- The sim and priors use free data only. Paid market feeds are used only for display, edges and grading. nflverse for stats and free market lines (opening spread, total, moneyline ship with the schedule). Prop lines are entered manually.
 - Open source building blocks: nflreadpy, ffopportunity expected stats, FantasyPros consensus as a baseline, NFL-DFS-Tools for optimization.
 - Python-first. Postgres for summaries, parquet for the full draws.
 - Every output must trace back to a `run_id` so I can grade it after the games and know whether the model or the market was right.
@@ -46,4 +46,4 @@ During the season: a graded log of every line, prop, and lineup against actual r
 
 ## What this is not
 
-Not a sportsbook scraper, not a paid-data aggregator, not a black box. If I can't explain why the sim likes a side, I don't bet it.
+Not a sportsbook scraper, not a black box. Not a paid-data aggregator: no external projection passes through. Outside sources are benchmarks until promoted (see docs/agents/data-sources.md). If I can't explain why the sim likes a side, I don't bet it.
