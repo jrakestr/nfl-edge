@@ -1,65 +1,114 @@
-# Operations: line snapshots and the weekly run order
+# NFL-edge operations
 
-Scheduled on this Mac as LaunchAgents. `com.vix.cron` is not running here, so a crontab
-would never fire.
+Four LaunchAgents on this Mac run the jobs below. Clock times are America/Phoenix unless a line names another zone. This Mac's clock is America/Phoenix. With `DATABASE_URL` unset, every job uses the URL in `.env`.
 
-- `com.nfl-edge.lines-only` runs `ops/lines-only.sh`: `nfl-edge ingest odds-api` (`h2h,spreads,totals`,
-  3 credits) then `nfl-edge ingest --season 2026 --lines-only` then `nfl-edge lines` for each stale
-  week. `RecentDuplicate` is a no-op; any other odds-api failure logs one line and nflverse +
-  `lines` still run. Each pull prints `remaining=`; a `<100` line is a warning. Log:
-  `output/cron-lines.log`.
-- `com.nfl-edge.week-rebuild` runs `ops/week-rebuild.sh` Saturday 20:00 and Sunday 08:40 MST
-  (Mac clock = Phoenix). Week comes from `raw.schedules` (`nfl-edge current-week`), not the
-  plist. Saturday `--note sat-final`. Sunday `--note sun-inactives`: sim must finish by 08:50
-  or the Saturday run stays live; lines/props/dfs then run to completion (DFS main before full)
-  with a 09:30 soft-ceiling log. No `RunAtLoad`. Log: `output/cron-rebuild.log`.
-- `com.nfl-edge.week-grade` runs `ops/week-grade.sh` Tuesday 09:00 Phoenix. Lists every REG week
-  whose last `gameday` is before today; for each week that is not already fully graded it ingests,
-  refuses to grade if any game still has a null `result` (missing `game_id`s named, exit
-  non-zero), and grades the ones that are complete. Always prints completed-vs-ungraded so a
-  skipped week stays visible. No `RunAtLoad`. Log: `output/cron-grade.log`.
-- `com.nfl-edge.loc-snapshot` runs `ops/loc-snapshot.sh` hourly (`StartInterval` 3600) and proceeds
-  only Thursday through Monday, 06:00-19:59 America/Phoenix. It runs
-  `nfl-edge ingest espn-league --season 2026 --snapshot-only`: one ESPN league fetch that appends
-  every rostered player's status to `fantasy.loc_status_snapshots` (append-only; a trigger rejects
-  update, delete, and truncate) and replaces `fantasy.loc_available` with the current waiver and
-  free-agent pool (one player request, limit 200, plus the pro schedule so bye weeks are real).
-  An empty or failed pool writes nothing, including no status snapshot. A full `ingest espn-league`
-  run appends a status set and replaces the pool too. A status that
-  changes between two pulls is invisible; `/league` shows the pull time next to every status. Needs
-  `ESPN_S2` / `ESPN_SWID` in `.env`; expired cookies exit non-zero with the message in the log;
-  unreachable DB or ESPN logs `unreachable, skipped`. No `RunAtLoad`. Log:
-  `output/cron-loc-snapshot.log`. Check the window without calling ESPN:
-  `LOC_SNAPSHOT_DRY=1 LOC_SNAPSHOT_DOW=4 LOC_SNAPSHOT_HOUR=12 bash ops/loc-snapshot.sh`.
+`nfl-edge lines` prices the newest `model.sim_runs` row for that week. It does not insert a new row. The board stamp `at run` is that row's `created_at`, shown in Eastern time. A later lines fire keeps that sim until a newer one exists.
 
-`DATABASE_URL` is unset so `.env` (Supabase) is used. If the database or github.com is
-unreachable (Mac asleep or off Wi-Fi) both jobs log `unreachable, skipped` and exit 0.
+## At a glance
 
-## Cadence
+- `com.nfl-edge.lines-only` — every even America/Los_Angeles hour, minute 0–14 — odds snapshots, score backfill, edges and verdicts on the existing sim — `output/cron-lines.log`. Does not insert `model.sim_runs`.
+- `com.nfl-edge.week-rebuild` — Saturday 20:00 and Sunday 08:40 — a new sim (`sat-final` or `sun-inactives`), then lines, props, and DFS — `output/cron-rebuild.log`.
+- `com.nfl-edge.week-grade` — Tuesday 09:00 — grades each completed REG week that still has ungraded games, and skips a week that still has a null `result` — `output/cron-grade.log`. Does not insert `model.sim_runs`.
+- `com.nfl-edge.loc-snapshot` — hourly, Thursday–Monday 06:00–19:59 — roster status history and the waiver pool — `output/cron-loc-snapshot.log`.
 
-- Through Sunday 2026-09-13 23:59 PT: every 30 minutes (`StartInterval` 1800).
-- After that cutoff: the wrapper no-ops except on even Pacific hours (2 h). `ops-refine` if a
-  later TNF/MNF needs a dedicated extra fire. Odds-api cost on that cadence is 3 credits × 12
-  even hours ≈ 36 credits/day (plus 3 more on each week-rebuild).
-- Reference book is DraftKings from `2026-09-20T00:00:00Z` (`config/line_reference.yaml` /
-  `model.line_reference`). Games kicking off before that date stay on nflverse. Incomplete
-  DraftKings rows (missing spread or total) fall back to nflverse.
-- nflverse schedule lines are not a live odds feed. Snapshot resolution is bounded by upstream
-  refresh. During Week 1 count distinct snapshots per game and record the observed cadence in
-  `STATUS.md` before treating the last snapshot as the closing line.
+## Weekly checklist
 
-```
-nfl-edge ingest --season 2026 --lines-only
-```
+Replace `W` with the NFL week. Run on this Mac with `DATABASE_URL` unset. `lines` is last in each hand run: edges and verdicts stay keyed to the line they were computed against.
 
-Pulls the nflverse schedule for the whole season and `insert ... on conflict do nothing` into
-`raw.market_lines`. An unchanged pull is a no-op. New `game_id`s are inserted. Existing
-schedule rows receive `away_score` / `home_score` / `result` / `total` (score sum) / `overtime`
-when nflverse publishes a final; kickoff, teams, stadium, and betting columns stay as stored.
+Sunday verdicts that were never persisted: `nfl-edge lines --close --run <run_id>` (pre-kickoff snapshot only; marked `backfilled`).
 
-## Install / swap (no snapshot gap)
+Tuesday, after the 09:00 grade agent:
 
-Same `Label` cannot be loaded twice. Bootstrap a temporary overlap agent first, then replace:
+1. `nfl-edge sim --season 2026 --week W --draws 20000`
+2. `nfl-edge lines --season 2026 --week W`
+
+Wednesday / Friday, when the injury report changes a starter or a usage share:
+
+3. `nfl-edge overrides --season 2026 --week W --file data/overrides/2026_wkWW.csv`
+4. Repeat steps 1 and 2. Skip step 4 when the override did not change a starter or a usage share.
+
+Saturday 20:00 (`--note sat-final`):
+
+- Put that week's `data/dk/DKSalaries_2026_wkWW_*.csv` files on disk before 20:00. Zero files: the agent prints `no DKSalaries_2026_wkWW_*.csv in data/dk/` and exits 1 before the sim.
+- The agent then ingests, loads every salary file, merges DK status, applies `data/overrides/2026_wkWW.csv` when that file exists, pulls FantasyPros injuries (non-fatal), sims 20k, pulls odds, runs lines, props, and one DFS build per salary file.
+
+Sunday 08:40 (`--note sun-inactives`):
+
+- Re-export the salary CSVs before 08:40. Same missing-file exit as Saturday.
+- The sim must finish by 08:50 Phoenix. A sim still running then is killed, `drop-incomplete` removes that partial run, and Saturday stays live (`sun-inactives: sim not complete by 08:50, Saturday run kept`). The same removal happens when the Sunday game count does not match the slate. Any other sim error prints `sun-inactives: sim failed, Saturday run left intact` and exits with the sim's code. That path does not call `drop-incomplete`.
+- Lines, props, and DFS then run to completion. A line is logged if the clock passes 09:30. Lineups and Optimize keep Saturday's lineups and show `Sunday build in progress` until the new run has `dfs_lineups`.
+
+## Scheduled jobs
+
+### Failure
+
+A top-level `capture` logs `unreachable, skipped` and exits 0 when the command output matches `ops/unreachable.sh` (connection errors, timeouts, or the text `github.com`). `loc-snapshot.sh` uses the same check inline.
+
+`capture` inside `$(...)` does not stop the parent. The skip text becomes the command's result. That happens for `current-week`, `newest-run`, and `slate-count` in `ops/week-rebuild.sh`, for `completed-weeks` and `ungraded-completed` in `ops/week-grade.sh`, and for `stale-weeks` in `ops/lines-only.sh`.
+
+nflreadpy downloads nflverse files from `github.com/nflverse/nflverse-data`. The schedule file is `schedules/games.parquet`. Any `github.com` in the output counts, including the other files a week ingest downloads from that host.
+
+`db.py` replaces a connection `OperationalError` with `could not connect using DATABASE_URL (OperationalError); check host reachability and that the password is percent-encoded` and drops the driver message. The matcher keys off `could not connect`.
+
+### lines-only
+
+- Trigger: `StartInterval` 1800, `RunAtLoad` set. The script's cutoff `2026-09-13 23:59:59` America/Los_Angeles is in the past, so every fire is gated: only an even Los Angeles hour with minute under 15 proceeds. Any other fire exits 0 with no log line.
+- Writes: Odds API rows in `raw.market_lines` (`fetched_at` makes each pull unique), nflverse score and schedule updates, edges and verdicts for each stale week on that week's newest sim.
+- Does not write: a `model.sim_runs` row. The board stays on the last sim.
+- Log: `output/cron-lines.log`.
+
+Steps, in order: `nfl-edge ingest odds-api` (`h2h,spreads,totals`, 3 credits), `nfl-edge ingest --season 2026 --lines-only`, then `nfl-edge lines` for each week from `stale-weeks`. `RecentDuplicate` is a no-op. Any other odds-api failure logs one line and nflverse plus `lines` still run. Each pull prints `remaining=`; under 100 is a warning.
+
+The hour check uses `America/Los_Angeles`. The grid is the twelve even hours, all day, about 36 credits (3 × 12) when each of those fires lands before minute 15, plus 3 more on each week-rebuild. There is no daytime window. Until 2026-11-01 those hours match Phoenix. After that date Pacific standard time is one hour behind Phoenix, so an even Los Angeles hour is an odd Phoenix hour.
+
+`nfl-edge ingest --season 2026 --lines-only` pulls the nflverse schedule for the whole season. New `game_id`s are inserted into `raw.schedules`. Existing rows receive `away_score`, `home_score`, `result`, `total` (score sum), and `overtime` when those values change. Kickoff, teams, stadium, and the betting columns stay as stored. The same pull inserts nflverse rows into `raw.market_lines` with `on conflict do nothing`. Those rows have null `bookmaker` and `fetched_at`, so an unchanged line is a no-op. An Odds API pull is a new row because `fetched_at` is in the unique key.
+
+nflverse schedule lines are not a live odds feed. Snapshot resolution is bounded by upstream refresh. Games kicking off before `2026-09-20T00:00:00Z` stay on nflverse everywhere. From that instant the reference book is DraftKings (`config/line_reference.yaml`, `model.line_reference`). A DraftKings row missing spread or total falls back to nflverse.
+
+Verify: `launchctl print gui/$(id -u)/com.nfl-edge.lines-only` (`state`, `runs`, next interval).
+
+### week-rebuild
+
+- Trigger: Saturday 20:00 and Sunday 08:40, Mac clock. No `RunAtLoad`. Week comes from `nfl-edge current-week`, not the plist.
+- Writes: a sim with `--note sat-final` (Saturday) or `--note sun-inactives` (Sunday), 20k draws, then lines, props, and DFS for each salary file on disk.
+- Does not write: the live Sunday sim when the clock is already 08:50, when the sim is still running at 08:50, or when the Sunday game count does not match the slate. Those paths remove the partial run and leave Saturday live. A Sunday sim that errors some other way is not removed.
+- Log: `output/cron-rebuild.log`.
+
+Order: ingest for the week, `dk-salaries --salaries-only` per file, `dk-salaries --merge-status`, optional `data/overrides/2026_wkWW.csv`, `ingest fantasypros-status` (one line and continue on failure), sim, one odds-api pull (3 credits), lines, props (`data/props/props_2026_wkWW.csv` when that file exists, otherwise `props` with no `--file`), `dfs --lineups 150 --field 20000` once per salary file, then `benchmark fantasypros` and `ingest fantasypros-rankings` (both non-fatal).
+
+An odds-api failure here stops the job before lines, props, and DFS. `RecentDuplicate` does not. Unreachable logs `unreachable, skipped` and exits 0. Any other odds failure exits with that command's code. `lines-only` does the opposite: it logs the odds failure and continues.
+
+Verify: `launchctl print gui/$(id -u)/com.nfl-edge.week-rebuild` shows both calendar intervals and no `RunAtLoad`.
+
+### week-grade
+
+- Trigger: Tuesday 09:00. No `RunAtLoad`.
+- Writes: grades for each completed REG week that is not already fully graded, after ingest and an NFLGameSim benchmark refresh.
+- Does not write: a grade for a week that still has a null `result`. The missing `game_id`s are printed, that week is skipped, and other weeks in the list are still graded. If any week was skipped, the process exits 1.
+- Log: `output/cron-grade.log`.
+
+It prints `completed weeks:` and `ungraded completed:` on every fire. A week counts as completed when its last `gameday` is before today.
+
+Verify: `launchctl print gui/$(id -u)/com.nfl-edge.week-grade` shows Tuesday 09:00.
+
+### loc-snapshot
+
+- Trigger: hourly (`StartInterval` 3600). Proceeds Thursday through Monday, 06:00–19:59. Every other fire exits 0. No `RunAtLoad`.
+- Writes: one append of current-week roster statuses to `fantasy.loc_status_snapshots`, and a replace of `fantasy.loc_available` (waiver and free agents, one player request, limit 200, plus the pro schedule so bye weeks are real).
+- Does not write: either table when the roster or the pool comes back empty, or when the fetch fails. A status change between two pulls is invisible until the next successful pull. `/league` shows the pull time next to every status.
+- Log: `output/cron-loc-snapshot.log`.
+
+Command: `nfl-edge ingest espn-league --season 2026 --snapshot-only`. Needs `ESPN_S2` and `ESPN_SWID` in `.env`. An output that matches `ops/unreachable.sh` logs `unreachable, skipped` and exits 0. An ESPN API error is raised as `ESPN request failed (...); nothing was written` and exits non-zero. An empty roster or an empty pool exits non-zero with its own message and writes nothing. A full `ingest espn-league` (not this job) also appends a status set and replaces the pool.
+
+The window is Thursday through Monday, 06:00–19:59 Phoenix. Tuesday and Wednesday never pull. A change at or after 20:00 Phoenix waits until the next open hour: Friday 06:00 after Thursday, Thursday 06:00 after Monday.
+
+Check the window without calling ESPN: `LOC_SNAPSHOT_DRY=1 LOC_SNAPSHOT_DOW=4 LOC_SNAPSHOT_HOUR=12 bash ops/loc-snapshot.sh`.
+
+Verify: `launchctl print gui/$(id -u)/com.nfl-edge.loc-snapshot`.
+
+## Install and swap
+
+Same `Label` cannot be loaded twice. Bootstrap a temporary overlap agent first, then replace. `lines-only` keeps the snapshot chain; the other three use the same shape with their own plist and label.
 
 ```
 UID=$(id -u)
@@ -78,58 +127,82 @@ rm -f "$SWAP"
 launchctl print gui/$UID/com.nfl-edge.lines-only
 ```
 
-Reload after editing the checked-in plist (same overlap swap). Confirm the next fire with
-`launchctl print gui/$(id -u)/com.nfl-edge.lines-only` (`state` and `runs` / next interval).
+Reload after editing the checked-in plist with the same overlap swap.
 
-Install `com.nfl-edge.week-rebuild` the same way (`ops/com.nfl-edge.week-rebuild.plist`).
-Do not set `RunAtLoad`. Confirm both calendar intervals and that `RunAtLoad` is absent:
-`launchctl print gui/$(id -u)/com.nfl-edge.week-rebuild`.
+| Agent | Plist | First install |
+|---|---|---|
+| lines-only | `ops/com.nfl-edge.lines-only.plist` | swap above |
+| week-rebuild | `ops/com.nfl-edge.week-rebuild.plist` | same swap; do not set `RunAtLoad` |
+| week-grade | `ops/com.nfl-edge.week-grade.plist` | same swap; do not set `RunAtLoad` |
+| loc-snapshot | `ops/com.nfl-edge.loc-snapshot.plist` | new label, no swap: `chmod +x ops/loc-snapshot.sh && cp ops/com.nfl-edge.loc-snapshot.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.loc-snapshot.plist` |
 
-Install `com.nfl-edge.week-grade` the same way (`ops/com.nfl-edge.week-grade.plist`).
-Do not set `RunAtLoad`. Confirm Tuesday 09:00:
-`launchctl print gui/$(id -u)/com.nfl-edge.week-grade`.
+## Data inputs
 
-Install `com.nfl-edge.loc-snapshot` (`ops/com.nfl-edge.loc-snapshot.plist`; new label, so no swap):
-`chmod +x ops/loc-snapshot.sh && cp ops/com.nfl-edge.loc-snapshot.plist ~/Library/LaunchAgents/ &&
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.loc-snapshot.plist`. Do not set
-`RunAtLoad`. Confirm: `launchctl print gui/$(id -u)/com.nfl-edge.loc-snapshot`.
+### Injury overrides CSV
 
-## Weekly runbook
+`nfl-edge overrides --season S --week W --file path.csv` upserts `raw.player_overrides`. Header row required.
 
-Replace `W` with the NFL week. Run in this order, on this Mac, with `DATABASE_URL` unset.
+- `player` — `gsis_id` (`00-…`) or display name. Same name matching as DK salaries (`merge_name` / `display_name` + optional `team` + `position`; DST → `{team}_DST`; leftovers in `config/dk_aliases.yaml`).
+- `status` — `out` | `doubtful` | `questionable` | `active`
+- `usage_multiplier` — float, default 1.0. `out`, `doubtful`, and `ir` zero usage in priors regardless.
+- `note` — free text
+- `team`, `position` — optional disambiguation
 
-Tuesday 09:00 Phoenix (`com.nfl-edge.week-grade`)
+Unmatched and ambiguous rows are reported and not written. `questionable` keeps the given multiplier (default 1.0).
 
-The agent ingests and grades every completed week that is still ungraded. It will not grade a
-week until every REG game has a non-null `result`. Reconstruct Sunday verdicts that were never
-persisted with `nfl-edge lines --close --run <run_id>` (pre-kickoff snapshot only; marked
-`backfilled`). Then start the new week:
+### DK salaries
 
-1. `nfl-edge sim --season 2026 --week W --draws 20000`
-2. `nfl-edge lines --season 2026 --week W`
+`nfl-edge dk-salaries --season S --week W --slate main` reads `data/dk/DKSalaries_S_wkWW_main.csv` (or `--file`). Writes `raw.dk_salaries` (unmatched names kept with null `player_id`, never dropped) and fills `raw.players.dk_id`. DK `Status` O/OUT and IR → `player_overrides` out (usage 0); D → doubtful (usage 0); Q → questionable (usage 1.0). Unmatched names and skipped overrides go to stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `config/dk_aliases.yaml`.
 
-Wednesday / Friday (injury report)
+The weekend agent loads each file with `--salaries-only`, then runs `--merge-status` once.
 
-5. `nfl-edge overrides --season 2026 --week W --file data/props/overrides_W.csv`
-6. Re-sim and re-lines only if an override changed a starter or a usage share: steps 3 then 4.
+### FantasyPros
 
-Saturday 20:00 MST (`com.nfl-edge.week-rebuild`, `--note sat-final`)
+Key: `FANTASY_PROS_API_KEY` in `.env` (CLI only, never `web/.env.local`). Reference docs: `docs/vendor/fantasypros/`. One call per command (free tier). `week-rebuild.sh` runs status, the projections benchmark, and rankings. A missing key or a failed call prints one line and the rebuild continues.
 
-Drop Main and Full CSVs in `data/dk/` first. The agent runs ingest → dk-salaries main and
-full → sim 20k → odds-api pull → lines → props → dfs main then full.
+Manual CSV, DK `Status`, and FantasyPros each write `raw.player_overrides` by their own rule. For a row whose note does not start with `fp `, FantasyPros replaces it, manual included, only when `min(injury_update_date, fetched_at)` is later than that row's `updated_at`. A row whose note already starts with `fp ` is replaced without that time check. `updated_at` moves only when the status changes, so a source that re-confirms an unchanged status does not look newer.
 
-Sunday 08:40 MST (`--note sun-inactives`)
+- `nfl-edge ingest fantasypros-status --season S --week W [--dry-run]`: injuries to `raw.player_overrides`, note prefix `fp `. O, IR, PUP, S, NFI → out; D → doubtful; Q → questionable (written only to replace an older saved row that disagrees). QB/RB/WR/TE on teams playing the week. A player FantasyPros stops listing is reported, not cleared. Runs before the sim. A real run (not `--dry-run`) also appends the whole response, practice-only rows included, to `raw.fantasypros_snapshots` (`endpoint='injuries'`); no extra call.
+- `nfl-edge ingest fantasypros-injury-reports --season S --week W`: the same call, snapshot only (no override writes). Rows keep status, practice days 1–3, probability of playing, and `injury_update_date` (UTC). A past week's report carries updates made after the games, so a status counts as known before kickoff only when its `injury_update_date` is on or before kickoff.
+- `nfl-edge ingest fantasypros-points --season S --start A --end B`: weekly PPR points per offensive player-week into `raw.fantasypros_snapshots` (`endpoint='player_points'`, migration 0035). One call covers the range. A 0.0 does not say whether the player played. Used by the LOC league page as an independent check on ESPN actuals (`fantasy.loc_player_week_check`).
+- `nfl-edge benchmark fantasypros --season S --week W`: projections into `raw.fantasypros_snapshots` (one `fetched_at` per pull, never overwritten) and the latest into `raw.external_players` (`source='fantasypros'`; `fpts_std`, `fpts_ppr`, and `fpts_dk`: the same stat means scored with the DK rules in `config/scoring.yaml`, bonuses as probability × bonus points).
+- `nfl-edge ingest fantasypros-rankings --season S --week W`: weekly ECR into `raw.fantasypros_snapshots`. `raw.ff_rankings_weekly` stays the nflreadpy archive.
 
-Same order. Sim must finish by 08:50 or Saturday stays live (`sun-inactives: sim not complete
-by 08:50, Saturday run kept`). lines/props/dfs then run to completion; a line is logged if the
-clock passes 09:30. Lineups/Optimize keep Saturday's lineups and show `Sunday build in progress`
-until the new run has `dfs_lineups`.
+Benchmark only until promoted (gate in AGENTS.md). Nothing in `sim/` or `priors/` reads the snapshot tables. Unmatched players are kept with a null `player_id` and listed.
 
-### Week 1 lock windows
+### RTS projections
 
-`DATABASE_URL` unset. Drop the DK export in `data/dk/` first (gitignored). `dk-salaries` runs after `ingest` and before `sim` so Status O/D/Q/OUT/IR hit priors, not only the optimizer. Boutte: leave unmatched; no alias.
+`nfl-edge benchmark rts --season S --week W` reads `data/benchmarks/rts_projections_<season>_week<WW>.csv` (or `--file`) and upserts `raw.external_players` with `source='rts'` and `fpts_dk`. Nothing in `sim/` reads that table, and the player page does not load it. `rtsByPlayer` in `web/src/lib/queries/players.ts` is unused.
 
-Wednesday 2026-09-09 ~15:00 MST (before NE@SEA lock, 20:20 ET / 18:20 MST)
+### NFLGameSim weekly paste
+
+Paste the mygamesim page (all weeks shown) into `docs/nflgamesim-weekN.md`, then run `nfl-edge benchmark nflgamesim --season 2026 --file docs/nflgamesim-weekN.md`. Every week in the paste is rewritten in `raw.external_games` and `data/benchmarks/`; the Grading page compares it to ours. For each week it grades, the Tuesday agent runs `nfl-edge benchmark nflgamesim --season 2026 --week W --refresh-actuals` before the grade.
+
+## Web
+
+The Next.js app in `web/` reads Supabase from server components. It does not generate verdicts. Writes from the app: a typed insert into `model.market_props`, inserts into `model.usage_claims` and `model.llm_calls`, and a promote that upserts `raw.player_overrides`. Numbers on the Edge board that are ahead of the last `lines` run come from `proj_games.line_grid` (a lookup, not a new projection).
+
+Player library: `/week/[n]/players/dk/{slate}`. Browser optimizer: `/week/[n]/optimize/dk/{slate}`. Browser-optimized lineups are graded only after the CSV is exported and that slate is entered. The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Exports put `run_id`, `slate_id`, and `source` (`sim`, `user-optimized`, or `single`) in the filename (`dk_upload_<slate_id>_<run_id first 8>_<source>.csv`). Line 1 is the DK header. Grade an entered upload from that name and the CLI path `data/dfs/<run_id>/<site>/<slate>/`. Pick one on Lineups writes the `single` file from one of the 150.
+
+Sentences stay on the last `nfl-edge lines` write. The lines agent runs that after a snapshot when a week is stale. The sim those sentences describe stays the newest `sim_runs` row.
+
+- **App**: `web/`, Next.js, `engines.node` `>=22`. Env var `DATABASE_URL` in `web/.env.local` (gitignored) and in the Vercel project for Production and Preview.
+- **Role**: migration `0006_web_reader_role.sql` creates `web_reader` with SELECT on `model` and `raw`, a 15 s statement timeout, and no password. The password is set once in the Supabase SQL editor. Later grants: INSERT on `model.market_props` (`0011`), INSERT on `model.llm_calls` (`0020`), INSERT on `model.usage_claims` plus INSERT and UPDATE on `raw.player_overrides` (`0021`). Migration `0032_web_reader_fantasy.sql` adds SELECT on `fantasy` for `/league`.
+- **Freshness**: every `page.tsx` under `web/src/app` is `force-dynamic`. A new `sim` or `lines` run shows on the next request. After a snapshot the board looks up P(cover)/P(over) from `line_grid` against the current line. The RunBadge shows `lines as of` and `verdicts as of` in the viewer's local timezone. `at run` on a check stays Eastern. Run `lines` last in the weekly order.
+- **Connections**: `postgres.js` pool `max: 3` per instance (`web/src/lib/db.ts`).
+- **Deploy**: `cd web && vercel link` once, `vercel` for a preview, `vercel --prod` for production.
+
+## Provenance
+
+Every `sim` run records `git_sha`, `config_hash`, and `draws_per_game` on `model.sim_runs`. `lines` resolves the newest run for the week unless `--run` is given. Edges and verdicts are keyed to the `raw.market_lines.id` they were computed against, so a later line does not overwrite an earlier verdict.
+
+## Appendix: 2026 Week 1
+
+The 30-minute lines cadence ended Sunday 2026-09-13 23:59 America/Los_Angeles. After that cutoff the even-hour rule in `ops/lines-only.sh` is the live one.
+
+`STATUS.md` still contains the Week 1 note, and that note was not updated: one nflverse `raw.market_lines` row per 2026 game at the time, and the closing-line cadence was never recorded. Odds API rows since `2026-09-20` are additional rows. They do not replace that note.
+
+Wednesday 2026-09-09 ~15:00 (before NE@SEA lock, 20:20 ET / 18:20 Phoenix)
 
 1. Re-export TNF showdown from DK → `data/dk/DKSalaries_2026_wk01_showdown.csv`
 2. `nfl-edge ingest --season 2026 --week 1`
@@ -140,134 +213,6 @@ Wednesday 2026-09-09 ~15:00 MST (before NE@SEA lock, 20:20 ET / 18:20 MST)
 7. `nfl-edge dfs --season 2026 --week 1 --site dk --slate showdown --lineups 150` (field size and iterations from `config/sim.yaml` `dfs:`; `--field-size`, `--iterations`, `--full-field` override)
 8. `cd web && vercel` (preview, not `--prod`)
 
-Report: `run_id`, invariants, override delta vs `output/overrides_2026_wk01_pre_wed.csv` (202 rows at bf9a11f4: 127 out / 75 Q), upload path `data/dfs/<run_id>/dk/showdown/dk_upload_<slate_id>_<run_id first 8>_sim.csv`.
+Saturday 2026-09-12 20:00 (LaunchAgent, `--note sat-final`): Main and Full CSVs on disk before 20:00. The agent ran the rebuild. No Vercel CLI.
 
-Saturday 2026-09-12 20:00 MST (LaunchAgent; `--note sat-final`)
-
-Drop Main and Full CSVs before 20:00. The agent runs the rebuild. No Vercel CLI.
-
-Sunday 2026-09-13 08:40 MST (LaunchAgent; `--note sun-inactives`)
-
-1. Re-export DK Main and Full → `data/dk/DKSalaries_2026_wk01_main.csv` and `…_full.csv` before 08:40
-2. Agent: ingest → dk-salaries main and full → sim 20k (dead at 08:50) → lines → props → dfs main then full
-3. If the sim is not done by 08:50, Saturday stays live. No Vercel CLI.
-
-Between those, the LaunchAgent keeps snapshotting. After a new snapshot, `nfl-edge lines --season 2026 --week W` writes edges without a re-sim.
-
-## Injury overrides CSV
-
-`nfl-edge overrides --season S --week W --file path.csv` upserts `raw.player_overrides`.
-Columns (header row required):
-
-- `player` — `gsis_id` (`00-…`) or display name. Same name matching as DK salaries (`merge_name` /
-  `display_name` + optional `team` + `position`; DST → `{team}_DST`; leftovers in
-  `config/dk_aliases.yaml`).
-- `status` — `out` | `doubtful` | `questionable` | `active`
-- `usage_multiplier` — float, default 1.0. `out` and `doubtful` zero usage in priors regardless.
-- `note` — free text
-- `team`, `position` — optional disambiguation
-
-Unmatched and ambiguous rows are reported and not written. `questionable` keeps the given
-multiplier (default 1.0).
-
-## DK salaries
-
-`nfl-edge dk-salaries --season S --week W --slate main` reads `data/dk/DKSalaries_S_wkWW_main.csv`
-(or `--file`). Writes `raw.dk_salaries` (unmatched names kept with null `player_id`, never dropped)
-and fills `raw.players.dk_id`. DK `Status` O/OUT and IR → `player_overrides` out (usage 0); D →
-doubtful (usage 0); Q → questionable (usage 1.0). Unmatched names and skipped overrides go to
-stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `config/dk_aliases.yaml`.
-
-## RTS projections
-
-`nfl-edge benchmark rts --season S --week W` reads
-`data/benchmarks/rts_projections_<season>_week<WW>.csv` (or `--file`) and upserts
-`raw.external_players` with `source='rts'`. Lineups Pick one re-scores a lineup with those
-numbers next to ours. Missing file: em dash. Never blended into `proj_fpts`.
-
-## NFLGameSim weekly paste
-
-Paste the mygamesim page (all weeks shown) into `docs/nflgamesim-weekN.md`, then run
-`nfl-edge benchmark nflgamesim --season 2026 --file docs/nflgamesim-weekN.md`. Every week in the
-paste is rewritten in `raw.external_games` and `data/benchmarks/`; the Grading page compares it to ours.
-
-## FantasyPros API
-
-Key: `FANTASY_PROS_API_KEY` in `.env` (CLI only, never `web/.env.local`). Reference docs:
-`docs/vendor/fantasypros/`. One call per command (free tier); `week-rebuild.sh` runs all three,
-non-fatal if the key is missing or the API fails.
-
-- `nfl-edge ingest fantasypros-status --season S --week W [--dry-run]`: injuries to
-  `raw.player_overrides`, note prefix `fp `. O, IR, PUP, S, NFI → out; D → doubtful; Q → questionable
-  (written only to replace an older saved row that disagrees). QB/RB/WR/TE on teams playing the week.
-  Newest information wins across all sources, manual included: FantasyPros replaces a saved row only
-  when its report time, `min(injury_update_date, fetched_at)`, is later than that row's `updated_at`;
-  otherwise the saved row stays and is reported. Caveat: `updated_at` moves only when the status
-  changes, so a source that re-confirms an unchanged status does not look newer. A player FantasyPros
-  stops listing is reported, not cleared. Runs before the sim. A real run (not `--dry-run`) also appends
-  the whole response, practice-only rows included, to `raw.fantasypros_snapshots` (`endpoint='injuries'`);
-  no extra call.
-- `nfl-edge ingest fantasypros-injury-reports --season S --week W`: the same call, snapshot only (no
-  override writes). Rows keep status, practice days 1-3, probability of playing, and
-  `injury_update_date` (UTC). A past week's report carries updates made after the games, so a status
-  counts as known before kickoff only when its `injury_update_date` is on or before kickoff.
-- `nfl-edge ingest fantasypros-points --season S --start A --end B`: weekly PPR points per offensive
-  player-week into `raw.fantasypros_snapshots` (`endpoint='player_points'`, migration 0035). One call
-  covers the range. A 0.0 does not say whether the player played. Used by the LOC league page as an
-  independent check on ESPN actuals (`fantasy.loc_player_week_check`).
-- `nfl-edge benchmark fantasypros --season S --week W`: projections into `raw.fantasypros_snapshots`
-  (one `fetched_at` per pull, never overwritten) and the latest into `raw.external_players`
-  (`source='fantasypros'`; `fpts_std`, `fpts_ppr`, and `fpts_dk`: the same stat means scored with the DK
-  rules in `config/scoring.yaml`, bonuses as probability x bonus points).
-- `nfl-edge ingest fantasypros-rankings --season S --week W`: weekly ECR into
-  `raw.fantasypros_snapshots`. `raw.ff_rankings_weekly` stays the nflreadpy archive.
-
-Benchmark only until promoted (gate in AGENTS.md). Nothing in `sim/` or `priors/` reads the snapshot
-tables. Unmatched players are kept with a null `player_id` and listed.
-
-## Web
-
-The Next.js app in `web/` reads Supabase from server components. It does not generate verdicts.
-The one write is a typed insert into `model.market_props`. Numbers on the Edge board that are
-ahead of the last `lines` run come from `proj_games.line_grid` (a lookup, not a new projection).
-
-Player library: `/week/[n]/players/dk/{slate}`. Browser optimizer: `/week/[n]/optimize/dk/{slate}`.
-Browser-optimized lineups are **not graded** unless you export the CSV and enter that slate.
-The weekly `nfl-edge dfs` 150 (`model.dfs_lineups`) remain the graded set. Exports put
-`run_id`, `slate_id`, and `source` (`sim`, `user-optimized`, or `single`) in the filename
-(`dk_upload_<slate_id>_<run_id first 8>_<source>.csv`). Line 1 is the DK header — never a
-comment. Grade an entered upload from that name (and the CLI path
-`data/dfs/<run_id>/<site>/<slate>/`). Pick one on Lineups writes the `single` file from one
-of the 150.
-Sentences stay on the last `nfl-edge lines` write, which this Mac's LaunchAgent runs after each
-snapshot when a week is stale.
-
-- **Vercel project** `nfl-edge`, linked to `github.com/jrakestr/nfl-edge`, **Root Directory = `web`**,
-  framework Next.js, Node 22. Previews per branch/PR, production from `main`.
-- **Env var**: `DATABASE_URL` only. Value is the Supabase **session pooler** URI (IPv4; the direct
-  `db.<ref>.supabase.co` host is IPv6-only and Vercel cannot reach it), set for Production and
-  Preview via `vercel env add` (pasted interactively, never in a shell-history line). Locally the
-  same URI lives in `web/.env.local`, which `web/.gitignore` excludes.
-- **Role**: migration `0006_web_reader_role.sql` creates `web_reader` (login, SELECT on `model.*`
-  and `raw.*`, default privileges for future tables, 15 s statement timeout) **without a
-  password**. Set it by hand once in the Supabase SQL editor: `alter role web_reader password '…'`
-  (letters and digits only, so the URI needs no percent-encoding). The pooler user for a custom
-  role is `web_reader.<project_ref>`:
-  `postgresql://web_reader.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`.
-  Migration `0032_web_reader_fantasy.sql` adds SELECT on `fantasy.*` (and default privileges) for
-  the LOC league pages under `/league`; still no INSERT/UPDATE and no `create`.
-- **Freshness**: every page is `force-dynamic`; a new `sim` / `lines` run shows on the next
-  request with no redeploy. After a snapshot the board looks up P(cover)/P(over) from
-  `line_grid` against the current line. The RunBadge shows `lines as of` / `verdicts as of` in
-  the viewer's local timezone; a drift warning means this Mac's `lines` step has not caught up.
-  Run `lines` last in the weekly order.
-- **Connections**: `postgres.js` pool `max: 3` per instance; preview + prod cold starts stay under
-  the free pooler's limit.
-- **Deploy**: `cd web && vercel link` (once) → `vercel` for a preview URL → `vercel --prod` only
-  after the UI checkpoint in `STATUS.md` is ticked.
-
-## Provenance
-
-Every `sim` run records `git_sha`, `config_hash` and `draws_per_game` in `model.sim_runs`; `lines`
-resolves the newest run for the week unless `--run` is given. Edges and verdicts are keyed to the
-`raw.market_lines.id` they were computed against, so a line move never overwrites an earlier verdict.
+Sunday 2026-09-13 08:40 (LaunchAgent, `--note sun-inactives`): re-export Main and Full before 08:40. Sim dead at 08:50 keeps Saturday. No Vercel CLI.
