@@ -498,6 +498,50 @@ def missing_finals_cmd(
         raise typer.Exit(code=1)
 
 
+@app.command()
+def phase(
+    name: str = typer.Argument(..., help="ingest | salaries | sim | lines | props | dfs | grade"),
+    week: int = typer.Option(None, help="Default: current-week"),
+    season: int = typer.Option(2026),
+    slate: str = typer.Option(None, help="DFS: the salary file's slate key"),
+    draws: int = typer.Option(None, help="Sim draws per game (default: sim.yaml draws_per_game)"),
+    field_size: int = typer.Option(None, help="DFS room size (default: sim.yaml dfs.field_size)"),
+    iterations: int = typer.Option(None, help="DFS sim iterations (default: sim.yaml dfs)"),
+    full_field: bool = typer.Option(False, help="DFS: play the real contest room"),
+    from_here: bool = typer.Option(
+        False, "--from", help="Run this phase and every later one through DFS (each salary file)",
+    ),
+):
+    """Run one phase of the week (or --from it onward), logged to ops.workflow_runs."""
+    from . import workflow as W
+    from .rebuild import current_week
+
+    if week is None:
+        week = current_week(season)
+        if week is None:
+            typer.echo(f"no current week for {season}; pass --week")
+            raise typer.Exit(1)
+    ctx = W.Context(season, week, slate=slate, draws=draws, field_size=field_size,
+                    iterations=iterations, full_field=full_field)
+    if from_here:
+        todo = W.chain(name, W.week_slates(season, week))
+    elif name == "dfs" and not slate:
+        todo = [("dfs", s) for s in W.week_slates(season, week)]
+    else:
+        todo = [(name, slate)]
+    if not todo:
+        typer.echo(f"nothing to run: no DK salary files for {season} week {week}")
+        raise typer.Exit(1)
+    for ph, sl in todo:
+        typer.echo(f"== {ph}{' ' + sl if sl else ''} {season} week {week}")
+        try:
+            msg = W.run_phase(ph, W.Context(**{**ctx.__dict__, "slate": sl}))
+        except W.PhaseFailed as e:
+            typer.echo(f"{ph} failed: {e}")
+            raise typer.Exit(1) from e
+        typer.echo(f"{ph} done: {msg}")
+
+
 @app.command("slate-count")
 def slate_count_cmd(season: int = typer.Option(2026), week: int = typer.Option(...)):
     """Print how many games raw.schedules has for the week."""

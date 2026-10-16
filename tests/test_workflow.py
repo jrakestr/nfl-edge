@@ -199,3 +199,31 @@ def test_sim_phase_drops_incomplete_when_counts_short(sim_db):
     with pytest.raises(W.PhaseFailed, match="15 of 16 games"):
         W.run_phase("sim", W.Context(2026, 7), runner=run, recorder=rec)
     assert len(sim_db["dropped"]) == 1
+
+
+def test_sim_phase_leaves_another_running_sim_alone(sim_db):
+    class Locked(FakeRunner):
+        def __call__(self, args):
+            raise W.StepFailed(args, "sim for 2026 week 7 already running (lock held)")
+
+    with pytest.raises(W.PhaseFailed, match="another sim for week 7 is running"):
+        W.run_phase("sim", W.Context(2026, 7), runner=Locked(), recorder=FakeRecorder())
+    assert sim_db["dropped"] == []
+
+
+@pytest.mark.db
+def test_sql_recorder_writes_start_and_finish(monkeypatch):
+    from nfl_edge.db import read_sql
+
+    monkeypatch.setenv("GITHUB_RUN_ID", "123")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "o/r")
+    rec = W.SqlRecorder()
+    ctx = W.Context(1999, 1, slate="main", draws=10)
+    row = rec.start("dfs", ctx)
+    rec.finish(row, "success", "done", None)
+    got = read_sql("select phase, slate, status, settings, gh_run_url, host, finished_at "
+                   "from ops.workflow_runs where id = %s", (row,)).to_dicts()[0]
+    read_sql("delete from ops.workflow_runs where id = %s returning id", (row,))
+    assert got["phase"] == "dfs" and got["slate"] == "main" and got["status"] == "success"
+    assert got["gh_run_url"] == "https://github.com/o/r/actions/runs/123"
+    assert got["host"] == "github" and got["finished_at"] is not None
