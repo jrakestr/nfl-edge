@@ -1,0 +1,26 @@
+# DFS
+
+## Slates and files
+- DK salary CSVs live in gitignored `data/dk/`. DFS is slate-scoped (classic:
+  main/early/full/afternoon/turbo/primetime; showdown separate). Each slate has its
+  own DK IDs; upload CSVs must use that slate's IDs.
+- Unknown slate key: show an empty state naming the expected DK CSV. Never
+  substitute Main.
+- `ops/week-rebuild.sh` discovers slates from the CSVs on disk.
+- Player joins go through `raw.players` + `raw.dk_player_crosswalk`
+  (LAR→LA, JAC→JAX, WSH→WAS).
+- Upload line 1 is the site header (`QB,RB,RB,WR,WR,WR,TE,FLEX,DST` or the
+  showdown CPT header), never a comment.
+- Filename: `dk_upload_<slate_id>_<run_id[:8]>_<sim|user-optimized>.csv`;
+  CLI path `data/dfs/<run_id>/<site>/<slate>/`.
+
+## Optimizer
+- Choose the classic mode (Cash / Single Entry / Mass GPP) before the build. One
+  shared config for Python and web: `config/dfs/dk_classic.json` (`num_uniques`,
+  max exposure). Never ship `num_uniques=1` with no cap.
+- Locks and required-stack players are exempt from exposure caps. A lock means
+  in the lineup, not a specific slot (showdown: `c_i + f_i = 1`).
+- Never silently drop a forced pick.
+- GPP field size must exceed lineups entered, or fail closed.
+- `model.dfs_exposure` columns: `own_ours` / `own_field_proj` / `own_field_sim`.
+  Hide the panel when `own_field_sim` is null.
