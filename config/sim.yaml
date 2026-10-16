@@ -1,6 +1,12 @@
 # Simulator parameters. Every output reads from the draws produced under these settings.
 draws_per_game: 20000
 seed: 2026
+dfs:
+  # GPP field sim. The contest room is scaled to field_size (same prize shape, same share
+  # of the field paid, same pool-to-entry ratio); --full-field uses the real room instead.
+  field_size: 3000     # entries in the simulated room, ours included
+  iterations: 5000     # tournament simulations over that room
+  max_minutes: 3       # per salary file on a GitHub runner; the timing log is checked against it
 priors:
   recency_half_life_weeks: 6  # w = 2 ** (-age_weeks / H); fitted 2024+2025 OOS usage+PPD (not lines)
   shrink_to_ffopportunity: 0.5  # 0 = ignore _exp stats, 1 = fully trust them

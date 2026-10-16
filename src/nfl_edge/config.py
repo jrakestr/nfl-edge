@@ -18,6 +18,16 @@ def load_yaml(name: str) -> dict:
         return yaml.safe_load(f)
 
 
+def dfs_settings() -> dict:
+    """The `dfs:` block of config/sim.yaml: field_size, iterations, max_minutes."""
+    d = load_yaml("sim.yaml").get("dfs") or {}
+    return {
+        "field_size": int(d.get("field_size", 3000)),
+        "iterations": int(d.get("iterations", 5000)),
+        "max_minutes": float(d.get("max_minutes", 3)),
+    }
+
+
 def database_url() -> str:
     url = os.environ.get("DATABASE_URL")
     if not url:
