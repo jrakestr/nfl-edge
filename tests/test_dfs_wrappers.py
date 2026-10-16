@@ -458,8 +458,8 @@ def test_run_sim_stages_cid_file_command(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(S, "parse_gpp_csv", lambda _p: [{"lineup_id": "0"}])
     monkeypatch.setattr(S, "parse_exposure_csv", lambda _p, _r: [{"player_id": "a"}])
-    out = S.run(exp, site="dk", field=20000, slate_rows=[])
-    assert seen["args"] == ["dk", "sim", "cid", "file", "20000"]
+    out = S.run(exp, site="dk", iterations=5000, slate_rows=[])
+    assert seen["args"] == ["dk", "sim", "cid", "file", "5000"]
     assert out["lineups"] == [{"lineup_id": "0"}]
     assert (exp / "gpp_lineups.csv").is_file()
     assert (exp / "gpp_exposure.csv").is_file()
@@ -486,8 +486,8 @@ def test_run_sim_showdown_stages_sd_sim_cid_file(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(S, "parse_gpp_csv", lambda _p: [])
     monkeypatch.setattr(S, "parse_exposure_csv", lambda _p, _r: [])
-    S.run(exp, site="dk", field=20000, slate_rows=[], showdown=True)
-    assert seen["args"] == ["dk", "sd_sim", "cid", "file", "20000"]
+    S.run(exp, site="dk", iterations=5000, slate_rows=[], showdown=True)
+    assert seen["args"] == ["dk", "sd_sim", "cid", "file", "5000"]
 
 
 def test_resolve_uv_fallback_when_not_on_path(monkeypatch, tmp_path):
@@ -506,3 +506,88 @@ def test_exposure_from_lineups_showdown_counts_player_once():
     ]
     ours = P.exposure_from_lineups(lineups, SD_SLATE)
     assert ours["00-jsn"] == pytest.approx(1.0)
+
+
+# --- field size / iterations (fast DFS) ---------------------------------------------------
+
+
+def _mass_pipeline(monkeypatch, tmp_path) -> dict:
+    """Stub every pipeline dependency; record what export and the field sim were given."""
+    seen: dict = {}
+
+    class _Rows:
+        def to_dicts(self):
+            return [{"player_id": "p", "name": "A", "player_dk_id": "1"}]
+
+    def _export(*a, **k):
+        seen["export"] = k
+        return {"path": str(tmp_path), "settings": {}, "mean_by_dk": {}, "contest": "gpp",
+                "field_size": k.get("field_size") or 176470, "injury_dropped": []}
+
+    def _sim(*a, **k):
+        seen["sim"] = k
+        return {"lineups": [], "exposure": []}
+
+    monkeypatch.setattr(Pipe, "resolve_run", lambda *a, **k: {"run_id": "rid"})
+    monkeypatch.setattr(Pipe, "assert_slate_in_run", lambda *a, **k: None)
+    monkeypatch.setattr(Pipe.C, "profile", lambda *a, **k: {"lineups": 150})
+    monkeypatch.setattr(Pipe.C, "lineup_count", lambda *a, **k: 150)
+    monkeypatch.setattr(Pipe.dfs_export, "run", _export)
+    monkeypatch.setattr(Pipe, "read_sql", lambda *a, **k: _Rows())
+    monkeypatch.setattr(Pipe, "slate_type_for", lambda _s: "classic")
+    monkeypatch.setattr(Pipe.run_optimizer, "run", lambda *a, **k: {
+        "path": str(tmp_path / "lu.csv"), "lineups": [],
+    })
+    monkeypatch.setattr(Pipe.run_sim, "run", _sim)
+    monkeypatch.setattr(Pipe.parse, "merge_sim_stats", lambda a, b: a)
+    monkeypatch.setattr(Pipe.parse, "rescore_mean_fpts", lambda lus, *a, **k: lus)
+    monkeypatch.setattr(Pipe.parse, "exposure_from_lineups", lambda *a, **k: {})
+    monkeypatch.setattr(Pipe.parse, "field_proj_from_projections", lambda *a, **k: {})
+    monkeypatch.setattr(Pipe.parse, "merge_exposure", lambda *a, **k: [])
+    monkeypatch.setattr(Pipe.parse, "field_is_self", lambda *a, **k: False)
+    monkeypatch.setattr(Pipe.parse, "upload_csv", lambda *a, **k: "csv")
+    monkeypatch.setattr(Pipe.parse, "upload_filename", lambda *a, **k: "u.csv")
+    monkeypatch.setattr(Pipe, "persist", lambda *a, **k: {"lineups": 0, "exposure": 0})
+    return seen
+
+
+def test_pipeline_defaults_field_size_and_iterations_from_sim_yaml(monkeypatch, tmp_path):
+    seen = _mass_pipeline(monkeypatch, tmp_path)
+    out = Pipe.run(2026, 7)
+    assert seen["export"]["field_size"] == 3000
+    assert seen["sim"]["iterations"] == 5000
+    assert out["field_size"] == 3000
+
+
+def test_pipeline_overrides_and_full_field(monkeypatch, tmp_path):
+    seen = _mass_pipeline(monkeypatch, tmp_path)
+    Pipe.run(2026, 7, field_size=8000, iterations=1200)
+    assert seen["export"]["field_size"] == 8000
+    assert seen["sim"]["iterations"] == 1200
+    Pipe.run(2026, 7, full_field=True, field_size=8000)
+    assert seen["export"]["field_size"] is None
+
+
+def test_cli_dfs_field_is_a_deprecated_name_for_iterations(monkeypatch):
+    from typer.testing import CliRunner
+
+    from nfl_edge import cli
+    from nfl_edge.dfs import pipeline
+
+    got: dict = {}
+
+    def _run(*a, **k):
+        got.update(k)
+        return {"slate_id": "2026_07_main", "n_lineups": 0, "n_exposure": 0, "upload": "u"}
+
+    monkeypatch.setattr(pipeline, "run", _run)
+    r = CliRunner().invoke(cli.app, ["dfs", "--week", "7", "--slate", "main", "--field", "777"])
+    assert r.exit_code == 0, r.output
+    assert got["iterations"] == 777
+    assert "deprecated" in r.output
+    r = CliRunner().invoke(cli.app, [
+        "dfs", "--week", "7", "--slate", "main",
+        "--iterations", "5", "--field-size", "4000", "--full-field",
+    ])
+    assert r.exit_code == 0, r.output
+    assert (got["iterations"], got["field_size"], got["full_field"]) == (5, 4000, True)

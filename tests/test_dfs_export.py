@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -403,3 +404,87 @@ def test_exported_field_size_exceeds_entries(tmp_path: Path):
     assert D.contest_field_size(tmp_path / "contest_structure.csv") > 150
     D.write_export(tmp_path, [], [], D.build_config([], {}), [], contest="single")
     assert D.contest_field_size(tmp_path / "contest_structure.csv") > 1
+
+
+# --- scaled contest room (fast DFS) -------------------------------------------------------
+
+
+def _paid(rows: list[dict]) -> list[tuple[int, int, int]]:
+    """(first place, last place, payout) per row, the way the tool reads Place."""
+    out = []
+    for r in rows:
+        lo, _, hi = str(r["Place"]).partition("-")
+        out.append((int(lo), int(hi or lo), int(r["Payout"])))
+    return out
+
+
+def _pool_of(rows: list[dict]) -> int:
+    return sum((hi - lo + 1) * pay for lo, hi, pay in _paid(rows))
+
+
+def test_scale_contest_sets_field_size_and_keeps_place_one():
+    rows = D.read_contest(D.contest_path("gpp"))
+    small = D.scale_contest(rows, 3000)
+    assert {r["Field Size"] for r in small} == {"3000"}
+    assert {r["Entry Fee"] for r in small} == {"20"}
+    assert _paid(small)[0][0] == 1
+
+
+def test_scale_contest_pool_scales_by_field_ratio():
+    rows = D.read_contest(D.contest_path("gpp"))
+    small = D.scale_contest(rows, 3000)
+    expected = _pool_of(rows) * 3000 / 176470
+    assert abs(_pool_of(small) - expected) / expected < 0.01
+
+
+def test_scale_contest_keeps_share_of_field_paid():
+    rows = D.read_contest(D.contest_path("gpp"))
+    small = D.scale_contest(rows, 3000)
+    paid_orig = _paid(rows)[-1][1] / 176470
+    paid_new = _paid(small)[-1][1] / 3000
+    assert abs(paid_new - paid_orig) < 1 / 3000 + 1e-9
+
+
+def test_scale_contest_same_shape_ranges_merged_and_nonincreasing():
+    rows = D.read_contest(D.contest_path("gpp"))
+    small = _paid(D.scale_contest(rows, 3000))
+    pays = [p for _, _, p in small]
+    assert pays == sorted(pays, reverse=True)
+    assert all(a != b for a, b in pairwise(pays)), "equal neighbours must merge"
+    places = [(lo, hi) for lo, hi, _ in small]
+    assert all(b[0] == a[1] + 1 for a, b in pairwise(places)), "no gaps"
+    assert pays[-1] >= 20, "min cash still returns at least the entry fee"
+
+
+def test_scale_contest_at_or_above_room_is_unchanged():
+    rows = D.read_contest(D.contest_path("gpp"))
+    assert D.scale_contest(rows, 176470) == rows
+    assert D.scale_contest(rows, 500000) == rows
+
+
+def test_write_export_scales_contest_when_field_size_given(tmp_path: Path):
+    D.write_export(tmp_path, [], [], D.build_config([], {}), [], field_size=3000)
+    out = tmp_path / "contest_structure.csv"
+    assert D.contest_field_size(out) == 3000
+    rows = D.read_contest(out)
+    assert _paid(rows)[0][0] == 1
+    D.write_export(tmp_path, [], [], D.build_config([], {}), [], field_size=None)
+    assert D.contest_field_size(out) == 176470
+
+
+def test_field_size_check_uses_the_scaled_room():
+    gpp = D.contest_path("gpp")
+    with pytest.raises(RuntimeError, match="field size 120 <= 150 lineups"):
+        D.require_field_larger_than_entries(gpp, 150, field_size=120)
+    assert D.require_field_larger_than_entries(gpp, 150, field_size=3000) == 3000
+    assert D.require_field_larger_than_entries(gpp, 150, field_size=None) == 176470
+    assert D.require_field_larger_than_entries(gpp, 150, field_size=900000) == 176470
+
+
+def test_dfs_settings_come_from_sim_yaml():
+    from nfl_edge.config import dfs_settings
+
+    s = dfs_settings()
+    assert s["field_size"] == 3000
+    assert s["iterations"] == 5000
+    assert s["max_minutes"] == 3
