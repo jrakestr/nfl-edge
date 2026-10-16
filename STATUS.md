@@ -1,5 +1,13 @@
 # Status
 
+## Workflow plan — Phase A, fast DFS (2026-10-16)
+
+What changed: NFL-DFS-Tools is vendored at `vendor/NFL-DFS-Tools` (default tools path; `VENDORED.md` lists local changes). The GPP room is scaled to `config/sim.yaml` `dfs.field_size` (3000) with the same prize shape, share paid and pool-to-entry ratio (`dfs_export.scale_contest`); `nfl-edge dfs --iterations/--field-size/--full-field`, `--field` deprecated; seconds per stage printed. The classic exposure writer emits the 10-field header `parse.py` expects. Field-lineup generation is compiled with numba (same rules and draw distribution). Commits `df14dc5`..`b134245` on `claude/dreamy-davinci-s35rwi`.
+
+What was verified: pytest 609 passed (4 failures need `DATABASE_URL`; they fail the same on `main` without a DB), ruff clean; vendored tool tests 2 passed, `RUN_SLOW=1` old-vs-new field comparison passed. Synthetic 12-game classic slate, 4 CPUs: 3000-entry room 449 s → 28 s per slate (20000-entry 76 s); synthetic showdown 3000-entry 37 s, not ported.
+
+What was deferred: timing on a real week-7 slate and on a 2-CPU GitHub runner (plan step 15) — then decide whether to raise `field_size`; `own_field_sim` vs week 4 two-sided check; operator to run `diff -r ~/Development/NFL-DFS-Tools vendor/NFL-DFS-Tools` on the Mac and report any other local edits. Phases B–F (ops tables, `nfl-edge phase`, storage, GitHub Actions, `/workflow` page, LaunchAgent removal) not started. Plan: `/root/.claude/plans/hashed-zooming-firefly.md` in the session container only — its steps are summarized in the session; copy it before a new conversation.
+
 ## LOC league tab (2026-10-05)
 
 What changed: web `/league` (Standings, Luck, Weeks, Week, Team, Transactions) reads schema `fantasy` only (migration 0032 grants `web_reader`; `types:gen` and `check-query-schema` now include `fantasy`). Luck is Python (`ingest/espn_luck.py` → `fantasy.loc_luck`); views 0034/0036 carry margins, ranks, running PA, pre-kickoff status, and the FantasyPros injury/points cross-check. `fantasy.loc_status_snapshots` is append-only (0033), written hourly Thu–Mon by `ops/com.nfl-edge.loc-snapshot.plist` (installed). Sidebar item "LOC league" is a plain `/league` link; no week, slate, or game strip.
