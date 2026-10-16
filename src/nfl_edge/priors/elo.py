@@ -2,7 +2,7 @@
 
 A graded game moves the rating by K times (actual home margin − expected home margin).
 Expected margin is the pre-kickoff run's mean_spread plus the rating gap that run
-already used. Week W reads the last row with season < S or week < W.
+already used. Week W reads the last row with season < S or (season = S and week < W).
 """
 from __future__ import annotations
 
