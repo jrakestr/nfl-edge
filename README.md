@@ -7,7 +7,7 @@ Start with [docs/purpose.md](docs/purpose.md). Design is in [docs/architecture.m
 ## Stack
 
 - Data: [nflverse](https://nflverse.nflverse.com/) via the `jrakestr/nflreadpy` fork (stats, pbp, schedules with spread/total/moneyline, ffopportunity expected stats, FantasyPros weekly consensus).
-- Optimizer / GPP sim: `jrakestr/NFL-DFS-Tools` (vendored as a sibling checkout; we generate its `projections.csv`, `player_ids.csv`, and `config.json`).
+- Optimizer / GPP sim: `jrakestr/NFL-DFS-Tools` (vendored under `vendor/NFL-DFS-Tools`, see `vendor/NFL-DFS-Tools/VENDORED.md`; we generate its `projections.csv`, `player_ids.csv`, and `config.json`).
 - Storage: Supabase / Postgres (`db/migrations`).
 - Language: Python 3.11+, managed with `uv`.
 
@@ -17,7 +17,7 @@ Start with [docs/purpose.md](docs/purpose.md). Design is in [docs/architecture.m
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 cp .env.example .env   # fill in Supabase credentials
-git clone https://github.com/jrakestr/NFL-DFS-Tools.git ../NFL-DFS-Tools
+(cd vendor/NFL-DFS-Tools && uv sync)   # NFL-DFS-Tools is vendored; this installs its own env
 ```
 
 ## Weekly cadence

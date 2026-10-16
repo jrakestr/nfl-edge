@@ -16,7 +16,7 @@ _TIMEDELTA_STUB = '"""Unused import in nfl_optimizer.py; lets the module load on
 def _tools() -> Path:
     p = dfs_tools_path()
     if not p.is_dir():
-        raise RuntimeError(f"NFL-DFS-Tools not found at {p}; clone jrakestr/NFL-DFS-Tools")
+        raise RuntimeError(f"NFL-DFS-Tools not found at {p}; expected the vendored copy at vendor/NFL-DFS-Tools")
     return p
 
 

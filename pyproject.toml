@@ -38,6 +38,7 @@ packages = ["src/nfl_edge"]
 
 [tool.ruff]
 line-length = 100
+extend-exclude = ["vendor"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

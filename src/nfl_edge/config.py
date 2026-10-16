@@ -67,4 +67,5 @@ def line_reference() -> dict:
 
 
 def dfs_tools_path() -> Path:
-    return Path(os.environ.get("NFL_DFS_TOOLS_PATH", ROOT.parent / "NFL-DFS-Tools")).resolve()
+    """Vendored copy under vendor/; NFL_DFS_TOOLS_PATH still points at another checkout."""
+    return Path(os.environ.get("NFL_DFS_TOOLS_PATH", ROOT / "vendor" / "NFL-DFS-Tools")).resolve()
