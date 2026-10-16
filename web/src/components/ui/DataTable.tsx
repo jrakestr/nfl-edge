@@ -53,6 +53,7 @@ export type DataTableProps<T> = {
   toolbar?: React.ReactNode;
   /** Keeps the column header (and optional note) under the top bar while the page scrolls. */
   stickyHeader?: boolean;
+  tableClassName?: string;
   headerNote?: React.ReactNode;
   onRowClick?: (row: T) => void;
   rowProps?: (row: T, index: number) => React.ComponentProps<typeof TableRow>;
@@ -126,6 +127,7 @@ function DataTableInner<T extends object>({
   defaultSort,
   toolbar,
   stickyHeader = false,
+  tableClassName,
   headerNote,
   onRowClick,
   rowProps,
@@ -161,6 +163,7 @@ function DataTableInner<T extends object>({
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => getRowId(row),
     state: { sorting },
+    enableSortingRemoval: false,
     onSortingChange: (updater) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
       const first = next[0];
@@ -246,17 +249,17 @@ function DataTableInner<T extends object>({
             const sortable = col?.sortable !== false;
             const active = sortId === h.id;
             const label = (
-              <span className={cn("inline-flex items-center gap-1", col?.align === "right" && "justify-end")}>
-                {col?.metric ? <MetricLabel metric={col.metric}>{col.header}</MetricLabel> : col?.header}
+              <span className={cn("inline-flex max-w-full items-end gap-1 whitespace-normal", col?.align === "right" && "ml-auto text-right")}>
+                <span>{col?.metric ? <MetricLabel metric={col.metric}>{col.header}</MetricLabel> : col?.header}</span>
                 {sortable ? (
                   active ? (
                     sortDir === "asc" ? (
-                      <ArrowUp size={14} strokeWidth={1.5} aria-hidden />
+                      <ArrowUp size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                     ) : (
-                      <ArrowDown size={14} strokeWidth={1.5} aria-hidden />
+                      <ArrowDown size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                     )
                   ) : (
-                    <ChevronsUpDown size={14} strokeWidth={1.5} aria-hidden />
+                    <ChevronsUpDown size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   )
                 ) : null}
               </span>
@@ -274,7 +277,10 @@ function DataTableInner<T extends object>({
                 {sortable ? (
                   <button
                     type="button"
-                    className="inline-flex items-center"
+                    className={cn(
+                      "inline-flex max-w-full items-end whitespace-normal",
+                      col?.align === "right" && "ml-auto text-right",
+                    )}
                     onClick={h.column.getToggleSortingHandler()}
                     tabIndex={mode === "layout" ? -1 : undefined}
                   >
@@ -373,7 +379,7 @@ function DataTableInner<T extends object>({
             </table>
           </div>
         ) : null}
-        <Table containerRef={stickyHeader ? scrollRef : undefined}>
+        <Table containerRef={stickyHeader ? scrollRef : undefined} className={tableClassName}>
           {headerRows(stickyHeader ? "layout" : "normal")}
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (

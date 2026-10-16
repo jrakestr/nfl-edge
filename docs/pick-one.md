@@ -1,6 +1,6 @@
 ## User story
 
-As a person entering one DraftKings lineup, I want the 150 sim lineups screened and ranked for cash or a single-entry tournament so I can export one file DraftKings will accept, with RTS shown beside our number when that file is loaded and never mixed into our projection.
+As a person entering one DraftKings lineup, I want the 150 sim lineups screened and ranked for cash or a single-entry tournament so I can export one file DraftKings will accept, with RTS shown beside our number when that file is loaded and incorporated into our projection for verfication of data and ownership comparisons.
 
 ## Acceptance criteria
 

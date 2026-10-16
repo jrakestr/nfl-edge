@@ -13,8 +13,9 @@ export default async function Page({ searchParams }: PageProps<"/league">) {
       <LeagueHeader season={season} />
       <StandingsTable rows={rows} season={season} />
       <p className="t-caption">
-        Actual vs projected is points scored minus ESPN&apos;s projection for those games. All-play is each
-        week&apos;s score against every other team.
+        PF, PA, and Proj are points for, points against, and ESPN&apos;s projected points for. vs proj is points
+        scored minus that projection. Back is points behind the top scorer. All-play is each week&apos;s score
+        against every other team.
       </p>
     </>
   );

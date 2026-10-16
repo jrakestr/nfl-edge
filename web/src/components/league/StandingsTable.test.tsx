@@ -37,6 +37,7 @@ describe("StandingsTable", () => {
     const rows = screen.getAllByRole("row").slice(1);
     expect(within(rows[0]!).getByRole("link", { name: "Alpha" })).toHaveAttribute("href", "/league/team/1");
     expect(within(rows[1]!).getByText("1–3")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Team" })).toHaveClass("max-w-48");
   });
 
   it("colors only the plus/minus column", () => {

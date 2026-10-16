@@ -1,12 +1,14 @@
 # Workflow
 
 ## Plan files
-Exactly three `##` headings, in order: User story, Acceptance criteria, Steps.
+Exactly four `##` headings, in order: User story, Acceptance criteria, Steps, Unresolved Questions.
 Missing or reordered sections make the plan invalid.
 
 - Acceptance criteria: one `### Scenario N: <Title>` per testable scenario,
   with **Given** / **When** / **Then** bullets. Never put them inside the story or steps.
 - Steps: each step is a todo with a kebab-case id (e.g. `ingest-players`).
+- Unresolved Questions: one bullet per open question (edge cases, error handling,
+  unclear requirements). This heading is last.
 - UI scenarios are component or unit tests (`npm test`). The visual pass is the
   user's and stays outside the plan.
 

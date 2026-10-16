@@ -24,6 +24,15 @@ describe("Sidebar slate links", () => {
     expect(screen.getByRole("link", { name: "LOC league" })).toHaveAttribute("href", "/league");
   });
 
+  it("groups the links and marks the current page", () => {
+    render(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(screen.getByText("Board")).toBeInTheDocument();
+    expect(screen.getByText("DFS")).toBeInTheDocument();
+    expect(screen.getByText("Grade")).toBeInTheDocument();
+    expect(screen.getByText("League")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Players" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("LOC league stays a plain href even with slate and games in the live search", () => {
     const search = new URLSearchParams("slate=full&games=2026_04_KC_NE");
     expect(navHref("LOC league", { week: 1, site: "dk", slate: "full" }, "/league", search)).toBe("/league");

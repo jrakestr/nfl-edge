@@ -13,5 +13,5 @@ game_id,season,week,gameday,gametime,away_team,home_team,source,market_spread_ho
 2026_04_DEN_SF,2026,4,2026-10-04,16:25,DEN,SF,nflgamesim,-3.0,46.5,-155,130,0.583,29.0,14.1,43.1,14.9,0.8608,SF,SF,under,11.9,-3.4,0.2778,final,24,14,10,38,SF,correct,yes,correct
 2026_04_LAC_SEA,2026,4,2026-10-04,16:25,LAC,SEA,nflgamesim,-7.0,42.5,-355,280,0.7478,32.3,17.7,50.0,14.7,0.852,SEA,SEA,over,7.7,7.5,0.1042,final,30,23,7,53,SEA,correct,no,push
 2026_04_DET_CAR,2026,4,2026-10-04,20:20,DET,CAR,nflgamesim,3.5,50.5,154,-185,0.3775,28.1,24.5,52.6,3.6,0.6108,CAR,CAR,over,7.1,2.1,0.2333,final,32,26,6,58,CAR,correct,yes,correct
-2026_04_ATL_NO,2026,4,2026-10-05,20:15,ATL,NO,nflgamesim,-3.0,48.5,-155,130,0.583,22.5,28.9,51.4,-6.4,0.3324,ATL,ATL,over,-9.4,2.9,-0.2506,pending,,,,,,,,
+2026_04_ATL_NO,2026,4,2026-10-05,20:15,ATL,NO,nflgamesim,-3.0,48.5,-155,130,0.583,22.5,28.9,51.4,-6.4,0.3324,ATL,ATL,over,-9.4,2.9,-0.2506,final,24,45,-21,69,ATL,correct,no,correct
 2026_04_PIT_CLE,2026,4,2026-10-01,20:15,PIT,CLE,nflgamesim,2.5,38.5,124,-148,0.4279,24.3,16.7,41.0,7.6,0.715,CLE,CLE,over,10.1,2.5,0.2871,final,27,24,3,51,CLE,correct,yes,correct

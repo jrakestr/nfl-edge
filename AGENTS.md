@@ -14,7 +14,7 @@ DFS and showdown, and every run is graded against results and closing lines.
 - Read docs/purpose.md and docs/architecture.md before planning.
 - Do not execute until I say "execute". Plan mode, mode switches and CreatePlan
   are not a go signal.
-- Plans use exactly: `## User story`, `## Acceptance criteria`, `## Steps`.
+- Plans use exactly: `## User story`, `## Acceptance criteria`, `## Steps`, `## Unresolved Questions`.
   Format details: [workflow](docs/agents/workflow.md).
 - Done = the checks above for the todo's area are green, plus a 3-line summary
   (changed / verified / deferred).
@@ -39,3 +39,33 @@ DFS and showdown, and every run is graded against results and closing lines.
 
 Durable rules live in these files. Weekly checklists, open incidents and
 trailing todos live in STATUS.md.
+
+## Plan Mode Directives
+
+### Concision
+- Write plans as terse fragments. Sacrifice grammar for concision.
+- Bullets over prose. No filler, no restating the request, no narrative paragraphs.
+- Keep every plan scannable in one terminal screen where possible.
+- Concision applies inside the four headings. It does not add more headings.
+
+### Clarifying Questions
+- End every plan with an `## Unresolved Questions` heading.
+- One bullet per open question: edge cases, error handling, and unclear requirements.
+- Do not proceed to execution until each question is resolved or the user explicitly waives it.
+- "Execute" is the go signal. Plan mode, mode switches, and CreatePlan are not.
+
+### Summary Placement
+- Steps is the numbered list of concrete execution steps.
+- `## Unresolved Questions` is the last heading. Nothing follows it.
+
+### Context Loading
+- Read every file you intend to modify before writing the plan.
+- Map how the affected components connect. State structural assumptions in the plan.
+- Never plan an edit to a file you have not read.
+- Also read docs/purpose.md and docs/architecture.md before planning.
+
+### Plan as Contract
+- Treat the approved plan as the execution specification. Follow its steps in order.
+- If execution reveals the plan is wrong, stop and re-plan. Do not improvise mid-task.
+- Use plan mode to surface tradeoffs and validate assumptions before any code is written.
+- The plan format is four headings: User story, Acceptance criteria, Steps, Unresolved Questions. Details: docs/agents/workflow.md.

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { WeekBoard, type WeekBoardProps } from "./WeekBoard";
 import { DEFAULT_FILTERS } from "./filters";
-import { NO_SCOREBOARD, NO_TRACK, asFailed, asScheduleRows, fixture, fixtureChecks, fixtureRows, fixtureSummary, fixtureVerdicts } from "@/test/fixture";
+import { NO_SCOREBOARD, NO_TRACK, asFailed, asScheduleRows, fixture, fixtureChecks, fixtureRows, fixtureVerdicts } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
 import { homeLine, line, maxEdge } from "@/lib/edge";
 import { noProjectionsNotice } from "@/lib/format";
@@ -71,22 +71,9 @@ describe("/week/[n] against the Week 1 fixture", () => {
     expect(cards[0].querySelector('[data-market="spread"]')).toBeTruthy();
   });
 
-  it("lists failing games on the checks panel with the run-stored gap", () => {
-    const checks = fixtureChecks();
-    const warnId = Object.keys(checks).find((id) => checks[id]!.status === "warn")!;
-    const row = fixtureRows().find((r) => r.game_id === warnId)!;
-    checks[warnId] = {
-      ...checks[warnId]!,
-      failed: ["spread_gap_vs_market"],
-      failedRows: [
-        { check_name: "spread_gap_vs_market", value: 7.5, threshold: 4, team: null, severity: "warning" },
-      ],
-    };
-    render(<WeekBoard {...props({ checks })} />);
-    const panel = screen.getByRole("region", { name: "Checks" });
-    expect(panel).toHaveTextContent("spread_gap_vs_market");
-    expect(panel).toHaveTextContent(`${row.away}@${row.home} 7.5 (limit 4.0)`);
-    expect(panel).toHaveTextContent("at run");
+  it("does not list failing games on a board-level checks card", () => {
+    render(<WeekBoard {...props()} />);
+    expect(screen.queryByRole("region", { name: "Checks" })).not.toBeInTheDocument();
   });
 
   it("compact: one row per game expands to the full card", () => {
@@ -101,9 +88,9 @@ describe("/week/[n] against the Week 1 fixture", () => {
     expect(list!.querySelector("article")).toHaveAttribute("data-game", rowBtn.closest("[data-game]")?.getAttribute("data-game"));
   });
 
-  it("plain english: the week summary and one card per game, biggest edge first", () => {
+  it("plain english: one card per game, biggest edge first", () => {
     render(<WeekBoard {...props()} />);
-    expect(screen.getByRole("region", { name: "Week summary" })).toHaveTextContent(fixtureSummary.replace(/\s+/g, " "));
+    expect(screen.queryByRole("region", { name: "Week summary" })).not.toBeInTheDocument();
     const cards = screen.getAllByRole("article");
     expect(cards).toHaveLength(16);
     const edges = cards.map((c) => c.getAttribute("data-game")!).map((g) => fixture.games.find((x) => (x as { game_id: string }).game_id === g) as { max_edge: number });
@@ -178,7 +165,7 @@ describe("/week/[n] against the Week 1 fixture", () => {
     const liveIds = new Set(rows.filter((r) => !r.has_started).map((r) => r.game_id));
     const verdicts = sortVerdicts(fixtureVerdicts()).filter((v) => liveIds.has(v.game_id)).slice(0, 13);
     render(<WeekBoard {...props({ rows, verdicts })} />);
-    expect(screen.getByRole("region", { name: "Week summary" })).toHaveTextContent("14 games");
+    expect(screen.queryByRole("region", { name: "Week summary" })).not.toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("1 of 14 games have a newer line than their verdict");
   });
 

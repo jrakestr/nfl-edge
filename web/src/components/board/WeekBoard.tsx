@@ -1,11 +1,10 @@
 import type { TrackRecord, WeekScoreboard as WeekScoreboardData } from "@/lib/queries/results";
 import type { DrawerPlayer } from "@/lib/queries/players";
-import { groupFailedChecks, marketGapCaptions } from "@/lib/check-display";
+import { marketGapCaptions } from "@/lib/check-display";
 import { inputsForMatchup, type TeamInput } from "@/lib/team-input";
 import type { BoardRow, GameChecks, VerdictRow } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
-import { ChecksPanel } from "./ChecksPanel";
 import { GameOpenShell } from "./GameOpenShell";
 import { type Filters } from "./filters";
 import { type RunOption } from "./RunBadge";
@@ -16,8 +15,7 @@ import { toStripGame } from "@/lib/kickoff";
 import { BoardGamesFilter } from "./BoardGamesFilter";
 import { WeekHeader, type View } from "./WeekHeader";
 import { WeekScoreboard } from "./WeekScoreboard";
-import { WeekSummaryCard } from "./WeekSummaryCard";
-import { draws as fmtDraws, maxIso, noProjectionsNotice, shortRun } from "@/lib/format";
+import { maxIso, noProjectionsNotice } from "@/lib/format";
 
 export type WeekBoardProps = {
   season: number;
@@ -65,7 +63,6 @@ export function WeekBoard(p: WeekBoardProps) {
   const remainingRows = p.rows.filter((r) => !r.has_started);
   const remainingIds = new Set(remainingRows.map((r) => r.game_id));
   const remainingVerdicts = verdicts.filter((v) => remainingIds.has(v.game_id));
-  const summary = verdicts.find((v) => v.payload.week_summary)?.payload.week_summary ?? null;
   const payloads = remainingVerdicts.map((v) => v.payload);
   const byGame = Object.fromEntries(verdicts.map((v) => [v.game_id, v.payload]));
   const verdictIds = new Set(verdicts.map((v) => v.game_id));
@@ -138,7 +135,6 @@ export function WeekBoard(p: WeekBoardProps) {
   }
 
   const run = p.run;
-  const caption = `Run ${shortRun(run.run_id)} · ${fmtDraws(run.draws_per_game)} draws per game · ${remainingRows.length} games`;
   const openRow = p.openGameId ? (rowOf[p.openGameId] ?? null) : null;
 
   return (
@@ -147,15 +143,12 @@ export function WeekBoard(p: WeekBoardProps) {
       {strip.length ? <GameStrip games={strip} /> : null}
       <BoardGamesFilter />
       <WeekScoreboard board={p.scoreboard} />
-      <WeekSummaryCard summary={summary} caption={caption} />
 
       {missingVerdicts > 0 ? (
         <p className="t-caption text-warn" role="note">
           {missingVerdicts} of {remainingRows.length} games have a newer line than their verdict.
         </p>
       ) : null}
-
-      <ChecksPanel groups={groupFailedChecks(p.checks, p.rows)} runCreatedAt={run.created_at} />
 
       <GameOpenShell
         openId={p.openGameId ?? null}

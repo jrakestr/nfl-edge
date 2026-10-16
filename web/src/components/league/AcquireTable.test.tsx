@@ -42,21 +42,24 @@ describe("AcquireTable pace", () => {
         ]}
       />,
     );
-    const names = screen.getAllByRole("row").map((r) => r.textContent ?? "");
-    const cousins = names.findIndex((t) => t.includes("Kirk Cousins"));
-    const wright = names.findIndex((t) => t.includes("Jaylen Wright"));
-    const full = names.findIndex((t) => t.includes("Full Slate"));
-    expect(full).toBeLessThan(wright);
-    expect(wright).toBeLessThan(cousins);
+    const order = () => screen.getAllByRole("row").map((r) => r.textContent ?? "");
+    const at = (label: string) => order().findIndex((t) => t.includes(label));
+    expect(at("Kirk Cousins")).toBeLessThan(at("Full Slate"));
+    expect(at("Full Slate")).toBeLessThan(at("Jaylen Wright"));
+    expect(at("Jaylen Wright")).toBeLessThan(at("No Games"));
     const marks = [...document.querySelectorAll("[data-share]")].map((e) => ({
       text: e.textContent,
       level: e.getAttribute("data-share"),
     }));
     expect(marks).toEqual([
+      { text: "104%", level: "high" },
       { text: "2%", level: "high" },
       { text: "2%", level: "mid" },
-      { text: "104%", level: "high" },
     ]);
+    fireEvent.click(screen.getByRole("button", { name: "Pct" }));
+    expect(at("No Games")).toBeLessThan(at("Jaylen Wright"));
+    expect(at("Jaylen Wright")).toBeLessThan(at("Full Slate"));
+    expect(at("Full Slate")).toBeLessThan(at("Kirk Cousins"));
     expect(screen.getByText("0%")).toBeInTheDocument();
     expect(screen.getByText("3 games")).toBeInTheDocument();
     expect(screen.getAllByText("4 games")).toHaveLength(2);

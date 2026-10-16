@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { PageActionsProvider } from "@/components/shell/PageActions";
-import { fixture, fixtureChecks, fixtureSummary, fixtureVerdicts, NO_SCOREBOARD, NO_TRACK } from "@/test/fixture";
+import { fixture, fixtureChecks, fixtureVerdicts, NO_SCOREBOARD, NO_TRACK } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
 
 vi.mock("next/navigation", () => ({
@@ -92,15 +92,14 @@ async function renderWeek(view?: string) {
 }
 
 describe("WeekPage", () => {
-  it("renders 16 VerdictCards sorted by max_edge with the week summary and five warn games", async () => {
+  it("renders 16 VerdictCards sorted by max_edge and five warn games", async () => {
     await renderWeek();
     const cards = screen.getAllByRole("article");
     expect(cards).toHaveLength(16);
     const expected = sortVerdicts(fixtureVerdicts()).map((v) => v.game_id);
     expect(cards.map((c) => c.getAttribute("data-game"))).toEqual(expected);
-    expect(screen.getByRole("region", { name: "Week summary" })).toHaveTextContent(
-      fixtureSummary.replace(/\s+/g, " "),
-    );
+    expect(screen.queryByRole("region", { name: "Week summary" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Checks" })).not.toBeInTheDocument();
     for (const id of WARN) {
       expect(document.querySelector(`[data-game="${id}"]`)).toHaveAttribute("data-status", "warn");
     }

@@ -91,7 +91,7 @@ export default async function Page({
       staleDkIds={stale}
       buildInProgress={picked?.buildInProgress ?? false}
       slates={available}
-      fallbackFrom={lineups.length === 0 ? slate : null}
+      fallbackFrom={run && Object.keys(lookup).length === 0 ? slate : null}
       settings={settings}
     />
   );

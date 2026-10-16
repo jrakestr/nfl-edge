@@ -14,8 +14,10 @@ export function StandingsTable({ rows, season }: { rows: StandingRow[]; season: 
       id: "team",
       header: "Team",
       sortValue: (r) => r.team,
+      headClassName: "w-48 max-w-48",
+      className: "w-48 max-w-48 whitespace-normal",
       cell: (r) => (
-        <span className="flex flex-col">
+        <span className="flex max-w-48 flex-col">
           <TeamLink id={r.espn_team_id} name={r.team} season={season} />
           <span className="t-caption">{r.owner}</span>
         </span>
@@ -28,10 +30,10 @@ export function StandingsTable({ rows, season }: { rows: StandingRow[]; season: 
       sortValue: (r) => r.wins + r.ties / 2,
       cell: (r) => <span className="tnum font-semibold">{recordLabel(r.wins, r.losses, r.ties)}</span>,
     },
-    { id: "pf", header: "Points for", align: "right", sortValue: (r) => r.pf, cell: (r) => <span className="tnum">{r.pf.toFixed(1)}</span> },
-    { id: "pa", header: "Points against", align: "right", sortValue: (r) => r.pa, cell: (r) => <span className="tnum">{r.pa.toFixed(1)}</span> },
-    { id: "proj", header: "Projected for", align: "right", sortValue: (r) => r.proj_pf, cell: (r) => <span className="tnum">{r.proj_pf.toFixed(1)}</span> },
-    { id: "pm", header: "Actual vs projected", align: "right", sortValue: (r) => r.plus_minus, cell: (r) => <Delta value={r.plus_minus} /> },
+    { id: "pf", header: "PF", align: "right", sortValue: (r) => r.pf, cell: (r) => <span className="tnum">{r.pf.toFixed(1)}</span> },
+    { id: "pa", header: "PA", align: "right", sortValue: (r) => r.pa, cell: (r) => <span className="tnum">{r.pa.toFixed(1)}</span> },
+    { id: "proj", header: "Proj", align: "right", sortValue: (r) => r.proj_pf, cell: (r) => <span className="tnum">{r.proj_pf.toFixed(1)}</span> },
+    { id: "pm", header: "vs proj", align: "right", sortValue: (r) => r.plus_minus, cell: (r) => <Delta value={r.plus_minus} /> },
     {
       id: "allplay",
       header: "All-play",
@@ -41,7 +43,7 @@ export function StandingsTable({ rows, season }: { rows: StandingRow[]; season: 
     },
     {
       id: "back",
-      header: "Back of top scorer",
+      header: "Back",
       align: "right",
       sortValue: (r) => r.pts_back_of_pf_leader,
       cell: (r) => <span className="tnum">{r.pts_back_of_pf_leader === 0 ? "—" : r.pts_back_of_pf_leader.toFixed(1)}</span>,
@@ -55,6 +57,7 @@ export function StandingsTable({ rows, season }: { rows: StandingRow[]; season: 
       ariaLabel="League standings"
       empty="No league data for this season yet. Run nfl-edge ingest espn-league."
       syncUrl={false}
+      tableClassName="w-max max-w-full"
       defaultSort={{ id: "rank", dir: "asc" }}
       rowProps={(r) => viewerRow(r.espn_team_id)}
     />

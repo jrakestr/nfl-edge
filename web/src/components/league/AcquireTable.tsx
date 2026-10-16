@@ -15,7 +15,7 @@ import {
   type AcquireRow,
 } from "@/lib/league";
 
-/** Every rostered player and every available player, sorted by who is behind ESPN's season projection. */
+/** Every rostered player and every available player. Pct sorts by the percent on screen. */
 export function AcquireTable({
   rows,
   season,
@@ -93,7 +93,7 @@ export function AcquireTable({
       id: "pace",
       header: "Pct",
       align: "right",
-      sortValue: (r) => paceShareGap(r.season_pts, r.season_proj, r.games_played, seasonWeeks) ?? 0,
+      sortValue: (r) => seasonShare(r.season_pts, r.season_proj),
       className: "t-body tnum",
       cell: (r) => {
         const share = seasonShare(r.season_pts, r.season_proj);
@@ -145,7 +145,7 @@ export function AcquireTable({
         ariaLabel="Acquire"
         empty="No players match the filters."
         syncUrl
-        defaultSort={{ id: "pace", dir: "asc" }}
+        defaultSort={{ id: "pace", dir: "desc" }}
         stickyHeader
         filters={{
           search: (r, q) => r.player.toLowerCase().includes(q),
@@ -161,8 +161,8 @@ export function AcquireTable({
       />
       <p className="t-caption">
         Season points and season projection are ESPN&apos;s full-season numbers, including weeks he was not on a fantasy
-        roster. Pct is season points over that projection. Color compares it with NFL games played over the{" "}
-        {seasonWeeks || "—"}-week season, and that gap is the sort. A defense uses the team&apos;s completed games. ROS rk
+        roster. Pct is season points over that projection, and that percent is the sort. Color compares it with NFL games
+        played over the {seasonWeeks || "—"}-week season. A defense uses the team&apos;s completed games. ROS rk
         is FantasyPros rest-of-season PPR.
         {wireMissingProj ? " Available players have no season projection stored. Run nfl-edge ingest espn-league again." : ""}
       </p>
