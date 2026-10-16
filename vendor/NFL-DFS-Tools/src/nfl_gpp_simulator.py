@@ -2455,7 +2455,7 @@ class NFL_GPP_Simulator:
         )
         with open(out_path, "w") as f:
             f.write(
-                "Player,Position,Team,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
+                "Player,Position,Team,Salary,Fpts,Win%,Top1%,Sim. Own%,Proj. Own%,Avg. Return\n"
             )
             unique_players = {}
             for val in self.field_lineups.values():
@@ -2499,7 +2499,7 @@ class NFL_GPP_Simulator:
                         salary = v["Salary"]
                         break
                 f.write(
-                    "{},{},{},${},{},{}%,{}%,{}%,${}\n".format(
+                    "{},{},{},${},{},{}%,{}%,{}%,{}%,${}\n".format(
                         p_name.replace("#", "-"),
                         position,
                         team,

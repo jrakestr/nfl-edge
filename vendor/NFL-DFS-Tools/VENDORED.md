@@ -10,3 +10,10 @@ overrides the location. `dk_data/`, `fd_data/`, `output/`, and `config.json` are
 staging and stay untracked.
 
 Edit the tool here, not in a separate checkout.
+
+## Local changes
+
+- `src/nfl_gpp_simulator.py` classic player-exposure writer: the header names `Salary` and
+  `Fpts`, and the row emits `Proj. Own%`, so header width equals row width (10). This is the
+  contract `nfl_edge.dfs.parse.CLASSIC_EXPOSURE_HEADER` reads. The GitHub copy wrote an
+  8-field header over 9-field rows and dropped `Avg. Return`.
