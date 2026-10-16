@@ -591,3 +591,11 @@ def test_cli_dfs_field_is_a_deprecated_name_for_iterations(monkeypatch):
     ])
     assert r.exit_code == 0, r.output
     assert (got["iterations"], got["field_size"], got["full_field"]) == (5, 4000, True)
+
+
+def test_pipeline_reports_seconds_per_stage(monkeypatch, tmp_path):
+    _mass_pipeline(monkeypatch, tmp_path)
+    out = Pipe.run(2026, 7)
+    assert list(out["timings"]) == ["export", "optimizer", "field_sim", "persist", "total"]
+    assert out["timings"]["total"] >= 0
+    assert out["max_minutes"] == 3

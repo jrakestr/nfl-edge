@@ -1,6 +1,7 @@
 """One-slate DFS build: export this slate's IDs, optimize, simulate, persist."""
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import polars as pl
@@ -108,6 +109,15 @@ def run(
     knobs = dfs_settings()
     iterations = int(iterations or knobs["iterations"])
     room = None if full_field else int(field_size or knobs["field_size"])
+    clock = time.monotonic()
+    timings: dict[str, float] = {}
+
+    def lap(stage: str) -> None:
+        nonlocal clock
+        now = time.monotonic()
+        timings[stage] = round(now - clock, 1)
+        clock = now
+
     meta = resolve_run(season, week, run_id)
     rid = meta["run_id"]
     slate_id = f"{season}_{week:02d}_{slate}"
@@ -118,6 +128,7 @@ def run(
         rid, site, slate, lineups=n_lineups, construction=construction,
         contest=contest, field_size=room,
     )
+    lap("export")
     export_dir = Path(exported["path"])
     settings = exported.get("settings")
     salaries = read_sql(
@@ -126,6 +137,7 @@ def run(
     ).to_dicts()
     showdown = slate_type_for(slate) == "showdown"
     opto = run_optimizer.run(export_dir, site=site, lineups=n_lineups, showdown=showdown)
+    lap("optimizer")
     if construction == "mass":
         sim = run_sim.run(export_dir, site=site, iterations=iterations,
                           lineups_csv=Path(opto["path"]),
@@ -137,6 +149,7 @@ def run(
         merged = opto["lineups"]
         sim_exposure = []
         n_exposure = 0
+    lap("field_sim")
     merged = parse.rescore_mean_fpts(
         merged, exported.get("mean_by_dk") or {}, showdown=showdown,
     )
@@ -158,6 +171,8 @@ def run(
     upload_path.write_text(upload)
     if export:
         Path(export).write_text(upload)
+    lap("persist")
+    timings["total"] = round(sum(timings.values()), 1)
     return {
         "run_id": rid,
         "site": site,
@@ -170,6 +185,8 @@ def run(
         "contest": exported.get("contest"),
         "field_size": exported.get("field_size"),
         "iterations": iterations,
+        "timings": timings,
+        "max_minutes": knobs["max_minutes"],
         "persisted": written,
         "upload": str(export or upload_path),
         "draw_root": str(DATA_DIR / "dfs" / rid / site / slate),

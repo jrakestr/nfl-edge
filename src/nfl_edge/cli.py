@@ -701,6 +701,12 @@ def dfs(
         )
     if r.get("field_size"):
         typer.echo(f"  field {r['field_size']} entries, {r.get('iterations')} iterations")
+    t = r.get("timings") or {}
+    if t:
+        typer.echo("  seconds " + " ".join(f"{k}={v}" for k, v in t.items()))
+        budget = 60 * float(r.get("max_minutes") or 0)
+        if budget and t.get("total", 0) > budget:
+            typer.echo(f"  slower than max_minutes ({t['total']}s > {budget:.0f}s)")
     typer.echo(
         f"dfs {r['slate_id']} {r.get('construction', 'mass')}/{r.get('contest', 'gpp')}: "
         f"{r['n_lineups']} lineups, {r['n_exposure']} exposure, "
