@@ -1,5 +1,13 @@
 # Status
 
+## Workflow plan — Phase B, phases and change check (2026-10-16)
+
+What changed: migration 0039 adds schema `ops` (`workflow_runs`, `change_checks`; web_reader select). `src/nfl_edge/workflow.py` holds the phases (ingest, salaries, sim, lines, props, dfs, grade, refresh) as lists of existing `nfl-edge` commands; `nfl-edge phase <name> [--week] [--slate] [--draws] [--field-size] [--iterations] [--full-field] [--from]` runs one (or chains through DFS per salary file) and logs a running → success/failed row. Sim failure or a short sim runs `drop_incomplete` (not while another sim holds the lock). No Sunday cutoff. `nfl-edge change-check` writes what moved since the newest complete sim; out/doubtful/IR/suspension suggest a re-sim, questionable is listed, line moves are info. `phase refresh` = odds, nflverse lines/scores, stale-week lines, FantasyPros status, ESPN snapshot, grade finished weeks, change check (all soft but the check). `python -m nfl_edge` works.
+
+What was verified: pytest 645 passed (same 4 DB-only failures; with a fresh local Postgres 16 and all 39 migrations, 647 passed and only the 2 `test_line_reference` view tests fail, which need seeded line rows). `-m db` recorder and change-check tests pass and clean up. `nfl-edge phase refresh` ran end to end on local Postgres: missing keys print one soft line, the run is recorded `success`, a change_checks row is written.
+
+What was deferred: Phase C (Storage buckets for draws and salary files), D (GitHub Actions), E (`/workflow` page), F (LaunchAgent removal, docs). Migration 0039 is not applied to Supabase yet (the first Actions job runs `nfl-edge db migrate`). A sim and a run-from chain need one concurrency group per week in Actions so two sims never overlap.
+
 ## Workflow plan — Phase A, fast DFS (2026-10-16)
 
 What changed: NFL-DFS-Tools is vendored at `vendor/NFL-DFS-Tools` (default tools path; `VENDORED.md` lists local changes). The GPP room is scaled to `config/sim.yaml` `dfs.field_size` (3000) with the same prize shape, share paid and pool-to-entry ratio (`dfs_export.scale_contest`); `nfl-edge dfs --iterations/--field-size/--full-field`, `--field` deprecated; seconds per stage printed. The classic exposure writer emits the 10-field header `parse.py` expects. Field-lineup generation is compiled with numba (same rules and draw distribution). Commits `df14dc5`..`b134245` on `claude/dreamy-davinci-s35rwi`.
