@@ -1,0 +1,15 @@
+game_id,season,week,gameday,gametime,away_team,home_team,source,market_spread_home,market_total,market_ml_home,market_ml_away,market_p_home_novig,sim_home_pts,sim_away_pts,sim_total,sim_margin_home,sim_p_home_win,sim_pick_winner,sim_ats_lean,sim_total_lean,edge_spread_home,edge_total,edge_ml_home,status,actual_home_pts,actual_away_pts,actual_margin_home,actual_total,actual_winner,pick_winner_result,margin_within_7,ats_result
+2026_06_HOU_JAX,2026,6,2026-10-18,09:30,HOU,JAX,nflgamesim,-3.0,42.5,-148,124,0.5721,26.2,24.2,50.4,2.1,0.5638,JAX,HOU,over,-0.9,7.9,-0.0083,pending,,,,,,,,
+2026_06_CHI_ATL,2026,6,2026-10-18,13:00,CHI,ATL,nflgamesim,3.0,49.5,142,-170,0.3962,33.5,17.1,50.6,16.4,0.8724,ATL,ATL,over,19.4,1.1,0.4762,pending,,,,,,,,
+2026_06_BAL_CLE,2026,6,2026-10-18,13:00,BAL,CLE,nflgamesim,4.5,40.5,190,-230,0.331,22.7,21.5,44.2,1.2,0.5517,CLE,CLE,over,5.7,3.7,0.2207,pending,,,,,,,,
+2026_06_TEN_IND,2026,6,2026-10-18,13:00,TEN,IND,nflgamesim,-7.0,44.5,-340,270,0.7409,26.0,16.1,42.1,9.9,0.7672,IND,IND,under,2.9,-2.4,0.0263,pending,,,,,,,,
+2026_06_NYJ_NE,2026,6,2026-10-18,13:00,NYJ,NE,nflgamesim,-7.5,43.5,-375,295,0.7572,14.7,26.2,40.9,-11.5,0.2138,NYJ,NYJ,under,-19.0,-2.6,-0.5434,pending,,,,,,,,
+2026_06_NO_NYG,2026,6,2026-10-18,13:00,NO,NYG,nflgamesim,-1.5,45.5,-110,-110,0.5,25.4,18.6,44.0,6.9,0.6759,NYG,NYG,under,5.4,-1.5,0.1759,pending,,,,,,,,
+2026_06_CAR_PHI,2026,6,2026-10-18,13:00,CAR,PHI,nflgamesim,-1.5,41.5,-115,-105,0.5108,24.6,20.0,44.6,4.6,0.6086,PHI,PHI,over,3.1,3.1,0.0978,pending,,,,,,,,
+2026_06_PIT_TB,2026,6,2026-10-18,13:00,PIT,TB,nflgamesim,3.0,40.5,124,-148,0.4279,24.8,22.8,47.6,2.1,0.519,TB,TB,over,5.1,7.1,0.0911,pending,,,,,,,,
+2026_06_ARI_LA,2026,6,2026-10-18,16:05,ARI,LA,nflgamesim,-13.5,52.5,-850,575,0.8579,29.6,12.1,41.7,17.6,0.881,LA,LA,under,4.1,-10.8,0.0231,pending,,,,,,,,
+2026_06_LAC_KC,2026,6,2026-10-18,16:25,LAC,KC,nflgamesim,-8.5,42.5,-440,340,0.7819,27.8,11.8,39.6,16.0,0.8707,KC,KC,under,7.5,-2.9,0.0888,pending,,,,,,,,
+2026_06_BUF_LV,2026,6,2026-10-18,16:25,BUF,LV,nflgamesim,6.0,53.5,225,-278,0.295,26.2,31.8,58.0,-5.6,0.3845,BUF,LV,over,0.4,4.5,0.0895,pending,,,,,,,,
+2026_06_DAL_GB,2026,6,2026-10-18,20:20,DAL,GB,nflgamesim,-1.5,52.5,-118,-102,0.5174,25.5,18.0,43.5,7.5,0.7293,GB,GB,under,6.0,-9.0,0.2119,pending,,,,,,,,
+2026_06_WAS_SF,2026,6,2026-10-19,20:15,WAS,SF,nflgamesim,-7.5,50.5,-395,310,0.7659,26.7,15.4,42.1,11.3,0.7948,SF,SF,under,3.8,-8.4,0.0289,pending,,,,,,,,
+2026_06_SEA_DEN,2026,6,2026-10-15,20:15,SEA,DEN,nflgamesim,2.5,40.5,130,-155,0.417,13.9,19.2,33.1,-5.3,0.3455,SEA,SEA,under,-2.8,-7.4,-0.0715,final,17,14,3,31,DEN,incorrect,no,incorrect
