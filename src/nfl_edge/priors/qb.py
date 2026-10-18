@@ -3,8 +3,11 @@
 Per team for (season, week):
   qb_id           expected starter: raw.schedules.{home,away}_qb_id for week W (announced pre-kickoff;
                   the only schedules columns priors read), else depth-chart QB1, else most attempts.
-  qb_pass_factor  shrunk starter yards/attempt / shrunk team lookback yards/attempt, clipped.
-                  1.0 when the starter is the QB who produced the lookback; < 1 for a backup.
+  qb_pass_factor  starter yards/attempt (shrunk toward the team's lookback YPA) / team lookback
+                  YPA, clipped. 1.0 when the starter produced the lookback or has no history;
+                  a small-sample backup stays near 1.0 and is never an upgrade by default.
+                  A schedules starter with an out/doubtful/ir/suspended override is replaced by
+                  the fallback QB (usage QB1).
                   Applied to team off_ppd (** elasticity) and to receiver yardage efficiency, which
                   makes receiver rates QB-neutral: they were measured under the team's lookback QB play.
   qb_att_share    1.0 for the expected starter: he takes the full share of team
@@ -23,6 +26,8 @@ import polars as pl
 
 from ..db import read_sql
 from . import common
+
+RULED_OUT = ("out", "doubtful", "ir", "suspended")
 
 
 def load_starters(season: int, week: int) -> pl.DataFrame:
@@ -88,10 +93,9 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
         ((pl.col("w") * pl.col("_share")).filter(pl.col("attempts") >= 10).sum()
          / pl.col("w").filter(pl.col("attempts") >= 10).sum()).alias("_share"),
     ).with_columns(
-        common.shrink(pl.col("_ypa"), pl.col("n_eff_att"), league_ypa, float(c["shrink_k_qb_att"])).alias("qb_ypa"),
         common.shrink(pl.col("_share"), pl.col("n_eff_starts"), float(c["qb_att_share_prior"]),
                       float(c["shrink_k_qb_share"])).alias("qb_att_share"),
-    ).select(["player_id", "qb_ypa", "qb_att_share", "n_att"])
+    ).select(["player_id", "_ypa", "n_eff_att", "qb_att_share", "n_att"])
 
     lookback = (
         g.group_by(["team", "player_id"]).agg(pl.col("attempts").sum().alias("qb_lookback_att"))
@@ -106,6 +110,13 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
         })
     )
 
+    # raw.schedules keeps naming an injured starter; a ruled-out starter yields to the fallback
+    # (usage QB1, which already skips out/doubtful/ir QBs) so the team is priced on who plays.
+    if overrides is not None and not overrides.is_empty():
+        ruled_out = overrides.filter(
+            pl.col("status").str.to_lowercase().is_in(list(RULED_OUT))
+        )["player_id"].to_list()
+        starters = starters.filter(~pl.col("qb_id").is_in(ruled_out))
     teams = pl.concat([starters.select(["team"]), fallback_qb1.select(["team"])]).unique()
     out = (
         teams.join(starters, on="team", how="left")
@@ -116,9 +127,19 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
         .join(per_qb, left_on="qb_id", right_on="player_id", how="left")
         .join(team, on="team", how="left")
         .join(lookback, on="team", how="left")
+        .with_columns(pl.col("team_ypa").fill_null(league_ypa))
+        # Replacement-QB target is the incumbent's team YPA (model.md), not the league: a starter
+        # with little history is assumed to pass like the team did, so a backup is never an upgrade
+        # just because the team passed below league average.
         .with_columns(
-            pl.col("qb_ypa").fill_null(league_ypa),
-            pl.col("team_ypa").fill_null(league_ypa),
+            pl.when(pl.col("_ypa").is_null())
+            .then(pl.col("team_ypa"))
+            .otherwise(common.shrink(pl.col("_ypa"), pl.col("n_eff_att").fill_null(0.0),
+                                     pl.col("team_ypa"), float(c["shrink_k_qb_att"])))
+            .alias("qb_ypa")
+        )
+        .drop(["_ypa", "n_eff_att"])
+        .with_columns(
             pl.col("qb_att_share").fill_null(float(c["qb_att_share_prior"])),
             pl.col("n_att").fill_null(0.0),
         )

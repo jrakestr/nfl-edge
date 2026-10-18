@@ -301,6 +301,28 @@ def test_qb_share_keeps_shrunk_value_when_starter_override_dampens():
     assert q2["qb_att_share"] == pytest.approx(1.0)
 
 
+def test_small_sample_backup_on_a_weak_passing_team_is_not_an_upgrade():
+    # Lookback QB below league YPA; the backup's 8 attempts carry almost no information, so his
+    # YPA shrinks toward the incumbent's team YPA (model.md), not the league: factor ~1, never a boost.
+    st = pl.DataFrame({"team": ["T"], "qb_id": ["mop"]})
+    fb = pl.DataFrame({"team": ["T"], "player_id": ["star"]})
+    q = qb.build(_qb_weeks(ypa_starter=6.0, ypa_league=8.0), st, fb, 2025, 9, UCFG).row(0, named=True)
+    assert q["qb_id"] == "mop"
+    assert q["qb_pass_factor"] <= 1.02
+
+
+def test_ruled_out_announced_starter_is_replaced_by_the_fallback_qb():
+    # raw.schedules still names the injured starter; the team's QB channel must price the QB who plays.
+    st = pl.DataFrame({"team": ["T"], "qb_id": ["star"]})
+    fb = pl.DataFrame({"team": ["T"], "player_id": ["mop"]})
+    for status in ("out", "doubtful", "ir", "OUT"):
+        ov = pl.DataFrame({"player_id": ["star"], "status": [status], "usage_multiplier": [0.0]})
+        q = qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG, overrides=ov).row(0, named=True)
+        assert q["qb_id"] == "mop", status
+    ov_q = pl.DataFrame({"player_id": ["star"], "status": ["questionable"], "usage_multiplier": [1.0]})
+    assert qb.build(_qb_weeks(), st, fb, 2025, 9, UCFG, overrides=ov_q)["qb_id"].to_list() == ["star"]
+
+
 def test_qb_starter_falls_back_when_schedule_has_none():
     st = pl.DataFrame(schema={"team": pl.Utf8, "qb_id": pl.Utf8})
     fb = pl.DataFrame({"team": ["T"], "player_id": ["star"]})
