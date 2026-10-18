@@ -2,8 +2,10 @@
 
 ## Data boundary
 - Read-only, except: `model.market_props` insert, `model.usage_claims` insert,
-  `model.llm_calls` logging, and the one-row promote `usage_claims` →
-  `raw.player_overrides`.
+  `model.llm_calls` logging, the one-row promote `usage_claims` →
+  `raw.player_overrides`, and /workflow: GitHub `workflow_dispatch` of phase.yml and DK CSV
+  upload to the private `salary-files` bucket. Both sit behind `WORKFLOW_PASSWORD`; the
+  dispatch token and service key are server env only. No long job runs in a request.
 - Python-generated copy (verdicts, PropCallout) is persisted in Postgres. Never
   reimplement those generators in TypeScript.
 - Never recompute priors in TS. "Why" and diagnostics read `model.run_team_inputs`

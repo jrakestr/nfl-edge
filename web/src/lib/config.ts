@@ -13,7 +13,7 @@ export const THEME_KEY = "nfl-edge.theme";
 /** Inline `<head>` script — sets `data-theme` before first paint when a choice is stored. */
 export const THEME_BOOT = `(function(){try{var t=localStorage.getItem("${THEME_KEY}");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`;
 
-export const NAV_GROUPS = ["Board", "DFS", "Grade", "League"] as const;
+export const NAV_GROUPS = ["Board", "DFS", "Grade", "League", "Run"] as const;
 
 export const NAV = [
   { href: "/week", label: "Edge board", match: /^\/week(?:\/\d+)?$/, icon: "board", group: "Board" },
@@ -25,4 +25,5 @@ export const NAV = [
   { href: "/grading", label: "Grading", match: /^\/grading/, icon: "grading", group: "Grade" },
   { href: "/week/1/claims", label: "Claims", match: /\/week\/\d+\/claims/, icon: "claims", group: "Grade" },
   { href: "/league", label: "LOC league", match: /^\/league/, icon: "league", group: "League" },
+  { href: "/workflow", label: "Workflow", match: /^\/workflow/, icon: "workflow", group: "Run" },
 ] as const;

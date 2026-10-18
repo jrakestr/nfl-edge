@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Lock,
   Percent,
+  Play,
   Ratio,
   Target,
   Trophy,
@@ -31,6 +32,7 @@ export const NAV_ICONS = {
   grading: ClipboardCheck,
   claims: ClipboardList,
   league: Trophy,
+  workflow: Play,
 } as const satisfies Record<string, LucideIcon>;
 
 export type NavIcon = keyof typeof NAV_ICONS;

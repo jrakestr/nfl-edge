@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   fantasy: {
     Tables: {
@@ -1920,6 +1920,109 @@ export type Database = {
       [_ in never]: never
     }
   }
+  ops: {
+    Tables: {
+      change_checks: {
+        Row: {
+          checked_at: string
+          id: number
+          info: Json
+          reasons: Json
+          season: number
+          sim_created_at: string | null
+          sim_run_id: string | null
+          suggest_resim: boolean
+          week: number
+        }
+        Insert: {
+          checked_at?: string
+          id?: number
+          info?: Json
+          reasons?: Json
+          season: number
+          sim_created_at?: string | null
+          sim_run_id?: string | null
+          suggest_resim?: boolean
+          week: number
+        }
+        Update: {
+          checked_at?: string
+          id?: number
+          info?: Json
+          reasons?: Json
+          season?: number
+          sim_created_at?: string | null
+          sim_run_id?: string | null
+          suggest_resim?: boolean
+          week?: number
+        }
+        Relationships: []
+      }
+      workflow_runs: {
+        Row: {
+          finished_at: string | null
+          gh_run_id: number | null
+          gh_run_url: string | null
+          host: string | null
+          id: number
+          message: string | null
+          phase: string
+          run_id: string | null
+          season: number
+          settings: Json
+          slate: string | null
+          started_at: string
+          status: string
+          week: number
+        }
+        Insert: {
+          finished_at?: string | null
+          gh_run_id?: number | null
+          gh_run_url?: string | null
+          host?: string | null
+          id?: number
+          message?: string | null
+          phase: string
+          run_id?: string | null
+          season: number
+          settings?: Json
+          slate?: string | null
+          started_at?: string
+          status?: string
+          week: number
+        }
+        Update: {
+          finished_at?: string | null
+          gh_run_id?: number | null
+          gh_run_url?: string | null
+          host?: string | null
+          id?: number
+          message?: string | null
+          phase?: string
+          run_id?: string | null
+          season?: number
+          settings?: Json
+          slate?: string | null
+          started_at?: string
+          status?: string
+          week?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   raw: {
     Tables: {
       depth_charts: {
@@ -3184,6 +3287,9 @@ export const Constants = {
     Enums: {},
   },
   model: {
+    Enums: {},
+  },
+  ops: {
     Enums: {},
   },
   raw: {
