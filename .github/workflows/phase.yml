@@ -1,0 +1,133 @@
+# Run one phase of the week (or "run from here" through DFS) from the Actions tab.
+# Actions → "Run phase" → Run workflow. Works with the Mac off; logs every run to ops.workflow_runs.
+# Salary files and draws move through private Supabase Storage (nfl-edge storage …).
+# The repo is public: never echo a secret or a URL that holds one.
+name: Run phase
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Phase to run
+        type: choice
+        required: true
+        default: sim
+        options: [refresh, ingest, salaries, sim, lines, props, dfs, grade]
+      run_from:
+        description: Run this phase and every later one through DFS (each salary file)
+        type: boolean
+        default: false
+      week:
+        description: Week (blank = the week being played)
+        type: string
+        default: ""
+      slate:
+        description: "DFS only: one slate (blank = every salary file)"
+        type: string
+        default: ""
+      draws:
+        description: "Sim draws per game (blank = config/sim.yaml)"
+        type: string
+        default: ""
+      field_size:
+        description: "DFS room size (blank = config/sim.yaml, 3000)"
+        type: string
+        default: ""
+      iterations:
+        description: "DFS tournament sims (blank = config/sim.yaml, 5000)"
+        type: string
+        default: ""
+
+# One pipeline run at a time, so two sims or a sim and a DFS never overlap. Refresh has its own lane.
+concurrency:
+  group: nfl-edge-${{ inputs.phase == 'refresh' && 'refresh' || 'pipeline' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  phase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      FANTASY_PROS_API_KEY: ${{ secrets.FANTASY_PROS_API_KEY }}
+      ESPN_S2: ${{ secrets.ESPN_S2 }}
+      ESPN_SWID: ${{ secrets.ESPN_SWID }}
+      PHASE: ${{ inputs.phase }}
+      RUN_FROM: ${{ inputs.run_from }}
+      WEEK: ${{ inputs.week }}
+      SLATE: ${{ inputs.slate }}
+      DRAWS: ${{ inputs.draws }}
+      FIELD_SIZE: ${{ inputs.field_size }}
+      ITERATIONS: ${{ inputs.iterations }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          missing=""
+          for k in DATABASE_URL SUPABASE_URL SUPABASE_SERVICE_KEY ODDS_API_KEY FANTASY_PROS_API_KEY ESPN_S2 ESPN_SWID; do
+            [ -n "${!k}" ] || missing="$missing $k"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: |
+          uv sync --frozen
+          (cd vendor/NFL-DFS-Tools && uv sync --frozen)
+
+      - name: Apply migrations
+        run: uv run nfl-edge db migrate
+
+      - name: Resolve week
+        run: |
+          if [ -z "$WEEK" ]; then
+            WEEK=$(uv run python -c "from nfl_edge.workflow import board_week; print(board_week(2026) or '')" | tail -1 | tr -dc '0-9')
+          fi
+          if [ -z "$WEEK" ]; then echo "::error::No current week; enter one"; exit 1; fi
+          echo "WEEK=$WEEK" >> "$GITHUB_ENV"
+          echo "Week $WEEK"
+
+      - name: Pull salary files
+        if: inputs.phase == 'salaries' || inputs.phase == 'dfs' || inputs.run_from
+        run: uv run nfl-edge storage pull-salaries --week "$WEEK"
+
+      - name: Pull draws
+        if: (inputs.phase == 'lines' || inputs.phase == 'props' || inputs.phase == 'dfs')
+        run: uv run nfl-edge storage pull-draws --week "$WEEK"
+
+      - name: Run
+        run: |
+          args=("$PHASE" --week "$WEEK")
+          [ "$RUN_FROM" = "true" ] && args+=(--from)
+          [ -n "$SLATE" ] && args+=(--slate "$SLATE")
+          [ -n "$DRAWS" ] && args+=(--draws "$DRAWS")
+          [ -n "$FIELD_SIZE" ] && args+=(--field-size "$FIELD_SIZE")
+          [ -n "$ITERATIONS" ] && args+=(--iterations "$ITERATIONS")
+          uv run nfl-edge phase "${args[@]}"
+
+      - name: Push draws
+        continue-on-error: true
+        if: always() && (inputs.phase == 'sim' || (inputs.run_from && (inputs.phase == 'ingest' || inputs.phase == 'salaries')))
+        run: uv run nfl-edge storage push-draws --week "$WEEK"
+
+      - name: Save DFS lineups
+        if: always() && (inputs.phase == 'dfs' || inputs.run_from)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dfs-week${{ env.WEEK }}-${{ github.run_id }}
+          path: data/dfs/**/dk_upload_*.csv
+          if-no-files-found: ignore
+          retention-days: 14

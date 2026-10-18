@@ -27,3 +27,8 @@ Edit the tool here, not in a separate checkout.
   second stacked TE overwrites the first while its salary stays counted.
 
 Tests: `uv run pytest tests` from this directory (its own env).
+- `src/nfl_optimizer.py`, `src/nfl_showdown_optimizer.py`: `max_exposure` from `config.json` is
+  enforced. After each lineup, a player who has reached `floor(max_exposure/100 * num_lineups)`
+  lineups is locked out (showdown: every slot of that name). Ported 2026-10-17 from the
+  uncommitted edits in `~/Development/NFL-DFS-Tools`, which nfl-edge relied on through
+  `NFL_DFS_TOOLS_PATH`.

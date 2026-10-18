@@ -1,0 +1,64 @@
+# The only scheduled job: fresh lines, scores, injury status, grading of finished weeks, and the
+# change check. Thu–Mon at 9 AM, noon, 3 PM and 6 PM Phoenix (UTC-7, no DST); 3 Odds API credits each.
+# Also has a Run workflow button. Everything else is button-only (phase.yml).
+name: Refresh
+
+on:
+  schedule:
+    - cron: "0 16,19,22 * * 0,1,4,5,6"   # 9:00, 12:00, 15:00 Phoenix, Thu–Mon
+    - cron: "0 1 * * 0,1,2,5,6"          # 18:00 Phoenix, Thu–Mon (next UTC day)
+  workflow_dispatch:
+    inputs:
+      week:
+        description: Week (blank = the week being played)
+        type: string
+        default: ""
+
+concurrency:
+  group: nfl-edge-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      FANTASY_PROS_API_KEY: ${{ secrets.FANTASY_PROS_API_KEY }}
+      ESPN_S2: ${{ secrets.ESPN_S2 }}
+      ESPN_SWID: ${{ secrets.ESPN_SWID }}
+      WEEK: ${{ inputs.week }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          missing=""
+          for k in DATABASE_URL SUPABASE_URL SUPABASE_SERVICE_KEY ODDS_API_KEY FANTASY_PROS_API_KEY ESPN_S2 ESPN_SWID; do
+            [ -n "${!k}" ] || missing="$missing $k"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: Apply migrations
+        run: uv run nfl-edge db migrate
+
+      - name: Refresh
+        run: |
+          args=(refresh)
+          [ -n "$WEEK" ] && args+=(--week "$WEEK")
+          uv run nfl-edge phase "${args[@]}"

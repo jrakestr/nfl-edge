@@ -165,6 +165,8 @@ class NFL_Showdown_Optimizer:
         self.default_def_var = (
             self.config["default_def_var"] if "default_def_var" in self.config else 0.5
         )
+        self.max_exposure = float(self.config["max_exposure"]) if "max_exposure" in self.config else 100
+        self.exposure_count = {}
 
     # Load projections from file
     def load_projections(self, path):
@@ -756,6 +758,21 @@ class NFL_Showdown_Optimizer:
                 <= len(players) - self.num_uniques,
                 f"Lineup {i}",
             )
+
+            cap = int(self.max_exposure / 100.0 * self.num_lineups)
+            if 0 < cap < self.num_lineups:
+                locked = set()
+                for player in players:
+                    name = self.player_dict[player]["Name"]
+                    self.exposure_count[name] = self.exposure_count.get(name, 0) + 1
+                    if self.exposure_count[name] >= cap and name not in locked:
+                        locked.add(name)
+                        for key, value in self.player_dict.items():
+                            if value["Name"] == name:
+                                self.problem += (
+                                    lp_variables[value["UniqueKey"]] == 0,
+                                    f"Exposure lock {value['UniqueKey']} {i}",
+                                )
 
             # Set a new random fpts projection within their distribution
             if self.randomness_amount != 0:

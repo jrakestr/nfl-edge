@@ -134,6 +134,8 @@ class NFL_Optimizer:
         self.default_def_var = (
             self.config["default_def_var"] if "default_def_var" in self.config else 0.5
         )
+        self.max_exposure = float(self.config["max_exposure"]) if "max_exposure" in self.config else 100
+        self.exposure_count = {}
 
     def assertPlayerDict(self):
         for p, s in list(self.player_dict.items()):
@@ -825,6 +827,16 @@ class NFL_Optimizer:
                 <= len(players) - self.num_uniques,
                 f"Lineup {i}",
             )
+
+            cap = int(self.max_exposure / 100.0 * self.num_lineups)
+            if 0 < cap < self.num_lineups:
+                for player in players:
+                    self.exposure_count[player] = self.exposure_count.get(player, 0) + 1
+                    if self.exposure_count[player] >= cap:
+                        self.problem += (
+                            lp_variables[self.player_dict[player]["ID"]] == 0,
+                            f"Exposure lock {player} {i}",
+                        )
 
             # Set a new random fpts projection within their distribution
             if self.randomness_amount != 0:

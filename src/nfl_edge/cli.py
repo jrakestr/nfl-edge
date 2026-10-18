@@ -42,6 +42,90 @@ def db_counts():
         typer.echo(str(unresolved_snap_pfr()))
 
 
+storage_app = typer.Typer(help="Private Supabase Storage: salary files and sim draws.")
+app.add_typer(storage_app, name="storage")
+
+
+def _storage_week(season: int, week: int | None) -> int:
+    from . import workflow
+
+    week = week or workflow.board_week(season)
+    if week is None:
+        typer.echo(f"no current week for {season}; pass --week")
+        raise typer.Exit(1)
+    return week
+
+
+def _storage_run(season: int, week: int, run_id: str | None) -> str:
+    from .rebuild import newest_run
+
+    if run_id:
+        return run_id
+    newest = newest_run(season, week)
+    if newest is None:
+        typer.echo(f"no sim run for {season} week {week}")
+        raise typer.Exit(1)
+    return newest[0]
+
+
+def _storage_call(fn, *args):
+    from .storage import StorageError
+
+    try:
+        return fn(*args)
+    except StorageError as e:
+        typer.echo(str(e))
+        raise typer.Exit(1) from e
+
+
+@storage_app.command("push-salaries")
+def storage_push_salaries(week: int = typer.Option(None), season: int = typer.Option(2026)):
+    """Upload this week's data/dk salary files so a cloud run can use them."""
+    from . import storage
+
+    week = _storage_week(season, week)
+    for name, digest in _storage_call(storage.push_salaries, season, week):
+        typer.echo(f"pushed {name} sha256={digest[:12]}")
+
+
+@storage_app.command("pull-salaries")
+def storage_pull_salaries(week: int = typer.Option(None), season: int = typer.Option(2026)):
+    """Download this week's salary files into data/dk."""
+    from . import storage
+
+    week = _storage_week(season, week)
+    got = _storage_call(storage.pull_salaries, season, week)
+    if not got:
+        typer.echo(f"no salary files in Storage for {season} week {week}; "
+                   f"run `nfl-edge storage push-salaries --week {week}` where the CSVs are")
+    for name, digest in got:
+        typer.echo(f"pulled {name} sha256={digest[:12]}")
+
+
+@storage_app.command("push-draws")
+def storage_push_draws(week: int = typer.Option(None), season: int = typer.Option(2026),
+                       run_id: str = typer.Option(None, help="Default: newest run of the week")):
+    """Upload a run's draws so lines, props and DFS can run elsewhere."""
+    from . import storage
+
+    week = _storage_week(season, week)
+    rid = _storage_run(season, week, run_id)
+    n = _storage_call(storage.push_draws, season, week, rid)
+    typer.echo(f"draws {rid[:8]}: {n} files uploaded")
+
+
+@storage_app.command("pull-draws")
+def storage_pull_draws(week: int = typer.Option(None), season: int = typer.Option(2026),
+                       run_id: str = typer.Option(None, help="Default: newest run of the week")):
+    """Download a run's draws into data/draws."""
+    from . import storage
+
+    week = _storage_week(season, week)
+    rid = _storage_run(season, week, run_id)
+    n = _storage_call(storage.pull_draws, season, week, rid)
+    typer.echo(f"draws {rid[:8]}: {n} files downloaded")
+
+
 ingest_app = typer.Typer(help="Pull data into Postgres.")
 app.add_typer(ingest_app, name="ingest")
 

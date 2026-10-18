@@ -4,6 +4,25 @@ Four LaunchAgents on this Mac run the jobs below. Clock times are America/Phoeni
 
 `nfl-edge lines` prices the newest `model.sim_runs` row for that week. It does not insert a new row. The board stamp `at run` is that row's `created_at`, shown in Eastern time. A later lines fire keeps that sim until a newer one exists.
 
+## Run from GitHub (Mac off)
+
+GitHub → nfl-edge → Actions → **Run phase** → Run workflow: pick a phase (refresh, ingest,
+salaries, sim, lines, props, dfs, grade), optionally "run from here" through DFS, week, slate,
+draws, field size, iterations. One pipeline run at a time. DFS upload CSVs are attached to the
+run as an artifact. **Refresh** is the only schedule (Thu–Mon 9:00, 12:00, 15:00, 18:00 Phoenix)
+and also has its own button.
+
+Salary files and draws reach the runner through private Supabase Storage:
+`nfl-edge storage push-salaries --week W` after saving the DK CSVs, and
+`nfl-edge storage push-draws --week W` after a sim on the Mac. A cloud sim pushes its own draws.
+
+Repository secrets (Settings → Secrets and variables → Actions): `DATABASE_URL` (Supabase
+**session pooler** URI; the direct host is IPv6-only and unreachable from Actions),
+`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `ODDS_API_KEY`, `FANTASY_PROS_API_KEY`, `ESPN_S2`,
+`ESPN_SWID`. The repo is public: workflow logs are public, so nothing may print a secret.
+
+The Mac LaunchAgents below stay until a full week has run from Actions.
+
 ## At a glance
 
 - `com.nfl-edge.lines-only` — every even America/Los_Angeles hour, minute 0–14 — odds snapshots, score backfill, edges and verdicts on the existing sim — `output/cron-lines.log`. Does not insert `model.sim_runs`.
