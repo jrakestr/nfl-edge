@@ -16,7 +16,8 @@ Missing or reordered sections make the plan invalid.
 - Tests first for `sim/` and scoring: write the failing invariant test, then make it pass.
 - One commit per todo, message prefixed `<todo-id>: `.
 - Never edit the plan file. Nice-to-have refinements go to the trailing todo in
-  STATUS.md. If a change blocks the acceptance criteria, stop and report; I decide.
+  STATUS.md. If a change blocks the acceptance criteria, take the closest fix
+  that meets them, record it in STATUS.md, and continue.
 - Checkpoint = end of each todo. Start a fresh conversation or subagent there.
   Carry state only through the plan file and STATUS.md.
 - Do not drive the browser to verify UI; I check it.

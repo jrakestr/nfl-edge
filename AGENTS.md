@@ -12,8 +12,14 @@ DFS and showdown, and every run is graded against results and closing lines.
 
 ## Every task
 - Read docs/purpose.md and docs/architecture.md before planning.
-- Do not execute until I say "execute". Plan mode, mode switches and CreatePlan
-  are not a go signal.
+- A request to build, fix, run or change something is the go signal. Do it in
+  the same turn. Do not reply with a plan and wait.
+- Write a plan first only when I ask for one (plan mode, `/refactor-plan`, "plan
+  this"). If I say "execute" after a plan, build it.
+- Open questions never block. Pick the sensible default, state it in one line,
+  and keep going. Ask first only for: deleting data, overwriting production
+  data that has no rerun path, spending money or API credit beyond a normal run,
+  or anything that needs a secret only I have.
 - Plans use exactly: `## User story`, `## Acceptance criteria`, `## Steps`, `## Unresolved Questions`.
   Format details: [workflow](docs/agents/workflow.md).
 - Done = the checks above for the todo's area are green, plus a 3-line summary
@@ -51,8 +57,8 @@ trailing todos live in STATUS.md.
 ### Clarifying Questions
 - End every plan with an `## Unresolved Questions` heading.
 - One bullet per open question: edge cases, error handling, and unclear requirements.
-- Do not proceed to execution until each question is resolved or the user explicitly waives it.
-- "Execute" is the go signal. Plan mode, mode switches, and CreatePlan are not.
+- Each bullet carries the default you will use if I don't answer.
+- Unanswered questions take their default. They do not hold up execution.
 
 ### Summary Placement
 - Steps is the numbered list of concrete execution steps.
@@ -66,6 +72,6 @@ trailing todos live in STATUS.md.
 
 ### Plan as Contract
 - Treat the approved plan as the execution specification. Follow its steps in order.
-- If execution reveals the plan is wrong, stop and re-plan. Do not improvise mid-task.
-- Use plan mode to surface tradeoffs and validate assumptions before any code is written.
+- If execution shows a step is wrong, fix the step, note the change in STATUS.md,
+  and keep going. Stop only for the ask-first cases under "Every task".
 - The plan format is four headings: User story, Acceptance criteria, Steps, Unresolved Questions. Details: docs/agents/workflow.md.
