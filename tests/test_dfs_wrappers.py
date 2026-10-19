@@ -599,3 +599,13 @@ def test_pipeline_reports_seconds_per_stage(monkeypatch, tmp_path):
     assert list(out["timings"]) == ["export", "optimizer", "field_sim", "persist", "total"]
     assert out["timings"]["total"] >= 0
     assert out["max_minutes"] == 3
+
+
+def test_parse_exposure_keeps_sim_top1_for_classic(tmp_path: Path):
+    e = tmp_path / "exp.csv"
+    e.write_text(EXPOSURE)
+    by_id = {r["player_id"]: r for r in P.parse_exposure_csv(e, SLATE)}
+    assert by_id["00-g"]["top1_pct"] == pytest.approx(0.05)
+    assert by_id["MIA_DST"]["top1_pct"] == pytest.approx(0.6134)
+    merged = P.merge_exposure(list(by_id.values()), {}, {})
+    assert all("top1_pct" in r for r in merged)

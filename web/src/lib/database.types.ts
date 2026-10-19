@@ -596,6 +596,7 @@ export type Database = {
           run_id: string
           site: string
           slate_id: string
+          top1_pct: number | null
           win_pct: number | null
         }
         Insert: {
@@ -608,6 +609,7 @@ export type Database = {
           run_id: string
           site: string
           slate_id: string
+          top1_pct?: number | null
           win_pct?: number | null
         }
         Update: {
@@ -620,6 +622,7 @@ export type Database = {
           run_id?: string
           site?: string
           slate_id?: string
+          top1_pct?: number | null
           win_pct?: number | null
         }
         Relationships: [
@@ -634,6 +637,7 @@ export type Database = {
       }
       dfs_lineups: {
         Row: {
+          actual_fpts: number | null
           construction: string
           created_at: string | null
           id: number
@@ -650,6 +654,7 @@ export type Database = {
           stack: string | null
         }
         Insert: {
+          actual_fpts?: number | null
           construction?: string
           created_at?: string | null
           id?: number
@@ -666,6 +671,7 @@ export type Database = {
           stack?: string | null
         }
         Update: {
+          actual_fpts?: number | null
           construction?: string
           created_at?: string | null
           id?: number
@@ -1297,6 +1303,10 @@ export type Database = {
       }
       proj_players: {
         Row: {
+          boom_rate: number | null
+          bust_rate: number | null
+          dk_p10: number | null
+          dk_p90: number | null
           draws_path: string | null
           fpts_dk_mean: number | null
           fpts_dk_sd: number | null
@@ -1311,6 +1321,10 @@ export type Database = {
           team: string | null
         }
         Insert: {
+          boom_rate?: number | null
+          bust_rate?: number | null
+          dk_p10?: number | null
+          dk_p90?: number | null
           draws_path?: string | null
           fpts_dk_mean?: number | null
           fpts_dk_sd?: number | null
@@ -1325,6 +1339,10 @@ export type Database = {
           team?: string | null
         }
         Update: {
+          boom_rate?: number | null
+          bust_rate?: number | null
+          dk_p10?: number | null
+          dk_p90?: number | null
           draws_path?: string | null
           fpts_dk_mean?: number | null
           fpts_dk_sd?: number | null
@@ -1831,6 +1849,32 @@ export type Database = {
       }
     }
     Views: {
+      dfs_lineup_entries: {
+        Row: {
+          cashed: boolean | null
+          contest_key: number | null
+          entry_fee: number | null
+          entry_key: number | null
+          lineup_id: string | null
+          lineup_pk: number | null
+          places_paid: number | null
+          points: number | null
+          rank: number | null
+          run_id: string | null
+          site: string | null
+          slate_id: string | null
+          winnings_cash: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dfs_lineups_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "sim_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
       edges_latest: {
         Row: {
           created_at: string | null
@@ -2063,6 +2107,210 @@ export type Database = {
           week?: number | null
         }
         Relationships: []
+      }
+      dk_contest_entries: {
+        Row: {
+          contest_key: number
+          entry_id: number
+          entry_name: string | null
+          lineup: string
+          points: number | null
+          rank: number
+        }
+        Insert: {
+          contest_key: number
+          entry_id: number
+          entry_name?: string | null
+          lineup: string
+          points?: number | null
+          rank: number
+        }
+        Update: {
+          contest_key?: number
+          entry_id?: number
+          entry_name?: string | null
+          lineup?: string
+          points?: number | null
+          rank?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dk_contest_entries_contest_key_fkey"
+            columns: ["contest_key"]
+            isOneToOne: false
+            referencedRelation: "dk_contests"
+            referencedColumns: ["contest_key"]
+          },
+        ]
+      }
+      dk_contest_players: {
+        Row: {
+          contest_key: number
+          fpts: number | null
+          pct_drafted: number
+          player_name: string
+          roster_position: string
+          top1_rate: number | null
+        }
+        Insert: {
+          contest_key: number
+          fpts?: number | null
+          pct_drafted: number
+          player_name: string
+          roster_position: string
+          top1_rate?: number | null
+        }
+        Update: {
+          contest_key?: number
+          fpts?: number | null
+          pct_drafted?: number
+          player_name?: string
+          roster_position?: string
+          top1_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dk_contest_players_contest_key_fkey"
+            columns: ["contest_key"]
+            isOneToOne: false
+            referencedRelation: "dk_contests"
+            referencedColumns: ["contest_key"]
+          },
+        ]
+      }
+      dk_contests: {
+        Row: {
+          cash_score: number | null
+          contest_key: number
+          contest_name: string | null
+          entries: number
+          ingested_at: string
+          places_paid: number | null
+          slate_id: string | null
+          source_file: string
+          source_sha256: string
+          top1_rank: number
+          top1_score: number
+        }
+        Insert: {
+          cash_score?: number | null
+          contest_key: number
+          contest_name?: string | null
+          entries: number
+          ingested_at?: string
+          places_paid?: number | null
+          slate_id?: string | null
+          source_file: string
+          source_sha256: string
+          top1_rank: number
+          top1_score: number
+        }
+        Update: {
+          cash_score?: number | null
+          contest_key?: number
+          contest_name?: string | null
+          entries?: number
+          ingested_at?: string
+          places_paid?: number | null
+          slate_id?: string | null
+          source_file?: string
+          source_sha256?: string
+          top1_rank?: number
+          top1_score?: number
+        }
+        Relationships: []
+      }
+      dk_entry_history: {
+        Row: {
+          contest_entries: number | null
+          contest_key: number
+          contest_time: string | null
+          entry_fee: number | null
+          entry_key: number
+          entry_name: string
+          game_type: string
+          ingested_at: string
+          place: number | null
+          places_paid: number | null
+          points: number | null
+          prize_pool: number | null
+          sport: string
+          winnings_cash: number
+          winnings_ticket: number
+        }
+        Insert: {
+          contest_entries?: number | null
+          contest_key: number
+          contest_time?: string | null
+          entry_fee?: number | null
+          entry_key: number
+          entry_name: string
+          game_type: string
+          ingested_at?: string
+          place?: number | null
+          places_paid?: number | null
+          points?: number | null
+          prize_pool?: number | null
+          sport: string
+          winnings_cash?: number
+          winnings_ticket?: number
+        }
+        Update: {
+          contest_entries?: number | null
+          contest_key?: number
+          contest_time?: string | null
+          entry_fee?: number | null
+          entry_key?: number
+          entry_name?: string
+          game_type?: string
+          ingested_at?: string
+          place?: number | null
+          places_paid?: number | null
+          points?: number | null
+          prize_pool?: number | null
+          sport?: string
+          winnings_cash?: number
+          winnings_ticket?: number
+        }
+        Relationships: []
+      }
+      dk_entry_slots: {
+        Row: {
+          contest_key: number
+          entry_key: number
+          fpts: number
+          player_name: string
+          position: string | null
+          slot: string
+          slot_order: number
+        }
+        Insert: {
+          contest_key: number
+          entry_key: number
+          fpts: number
+          player_name: string
+          position?: string | null
+          slot: string
+          slot_order: number
+        }
+        Update: {
+          contest_key?: number
+          entry_key?: number
+          fpts?: number
+          player_name?: string
+          position?: string | null
+          slot?: string
+          slot_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dk_entry_slots_contest_key_fkey"
+            columns: ["contest_key"]
+            isOneToOne: false
+            referencedRelation: "dk_contests"
+            referencedColumns: ["contest_key"]
+          },
+        ]
       }
       dk_player_crosswalk: {
         Row: {
@@ -3151,7 +3399,41 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      dk_contest_player_totals: {
+        Row: {
+          contest_key: number | null
+          fpts: number | null
+          own: number | null
+          player_name: string | null
+          position: string | null
+          top1_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dk_contest_players_contest_key_fkey"
+            columns: ["contest_key"]
+            isOneToOne: false
+            referencedRelation: "dk_contests"
+            referencedColumns: ["contest_key"]
+          },
+        ]
+      }
+      dk_entry_lineup_keys: {
+        Row: {
+          contest_key: number | null
+          entry_key: number | null
+          lineup_key: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dk_entry_slots_contest_key_fkey"
+            columns: ["contest_key"]
+            isOneToOne: false
+            referencedRelation: "dk_contests"
+            referencedColumns: ["contest_key"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never

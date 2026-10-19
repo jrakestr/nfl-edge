@@ -57,8 +57,10 @@ def persist(run_id: str, site: str, slate_id: str, slate_type: str,
             "own_field_proj": r.get("own_field_proj"),
             "own_field_sim": r.get("own_field_sim"),
             "leverage": r.get("leverage"), "win_pct": r.get("win_pct"), "roi": r.get("roi"),
+            "top1_pct": r.get("top1_pct"),
         } for r in exposure]
-        n_exp = insert(pl.DataFrame(exp_rows), "model.dfs_exposure") if exp_rows else 0
+        n_exp = (insert(pl.DataFrame(exp_rows, infer_schema_length=None), "model.dfs_exposure")
+                 if exp_rows else 0)
     return {"lineups": n_lu, "exposure": n_exp}
 
 

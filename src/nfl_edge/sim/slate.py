@@ -174,6 +174,39 @@ def _summarize(name: str, arr: np.ndarray) -> dict:
             "hist": _histogram(arr)}
 
 
+BOOM_MULT = 3.0
+BUST_MULT = 1.0
+
+
+def dk_rates(dk: np.ndarray, salary: float | None) -> dict:
+    """DK p10/p90 plus boom/bust shares. Boom = DK >= 3 x salary/1000; bust = DK < 1 x salary/1000.
+
+    Boom and bust are None without a salary (never a guessed value).
+    """
+    arr = np.asarray(dk, dtype=float)
+    p10, p90 = np.percentile(arr, [10, 90])
+    out: dict = {"dk_p10": float(p10), "dk_p90": float(p90), "boom_rate": None, "bust_rate": None}
+    if salary:
+        value = float(salary) / 1000.0
+        out["boom_rate"] = float((arr >= BOOM_MULT * value).mean())
+        out["bust_rate"] = float((arr < BUST_MULT * value).mean())
+    return out
+
+
+def load_dk_salaries(season: int, week: int) -> dict[str, float]:
+    """Classic-slate DK salary by player_id for the week. Empty when no CSV is loaded.
+
+    Classic slates share one salary per player, so the max over slates is that salary.
+    """
+    df = read_sql(
+        "select player_id, max(salary)::float8 as salary from raw.dk_salaries "
+        "where slate_id like %s and slate_id not like %s and player_id is not null "
+        "and salary is not null group by player_id",
+        (f"{season}_{week:02d}_%", "%showdown"),
+    )
+    return {r["player_id"]: r["salary"] for r in df.to_dicts()}
+
+
 def _team_checks(t: TeamDraws, p: pp.PlayerDraws | None, usage: pl.DataFrame, d: GameDraws,
                  side: str, prior: TeamPrior, game_id: str, cfg: dict) -> list[dict]:
     base = {"game_id": game_id, "team": t.team}
@@ -213,8 +246,10 @@ def _team_checks(t: TeamDraws, p: pp.PlayerDraws | None, usage: pl.DataFrame, d:
 
 
 def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, seed: int,
-                 out_dir: Path) -> tuple[dict, list[dict], list[dict], pl.DataFrame]:
+                 out_dir: Path, salaries: dict[str, float] | None = None,
+                 ) -> tuple[dict, list[dict], list[dict], pl.DataFrame]:
     """Returns (proj_game row, proj_player rows, check rows, correlation frame)."""
+    salaries = salaries or {}
     game_id = g["game_id"]
     home, away = g["home_team"], g["away_team"]
     rng = game_rng(seed, game_id)
@@ -254,6 +289,7 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
                                  "fpts_ppr": _summarize("fpts_ppr", s["ppr"])},
                 "fpts_dk_mean": float(s["dk"].mean()), "fpts_dk_sd": float(s["dk"].std()),
                 "fpts_fd_mean": float(s["fd"].mean()), "fpts_fd_sd": float(s["fd"].std()),
+                **dk_rates(s["dk"], salaries.get(pid)),
             })
         frames.append(_player_frame(p, fp))
     # DST for each side from the opponent's draws
@@ -268,6 +304,7 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
                              "fpts_ppr": _summarize("fpts_ppr", dst)},
             "fpts_dk_mean": float(dst.mean()), "fpts_dk_sd": float(dst.std()),
             "fpts_fd_mean": float(dst.mean()), "fpts_fd_sd": float(dst.std()),
+            **dk_rates(dst, salaries.get(pid)),
         })
         frames.append(_dst_frame(t.team, n, dst))
 
@@ -349,10 +386,11 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
     priors = priors or pr.build(season, week)
     out_dir = DRAWS_ROOT / str(season) / str(week) / run_id
 
+    salaries = load_dk_salaries(season, week)
     pg, ppl, chk, corrs = [], [], [], []
     try:
         for g in games.iter_rows(named=True):
-            a, b, c, d = simulate_one(g, priors, cfg, rules, n, seed, out_dir)
+            a, b, c, d = simulate_one(g, priors, cfg, rules, n, seed, out_dir, salaries)
             pg.append(a)
             ppl += b
             chk += c
@@ -374,7 +412,7 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
                     "detail": f"{n_player_games}/{slate_n} games with non-DST players; "
                               f"{n_player_files} player parquet files"})
         proj_games = pl.DataFrame(pg).with_columns(pl.lit(run_id).alias("run_id"))
-        proj_players = pl.DataFrame(ppl).with_columns(
+        proj_players = pl.DataFrame(ppl, infer_schema_length=None).with_columns(
             pl.lit(run_id).alias("run_id"), pl.col("stat_summary").map_elements(json.dumps, return_dtype=pl.Utf8)
         )
         checks = pl.DataFrame(chk, schema={"game_id": pl.Utf8, "team": pl.Utf8, "check_name": pl.Utf8,

@@ -170,10 +170,11 @@ const FULL: WeekPlayer[] = [
 ];
 
 describe("PlayersList actual vs projected", () => {
-  it("shows an em dash in Actual and Diff while the week is ungraded", () => {
+  it("omits the Actual and Diff columns while the week is ungraded", () => {
     render(<PlayersList players={MAIN} />);
-    expect(screen.getByRole("columnheader", { name: "Actual" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Diff" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Actual" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Diff" })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /DK pts/ })).toBeInTheDocument();
     expect(screen.queryByText("DNP")).not.toBeInTheDocument();
   });
 
@@ -183,6 +184,7 @@ describe("PlayersList actual vs projected", () => {
       { ...MAIN[1]!, actual_dk: 0, actual_state: "dnp" },
     ];
     render(<PlayersList players={graded} />);
+    expect(screen.getByRole("columnheader", { name: "Actual" })).toBeInTheDocument();
     expect(screen.getByText("24.2")).toBeInTheDocument();
     expect(screen.getByText("+6.0")).toBeInTheDocument();
     expect(screen.getByText("DNP")).toBeInTheDocument();

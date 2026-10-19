@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -299,6 +300,57 @@ def ingest_fantasypros_status(
                    "status; nothing was saved for them because that carries no usage change.")
     if r["ignored"]["unknown_status"]:
         typer.echo(f"Skipped players with statuses I do not recognise: {', '.join(r['unknown_statuses'])}.")
+
+
+@ingest_app.command("dk-history")
+def ingest_dk_history(
+    path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, help="draftkings-contest-entry-history.csv")],
+):
+    """DraftKings entry-history CSV -> raw.dk_entry_history (upsert on Entry_Key; the whole file)."""
+    from .ingest import dk_contests as dk
+
+    try:
+        r = dk.load_history(path)
+    except dk.DkFileError as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(f"dk history: {r['rows']} entries across {r['contests']} contests upserted")
+
+
+@ingest_app.command("dk-standings")
+def ingest_dk_standings(
+    paths: Annotated[list[Path], typer.Argument(exists=True, dir_okay=False, help="contest-standings-<id>.zip files")],
+    slate: str = typer.Option(None, help="Force the model slate id (default: resolved from raw.dk_salaries)"),
+    force: bool = typer.Option(False, "--force", help="Reload even when the file is unchanged"),
+):
+    """DK standings zips -> per-contest ownership, FPTS, top-1% rate, cash line, and my slot breakdown.
+
+    Run dk-history first so the entries that are yours get their slot rows."""
+    from .ingest import dk_contests as dk
+
+    failed = False
+    for p in paths:
+        try:
+            r = dk.ingest_standings(p, slate_id=slate, force=force)
+        except (dk.DkFileError, RuntimeError) as e:
+            typer.echo(f"error: {p.name}: {e}")
+            failed = True
+            continue
+        if r.status == "unchanged":
+            typer.echo(f"{r.contest_key}: unchanged, skipped")
+            continue
+        typer.echo(
+            f"{r.contest_key} {r.contest_name or '(no history row)'}: {r.entries} entries, "
+            f"{r.players} player rows, top1 {r.top1_score}, cash {r.cash_score}, "
+            f"slate {r.slate_id or 'unresolved'}, "
+            f"mine {r.mine} ({r.slot_entries} with slots)"
+        )
+        if r.history_entries and r.history_entries != r.entries:
+            typer.echo(f"  note: history says {r.history_entries} entries, file has {r.entries}")
+        for eid, why in r.misses:
+            typer.echo(f"  slots not written for entry {eid}: {why}")
+    if failed:
+        raise typer.Exit(code=1)
 
 
 @ingest_app.command("espn-league")
@@ -1188,7 +1240,13 @@ def grade(
     if dfs.get("skipped"):
         typer.echo(f"dfs: skipped ({dfs.get('reason')})")
     elif dfs.get("n_lineups"):
-        typer.echo(f"dfs: {dfs['n_lineups']} lineups graded")
+        typer.echo(
+            f"dfs: {dfs['n_lineups']} lineups, {dfs.get('n_complete', 0)} graded, "
+            f"{dfs.get('n_incomplete', 0)} incomplete"
+        )
+        if dfs.get("missing"):
+            typer.echo("dfs missing actuals: " + ", ".join(
+                f"{k} x{v}" for k, v in list(dfs["missing"].items())[:10]))
     props = report.props or {}
     if props.get("skipped"):
         typer.echo(f"props: skipped ({props.get('reason')})")

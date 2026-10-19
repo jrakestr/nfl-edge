@@ -19,7 +19,7 @@ def load() -> dict[str, dict[str, dict[str, Any]]]:
 
 
 def profile(slate: str, construction: str) -> dict[str, Any]:
-    kind = "showdown" if slate == "showdown" else "classic"
+    kind = "showdown" if slate == "showdown" or slate.startswith("showdown-") else "classic"
     key = (construction or "mass").strip().lower()
     data = load()
     if kind not in data or key not in data[kind]:

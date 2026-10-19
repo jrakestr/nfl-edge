@@ -5,7 +5,7 @@ import { PositionPill } from "@/components/ui/PositionPill";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { TeamLogo } from "@/components/ui/TeamLogo";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/DataTable";
+import { DataTable, type DataColumn } from "@/components/ui/DataTable";
 import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
@@ -127,6 +127,50 @@ export function PlayersList({
     });
     return m;
   }, [players]);
+
+  /** Actual and Diff exist only once the week has graded rows. */
+  const hasActuals = useMemo(() => players.some((p) => p.actual_state != null), [players]);
+
+  const actualColumns: DataColumn<WeekPlayer>[] = hasActuals
+    ? [
+        {
+          id: "actual",
+          header: "Actual",
+          align: "right",
+          sortValue: (p) => (p.actual_state === "played" ? p.actual_dk : null),
+          cell: (p) => (
+            <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+              {actualDisplay(p).actual}
+            </span>
+          ),
+        },
+        {
+          id: "diff",
+          header: "Diff",
+          align: "right",
+          sortValue: (p) => actualDisplay(p).diffValue,
+          cell: (p) => {
+            const { diff, diffValue } = actualDisplay(p);
+            return (
+              <span
+                className={cn(
+                  "tnum font-semibold",
+                  diffValue == null
+                    ? "text-muted-foreground"
+                    : diffValue > 0
+                      ? "text-edge-pos"
+                      : diffValue < 0
+                        ? "text-edge-neg"
+                        : "text-foreground",
+                )}
+              >
+                {diff}
+              </span>
+            );
+          },
+        },
+      ]
+    : [];
 
   function pickAction(key: PickKey, p: WeekPlayer) {
     const id = p.player_dk_id;
@@ -281,42 +325,7 @@ export function PlayersList({
               );
             },
           },
-          {
-            id: "actual",
-            header: "Actual",
-            align: "right",
-            sortValue: (p) => (p.actual_state === "played" ? p.actual_dk : null),
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {actualDisplay(p).actual}
-              </span>
-            ),
-          },
-          {
-            id: "diff",
-            header: "Diff",
-            align: "right",
-            sortValue: (p) => actualDisplay(p).diffValue,
-            cell: (p) => {
-              const { diff, diffValue } = actualDisplay(p);
-              return (
-                <span
-                  className={cn(
-                    "tnum font-semibold",
-                    diffValue == null
-                      ? "text-muted-foreground"
-                      : diffValue > 0
-                        ? "text-edge-pos"
-                        : diffValue < 0
-                          ? "text-edge-neg"
-                          : "text-foreground",
-                  )}
-                >
-                  {diff}
-                </span>
-              );
-            },
-          },
+          ...actualColumns,
           {
             id: "ngs",
             header: "NFLGameSim",

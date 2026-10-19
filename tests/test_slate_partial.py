@@ -52,7 +52,7 @@ def test_empty_usage_raises_before_writing_player_draws(tmp_path, monkeypatch):
 def test_run_wipes_out_dir_when_a_later_game_fails(tmp_path, monkeypatch):
     import uuid
 
-    def fake_one(g, priors, cfg, rules, n, seed, out_dir):
+    def fake_one(g, priors, cfg, rules, n, seed, out_dir, salaries=None):
         if g["game_id"].endswith("WAS_PHI"):
             raise ValueError("2026_01_WAS_PHI: no usage priors for WAS")
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -65,9 +65,25 @@ def test_run_wipes_out_dir_when_a_later_game_fails(tmp_path, monkeypatch):
         {"game_id": "2026_01_WAS_PHI", "home_team": "PHI", "away_team": "WAS"},
     ]))
     monkeypatch.setattr(slate, "simulate_one", fake_one)
+    monkeypatch.setattr(slate, "load_dk_salaries", lambda s, w: {})
     monkeypatch.setattr(slate, "DRAWS_ROOT", tmp_path)
     monkeypatch.setattr(uuid, "uuid4", lambda: uuid.UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"))
     with pytest.raises(ValueError, match="no usage priors"):
         slate.run(2026, 1, draws=8, persist=False, priors=object())
     leftover = list(tmp_path.rglob("*"))
     assert not any(p.suffix == ".parquet" for p in leftover)
+
+
+def test_dk_rates_on_a_fixed_draw_vector():
+    dk = np.array([0.0, 2.0, 5.0, 10.0, 12.0, 15.0, 20.0, 25.0, 30.0, 40.0])
+    r = slate.dk_rates(dk, 5000)  # salary/1000 = 5: boom >= 15, bust < 5
+    assert r["boom_rate"] == pytest.approx(0.5)
+    assert r["bust_rate"] == pytest.approx(0.2)
+    assert r["dk_p10"] == pytest.approx(np.percentile(dk, 10))
+    assert r["dk_p90"] == pytest.approx(np.percentile(dk, 90))
+
+
+def test_dk_rates_without_salary_leave_boom_and_bust_null():
+    r = slate.dk_rates(np.array([1.0, 2.0, 3.0]), None)
+    assert r["boom_rate"] is None and r["bust_rate"] is None
+    assert r["dk_p90"] == pytest.approx(2.8)

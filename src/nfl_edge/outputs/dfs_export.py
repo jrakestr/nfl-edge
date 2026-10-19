@@ -17,6 +17,8 @@ not silent.
 """
 from __future__ import annotations
 
+from ..ingest.dk_salaries import slate_type_for
+
 import csv
 import json
 from itertools import pairwise
@@ -548,7 +550,7 @@ def run(
     contest: str = "gpp",
     field_size: int | None = None,
 ) -> dict:
-    structure = contest_path(contest, showdown=slate.strip().lower() == "showdown")
+    structure = contest_path(contest, showdown=slate_type_for(slate) == "showdown")
     require_field_larger_than_entries(structure, lineups, field_size=field_size)
     meta = read_sql(
         "select run_id::text, season, week from model.sim_runs where run_id = %s",
@@ -601,7 +603,7 @@ def run(
         (run_id,),
     ).to_dicts()
     names = {r["player_id"]: r["name"] for r in slate_rows if r.get("player_id") and r.get("name")}
-    showdown = slate.strip().lower() == "showdown"
+    showdown = slate_type_for(slate) == "showdown"
     prof = C.profile(slate, construction)
     projections, report = build_projections(
         slate_rows, proj, site=site, showdown=showdown, construction=prof,

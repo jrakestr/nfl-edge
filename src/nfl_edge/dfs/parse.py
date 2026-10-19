@@ -170,11 +170,13 @@ def parse_exposure_csv(path: Path, slate: list[dict]) -> list[dict]:
                 # own_field_proj always comes from projections.csv (merge_exposure),
                 # never from this file's Proj. Own% column.
                 win = _pct(cells[5])
+                top1 = _pct(cells[6])
                 field_sim = _pct(cells[7])
                 field_proj = None
                 roi = _money(cells[9])
             else:
                 win = _pct(cells[4])
+                top1 = None  # showdown writes Top10%, a different rate
                 field_sim = _pct(cells[6])
                 field_proj = _pct(cells[7])
                 roi = _money(cells[8])
@@ -183,6 +185,7 @@ def parse_exposure_csv(path: Path, slate: list[dict]) -> list[dict]:
                 "own_field_sim": field_sim,
                 "own_field_proj": field_proj,
                 "win_pct": win,
+                "top1_pct": top1,
                 "roi": roi,
             })
     return _collapse_exposure(out)

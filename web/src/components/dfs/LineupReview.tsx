@@ -157,14 +157,21 @@ export function LineupReview({
               Sunday build in progress
             </p>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            disabled={!runId || selected.size === 0 || busy}
-            onClick={onExport}
-          >
-            Export selected
-          </Button>
+          <div className="flex items-center gap-3">
+            {siteKey === "dk" ? (
+              <Link href={`/week/${week}/dfs/dk/${slate}/review`} className="t-body text-muted-foreground underline-offset-2 hover:underline">
+                Slate review
+              </Link>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              disabled={!runId || selected.size === 0 || busy}
+              onClick={onExport}
+            >
+              Export selected
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <nav className="flex h-8 items-center gap-1" aria-label="Site">

@@ -33,8 +33,9 @@ def default_path(season: int, week: int, slate: str = "main") -> Path:
 
 
 def slate_type_for(slate: str) -> str:
-    """Showdown slates only. `full` is the 16-game classic week, not showdown."""
-    return "showdown" if slate.strip().lower() == "showdown" else "classic"
+    """`showdown` or a fetched `showdown-<away>-<home>`. `full` is the classic week, not showdown."""
+    s = slate.strip().lower()
+    return "showdown" if s == "showdown" or s.startswith("showdown-") else "classic"
 
 
 def map_dk_status(raw: object | None) -> tuple[str, float] | None:
