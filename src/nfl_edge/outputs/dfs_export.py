@@ -489,6 +489,20 @@ def build_correlations(corr: list[dict], names: dict[str, str]) -> dict[str, dic
     return out
 
 
+def game_tokens(slate: list[dict]) -> list[str]:
+    """Distinct `AWAY@HOME` tokens as DK writes them (first word of Game Info).
+
+    This is the key NFL-DFS-Tools uses for `matchup_limits`, so it is the raw token, not
+    the crosswalked pair.
+    """
+    out: list[str] = []
+    for r in slate:
+        tok = str(r.get("game_info") or "").split(" ")[0].strip()
+        if tok and "@" in tok and tok not in out:
+            out.append(tok)
+    return out
+
+
 def build_config(corr: list[dict], names: dict[str, str], showdown: bool = False) -> dict:
     fname = "dk_showdown.json" if showdown else "dk_classic.json"
     cfg = json.loads((CONFIG_DIR / "dfs" / fname).read_text())
@@ -612,6 +626,7 @@ def run(
     ids = build_player_ids(slate_rows)
     cfg = C.apply_to_tools_config(
         build_config(corr, names, showdown=showdown), prof, showdown=showdown,
+        matchups=game_tokens(slate_rows),
     )
     n_games = len(slate_game_pairs([str(r.get("game_info") or "") for r in slate_rows]))
     if construction == "mass":

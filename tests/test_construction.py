@@ -111,6 +111,49 @@ def test_apply_profile_writes_tools_knobs_not_a_new_objective():
     assert sd["num_uniques"] == 2
 
 
+def test_game_cap_null_leaves_matchup_limits_untouched():
+    base = {"randomness": 25, "max_exposure": 40, "num_uniques": 3, "min_lineup_salary": 49200,
+            "stack_rules": {"pair": [], "limit": []}, "matchup_limits": {}}
+    for key in ("cash", "single", "mass"):
+        prof = C.profile("classic", key)
+        assert prof["max_from_game"] is None
+        out = C.apply_to_tools_config(base, prof, matchups=["LAR@SF", "KC@DEN"])
+        assert out["matchup_limits"] == {}
+    # byte-identical to a call without matchups
+    without = C.apply_to_tools_config(base, C.profile("classic", "mass"))
+    assert json.dumps(without, sort_keys=True) == json.dumps(
+        C.apply_to_tools_config(base, C.profile("classic", "mass"), matchups=["LAR@SF"]),
+        sort_keys=True,
+    )
+
+
+def test_game_cap_set_fills_matchup_limits_per_game():
+    base = {"randomness": 25, "max_exposure": 40, "num_uniques": 3, "min_lineup_salary": 49200,
+            "stack_rules": {"pair": [], "limit": []}, "matchup_limits": {}}
+    prof = {**C.profile("classic", "mass"), "max_from_game": 5}
+    out = C.apply_to_tools_config(base, prof, matchups=["LAR@SF", "KC@DEN", "LAR@SF"])
+    assert out["matchup_limits"] == {"KC@DEN": 5, "LAR@SF": 5}
+    sd = C.apply_to_tools_config(base, {**C.profile("showdown", "mass"), "max_from_game": 5},
+                                 showdown=True, matchups=["SEA@NE"])
+    assert sd["matchup_limits"] == {}
+    with pytest.raises(ValueError, match="game tokens"):
+        C.apply_to_tools_config(base, prof, matchups=[])
+    with pytest.raises(ValueError, match="positive"):
+        C.apply_to_tools_config(base, {**prof, "max_from_game": 0}, matchups=["LAR@SF"])
+
+
+def test_game_tokens_are_raw_dk_first_words():
+    from nfl_edge.outputs.dfs_export import game_tokens
+
+    rows = [
+        {"game_info": "LAR@SF 10/05/2026 04:25PM ET"},
+        {"game_info": "KC@DEN 10/05/2026 08:20PM ET"},
+        {"game_info": "LAR@SF 10/05/2026 04:25PM ET"},
+        {"game_info": None},
+    ]
+    assert game_tokens(rows) == ["LAR@SF", "KC@DEN"]
+
+
 def test_lineup_count_uses_profile_and_rejects_over_max():
     assert C.lineup_count(C.profile("classic", "mass"), None) == 150
     assert C.lineup_count(C.profile("classic", "cash"), None) == 1

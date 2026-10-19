@@ -60,13 +60,29 @@ def adjusted_fpts(
     return float(mean)
 
 
+def game_cap(prof: dict[str, Any]) -> int | None:
+    """`max_from_game`: most players one lineup may take from a single game. None = no cap."""
+    raw = prof.get("max_from_game")
+    if raw is None:
+        return None
+    cap = int(raw)
+    if cap < 1:
+        raise ValueError(f"max_from_game must be a positive integer or null, got {raw!r}")
+    return cap
+
+
 def apply_to_tools_config(
     cfg: dict[str, Any],
     prof: dict[str, Any],
     *,
     showdown: bool = False,
+    matchups: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Overlay knobs NFL-DFS-Tools understands. No new objective key — Fpts carries it."""
+    """Overlay knobs NFL-DFS-Tools understands. No new objective key — Fpts carries it.
+
+    `matchups` are this slate's DK game tokens (`AWAY@HOME`, the first word of Game Info);
+    with a classic `max_from_game` they fill `matchup_limits`, which the tool already reads.
+    """
     out = dict(cfg)
     out["randomness"] = int(prof["randomness"])
     out["min_lineup_salary"] = int(prof["min_lineup_salary"])
@@ -78,6 +94,11 @@ def apply_to_tools_config(
         out["num_uniques"] = int(uniques)
     if showdown:
         return out
+    cap = game_cap(prof)
+    if cap is not None:
+        if not matchups:
+            raise ValueError("max_from_game is set but the slate has no game tokens")
+        out["matchup_limits"] = {m: cap for m in sorted(set(matchups))}
     if int(prof.get("stack_n") or 0) == 0 and int(prof.get("bring_back") or 0) == 0:
         rules = dict(out.get("stack_rules") or {})
         rules["pair"] = []
