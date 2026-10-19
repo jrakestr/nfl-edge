@@ -276,11 +276,43 @@ def test_cash_and_single_skip_field_sim(monkeypatch, tmp_path):
     monkeypatch.setattr(Pipe.parse, "upload_csv", lambda *a, **k: "csv")
     monkeypatch.setattr(Pipe.parse, "upload_filename", lambda *a, **k: "u.csv")
     monkeypatch.setattr(Pipe, "persist", lambda *a, **k: {"lineups": 1, "exposure": 0})
+    monkeypatch.setattr(Pipe.validate, "assert_valid", lambda *a, **k: None)  # 1-player stub
     cash = Pipe.run(2026, 2, construction="cash")
     single = Pipe.run(2026, 2, construction="single")
     assert sim_calls == []
     assert cash["n_exposure"] == 0
     assert single["construction"] == "single"
+
+
+def test_pipeline_fails_closed_on_illegal_lineup_before_persist(monkeypatch, tmp_path):
+    persisted = []
+
+    class _Rows:
+        def to_dicts(self):
+            return [{"player_id": "p", "name": "A", "player_dk_id": "1", "position": "QB",
+                     "roster_position": "QB", "team": "KC", "salary": 7000,
+                     "game_info": "KC@DEN 10/05/2026 01:00PM ET"}]
+
+    monkeypatch.setattr(Pipe, "resolve_run", lambda *a, **k: {"run_id": "rid"})
+    monkeypatch.setattr(Pipe, "assert_slate_in_run", lambda *a, **k: None)
+    monkeypatch.setattr(Pipe.C, "profile", lambda *a, **k: {"lineups": 1})
+    monkeypatch.setattr(Pipe.C, "lineup_count", lambda *a, **k: 1)
+    monkeypatch.setattr(Pipe.dfs_export, "run", lambda *a, **k: {
+        "path": str(tmp_path), "settings": {}, "mean_by_dk": {"1": 10.0},
+        "contest": "gpp", "field_size": 176470, "injury_dropped": [],
+    })
+    monkeypatch.setattr(Pipe, "read_sql", lambda *a, **k: _Rows())
+    monkeypatch.setattr(Pipe, "slate_type_for", lambda _s: "classic")
+    monkeypatch.setattr(Pipe.run_optimizer, "run", lambda *a, **k: {
+        "path": str(tmp_path / "lu.csv"),
+        "lineups": [{"lineup_id": "0", "proj_fpts": 10, "salary_used": 7000, "stack": "",
+                     "slots": ["QB"], "names": ["A"], "dk_ids": ["1"]}],
+    })
+    monkeypatch.setattr(Pipe, "persist", lambda *a, **k: persisted.append(1))
+    with pytest.raises(RuntimeError, match=r"lineup 1: roster has 1 players"):
+        Pipe.run(2026, 2, construction="cash")
+    assert persisted == []
+    assert not list(tmp_path.glob("dk_upload_*"))
 
 
 def test_merge_sim_stats_by_slate_ids_ignores_case():

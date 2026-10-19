@@ -33,6 +33,7 @@ class Pool:
     dropped: list[dict] = field(default_factory=list)      # OUT / IR / doubtful
     unmatched: list[dict] = field(default_factory=list)    # no player_id in the crosswalk
     unprojected: list[dict] = field(default_factory=list)  # matched, but no sim row
+    salary_rows: list[dict] = field(default_factory=list)  # raw.dk_salaries as read (for the audit)
 
 
 def _f(x: Any) -> float | None:
@@ -65,7 +66,7 @@ def build_pool(
             + ", ".join(f"{a}@{h}" for a, h in missing)
         )
 
-    pool = Pool()
+    pool = Pool(salary_rows=list(salary_rows))
     seen: set[str] = set()
     for r, pair in parsed:
         pid = r.get("player_id")
@@ -283,7 +284,15 @@ def load_pool(slate_id: str, run_ids: list[str], site: str = "dk") -> tuple[Pool
     return build_pool(salaries, proj_by_pair, overrides_by_pair), sources
 
 
-def write_outputs(out_dir: Path, slate_id: str, run_ids: list[str], lineups: list[dict]) -> dict:
+def write_outputs(
+    out_dir: Path, slate_id: str, run_ids: list[str], lineups: list[dict],
+    salary_rows: list[dict] | None = None,
+) -> dict:
+    """Write upload + tables. With `salary_rows`, audit every lineup first (fails closed)."""
+    if salary_rows is not None:
+        from .validate import assert_valid
+
+        assert_valid(lineups, salary_rows, "classic")
     out_dir.mkdir(parents=True, exist_ok=True)
     upload = out_dir / upload_filename(slate_id, run_ids[0])
     upload.write_text(upload_csv(lineups))

@@ -980,10 +980,11 @@ def dfs_cross(
         pool, sources = cs.load_pool(slate_id, run_ids)
         lus = cs.optimize(pool.players, lineups, min_diff=min_diff,
                           max_exposure=max_exposure, seed=seed)
+        paths = cs.write_outputs(cs.out_dir_for(slate_id), slate_id, run_ids, lus,
+                                 salary_rows=pool.salary_rows)
     except RuntimeError as e:
         typer.echo(str(e))
         raise typer.Exit(1) from e
-    paths = cs.write_outputs(cs.out_dir_for(slate_id), slate_id, run_ids, lus)
     for (a, h), s in sources.items():
         typer.echo(f"  {a}@{h}: run {str(s['run_id'])[:8]} week {s['week']}")
     for label, rows in (("dropped OUT", pool.dropped), ("unmatched", pool.unmatched),

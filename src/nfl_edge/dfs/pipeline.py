@@ -12,7 +12,7 @@ from ..ingest.dk_salaries import missing_run_pairs, slate_game_pairs, slate_type
 from ..outputs import dfs_export
 from ..outputs.lines_io import resolve_run
 from . import construction as C
-from . import parse, run_optimizer, run_sim
+from . import parse, run_optimizer, run_sim, validate
 
 
 def persist(run_id: str, site: str, slate_id: str, slate_type: str,
@@ -134,7 +134,8 @@ def run(
     export_dir = Path(exported["path"])
     settings = exported.get("settings")
     salaries = read_sql(
-        "select player_id, name, player_dk_id from raw.dk_salaries where site = %s and slate_id = %s",
+        "select player_id, name, player_dk_id, position, roster_position, team, salary, game_info "
+        "from raw.dk_salaries where site = %s and slate_id = %s",
         (site, slate_id),
     ).to_dicts()
     showdown = slate_type_for(slate) == "showdown"
@@ -155,6 +156,8 @@ def run(
     merged = parse.rescore_mean_fpts(
         merged, exported.get("mean_by_dk") or {}, showdown=showdown,
     )
+    # Independent audit against DK rules; nothing persists or uploads on a failure.
+    validate.assert_valid(merged, salaries, slate_type_for(slate))
     ours = parse.exposure_from_lineups(merged, salaries)
     field_proj = parse.field_proj_from_projections(export_dir / "projections.csv", salaries)
     exposure = parse.merge_exposure(sim_exposure, ours, field_proj)

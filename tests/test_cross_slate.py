@@ -164,6 +164,27 @@ def test_build_pool_duplicate_player_id_raises():
 
 # ------------------------------------------------------------------ upload
 
+def _salary_rows_for(pool: list[dict]) -> list[dict]:
+    return [{
+        "player_dk_id": p["dk_id"], "player_id": p["player_id"], "name": p["name"],
+        "position": p["pos"], "team": p["team"], "salary": p["salary"],
+        "game_info": f"{p['game'][0]}@{p['game'][1]} 10/05/2026 01:00PM ET",
+    } for p in pool]
+
+
+def test_write_outputs_audits_against_slate(pool, tmp_path):
+    lus = cs.optimize(pool, 2, jitter=0.0)
+    rows = _salary_rows_for(pool)
+    paths = cs.write_outputs(tmp_path / "ok", "s", ["r"], lus, salary_rows=rows)
+    assert (tmp_path / "ok" / "lineups.csv").exists() and paths["upload"]
+    # Re-price one rostered player so the recomputed salary breaks the cap: nothing is written.
+    by_dk = {r["player_dk_id"]: r for r in rows}
+    by_dk[lus[0]["dk_ids"][0]]["salary"] += 20_000
+    with pytest.raises(RuntimeError, match="DK rules"):
+        cs.write_outputs(tmp_path / "bad", "s", ["r"], lus, salary_rows=rows)
+    assert not (tmp_path / "bad").exists()
+
+
 def test_upload_csv_header_and_ids(pool):
     lus = cs.optimize(pool, 2, jitter=0.0)
     text = cs.upload_csv(lus)
