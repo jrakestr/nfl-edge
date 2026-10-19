@@ -17,8 +17,6 @@ not silent.
 """
 from __future__ import annotations
 
-from ..ingest.dk_salaries import slate_type_for
-
 import csv
 import json
 from itertools import pairwise
@@ -29,7 +27,7 @@ import numpy as np
 from ..config import CONFIG_DIR, DATA_DIR, load_yaml
 from ..db import read_sql
 from ..dfs import construction as C
-from ..ingest.dk_salaries import slate_game_pairs
+from ..ingest.dk_salaries import slate_game_pairs, slate_type_for
 from ..sim import scoring
 
 PROJ_COLS = ["Name", "Position", "Team", "Salary", "Fpts", "Own%", "StdDev"]

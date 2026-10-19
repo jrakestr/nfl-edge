@@ -235,3 +235,15 @@ Wednesday 2026-09-09 ~15:00 (before NE@SEA lock, 20:20 ET / 18:20 Phoenix)
 Saturday 2026-09-12 20:00 (LaunchAgent, `--note sat-final`): Main and Full CSVs on disk before 20:00. The agent ran the rebuild. No Vercel CLI.
 
 Sunday 2026-09-13 08:40 (LaunchAgent, `--note sun-inactives`): re-export Main and Full before 08:40. Sim dead at 08:50 keeps Saturday. No Vercel CLI.
+
+## DFS lineup audit
+
+`uv run nfl-edge dfs-validate --file data/dfs/<run>/dk/<slate>/dk_upload_<slate_id>_<run8>_<source>.csv [--slate-id 2026_06_main]` re-checks every row against DK rules using that slate's `raw.dk_salaries`. Prints one line per lineup and exits 1 on any failure. The pipeline runs the same audit before it persists or writes an upload, so this is for files built elsewhere (the web Optimizer's `user-optimized` export, older files).
+
+## Optimal-frequency prototype
+
+`uv run python scripts/optimal_freq.py --run <run_id|prefix> --slate main --draws 300` re-solves the classic MILP once per sampled correlated draw and writes `data/dfs/<run>/dk/<slate>/optimal_freq.csv` (optimal %, `own_field_sim`, `own_field_proj`, leverage). Read-only on the DB. About 0.04 s per draw. Not part of the pipeline; see STATUS.md 2026-10-19 for the gate result.
+
+## Research Lab fields
+
+`uv run nfl-edge research build --week W` (after ingest for week W-1 results). Reads only weeks before W, replaces `model.research_fields` for (season, W) in one transaction, and exits non-zero with the missing input named if usage priors or in-season games are absent. Rerunnable. The `/research` page shows "No research data" until it has run for the displayed week.

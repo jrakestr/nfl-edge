@@ -24,3 +24,13 @@
 - GPP field size must exceed lineups entered, or fail closed.
 - `model.dfs_exposure` columns: `own_ours` / `own_field_proj` / `own_field_sim`.
   Hide the panel when `own_field_sim` is null.
+- Every lineup is re-audited by `dfs/validate.py` from `raw.dk_salaries` (never the
+  optimizer CSV) before persist/upload: roster shape, slot position, cap recomputed
+  from slate salaries, ≥2 games (classic), CPT row + both teams (showdown), no
+  duplicate player, every DK ID on the slate. A failure stops the run; nothing is
+  written. A new DK rule gets a validator clause and a test. Audit a file by hand:
+  `nfl-edge dfs-validate --file <dk_upload csv>`.
+- `max_from_game` in `constructions.json` (classic only, default `null`) caps players
+  from one game via NFL-DFS-Tools `matchup_limits`, keyed by the raw DK `AWAY@HOME`
+  token. Set a number only after a backtest. Keep `web/src/lib/optimize/constructions.json`
+  identical (a web test checks it).
