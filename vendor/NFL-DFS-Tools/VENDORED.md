@@ -32,3 +32,7 @@ Tests: `uv run pytest tests` from this directory (its own env).
   lineups is locked out (showdown: every slot of that name). Ported 2026-10-17 from the
   uncommitted edits in `~/Development/NFL-DFS-Tools`, which nfl-edge relied on through
   `NFL_DFS_TOOLS_PATH`.
+- Both optimizers stop when CBC returns a non-optimal status (it reports infeasibility through
+  `problem.status`, not `PulpSolverError`). Before, the loop kept appending the solver's leftover
+  values: on the week 6 MNF showdown, 33 of 150 lineups had several captains or one player in
+  two slots. The run now exports only the legal lineups and prints how many it built.

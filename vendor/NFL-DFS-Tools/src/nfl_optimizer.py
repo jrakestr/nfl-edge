@@ -800,9 +800,19 @@ class NFL_Optimizer:
             except plp.PulpSolverError:
                 print(
                     "Infeasibility reached - only generated {} lineups out of {}. Continuing with export.".format(
-                        len(self.num_lineups), self.num_lineups
+                        len(self.lineups), self.num_lineups
                     )
                 )
+                break
+            # CBC reports infeasible through status, not an exception; its leftover values are not a
+            # legal lineup (two captains, a player twice), so stop instead of exporting them.
+            if self.problem.status != plp.LpStatusOptimal:
+                print(
+                    "Infeasibility reached ({}) - only generated {} lineups out of {}. Continuing with export.".format(
+                        plp.LpStatus[self.problem.status], len(self.lineups), self.num_lineups
+                    )
+                )
+                break
 
             # Get the lineup and add it to our list
             player_ids = [
