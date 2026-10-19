@@ -19,6 +19,8 @@ export type ConstructionProfile = {
   min_player_diff: number;
   stack_n: number;
   bring_back: number;
+  /** Classic only: most players from one game (null = no cap). Python pipeline lever; web solver ignores it. */
+  max_from_game?: number | null;
   no_qb_vs_dst: boolean;
 };
 

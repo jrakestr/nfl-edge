@@ -14,6 +14,7 @@
       "min_player_diff": 0,
       "stack_n": 0,
       "bring_back": 0,
+      "max_from_game": null,
       "no_qb_vs_dst": true
     },
     "single": {
@@ -30,6 +31,7 @@
       "min_player_diff": 2,
       "stack_n": 1,
       "bring_back": 1,
+      "max_from_game": null,
       "no_qb_vs_dst": true
     },
     "mass": {
@@ -46,6 +48,7 @@
       "min_player_diff": 3,
       "stack_n": 2,
       "bring_back": 1,
+      "max_from_game": null,
       "no_qb_vs_dst": true
     }
   },
