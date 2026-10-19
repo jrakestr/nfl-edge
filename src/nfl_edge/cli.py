@@ -956,6 +956,47 @@ def dfs(
     )
 
 
+@app.command("dfs-validate")
+def dfs_validate(
+    file: Annotated[Path, typer.Option("--file", exists=True, dir_okay=False,
+                                       help="A dk_upload_<slate_id>_<run8>_<source>.csv")],
+    site: str = typer.Option("dk"),
+    slate_id: str = typer.Option(None, help="Override the slate_id read from the filename"),
+):
+    """Audit an upload CSV against DK rules using this slate's raw.dk_salaries. Exit 1 on any failure."""
+    from .db import read_sql
+    from .dfs import parse, validate
+    from .ingest.dk_salaries import slate_type_for
+
+    try:
+        sid = slate_id or parse.parse_upload_stamp(file)["slate_id"]
+    except ValueError as e:
+        typer.echo(str(e))
+        raise typer.Exit(1) from e
+    rows = read_sql(
+        "select player_id, name, player_dk_id, position, roster_position, team, salary, game_info "
+        "from raw.dk_salaries where site = %s and slate_id = %s",
+        (site, sid),
+    ).to_dicts()
+    if not rows:
+        typer.echo(f"no raw.dk_salaries for site={site} slate_id={sid}")
+        raise typer.Exit(1)
+    lineups = validate.read_upload(file)
+    if not lineups:
+        typer.echo(f"{file.name}: no lineups")
+        raise typer.Exit(1)
+    slate_key = sid.split("_", 2)[2] if sid.count("_") >= 2 else sid
+    failures = dict(validate.validate_lineups(lineups, rows, slate_type_for(slate_key)))
+    for k in range(1, len(lineups) + 1):
+        if k in failures:
+            typer.echo(f"{k:>3} FAIL " + "; ".join(failures[k]))
+        else:
+            typer.echo(f"{k:>3} ok")
+    typer.echo(f"dfs-validate {sid}: {len(lineups) - len(failures)} of {len(lineups)} lineups legal")
+    if failures:
+        raise typer.Exit(1)
+
+
 @app.command("dfs-cross")
 def dfs_cross(
     slate: str = typer.Option(..., help="Salary slate key (e.g. monthurs)"),
