@@ -1,0 +1,1 @@
+{"$schema":"https://schemas.agentskills.io/discovery/0.2.0/schema.json","skills":[{"name":"type-safe","type":"skill-md","description":"Use TypeSafe when building AI-powered software that needs","url":"/.well-known/agent-skills/type-safe/skill.md","digest":"sha256:305be7ad9dc96d226f93e0a5f505018ab2be5de658a169941bc633e81a708d61"}]}

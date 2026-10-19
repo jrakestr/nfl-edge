@@ -14,6 +14,10 @@
   and beat the spread.
 - Weekly sim lineups are the graded DFS set. Browser-optimized lineups are not
   graded unless exported and entered.
+- Lineup actuals are `model.slate_actuals` (one row per player-week). `actual_fpts`
+  is written only when every slot's game is final. The live job does not write it.
+  A mapped player with no row in a final game is 0. An unmapped salary row blocks
+  the lineup.
 - Prune draw parquet only after the week is graded (or by an age fallback). Keep
   `sim_runs` rows and null out `draws_path`.
 - `current-week` = the weekend being played (used by week-rebuild).

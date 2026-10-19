@@ -142,6 +142,9 @@ export function navHref(
   if (label === "Lineups") {
     return slateHref({ page: "dfs", week: ctx.week, site: ctx.site, slate: ctx.slate, search });
   }
+  if (label === "Slate review") {
+    return withPickParams(`/week/${ctx.week}/dfs/${ctx.site}/${ctx.slate}/review`, search);
+  }
   if (label === "Optimize") {
     return slateHref({ page: "optimize", week: ctx.week, site: ctx.site, slate: ctx.slate, search });
   }

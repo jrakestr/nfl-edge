@@ -6,6 +6,13 @@
   `raw.player_overrides`, and /workflow: GitHub `workflow_dispatch` of phase.yml and DK CSV
   upload to the private `salary-files` bucket. Both sit behind `WORKFLOW_PASSWORD`; the
   dispatch token and service key are server env only. No long job runs in a request.
+- Research Lab (`/research`): inserts and deletes rows of `model.research_metrics` (the user's
+  display-only metrics). Fields come from `model.research_fields`, built in Python by
+  `nfl-edge research build --week W` from weeks before W; the page scores them in TS and never
+  recomputes priors. The optional Jev rubric column is display-only, off unless
+  `TYPESAFE` (or `TYPESAFE_API_KEY`) is set. Loading the page never calls Jev. A run is explicit:
+  estimate first, refused over $0.50, capped at 100 players, results cached in
+  `model.research_jev_scores` (migration 0045) and shown only on `/research`.
 - Python-generated copy (verdicts, PropCallout) is persisted in Postgres. Never
   reimplement those generators in TypeScript.
 - Never recompute priors in TS. "Why" and diagnostics read `model.run_team_inputs`

@@ -151,6 +151,8 @@ function ContestPicker({
   );
 }
 
+const LIMITS: (number | null)[] = [10, 25, 50, null];
+
 function lineupColumns(contest: ReviewContest | null): DataColumn<ReviewLineup>[] {
   return [
     { id: "id", header: "Lineup", sortValue: (r) => Number(r.id), cell: (r) => `#${r.id}`, className: "tnum" },
@@ -292,13 +294,17 @@ export function SlateReview({
   week,
   site,
   slate,
+  latestWeek,
 }: {
   data: ReviewData | null;
   week: number | string;
   site: string;
   slate: string;
+  /** Newest week with a graded review. Offered from the empty state. */
+  latestWeek?: number | null;
 }) {
   const [open, setOpen] = useState<ReviewLineup | null>(null);
+  const [limit, setLimit] = useState<number | null>(10);
   const contest = data?.contest ?? null;
   const loaded = data != null && contest != null && data.contestPlayers.length > 0;
 
@@ -326,6 +332,14 @@ export function SlateReview({
       {!data || !summary ? (
         <EmptyState title="Scores unpublished">
           No graded lineups for this slate yet. The review fills in after the week&apos;s scores are published and grading runs.
+          {latestWeek != null && String(latestWeek) !== String(week) ? (
+            <>
+              {" "}
+              <Link href={`/week/${latestWeek}/dfs/${site}/main/review`} className="underline underline-offset-2">
+                Open week {latestWeek} review
+              </Link>
+            </>
+          ) : null}
         </EmptyState>
       ) : (
         <>
@@ -376,8 +390,29 @@ export function SlateReview({
               defaultSort={{ id: "actual", dir: "desc" }}
             />
           </Panel>
-          <Panel title="Lineups" note="Select a lineup for its nine slots">
+          <Panel
+            title="Lineups"
+            note={`Select a lineup for its nine slots. Showing ${Math.min(limit ?? data.lineups.length, data.lineups.length)} of ${data.lineups.length}`}
+          >
+            <nav className="flex flex-wrap items-center gap-2" aria-label="Lineups shown">
+              <span className="t-caption text-muted-foreground">Show</span>
+              {LIMITS.map((n) => (
+                <button
+                  key={String(n)}
+                  type="button"
+                  onClick={() => setLimit(n)}
+                  aria-pressed={limit === n}
+                  className={cn(
+                    "rounded-md border px-2 py-1 t-caption",
+                    limit === n ? "border-foreground font-semibold" : "border-border text-muted-foreground",
+                  )}
+                >
+                  {n ?? "All"}
+                </button>
+              ))}
+            </nav>
             <DataTable
+              rowLimit={limit ?? undefined}
               data={data.lineups}
               columns={lineupCols}
               getRowId={(r) => r.id}

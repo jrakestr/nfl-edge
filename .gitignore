@@ -15,3 +15,4 @@ data/draws/
 output/
 *.parquet
 .vercel
+web/supabase/.temp/

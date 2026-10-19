@@ -18,6 +18,8 @@ const ROOT: Record<string, string> = {
   optimize: "Optimize",
   props: "Props",
   lineups: "Lineups",
+  review: "Slate review",
+  research: "Research Lab",
   grading: "Grading",
   claims: "Claims",
   league: "LOC league",
@@ -86,6 +88,9 @@ export function crumbs(pathname: string): Crumb[] {
         href: `/week/${week}/${section}/${site}/${slate}`,
         label: `${siteLabel} ${slateLabel}`,
       });
+      if (section === "dfs" && parts[5] === "review") {
+        out.push({ href: `/week/${week}/dfs/${site}/${slate}/review`, label: "Review" });
+      }
       return out;
     }
     for (let i = 2; i < parts.length; i++) {

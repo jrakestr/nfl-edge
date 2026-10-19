@@ -23,7 +23,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from ..db import conn, read_sql
+from ..db import ANALYZE_MIN_ROWS, conn, read_sql
 
 HEADER = [
     "Rank", "EntryId", "EntryName", "TimeRemaining", "Points", "Lineup", "",
@@ -41,6 +41,13 @@ _ENTRY_SUFFIX_RE = re.compile(r"\s*\(\d+/\d+\)\s*$")
 _EST = ZoneInfo("America/New_York")
 SUM_TOLERANCE = 0.05
 MIN_SLATE_COVERAGE = 0.99
+# Contest names must also cover this share of the slate. The standings player table omits
+# salary-file names nobody drafted, so a real Main contest covers about a third to three
+# quarters of Main, not 90%. 0.32 keeps those (the smallest loaded Main contest is 0.328)
+# and leaves a contest that only covers 30% of Main unresolved.
+MIN_SLATE_FIT = 0.32
+CLASSIC_GAME = "Classic"
+HISTORY_FILENAME = "draftkings-contest-entry-history.csv"
 
 
 class DkFileError(ValueError):
@@ -104,6 +111,134 @@ def contest_key_from_name(name: str) -> int:
     if not m:
         raise DkFileError(f"cannot read a contest id from {name!r} (expected contest-standings-<id>)")
     return int(m.group(1))
+
+
+# ---------------------------------------------------------------- folder scan
+
+@dataclass
+class ScanRow:
+    contest_key: int
+    status: str          # ready | unchanged | loaded | empty | unreadable | conflict | not-classic | error
+    path: Path | None = None
+    size: int = 0
+    game_type: str | None = None
+    no_history: bool = False
+    note: str = ""
+    skipped: list[str] = field(default_factory=list)
+
+
+def _copy_rank(path: Path) -> tuple:
+    """Zip beats a loose CSV. A browser ' (1)' copy loses to the plain name."""
+    copy = " (" in path.stem
+    return (0 if path.suffix.lower() == ".zip" else 1, 1 if copy else 0, path.name)
+
+
+def standings_bytes(path: Path) -> bytes:
+    """CSV bytes a standings file would load. Raises DkFileError on a bad zip."""
+    if path.stat().st_size == 0:
+        return b""
+    if path.suffix.lower() != ".zip":
+        return path.read_bytes()
+    try:
+        with zipfile.ZipFile(path) as z:
+            names = [n for n in z.namelist() if n.lower().endswith(".csv")]
+            if len(names) != 1:
+                raise DkFileError(f"{path.name}: expected one CSV in the zip, found {len(names)}")
+            return z.read(names[0])
+    except zipfile.BadZipFile as e:
+        raise DkFileError(f"{path.name}: not a zip") from e
+
+
+def _classify_key(contest_key: int, paths: list[Path], hist: dict | None) -> ScanRow:
+    game_type = hist.get("game_type") if hist else None
+    no_history = hist is None
+    base = {"contest_key": contest_key, "game_type": game_type, "no_history": no_history}
+    if hist and hist.get("mixed"):
+        return ScanRow(status="error", note="history rows disagree on game type", **base)
+    empty = [p.name for p in paths if p.stat().st_size == 0]
+    nonempty = [p for p in paths if p.stat().st_size > 0]
+    if not nonempty:
+        return ScanRow(status="empty", note="0 bytes", skipped=empty, **base)
+
+    readable: list[tuple[Path, bytes]] = []
+    bad: list[str] = []
+    for p in nonempty:
+        try:
+            readable.append((p, standings_bytes(p)))
+        except DkFileError as e:
+            bad.append(str(e))
+    if not readable:
+        return ScanRow(status="unreadable", note="; ".join(bad), skipped=empty, **base)
+
+    distinct = {b for _, b in readable}
+    names = ", ".join(p.name for p, _ in readable)
+    if len(distinct) > 1:
+        return ScanRow(status="conflict", note=f"copies differ: {names}", skipped=empty, **base)
+
+    chosen = min(readable, key=lambda item: _copy_rank(item[0]))[0]
+    skipped = [p.name for p, _ in readable if p != chosen] + empty
+    note = ""
+    if skipped:
+        note = "duplicate skipped: " + ", ".join(skipped)
+    if bad:
+        note = (note + "; " if note else "") + "; ".join(bad)
+    if game_type and game_type != CLASSIC_GAME:
+        return ScanRow(status="not-classic", path=chosen, size=chosen.stat().st_size,
+                       note=game_type, skipped=skipped, **base)
+    return ScanRow(status="ready", path=chosen, size=chosen.stat().st_size,
+                   note=note, skipped=skipped, **base)
+
+
+def scan_folder(directory: Path, history: dict[int, dict] | None = None) -> list[ScanRow]:
+    """One row per contest key. `history` maps contest_key to a row with game_type.
+
+    A key missing from `history` still comes back `ready` (or empty) with no_history set.
+    """
+    history = history or {}
+    groups: dict[int, list[Path]] = defaultdict(list)
+    for p in sorted(Path(directory).iterdir()):
+        if p.is_file() and _FILE_RE.search(p.name):
+            groups[contest_key_from_name(p.name)].append(p)
+    return [_classify_key(k, groups[k], history.get(k)) for k in sorted(groups)]
+
+
+def standings_keys(directory: Path) -> list[int]:
+    keys = {
+        contest_key_from_name(p.name)
+        for p in Path(directory).iterdir()
+        if p.is_file() and _FILE_RE.search(p.name)
+    }
+    return sorted(keys)
+
+
+def history_brief(rows: list[dict]) -> dict:
+    """One history row's fields for classification. Game type must agree across the contest."""
+    types = {r.get("game_type") for r in rows}
+    first = rows[0]
+    return {
+        "game_type": first.get("game_type"),
+        "contest_time": first.get("contest_time"),
+        "entry_name": first.get("entry_name"),
+        "contest_entries": first.get("contest_entries"),
+        "sport": first.get("sport"),
+        "mixed": len(types) > 1,
+    }
+
+
+def gap_contests(rows: list[dict], present: set[int], start, end) -> list[dict]:
+    """NFL Classic history contests in [start, end] with no standings file in the folder."""
+    best: dict[int, dict] = {}
+    for r in rows:
+        if r.get("sport") != "NFL" or r.get("game_type") != CLASSIC_GAME:
+            continue
+        when = r.get("contest_time")
+        if when is None or when < start or when > end:
+            continue
+        key = int(r["contest_key"])
+        if key in present:
+            continue
+        best.setdefault(key, r)
+    return [best[k] for k in sorted(best, key=lambda k: (best[k]["contest_time"], k))]
 
 
 # ---------------------------------------------------------------- entry history
@@ -273,13 +408,22 @@ def fpts_map(players: list[dict]) -> dict[str, Decimal]:
 
 
 def resolve_slate_id(names: set[str], slates: dict[str, set[str]]) -> str | None:
-    """Smallest model slate whose salary names cover (almost) every contest player."""
+    """Smallest model slate that covers the contest, and that the contest covers back.
+
+    Coverage is one way: a primetime contest's names all sit on Main, so Main would win
+    whenever the primetime salary file is missing. The fit check requires the contest to
+    cover MIN_SLATE_FIT of the slate's own names. No such slate leaves the id null.
+    """
     if not names:
         return None
     scored = []
     for sid, have in slates.items():
-        cov = len(names & have) / len(names)
-        if cov >= MIN_SLATE_COVERAGE:
+        if not have:
+            continue
+        both = names & have
+        cov = len(both) / len(names)
+        fit = len(both) / len(have)
+        if cov >= MIN_SLATE_COVERAGE and fit >= MIN_SLATE_FIT:
             scored.append((-round(cov, 4), len(have), sid))
     return min(scored)[2] if scored else None
 
@@ -340,7 +484,13 @@ def _salary_slates() -> dict[str, set[str]]:
     return out
 
 
-def ingest_standings(path: Path, slate_id: str | None = None, force: bool = False) -> ContestResult:
+def ingest_standings(
+    path: Path,
+    slate_id: str | None = None,
+    force: bool = False,
+    history: list[dict] | None = None,
+    slates: dict[str, set[str]] | None = None,
+) -> ContestResult:
     contest_key = contest_key_from_name(path.name)
     text, sha = read_source(path)
     prior = read_sql("select source_sha256 from raw.dk_contests where contest_key = %s", (contest_key,))
@@ -348,7 +498,7 @@ def ingest_standings(path: Path, slate_id: str | None = None, force: bool = Fals
         return ContestResult(contest_key=contest_key, status="unchanged")
 
     st = parse_standings(text)
-    hist = _history_for(contest_key)
+    hist = _history_for(contest_key) if history is None else history
     places_paid = None
     if hist:
         paid = {h["places_paid"] for h in hist if h["places_paid"] is not None}
@@ -360,7 +510,7 @@ def ingest_standings(path: Path, slate_id: str | None = None, force: bool = Fals
     rates = player_top1_rates(st.entries, top_score)
     fpts = fpts_map(st.players)
     position = {p["player_name"]: p["roster_position"] for p in st.players if p["roster_position"] != "FLEX"}
-    sid = slate_id or resolve_slate_id(set(fpts), _salary_slates())
+    sid = slate_id or resolve_slate_id(set(fpts), slates if slates is not None else _salary_slates())
 
     name = None
     for h in hist:
@@ -412,13 +562,137 @@ def ingest_standings(path: Path, slate_id: str | None = None, force: bool = Fals
                 for r in slot_rows:
                     cp.write_row(r)
         c.commit()
-        cur.execute("analyze raw.dk_contest_entries")
-        c.commit()
+        if len(st.entries) >= ANALYZE_MIN_ROWS:
+            for table in ("raw.dk_contest_entries", "raw.dk_contest_players", "raw.dk_entry_slots"):
+                cur.execute(f"analyze {table}")
+            c.commit()
     return res
 
 
+def _group_history(rows: list[dict]) -> dict[int, list[dict]]:
+    out: dict[int, list[dict]] = defaultdict(list)
+    for r in rows:
+        out[int(r["contest_key"])].append(r)
+    return out
+
+
+def history_by_contest(keys: list[int]) -> dict[int, list[dict]]:
+    """One query for every contest in the folder. Empty key list does not touch the database."""
+    if not keys:
+        return {}
+    df = read_sql(
+        "select entry_key, entry_name, contest_key, contest_entries, places_paid, "
+        "game_type, sport, contest_time from raw.dk_entry_history "
+        "where contest_key = any(%s)",
+        (list(keys),),
+    )
+    return _group_history(df.to_dicts())
+
+
+def _prior_sha(keys: list[int]) -> dict[int, str]:
+    if not keys:
+        return {}
+    df = read_sql(
+        "select contest_key, source_sha256 from raw.dk_contests where contest_key = any(%s)",
+        (list(keys),),
+    )
+    return {int(r["contest_key"]): str(r["source_sha256"]) for r in df.to_dicts()}
+
+
+def _gap_from_db(start, end, present: set[int]) -> list[dict]:
+    df = read_sql(
+        "select contest_key, min(entry_name) as entry_name, min(contest_time) as contest_time, "
+        "max(contest_entries) as contest_entries, min(game_type) as game_type, min(sport) as sport "
+        "from raw.dk_entry_history "
+        "where sport = 'NFL' and game_type = 'Classic' "
+        "and contest_time >= %s and contest_time <= %s "
+        "group by contest_key",
+        (start, end),
+    )
+    return gap_contests(df.to_dicts(), present, start, end)
+
+
+def load_folder(directory: Path, *, dry_run: bool = False, force: bool = False) -> dict:
+    """History upsert, then one standings load per usable classic file.
+
+    Parsing and the slate match happen inside ingest_standings before its transaction.
+    Salary slates are read once. A contest whose file sha is already stored is not rewritten.
+    """
+    directory = Path(directory)
+    hist_path = directory / HISTORY_FILENAME
+    parsed: list[dict] | None = None
+    history_meta = None
+    if hist_path.is_file() and hist_path.stat().st_size > 0:
+        parsed = parse_history(hist_path.read_text(encoding="utf-8"))
+        if dry_run:
+            history_meta = {
+                "rows": len(parsed),
+                "contests": len({r["contest_key"] for r in parsed}),
+                "dry_run": True,
+            }
+        else:
+            history_meta = {**load_history(hist_path), "dry_run": False}
+        by_key = _group_history(parsed)
+    else:
+        by_key = history_by_contest(standings_keys(directory))
+
+    keys = standings_keys(directory)
+    briefs = {k: history_brief(by_key[k]) for k in keys if k in by_key}
+    rows = scan_folder(directory, briefs)
+    present = {r.contest_key for r in rows}
+    times = [
+        by_key[k][0]["contest_time"]
+        for k in present
+        if k in by_key and by_key[k][0].get("contest_time") is not None
+    ]
+    if not times:
+        gaps: list[dict] = []
+    elif parsed is not None:
+        gaps = gap_contests(parsed, present, min(times), max(times))
+    else:
+        gaps = _gap_from_db(min(times), max(times), present)
+
+    ready = [r for r in rows if r.status == "ready"]
+    prior = _prior_sha([r.contest_key for r in ready]) if ready else {}
+    slates: dict[str, set[str]] | None = None
+    results: list[ContestResult] = []
+    for row in sorted(ready, key=lambda r: (r.size, r.contest_key)):
+        assert row.path is not None
+        sha = hashlib.sha256(row.path.read_bytes()).hexdigest()
+        if not force and prior.get(row.contest_key) == sha:
+            row.status = "unchanged"
+            continue
+        if dry_run:
+            continue
+        if slates is None:
+            slates = _salary_slates()
+        try:
+            res = ingest_standings(
+                row.path, force=force, history=by_key.get(row.contest_key, []), slates=slates,
+            )
+        except (DkFileError, RuntimeError) as e:
+            row.status = "error"
+            row.note = str(e)
+            continue
+        row.status = res.status
+        if row.no_history and row.status == "loaded":
+            extra = "no history row"
+            row.note = f"{row.note}; {extra}" if row.note else extra
+        results.append(res)
+    failed = any(r.status in {"unreadable", "conflict", "error"} for r in rows)
+    return {
+        "history": history_meta,
+        "history_missing": history_meta is None,
+        "rows": rows,
+        "results": results,
+        "gaps": gaps,
+        "failed": failed,
+    }
+
+
 __all__ = [
-    "DkFileError", "Standings", "cash_line", "contest_key_from_name", "entry_slots", "fpts_map",
-    "ingest_standings", "load_history", "parse_history", "parse_lineup", "parse_standings",
-    "player_top1_rates", "resolve_slate_id", "top1_line",
+    "DkFileError", "ScanRow", "Standings", "cash_line", "contest_key_from_name", "entry_slots",
+    "fpts_map", "gap_contests", "history_by_contest", "ingest_standings", "load_folder",
+    "load_history", "parse_history", "parse_lineup", "parse_standings", "player_top1_rates",
+    "resolve_slate_id", "scan_folder", "top1_line",
 ]

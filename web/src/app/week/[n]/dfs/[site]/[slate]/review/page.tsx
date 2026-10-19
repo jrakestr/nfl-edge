@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SlateReview } from "@/components/dfs/SlateReview";
 import { CURRENT_SEASON } from "@/lib/config";
 import { slateId } from "@/lib/queries/dfs";
-import { slateReview } from "@/lib/queries/review";
+import { latestGradedWeek, slateReview } from "@/lib/queries/review";
 
 export const dynamic = "force-dynamic";
 
@@ -49,5 +49,6 @@ export default async function Page({
         contestKey: Number.isInteger(contest) ? contest : null,
       })
     : null;
-  return <SlateReview data={data} week={n} site={siteKey} slate={slate} />;
+  const latestWeek = data ? null : await latestGradedWeek(season, siteKey);
+  return <SlateReview data={data} week={n} site={siteKey} slate={slate} latestWeek={latestWeek} />;
 }

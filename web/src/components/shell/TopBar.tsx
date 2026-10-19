@@ -6,6 +6,7 @@ import { Fragment } from "react";
 import { crumbs } from "@/lib/breadcrumbs";
 import { SearchBox } from "./SearchBox";
 import { ThemeToggle } from "./ThemeToggle";
+import { WeekSwitcher } from "./WeekSwitcher";
 import { usePageActions } from "./PageActions";
 
 export function TopBar() {
@@ -39,6 +40,7 @@ export function TopBar() {
       </nav>
       <div className="ml-auto flex items-center gap-3">
         {actions}
+        <WeekSwitcher />
         <ThemeToggle />
         <SearchBox />
       </div>

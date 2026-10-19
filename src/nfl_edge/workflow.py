@@ -237,6 +237,8 @@ def _refresh(ctx: Context) -> list[Step]:
         Step(fn=_each_week("stale-weeks", lambda w: [["lines", *season, "--week", str(w)]])),
         _step("ingest", "fantasypros-status", *sw, soft=True),
         _step("ingest", "espn-league", *season, "--snapshot-only", soft=True),
+        _step("ingest", "live", *sw, soft=True),
+        _step("actuals", *sw, soft=True),
         Step(fn=_each_week("ungraded-completed", lambda w: [
             ["missing-finals", *season, "--week", str(w)],
             ["grade", *season, "--week", str(w)],

@@ -585,6 +585,39 @@ export type Database = {
         }
         Relationships: []
       }
+      actuals_recon: {
+        Row: {
+          diff: number | null
+          espn_final_pts: number | null
+          flagged: boolean
+          game_id: string
+          nflverse_pts: number | null
+          season: number
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          diff?: number | null
+          espn_final_pts?: number | null
+          flagged?: boolean
+          game_id: string
+          nflverse_pts?: number | null
+          season: number
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          diff?: number | null
+          espn_final_pts?: number | null
+          flagged?: boolean
+          game_id?: string
+          nflverse_pts?: number | null
+          season?: number
+          updated_at?: string
+          week?: number
+        }
+        Relationships: []
+      }
       dfs_exposure: {
         Row: {
           leverage: number | null
@@ -1462,6 +1495,96 @@ export type Database = {
           },
         ]
       }
+      research_fields: {
+        Row: {
+          built_at: string
+          fields: Json
+          full_name: string
+          player_id: string
+          position: string
+          season: number
+          team: string
+          week: number
+        }
+        Insert: {
+          built_at?: string
+          fields: Json
+          full_name: string
+          player_id: string
+          position: string
+          season: number
+          team: string
+          week: number
+        }
+        Update: {
+          built_at?: string
+          fields?: Json
+          full_name?: string
+          player_id?: string
+          position?: string
+          season?: number
+          team?: string
+          week?: number
+        }
+        Relationships: []
+      }
+      research_jev_scores: {
+        Row: {
+          answers: Json
+          created_at: string
+          metric_hash: string
+          model: string
+          player_id: string
+          score: number
+          season: number
+          week: number
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          metric_hash: string
+          model: string
+          player_id: string
+          score: number
+          season: number
+          week: number
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          metric_hash?: string
+          model?: string
+          player_id?: string
+          score?: number
+          season?: number
+          week?: number
+        }
+        Relationships: []
+      }
+      research_metrics: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          normalize: string
+          terms: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          normalize?: string
+          terms: Json
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          normalize?: string
+          terms?: Json
+        }
+        Relationships: []
+      }
       results: {
         Row: {
           actual: number | null
@@ -1718,6 +1841,39 @@ export type Database = {
           note?: string | null
           run_id?: string
           season?: number
+          week?: number
+        }
+        Relationships: []
+      }
+      slate_actuals: {
+        Row: {
+          dk_pts: number | null
+          game_id: string | null
+          player_id: string
+          season: number
+          secs_remaining: number | null
+          state: string
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          dk_pts?: number | null
+          game_id?: string | null
+          player_id: string
+          season: number
+          secs_remaining?: number | null
+          state: string
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          dk_pts?: number | null
+          game_id?: string | null
+          player_id?: string
+          season?: number
+          secs_remaining?: number | null
+          state?: string
+          updated_at?: string
           week?: number
         }
         Relationships: []
@@ -2861,6 +3017,105 @@ export type Database = {
           team?: string | null
           week?: number
           worst?: number | null
+        }
+        Relationships: []
+      }
+      live_games: {
+        Row: {
+          away: string
+          away_score: number | null
+          clock_sec: number
+          espn_event_id: string
+          fetched_at: string
+          game_id: string | null
+          home: string
+          home_score: number | null
+          period: number
+          season: number
+          secs_remaining: number
+          stale: boolean
+          state: string
+          week: number
+        }
+        Insert: {
+          away: string
+          away_score?: number | null
+          clock_sec: number
+          espn_event_id: string
+          fetched_at?: string
+          game_id?: string | null
+          home: string
+          home_score?: number | null
+          period: number
+          season: number
+          secs_remaining: number
+          stale?: boolean
+          state: string
+          week: number
+        }
+        Update: {
+          away?: string
+          away_score?: number | null
+          clock_sec?: number
+          espn_event_id?: string
+          fetched_at?: string
+          game_id?: string | null
+          home?: string
+          home_score?: number | null
+          period?: number
+          season?: number
+          secs_remaining?: number
+          stale?: boolean
+          state?: string
+          week?: number
+        }
+        Relationships: []
+      }
+      live_player_stats: {
+        Row: {
+          espn_event_id: string
+          player_id: string
+          season: number
+          stats: Json
+          week: number
+        }
+        Insert: {
+          espn_event_id: string
+          player_id: string
+          season: number
+          stats: Json
+          week: number
+        }
+        Update: {
+          espn_event_id?: string
+          player_id?: string
+          season?: number
+          stats?: Json
+          week?: number
+        }
+        Relationships: []
+      }
+      live_team_stats: {
+        Row: {
+          espn_event_id: string
+          season: number
+          stats: Json
+          team: string
+          week: number
+        }
+        Insert: {
+          espn_event_id: string
+          season: number
+          stats: Json
+          team: string
+          week: number
+        }
+        Update: {
+          espn_event_id?: string
+          season?: number
+          stats?: Json
+          team?: string
+          week?: number
         }
         Relationships: []
       }

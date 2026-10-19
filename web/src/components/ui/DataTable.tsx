@@ -57,6 +57,8 @@ export type DataTableProps<T> = {
   headerNote?: React.ReactNode;
   onRowClick?: (row: T) => void;
   rowProps?: (row: T, index: number) => React.ComponentProps<typeof TableRow>;
+  /** Show only the first N rows after sorting. Omit for all rows. */
+  rowLimit?: number;
 };
 
 function numOrNull(raw: string): number | null {
@@ -131,6 +133,7 @@ function DataTableInner<T extends object>({
   headerNote,
   onRowClick,
   rowProps,
+  rowLimit,
 }: DataTableProps<T>) {
   const [state, setState] = useTableState(syncUrl);
   const viewed = useMemo(() => applyViewFilters(data, state, filters), [data, state, filters]);
@@ -171,6 +174,8 @@ function DataTableInner<T extends object>({
       else setState({ sort: first.id, dir: first.desc ? "desc" : "asc" });
     },
   });
+  const allRows = table.getRowModel().rows;
+  const visibleRows = rowLimit != null ? allRows.slice(0, rowLimit) : allRows;
 
   const showBar = Boolean(
     filters &&
@@ -382,14 +387,14 @@ function DataTableInner<T extends object>({
         <Table containerRef={stickyHeader ? scrollRef : undefined} className={tableClassName}>
           {headerRows(stickyHeader ? "layout" : "normal")}
           <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="py-6 text-center t-caption">
                   {empty}
                 </TableCell>
               </TableRow>
             ) : (
-              table.getRowModel().rows.map((row, i) => {
+              visibleRows.map((row, i) => {
                 const extra = rowProps?.(row.original, i) ?? {};
                 return (
                   <TableRow

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { exportSelectedLineups } from "@/lib/actions/dfs-export";
 import { uploadFilename } from "@/lib/dfs-upload";
 import type { CorrPair, DfsExposure, DfsLineup } from "@/lib/types";
@@ -12,11 +13,36 @@ import { StackChip } from "./StackChip";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { fallbackNotice } from "@/lib/slate";
 import { settingsLabels, type DfsBuildSettings } from "@/lib/dfs-settings";
+import { lineupActual, type LineupActual } from "@/lib/lineup-actuals";
 import { CONSTRUCTION_LABEL, type ConstructionId } from "@/lib/optimize/construction";
+import type { DkActual } from "@/lib/queries/dfs";
 import { MetricLabel } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
-type SortKey = "proj" | "win" | "roi";
+type SortKey = "proj" | "win" | "roi" | "actual";
+
+function actualFor(lineup: DfsLineup, byDkId: Record<string, DkActual>): LineupActual {
+  return lineupActual(
+    lineup.players.map((p) => {
+      const row = p.dk_id ? byDkId[p.dk_id] : undefined;
+      return {
+        dkId: p.dk_id ?? null,
+        playerId: row?.playerId ?? null,
+        actual:
+          row?.state != null
+            ? { pts: row.pts, state: row.state, secsRemaining: row.secsRemaining }
+            : null,
+      };
+    }),
+    lineup.proj_fpts,
+  );
+}
+
+function actualRank(lineup: DfsLineup, byDkId: Record<string, DkActual>): number {
+  const actual = actualFor(lineup, byDkId);
+  if (actual.incomplete) return Number.NEGATIVE_INFINITY;
+  return actual.total ?? actual.soFar ?? Number.NEGATIVE_INFINITY;
+}
 
 /** Pre-0018 rows kept the shifted parse in own_ours and never wrote own_field_sim. */
 export function recomputedExposure(rows: DfsExposure[]): DfsExposure[] {
@@ -64,6 +90,9 @@ export function LineupReview({
   slates = [],
   fallbackFrom,
   settings = null,
+  actuals = {},
+  actualsUpdatedAt = null,
+  actualsStale = false,
 }: {
   week: string;
   site: string;
@@ -80,7 +109,11 @@ export function LineupReview({
   slates?: string[];
   fallbackFrom?: string | null;
   settings?: DfsBuildSettings | null;
+  actuals?: Record<string, DkActual>;
+  actualsUpdatedAt?: string | null;
+  actualsStale?: boolean;
 }) {
+  const router = useRouter();
   const present = useMemo(() => {
     const have = new Set(lineups.map((l) => l.construction ?? "mass"));
     return (["cash", "single", "mass"] as const).filter((id) => have.has(id));
@@ -101,12 +134,23 @@ export function LineupReview({
   const sorted = useMemo(() => {
     const copy = [...visible];
     copy.sort((a, b) => {
-      const av = sort === "proj" ? a.proj_fpts : sort === "win" ? a.sim_win_pct : a.sim_roi;
-      const bv = sort === "proj" ? b.proj_fpts : sort === "win" ? b.sim_win_pct : b.sim_roi;
+      const av = sort === "proj" ? a.proj_fpts : sort === "actual" ? actualRank(a, actuals) : sort === "win" ? a.sim_win_pct : a.sim_roi;
+      const bv = sort === "proj" ? b.proj_fpts : sort === "actual" ? actualRank(b, actuals) : sort === "win" ? b.sim_win_pct : b.sim_roi;
       return (bv ?? -Infinity) - (av ?? -Infinity);
     });
     return copy;
-  }, [visible, sort]);
+  }, [visible, sort, actuals]);
+
+  const showActuals = Object.keys(actuals).length > 0;
+  const anyLive = useMemo(
+    () => showActuals && visible.some((lu) => actualFor(lu, actuals).anyLive),
+    [showActuals, visible, actuals],
+  );
+  useEffect(() => {
+    if (!anyLive) return;
+    const id = setInterval(() => router.refresh(), 60_000);
+    return () => clearInterval(id);
+  }, [anyLive, router]);
 
   const stackDist = useMemo(() => {
     const counts = new Map<string, number>();
@@ -229,9 +273,24 @@ export function LineupReview({
             </div>
           ) : null}
         </div>
+        {showActuals ? (
+          <p className="t-caption" role="status">
+            Actuals {actualsStale ? "stale" : "updated"}{" "}
+            {actualsUpdatedAt
+              ? new Date(actualsUpdatedAt).toLocaleString("en-US", {
+                  timeZone: "America/New_York",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "—"}
+            {anyLive ? " · live" : ""}
+          </p>
+        ) : null}
         {visible.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {(method === "cash" ? (["proj"] as const) : (["win", "proj", "roi"] as const)).map((k) => (
+            {(method === "cash" ? (["proj", "actual"] as const) : (["win", "proj", "actual", "roi"] as const))
+              .filter((k) => k !== "actual" || showActuals)
+              .map((k) => (
               <Button
                 key={k}
                 type="button"
@@ -243,6 +302,8 @@ export function LineupReview({
                   <MetricLabel metric="winPct">Win %</MetricLabel>
                 ) : k === "proj" ? (
                   <MetricLabel metric="projection">Proj</MetricLabel>
+                ) : k === "actual" ? (
+                  "Actual"
                 ) : (
                   <MetricLabel metric="roi">ROI</MetricLabel>
                 )}
@@ -286,6 +347,7 @@ export function LineupReview({
                 positions={positions}
                 staleDkIds={staleDkIds}
                 hideSimStats={method === "cash" || selfField}
+                actual={showActuals ? actualFor(lu, actuals) : null}
                 runId={runId}
                 slateId={sid}
                 selected={selected.has(lu.lineup_id)}

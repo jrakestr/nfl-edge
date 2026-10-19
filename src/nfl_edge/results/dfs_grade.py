@@ -1,8 +1,8 @@
-"""Grade DFS lineups against actual DK points once player_stats_weekly exists for the week.
+"""Grade DFS lineups from model.slate_actuals.
 
-Skips with "scores unpublished" when the week has no weekly rows. Mass lineups get
-`actual_fpts` saved on model.dfs_lineups; any slot without an actual (skill player or DST)
-leaves it null and counts the lineup as incomplete.
+Mass lineups get `actual_fpts` only when every slot's game is final. A mapped player
+with no stat row in a final game is 0. A live, pending, or unmapped slot leaves the
+lineup null and counts it partial. This does not write a null over an existing total.
 
 DST actuals come from raw.team_stats_weekly through scoring.score_dst. Points allowed is the
 opponent's score minus 6 per opponent defensive/special-teams TD and 2 per opponent safety:
@@ -15,7 +15,6 @@ from typing import Any
 import numpy as np
 import polars as pl
 
-from ..config import load_yaml
 from ..db import read_sql, update_from
 from ..sim import scoring
 from .actuals import offense_from_weekly, score_weekly
@@ -177,14 +176,32 @@ def persist(graded: list[dict[str, Any]]) -> int:
     return update_from(df, "model.dfs_lineups", ["id"])
 
 
+def _slot_from_index(pid: str | None, idx: dict[str, dict]) -> tuple[float | None, str | None]:
+    """Points that count toward actual_fpts, or None when the game is not final.
+
+    DNP is 0. A live or pending slot, or a final slot with no points (DST with no
+    team row), blocks the lineup total.
+    """
+    if not pid:
+        return None, None
+    rec = idx.get(pid)
+    if rec is None:
+        return None, None
+    state = rec.get("state")
+    gid = rec.get("game_id")
+    if state == "dnp":
+        return 0.0, None
+    if state == "final" and rec.get("dk_pts") is not None:
+        return float(rec["dk_pts"]), None
+    return None, gid
+
+
 def run(season: int, week: int, run_id: str | None = None) -> dict:
-    """Grade this week's mass dfs_lineups. Skip when player_stats_weekly has no rows."""
-    n = _weekly_count(season, week)
-    if not scores_published(n):
-        return skip_unpublished(season, week)
-    rules = load_yaml("scoring.yaml")
-    weekly = _stats_by_player(season, week)
-    dst_by_team = _dst_by_team(season, week, rules)
+    """Grade mass lineups from model.slate_actuals. A lineup is written only when all nine are final."""
+    from . import slate_actuals as actuals
+
+    built = actuals.run(season, week)
+    idx = actuals.index(season, week)
     if run_id:
         lineups = read_sql(
             "select id, lineup_id, slate_id, site, sim_win_pct::float8 as sim_win_pct, "
@@ -217,15 +234,18 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
              if r.get("player_dk_id") and r.get("player_id")}
     graded: list[dict[str, Any]] = []
     missing: dict[str, int] = {}
+    open_games: set[str] = set()
     for row in lineups.to_dicts():
         slots = (row.get("lineup") or {}).get("players") or []
         points: list[float | None] = []
         for slot in slots:
             pid = _player_id_for_slot(slot, by_dk)
-            pts = slot_points(pid, weekly, dst_by_team, rules)
+            pts, gid = _slot_from_index(pid, idx)
             if pts is None:
                 label = str(slot.get("name") or pid or slot.get("dk_id") or "unknown")
                 missing[label] = missing.get(label, 0) + 1
+                if gid:
+                    open_games.add(str(gid))
             points.append(pts)
         actual = lineup_total(points) if points else None
         graded.append({
@@ -237,19 +257,23 @@ def run(season: int, week: int, run_id: str | None = None) -> dict:
             "proj_fpts": row.get("proj_fpts"),
             "actual_fpts": actual,
         })
-    written = persist(graded)
-    incomplete = sum(1 for g in graded if g["actual_fpts"] is None)
+    complete = [g for g in graded if g["actual_fpts"] is not None]
+    written = persist(complete) if complete else 0
+    incomplete = len(graded) - len(complete)
     return {
         "skipped": False,
         "reason": None,
         "season": season,
         "week": week,
         "n_lineups": len(graded),
-        "n_complete": len(graded) - incomplete,
+        "n_complete": len(complete),
         "n_incomplete": incomplete,
+        "n_partial": incomplete,
+        "open_games": sorted(open_games),
         "missing": dict(sorted(missing.items(), key=lambda kv: -kv[1])),
         "written": written,
         "lineups": graded,
+        "actuals": built,
     }
 
 

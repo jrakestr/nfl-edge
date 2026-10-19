@@ -19,6 +19,24 @@ describe("Sidebar slate links", () => {
     expect(screen.getByRole("link", { name: "Optimize" })).toHaveAttribute("href", "/week/1/optimize/dk/full");
   });
 
+  it("Slate review links to the current slate's review and is not confused with Lineups", () => {
+    loc.pathname = "/week/5/dfs/dk/main/review";
+    render(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(screen.getByRole("link", { name: "Slate review" })).toHaveAttribute("href", "/week/5/dfs/dk/main/review");
+    expect(screen.getByRole("link", { name: "Slate review" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Lineups" })).not.toHaveAttribute("aria-current");
+    loc.pathname = "/week/1/players/dk/full";
+  });
+
+  it("Research Lab is a plain /research link in the DFS group and is current on /research", () => {
+    loc.pathname = "/research";
+    render(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(screen.getByRole("link", { name: "Research Lab" })).toHaveAttribute("href", "/research");
+    expect(screen.getByRole("link", { name: "Research Lab" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Players" })).not.toHaveAttribute("aria-current");
+    loc.pathname = "/week/1/players/dk/full";
+  });
+
   it("LOC league carries no week, slate, or games params", () => {
     render(<Sidebar collapsed={false} onToggle={() => {}} />);
     expect(screen.getByRole("link", { name: "LOC league" })).toHaveAttribute("href", "/league");

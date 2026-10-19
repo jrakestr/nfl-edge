@@ -5,6 +5,7 @@ import { formatUploadCsv, uploadFilename } from "@/lib/dfs-upload";
 import { pct as fmtPct } from "@/lib/edge";
 import { MetricLabel } from "@/lib/icons";
 import { REBUILD_PENDING } from "@/lib/injury-status";
+import { formatDiff, gameMinLeft, type LineupActual } from "@/lib/lineup-actuals";
 import type { DfsLineup } from "@/lib/types";
 
 const SLOT_ORDER = ["QB", "RB", "RB2", "WR", "WR2", "WR3", "TE", "FLEX", "DST"] as const;
@@ -57,6 +58,7 @@ export function LineupCard({
   hideSimStats = false,
   runId = null,
   slateId = "",
+  actual = null,
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
@@ -69,12 +71,26 @@ export function LineupCard({
   hideSimStats?: boolean;
   runId?: string | null;
   slateId?: string;
+  actual?: LineupActual | null;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
   const showdown = slate === "showdown" || lineup.players.some((p) => p.slot === "CPT");
   const order = showdown ? SHOWDOWN_ORDER : SLOT_ORDER;
   const stale = lineup.players.some((p) => p.dk_id != null && staleDkIds.has(p.dk_id));
+  const slotActual = new Map(
+    (actual?.perSlot ?? []).filter((s) => s.dkId).map((s) => [s.dkId, s.label]),
+  );
+  const actualText =
+    actual == null
+      ? null
+      : actual.incomplete
+        ? "—"
+        : actual.total != null
+          ? actual.total.toFixed(1)
+          : actual.soFar != null
+            ? actual.soFar.toFixed(1)
+            : "—";
   return (
     <article className="card flex flex-col gap-2 p-4" aria-label={`Lineup ${lineup.lineup_id}`}>
       <div className="flex items-start gap-3">
@@ -105,6 +121,9 @@ export function LineupCard({
                 >
                   {p ? <PositionPill position={pos} /> : null}
                   {label}
+                  {p?.dk_id && slotActual.get(p.dk_id) ? (
+                    <span className="tnum t-caption text-muted-foreground">{slotActual.get(p.dk_id)}</span>
+                  ) : null}
                 </span>
               );
             })}
@@ -122,6 +141,28 @@ export function LineupCard({
                 {lineup.proj_fpts != null ? lineup.proj_fpts.toFixed(1) : "—"}
               </span>
             </MetricLabel>
+            {actual ? (
+              <>
+                <span>
+                  Actual <span className="tnum font-semibold text-foreground">{actualText}</span>
+                </span>
+                <span className="tnum">
+                  {actual.finalCount}/{actual.slots} final
+                </span>
+                {actual.diff != null ? (
+                  <span>
+                    Diff <span className="tnum font-semibold text-foreground">{formatDiff(actual.diff)}</span>
+                  </span>
+                ) : null}
+                {actual.maxSecs != null ? (
+                  <span>
+                    <span className="tnum font-semibold text-foreground">{gameMinLeft(actual.maxSecs)}</span> game
+                    min left
+                  </span>
+                ) : null}
+                {actual.incomplete ? <span className="text-warn">incomplete</span> : null}
+              </>
+            ) : null}
             {ownershipSum != null ? (
               <MetricLabel metric="ownership">
                 Own{" "}

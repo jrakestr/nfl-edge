@@ -8,6 +8,7 @@ import {
   dfsLineups,
   dfsSettings,
   salaryLookup,
+  slateActuals,
   salaryPositions,
   slateId,
   slatesForWeek,
@@ -64,7 +65,7 @@ export default async function Page({
   const picked = weekOk ? await lineupRunForWeek(season, week, siteKey, sid, pinned) : null;
   const run = picked?.run ?? null;
 
-  const [lineups, exposure, lookup, correlations, stale, settings] = run
+  const [lineups, exposure, lookup, correlations, stale, settings, actuals] = run
     ? await Promise.all([
         dfsLineups(run.run_id, siteKey, sid),
         dfsExposure(run.run_id, siteKey, sid),
@@ -72,8 +73,9 @@ export default async function Page({
         stackCorrelations(run.run_id, siteKey, sid),
         staleDkIds(season, week, run.created_at),
         dfsSettings(run.run_id, siteKey, sid),
+        slateActuals(season, week, siteKey, sid),
       ])
-    : [[], [], {}, [], new Set<string>(), null];
+    : [[], [], {}, [], new Set<string>(), null, { byDkId: {}, updatedAt: null, stale: false }];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
 
   return (
@@ -89,6 +91,9 @@ export default async function Page({
       positions={salaryPositions(lookup)}
       correlations={correlations}
       staleDkIds={stale}
+      actuals={actuals.byDkId}
+      actualsUpdatedAt={actuals.updatedAt}
+      actualsStale={actuals.stale}
       buildInProgress={picked?.buildInProgress ?? false}
       slates={available}
       fallbackFrom={run && Object.keys(lookup).length === 0 ? slate : null}

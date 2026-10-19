@@ -50,4 +50,8 @@ describe("league crumbs", () => {
     expect(crumbs("/league/wire").map((c) => c.label)).toEqual(["LOC league", "Wire"]);
     expect(crumbs("/league/acquire").map((c) => c.label)).toEqual(["LOC league", "Acquire"]);
   });
+
+  it("labels /research as Research Lab", () => {
+    expect(crumbs("/research").map((c) => c.label)).toEqual(["Research Lab"]);
+  });
 });

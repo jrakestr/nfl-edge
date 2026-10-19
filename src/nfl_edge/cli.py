@@ -336,20 +336,62 @@ def ingest_dk_standings(
             typer.echo(f"error: {p.name}: {e}")
             failed = True
             continue
-        if r.status == "unchanged":
-            typer.echo(f"{r.contest_key}: unchanged, skipped")
-            continue
-        typer.echo(
-            f"{r.contest_key} {r.contest_name or '(no history row)'}: {r.entries} entries, "
-            f"{r.players} player rows, top1 {r.top1_score}, cash {r.cash_score}, "
-            f"slate {r.slate_id or 'unresolved'}, "
-            f"mine {r.mine} ({r.slot_entries} with slots)"
-        )
-        if r.history_entries and r.history_entries != r.entries:
-            typer.echo(f"  note: history says {r.history_entries} entries, file has {r.entries}")
-        for eid, why in r.misses:
-            typer.echo(f"  slots not written for entry {eid}: {why}")
+        _echo_standings(r)
     if failed:
+        raise typer.Exit(code=1)
+
+
+def _echo_standings(r) -> None:
+    if r.status == "unchanged":
+        typer.echo(f"{r.contest_key}: unchanged, skipped")
+        return
+    typer.echo(
+        f"{r.contest_key} {r.contest_name or '(no history row)'}: {r.entries} entries, "
+        f"{r.players} player rows, top1 {r.top1_score}, cash {r.cash_score}, "
+        f"slate {r.slate_id or 'unresolved'}, "
+        f"mine {r.mine} ({r.slot_entries} with slots)"
+    )
+    if r.history_entries and r.history_entries != r.entries:
+        typer.echo(f"  note: history says {r.history_entries} entries, file has {r.entries}")
+    for eid, why in r.misses:
+        typer.echo(f"  slots not written for entry {eid}: {why}")
+
+
+@ingest_app.command("dk-folder")
+def ingest_dk_folder(
+    directory: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Folder of DK exports")],
+    dry_run: bool = typer.Option(False, "--dry-run", help="Classify and report; write nothing"),
+    force: bool = typer.Option(False, "--force", help="Reload even when the file is unchanged"),
+):
+    """A folder of DK exports -> entry history, then one classic standings load per usable file.
+
+    Empty, conflicting, and unreadable files are listed and not written. Showdown and in-game
+    files are skipped. Already-loaded files are left in place."""
+    from .ingest import dk_contests as dk
+
+    try:
+        report = dk.load_folder(directory, dry_run=dry_run, force=force)
+    except dk.DkFileError as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    hist = report["history"]
+    if hist:
+        verb = "would upsert" if hist["dry_run"] else "upserted"
+        typer.echo(f"dk history: {hist['rows']} entries across {hist['contests']} contests {verb}")
+    elif report["history_missing"]:
+        typer.echo("dk history: no draftkings-contest-entry-history.csv")
+    typer.echo(f"{'contest':<12} {'status':<12} {'bytes':>10}  note")
+    for row in report["rows"]:
+        typer.echo(f"{row.contest_key:<12} {row.status:<12} {row.size:>10}  {row.note}")
+    for res in report["results"]:
+        _echo_standings(res)
+    if report["gaps"]:
+        typer.echo(f"gap: {len(report['gaps'])} NFL Classic contests in this window have no standings file")
+        for g in report["gaps"]:
+            when = g["contest_time"].strftime("%Y-%m-%d") if g.get("contest_time") else "-"
+            name = dk._ENTRY_SUFFIX_RE.sub("", g.get("entry_name") or "")
+            typer.echo(f"  {g['contest_key']}  {when}  {g.get('contest_entries') or '-'} entries  {name}")
+    if report["failed"]:
         raise typer.Exit(code=1)
 
 
@@ -391,6 +433,26 @@ def ingest_espn_league(
         games = r["not_final"].get(w)
         typer.echo(f"  week {w}: " + (f"not final, {len(games)} games without a result: {', '.join(games)}"
                                     if games else "final"))
+
+
+@ingest_app.command("live")
+def ingest_live(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+):
+    """ESPN scoreboard and box scores into raw.live_*. No key. Latest snapshot only."""
+    from .ingest import espn_live
+
+    report = espn_live.run(season, week)
+    if not report["ok"]:
+        typer.echo(f"live: stale, scoreboard failed ({report['error']})")
+        return
+    typer.echo(
+        f"live: {report['games']} games, {len(report['written'])} box scores, "
+        f"{len(report['skipped'])} skipped"
+    )
+    for skip in report["skipped"]:
+        typer.echo(f"  {skip['espn_event_id']}: {skip['error']}")
 
 
 INGEST_ORDER = ("players", "schedules", "stats", "opportunity", "consensus", "context")
@@ -1276,6 +1338,62 @@ def props(
 
 
 @app.command()
+def actuals(
+    week: int = typer.Option(...),
+    season: int = typer.Option(2026),
+):
+    """Rebuild model.slate_actuals, then write actual_fpts for lineups whose games are all final."""
+    from .results import dfs_grade
+
+    graded = dfs_grade.run(season, week)
+    built = graded["actuals"]
+    typer.echo(
+        f"actuals week {week}: {built['players']} players, {built['written']} updated, "
+        f"{graded['n_complete']} lineups final, {graded['n_partial']} partial"
+    )
+    if graded.get("open_games"):
+        typer.echo("  open: " + ", ".join(graded["open_games"]))
+    if built["flagged"]:
+        typer.echo("  recon flagged: " + ", ".join(built["flagged"]))
+
+
+@app.command("actuals-live")
+def actuals_live(season: int = typer.Option(2026)):
+    """Scoreboard check. Exit when nothing is live. Otherwise refresh live rows and actuals."""
+    from datetime import UTC, datetime
+
+    from .ingest import espn_live
+    from .results import dfs_grade
+    from .workflow import board_week
+
+    now = datetime.now(UTC)
+    if not espn_live.in_game_window(now):
+        typer.echo("outside game window")
+        return
+    try:
+        board = espn_live.fetch_json(espn_live.SCOREBOARD)
+        games = espn_live.parse_scoreboard(board)
+    except (ConnectionError, espn_live.SchemaError) as e:
+        typer.echo(f"scoreboard failed ({e})")
+        return
+    week = board_week(season) or (games[0]["week"] if games else None)
+    if week is None:
+        typer.echo("no week")
+        return
+    games = [g for g in games if g["season"] == season and g["week"] == week]
+    existing = espn_live._existing(season, week)
+    if not espn_live.should_pull(games, existing, now):
+        typer.echo("no live game")
+        return
+    live = espn_live.run(season, week, now=now)
+    graded = dfs_grade.run(season, week)
+    typer.echo(
+        f"actuals-live week {week}: box {len(live['written'])}, "
+        f"players {graded['actuals']['written']}, lineups {graded['n_complete']} final"
+    )
+
+
+@app.command()
 def grade(
     week: int = typer.Option(...),
     season: int = typer.Option(2026),
@@ -1321,8 +1439,10 @@ def grade(
     elif dfs.get("n_lineups"):
         typer.echo(
             f"dfs: {dfs['n_lineups']} lineups, {dfs.get('n_complete', 0)} graded, "
-            f"{dfs.get('n_incomplete', 0)} incomplete"
+            f"{dfs.get('n_partial', dfs.get('n_incomplete', 0))} partial"
         )
+        if dfs.get("open_games"):
+            typer.echo("  open: " + ", ".join(dfs["open_games"]))
         if dfs.get("missing"):
             typer.echo("dfs missing actuals: " + ", ".join(
                 f"{k} x{v}" for k, v in list(dfs["missing"].items())[:10]))
@@ -1405,6 +1525,26 @@ def player_bias(
     if not rep["candidates"]:
         typer.echo("no cell passes the gate; no prior change is eligible")
     typer.echo(path)
+
+
+research_app = typer.Typer(help="Research Lab: as-of player fields scored by user-defined metrics.")
+app.add_typer(research_app, name="research")
+
+
+@research_app.command("build")
+def research_build(
+    week: int = typer.Option(..., help="Target week; reads only weeks before it"),
+    season: int = typer.Option(2026),
+):
+    """Build model.research_fields for (season, week) from rows before that week. All or nothing."""
+    from .research import fields as F
+
+    try:
+        n = F.run(season, week)
+    except F.ResearchDataMissing as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(f"research fields {season} week {week}: {n} players (as-of: before week {week})")
 
 
 if __name__ == "__main__":

@@ -238,6 +238,7 @@ def test_refresh_order_and_never_sims():
     heads = [c[:2] for c in run.calls]
     assert heads == [["ingest", "odds-api"], ["ingest", "--season"], ["stale-weeks", "--season"],
                      ["ingest", "fantasypros-status"], ["ingest", "espn-league"],
+                     ["ingest", "live"], ["actuals", "--season"],
                      ["ungraded-completed", "--season"], ["change-check", "--season"]]
     assert not any(c[0] == "sim" for c in run.calls)
     assert all(s.soft for s in steps if s.args and s.args[0] == "ingest")

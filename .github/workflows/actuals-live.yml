@@ -1,0 +1,48 @@
+# Backup for the Mac LaunchAgent. Every 5 minutes inside the game window
+# (America/New_York, UTC-4 in October). The command exits when nothing is live.
+name: Actuals live
+
+on:
+  schedule:
+    - cron: "*/5 16-23 * * 0"   # Sunday 12:00-19:59 ET
+    - cron: "*/5 0-3 * * 1"     # Sunday 20:00-23:59 ET
+    - cron: "*/5 23 * * 1"      # Monday 19:00-19:59 ET
+    - cron: "*/5 0-3 * * 2"     # Monday 20:00-23:59 ET
+    - cron: "*/5 23 * * 4"      # Thursday 19:00-19:59 ET
+    - cron: "*/5 0-3 * * 5"     # Thursday 20:00-23:59 ET
+  workflow_dispatch:
+
+concurrency:
+  group: nfl-edge-actuals-live
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  actuals-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Missing repository secret DATABASE_URL"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: Apply migrations
+        run: uv run nfl-edge db migrate
+
+      - name: Live actuals
+        run: uv run nfl-edge actuals-live --season 2026

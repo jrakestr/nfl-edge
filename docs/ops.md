@@ -1,6 +1,6 @@
 # NFL-edge operations
 
-Four LaunchAgents on this Mac run the jobs below. Clock times are America/Phoenix unless a line names another zone. This Mac's clock is America/Phoenix. With `DATABASE_URL` unset, every job uses the URL in `.env`.
+Five LaunchAgents on this Mac run the jobs below. Clock times are America/Phoenix unless a line names another zone. This Mac's clock is America/Phoenix. With `DATABASE_URL` unset, every job uses the URL in `.env`.
 
 `nfl-edge lines` prices the newest `model.sim_runs` row for that week. It does not insert a new row. The board stamp `at run` is that row's `created_at`, shown in Eastern time. A later lines fire keeps that sim until a newer one exists.
 
@@ -29,6 +29,7 @@ The Mac LaunchAgents below stay until a full week has run from Actions.
 - `com.nfl-edge.week-rebuild` — Saturday 20:00 and Sunday 08:40 — a new sim (`sat-final` or `sun-inactives`), then lines, props, and DFS — `output/cron-rebuild.log`.
 - `com.nfl-edge.week-grade` — Tuesday 09:00 — grades each completed REG week that still has ungraded games, and skips a week that still has a null `result` — `output/cron-grade.log`. Does not insert `model.sim_runs`.
 - `com.nfl-edge.loc-snapshot` — hourly, Thursday–Monday 06:00–19:59 — roster status history and the waiver pool — `output/cron-loc-snapshot.log`.
+- `com.nfl-edge.actuals-live` — every 3 minutes — `nfl-edge actuals-live`. Exits immediately outside Thu/Mon 19:00–24:00 ET and Sunday 12:00–24:00 ET, and when no game is live. Writes `raw.live_*` and `model.slate_actuals`. `output/cron-actuals.log`. GitHub Actions workflow `actuals-live` is the backup, every 5 minutes in those windows.
 
 ## Weekly checklist
 
@@ -154,6 +155,7 @@ Reload after editing the checked-in plist with the same overlap swap.
 | week-rebuild | `ops/com.nfl-edge.week-rebuild.plist` | same swap; do not set `RunAtLoad` |
 | week-grade | `ops/com.nfl-edge.week-grade.plist` | same swap; do not set `RunAtLoad` |
 | loc-snapshot | `ops/com.nfl-edge.loc-snapshot.plist` | new label, no swap: `chmod +x ops/loc-snapshot.sh && cp ops/com.nfl-edge.loc-snapshot.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.loc-snapshot.plist` |
+| actuals-live | `ops/com.nfl-edge.actuals-live.plist` | new label, no swap: `chmod +x ops/actuals-live.sh && cp ops/com.nfl-edge.actuals-live.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nfl-edge.actuals-live.plist` |
 
 ## Data inputs
 
@@ -174,6 +176,20 @@ Unmatched and ambiguous rows are reported and not written. `questionable` keeps 
 `nfl-edge dk-salaries --season S --week W --slate main` reads `data/dk/DKSalaries_S_wkWW_main.csv` (or `--file`). Writes `raw.dk_salaries` (unmatched names kept with null `player_id`, never dropped) and fills `raw.players.dk_id`. DK `Status` O/OUT and IR → `player_overrides` out (usage 0); D → doubtful (usage 0); Q → questionable (usage 1.0). Unmatched names and skipped overrides go to stdout and `output/dk_salaries_{season}_{week}_{slate}.txt`. Leftover names: `config/dk_aliases.yaml`.
 
 The weekend agent loads each file with `--salaries-only`, then runs `--merge-status` once.
+
+### DK contest results
+
+`nfl-edge ingest dk-folder <dir> [--dry-run] [--force]` reads a folder of DraftKings exports. `draftkings-contest-entry-history.csv` is upserted first (`raw.dk_entry_history`, whole file, never trimmed). Each `contest-standings-<id>.zip` or `.csv` is then classified:
+
+- A zip wins over a loose CSV of the same contest. Identical browser copies (` (1)`) are skipped. Copies whose contents differ are not loaded.
+- A 0-byte or unreadable file is listed and not written.
+- Only `Classic` game types load. Showdown and in-game files are skipped.
+- A file whose sha256 is already on `raw.dk_contests` is left in place. `--force` reloads it.
+- `--dry-run` prints the same table and writes nothing.
+
+The contest is tied to a salary slate only when the slate covers the contest's players and the contest covers at least 32% of the slate. Otherwise `slate_id` stays null and the ownership rows still load. After the run, the command lists NFL Classic contests in that date window that have no standings file.
+
+`nfl-edge ingest dk-history <file>` and `nfl-edge ingest dk-standings <file> ...` load one history file or explicit standings files. Run history first so your own entries get slot rows.
 
 ### FantasyPros
 

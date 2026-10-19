@@ -21,9 +21,14 @@ export const NAV = [
   { href: "/players", label: "Players", match: /^\/players|\/week\/\d+\/players/, icon: "players", group: "Board" },
   { href: "/props", label: "Props", match: /^\/props/, icon: "props", group: "Board" },
   { href: "/optimize", label: "Optimize", match: /^\/optimize|\/week\/\d+\/optimize/, icon: "optimize", group: "DFS" },
-  { href: "/lineups", label: "Lineups", match: /^\/lineups|\/dfs\//, icon: "lineups", group: "DFS" },
+  { href: "/lineups", label: "Lineups", match: /^\/lineups|\/dfs\/(?![^/]+\/[^/]+\/review)/, icon: "lineups", group: "DFS" },
+  { href: "/research", label: "Research Lab", match: /^\/research/, icon: "research", group: "DFS" },
+  { href: "/review", label: "Slate review", match: /^\/review|\/week\/\d+\/dfs\/[^/]+\/[^/]+\/review/, icon: "review", group: "DFS" },
   { href: "/grading", label: "Grading", match: /^\/grading/, icon: "grading", group: "Grade" },
   { href: "/week/1/claims", label: "Claims", match: /\/week\/\d+\/claims/, icon: "claims", group: "Grade" },
   { href: "/league", label: "LOC league", match: /^\/league/, icon: "league", group: "League" },
   { href: "/workflow", label: "Workflow", match: /^\/workflow/, icon: "workflow", group: "Run" },
 ] as const;
+
+/** REG weeks offered by the shell week switcher on week-scoped pages. */
+export const REG_WEEKS = 18;

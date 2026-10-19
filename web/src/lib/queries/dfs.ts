@@ -145,6 +145,51 @@ export async function salaryTeams(site: string, slateId: string): Promise<Record
 export type SalaryLookup = { team: string; position: string };
 
 /** Name → team + real position. Prefers the non-FLEX roster row when DK duplicates a player. */
+export type DkActual = {
+  playerId: string | null;
+  pts: number | null;
+  state: "final" | "live" | "pending" | "dnp" | null;
+  secsRemaining: number | null;
+};
+
+/** Salary id to this week's actual. Null playerId is an unmapped salary row. */
+export async function slateActuals(
+  season: number,
+  week: number,
+  site: string,
+  slateId: string,
+): Promise<{ byDkId: Record<string, DkActual>; updatedAt: string | null; stale: boolean }> {
+  const [rows, staleRows] = await Promise.all([
+    sql()`
+      select distinct on (player_dk_id)
+             player_dk_id, s.player_id, a.dk_pts::float8 as dk_pts, a.state,
+             a.secs_remaining, a.updated_at
+      from raw.dk_salaries s
+      left join model.slate_actuals a
+        on a.season = ${season} and a.week = ${week} and a.player_id = s.player_id
+      where s.site = ${site} and s.slate_id = ${slateId} and s.player_dk_id is not null
+      order by player_dk_id`,
+    sql()`
+      select bool_or(stale) as stale
+      from raw.live_games
+      where season = ${season} and week = ${week}`,
+  ]);
+  const byDkId: Record<string, DkActual> = {};
+  let updatedAt: string | null = null;
+  for (const r of rows) {
+    if (!r.player_dk_id) continue;
+    const stamp = r.updated_at ? new Date(r.updated_at as string | Date).toISOString() : null;
+    if (stamp && (updatedAt == null || stamp > updatedAt)) updatedAt = stamp;
+    byDkId[String(r.player_dk_id)] = {
+      playerId: r.player_id != null ? String(r.player_id) : null,
+      pts: r.dk_pts == null ? null : Number(r.dk_pts),
+      state: r.state != null ? (String(r.state) as DkActual["state"]) : null,
+      secsRemaining: r.secs_remaining == null ? null : Number(r.secs_remaining),
+    };
+  }
+  return { byDkId, updatedAt, stale: Boolean(staleRows[0]?.stale) };
+}
+
 export async function salaryLookup(site: string, slateId: string): Promise<Record<string, SalaryLookup>> {
   const rows = await sql()`
     select distinct on (lower(name)) name, team, position

@@ -107,15 +107,24 @@ def test_lineup_total_none_when_any_slot_is_missing():
     assert D.lineup_total([10.0, None]) is None
 
 
-def test_run_skips_without_writing_when_unpublished(monkeypatch):
-    monkeypatch.setattr(D, "_weekly_count", lambda s, w: 0)
+def test_run_writes_nothing_when_no_game_is_final(monkeypatch):
+    import polars as pl
+
+    from nfl_edge.results import slate_actuals as SA
+
+    monkeypatch.setattr(SA, "run", lambda s, w: {})
+    monkeypatch.setattr(SA, "index", lambda s, w: {})
+    monkeypatch.setattr(D, "read_sql", lambda q, p=None: pl.DataFrame())
     monkeypatch.setattr(D, "persist", lambda g: pytest.fail("must not write"))
     r = D.run(2026, 6)
-    assert r["skipped"] is True and r["reason"] == "scores unpublished"
+    assert r["skipped"] is False
+    assert r["n_complete"] == 0 and r["written"] == 0
 
 
-def test_run_persists_complete_and_null_for_incomplete(monkeypatch):
+def test_run_persists_only_fully_final_lineups(monkeypatch):
     import polars as pl
+
+    from nfl_edge.results import slate_actuals as SA
 
     lineup = lambda names: {"players": [{"name": n, "slot": "X", "dk_id": n} for n in names]}
     lineups = pl.DataFrame({
@@ -125,17 +134,21 @@ def test_run_persists_complete_and_null_for_incomplete(monkeypatch):
     })
     sal = pl.DataFrame({"player_dk_id": ["a", "KC", "ghost"],
                         "player_id": ["pa", "KC_DST", "pg"]})
-    monkeypatch.setattr(D, "_weekly_count", lambda s, w: 5)
-    monkeypatch.setattr(D, "_stats_by_player", lambda s, w: {"pa": {"rushing_yards": 50}})
-    monkeypatch.setattr(D, "_dst_by_team", lambda s, w, r: {"KC": 9.0})
+    monkeypatch.setattr(SA, "run", lambda s, w: {})
+    monkeypatch.setattr(SA, "index", lambda s, w: {
+        "pa": {"dk_pts": 5.0, "state": "final", "game_id": "g1"},
+        "KC_DST": {"dk_pts": 9.0, "state": "final", "game_id": "g1"},
+        "pg": {"dk_pts": 3.0, "state": "live", "game_id": "g2"},
+    })
     monkeypatch.setattr(
         D, "read_sql", lambda q, p=None: sal if "dk_salaries" in q else lineups
     )
     saved = {}
     monkeypatch.setattr(D, "persist", lambda g: saved.setdefault("g", g) and len(g))
     r = D.run(2026, 6, run_id="rid")
-    assert r["n_complete"] == 1 and r["n_incomplete"] == 1
+    assert r["n_complete"] == 1 and r["n_partial"] == 1
+    assert r["open_games"] == ["g2"]
     assert r["missing"] == {"ghost": 1}
     by_id = {g["id"]: g["actual_fpts"] for g in saved["g"]}
+    assert list(by_id) == [1]
     assert by_id[1] == pytest.approx(5.0 + 9.0)
-    assert by_id[2] is None

@@ -31,6 +31,21 @@ export async function gradedRun(
   return r ? { runId: String(r.run_id), total: Number(r.total) } : null;
 }
 
+/** Newest week of the season with graded mass lineups for the site's Main slate. Null when none. */
+export async function latestGradedWeek(season: number, site: string): Promise<number | null> {
+  const rows = await sql()`
+    select slate_id
+    from model.dfs_lineups
+    where construction = 'mass' and site = ${site}
+      and slate_id like ${`${season}\\_%\\_main`}
+    group by slate_id
+    having count(actual_fpts) > 0
+    order by slate_id desc
+    limit 1`;
+  const m = /^\d+_(\d+)_main$/.exec(String(rows[0]?.slate_id ?? ""));
+  return m ? Number(m[1]) : null;
+}
+
 export async function slateContests(slateId: string): Promise<ReviewContest[]> {
   const rows = await sql()`
     select contest_key::text as contest_key, contest_name, entries, places_paid,
@@ -121,7 +136,7 @@ export async function reviewLineups(
   });
 }
 
-/** Every salary-listed player on the slate with the run's sim rates and the nflverse actual. */
+/** Every salary-listed player on the slate with the run's sim rates and model.slate_actuals. */
 export async function reviewFacts(
   runId: string,
   site: string,
@@ -134,9 +149,9 @@ export async function reviewFacts(
            pp.fpts_dk_mean::float8 as proj, pp.fpts_dk_sd::float8 as sd,
            pp.dk_p10::float8 as p10, pp.dk_p90::float8 as p90,
            pp.boom_rate::float8 as boom, pp.bust_rate::float8 as bust,
-           e.top1_pct::float8 as top1_pct, e.own_ours::float8 as own_ours,
+           e.top1_pct::float8 as top1_pct,            e.own_ours::float8 as own_ours,
            e.own_field_sim::float8 as own_field_sim,
-           a.fpts_dk::float8 as actual
+           a.dk_pts::float8 as actual
     from (
       select distinct on (player_id) player_id, name, team, position, salary
       from raw.dk_salaries
@@ -147,9 +162,8 @@ export async function reviewFacts(
     left join model.dfs_exposure e
       on e.run_id = ${runId}::uuid and e.site = ${site} and e.slate_id = ${slateId}
      and e.player_id = s.player_id
-    left join model.player_fpts_actual a
-      on a.season = ${season} and a.week = ${week} and a.season_type = 'REG'
-     and a.player_id = s.player_id`;
+    left join model.slate_actuals a
+      on a.season = ${season} and a.week = ${week} and a.player_id = s.player_id`;
   return rows.map((r) => ({
     playerId: String(r.player_id),
     name: String(r.name),

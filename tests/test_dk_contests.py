@@ -1,5 +1,11 @@
+import hashlib
+import io
+import zipfile
+from datetime import datetime
 from decimal import Decimal as D
+from zoneinfo import ZoneInfo
 
+import polars as pl
 import pytest
 
 from nfl_edge.ingest import dk_contests as dk
@@ -118,6 +124,17 @@ def test_resolve_slate_prefers_smallest_covering_slate():
     assert dk.resolve_slate_id(names | {"q"}, {"early": slates["early"]}) is None
 
 
+def test_resolve_slate_rejects_a_superset_slate():
+    contest = {f"p{i}" for i in range(50)}
+    main = {f"p{i}" for i in range(200)}
+    assert dk.resolve_slate_id(contest, {"2026_05_main": main}) is None
+    slate = {f"p{i}" for i in range(100)}
+    drafted = {f"p{i}" for i in range(74)}
+    bigger = slate | {f"x{i}" for i in range(40)}
+    assert dk.resolve_slate_id(drafted, {"main": slate, "full": bigger}) == "main"
+    assert dk.resolve_slate_id({f"p{i}" for i in range(30)}, {"main": slate}) is None
+
+
 def test_contest_key_from_filename_handles_browser_copy_suffix():
     assert dk.contest_key_from_name("/x/contest-standings-196672011 (1).zip") == 196672011
     with pytest.raises(dk.DkFileError):
@@ -140,3 +157,73 @@ def test_parse_history_money_and_cash_fields():
 def test_parse_history_stops_on_unknown_header():
     with pytest.raises(dk.DkFileError):
         dk.parse_history('"A","B"\n1,2\n')
+
+
+def _zip(name: str, text: str) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr(name, text)
+    return buf.getvalue()
+
+
+def test_scan_empty_file_is_not_loaded(tmp_path):
+    (tmp_path / "contest-standings-1.csv").write_bytes(b"")
+    (row,) = dk.scan_folder(tmp_path)
+    assert row.status == "empty" and row.path is None
+
+
+def test_scan_zip_beats_an_identical_csv(tmp_path):
+    (tmp_path / "contest-standings-2.csv").write_text("same")
+    (tmp_path / "contest-standings-2.zip").write_bytes(_zip("contest-standings-2.csv", "same"))
+    (row,) = dk.scan_folder(tmp_path)
+    assert row.status == "ready" and row.path is not None and row.path.suffix == ".zip"
+    assert row.skipped == ["contest-standings-2.csv"]
+
+
+def test_scan_conflicting_copies_are_an_error(tmp_path):
+    (tmp_path / "contest-standings-3.csv").write_text("a")
+    (tmp_path / "contest-standings-3 (1).csv").write_text("b")
+    (row,) = dk.scan_folder(tmp_path)
+    assert row.status == "conflict"
+
+
+def test_scan_showdown_is_not_classic(tmp_path):
+    (tmp_path / "contest-standings-5.csv").write_text("x")
+    (row,) = dk.scan_folder(tmp_path, {5: {"game_type": "Showdown Captain Mode"}})
+    assert row.status == "not-classic"
+    assert row.no_history is False
+
+
+def test_scan_missing_history_still_ready(tmp_path):
+    (tmp_path / "contest-standings-7.csv").write_text("x")
+    (row,) = dk.scan_folder(tmp_path, {})
+    assert row.status == "ready" and row.no_history is True
+
+
+def test_gap_is_classic_contests_in_the_window_with_no_file():
+    start = datetime(2026, 9, 20, tzinfo=ZoneInfo("America/New_York"))
+    end = datetime(2026, 10, 18, tzinfo=ZoneInfo("America/New_York"))
+    rows = [
+        {"sport": "NFL", "game_type": "Classic", "contest_key": 1, "contest_time": start, "entry_name": "in folder"},
+        {"sport": "NFL", "game_type": "Classic", "contest_key": 2, "contest_time": end, "entry_name": "missing"},
+        {"sport": "NFL", "game_type": "Showdown Captain Mode", "contest_key": 3,
+         "contest_time": end, "entry_name": "showdown"},
+        {"sport": "NFL", "game_type": "Classic", "contest_key": 4,
+         "contest_time": start.replace(day=1), "entry_name": "before window"},
+    ]
+    (gap,) = dk.gap_contests(rows, {1}, start, end)
+    assert gap["contest_key"] == 2
+
+
+def test_unchanged_sha_returns_before_parse(monkeypatch, tmp_path):
+    path = tmp_path / "contest-standings-9.csv"
+    path.write_text("not a standings file")
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    monkeypatch.setattr(dk, "read_sql", lambda *_a, **_k: pl.DataFrame({"source_sha256": [sha]}))
+
+    def _boom():
+        raise AssertionError("unchanged file must not open a write")
+
+    monkeypatch.setattr(dk, "conn", _boom)
+    result = dk.ingest_standings(path)
+    assert result.status == "unchanged" and result.contest_key == 9

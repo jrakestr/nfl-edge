@@ -34,9 +34,20 @@
 - Never invent a missing opposite price to de-vig a one-sided prop.
 - Fair-line calibration is graded separately from market-priced edges.
 
+## ESPN live (`nfl-edge ingest live`, `nfl-edge actuals-live`)
+- Public scoreboard and box score. No key. Display and grading only, never the sim.
+- One scoreboard pull per run. Box scores only for a live game or a final game whose
+  snapshot is missing or under an hour old.
+- Site summary has no safeties or blocked kicks. DST uses the core team-statistics
+  endpoint (`safeties`, `kicksBlocked`, `oppFumbleRecoveries`). Skill rows use the summary.
+- Team codes go through `names.TEAM_ALIASES` (WSH → WAS). Players join on `raw.players.espn_id`.
+- A failed pull keeps the last snapshot and marks it stale. An unmapped stat-bearing
+  player blocks that game's write.
+
 ## FantasyPros (Python CLI only)
 - `FANTASY_PROS_API_KEY` in `.env` only. Pulls append to
   `raw.fantasypros_snapshots` keyed by `fetched_at`.
+- Vendor docs (local): FantasyPros `docs/vendor/fantasypros/README.md`; TypeSafe/Jev `docs/vendor/typesafe/INDEX.md`.
 
 ## Promoting external projections (NFLGameSim, RTS, FantasyPros…)
 They stay display-only benchmarks until all four hold:
