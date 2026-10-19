@@ -113,11 +113,13 @@ def test_props_plan_adds_csv_when_present(tmp_path, monkeypatch):
 
 
 def test_dfs_plan_one_slate_with_overrides():
+    # The slate's salary rows load first, so an uploaded file can go straight to DFS.
+    load = ["dk-salaries", "--season", "2026", "--week", "7", "--slate", "main", "--salaries-only"]
     base = ["dfs", "--season", "2026", "--week", "7", "--site", "dk", "--slate", "main"]
-    assert args_of(W.plan("dfs", W.Context(2026, 7, slate="main"))) == [base]
+    assert args_of(W.plan("dfs", W.Context(2026, 7, slate="main"))) == [load, base]
     ctx = W.Context(2026, 7, slate="main", field_size=8000, iterations=1200, full_field=True)
     assert args_of(W.plan("dfs", ctx)) == [
-        base + ["--iterations", "1200", "--field-size", "8000", "--full-field"]]
+        load, base + ["--iterations", "1200", "--field-size", "8000", "--full-field"]]
     with pytest.raises(W.PhaseFailed, match="slate"):
         W.plan("dfs", W.Context(2026, 7))
 

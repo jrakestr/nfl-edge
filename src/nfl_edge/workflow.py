@@ -158,7 +158,10 @@ def _dfs(ctx: Context) -> list[Step]:
         args += ["--field-size", str(ctx.field_size)]
     if ctx.full_field:
         args.append("--full-field")
-    return [_step(*args)]
+    # Load this slate's salary rows first (idempotent), so a file uploaded on /workflow can go
+    # straight to DFS without a Salaries run in between.
+    load = _step("dk-salaries", *ctx.sw(), "--slate", ctx.slate, "--salaries-only")
+    return [load, _step(*args)]
 
 
 def plan(phase: str, ctx: Context) -> list[Step]:

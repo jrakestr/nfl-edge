@@ -169,6 +169,13 @@ if [ "$n_games" != "$expect" ] || [ "$n_player_games" != "$expect" ]; then
   echo "sim proj_games $n_games player_games $n_player_games != slate $expect"
   exit 1
 fi
+# Cloud runs (GitHub "Run phase") read draws from Storage; a Mac sim must leave its draws there.
+set +e
+push_out=$(/usr/bin/env -u DATABASE_URL "$NFL" storage push-draws --season "$SEASON" --week "$WEEK" 2>&1)
+push_code=$?
+set -e
+printf '%s\n' "$push_out"
+[ "$push_code" -ne 0 ] && echo "storage: draws not pushed (exit $push_code); cloud DFS for this run will fail until pushed"
 
 soft_note
 # Odds API: 3 credits, one pull per run. RecentDuplicate is a no-op. CLI prints remaining=.
