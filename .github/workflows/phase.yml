@@ -104,6 +104,12 @@ jobs:
         if: inputs.phase == 'salaries' || inputs.phase == 'dfs' || inputs.run_from
         run: uv run nfl-edge storage pull-salaries --week "$WEEK"
 
+      # Fresh salary files straight from the DK lobby (no login). Soft: uploads already pulled still count.
+      - name: Fetch DK salaries
+        if: inputs.phase == 'salaries' || inputs.phase == 'dfs' || inputs.run_from
+        continue-on-error: true
+        run: uv run nfl-edge dk-fetch --week "$WEEK"
+
       - name: Pull draws
         if: (inputs.phase == 'lines' || inputs.phase == 'props' || inputs.phase == 'dfs')
         run: uv run nfl-edge storage pull-draws --week "$WEEK"

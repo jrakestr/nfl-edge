@@ -777,6 +777,43 @@ def overrides(
                    f"team={u.get('team')} pos={u.get('position')}")
 
 
+@app.command("dk-fetch")
+def dk_fetch(
+    week: int = typer.Option(None, help="Default: the week being played, else the next one"),
+    season: int = typer.Option(2026),
+    push: bool = typer.Option(True, help="Also upload the files to private Storage"),
+):
+    """Download the week's DK salary files from DraftKings' lobby (no login) into data/dk."""
+    import httpx
+
+    from . import storage, workflow
+    from .ingest import dk_lobby
+
+    week = week or workflow.board_week(season)
+    if week is None:
+        typer.echo(f"no week for {season}; pass --week")
+        raise typer.Exit(1)
+    try:
+        got = dk_lobby.fetch(season, week)
+    except (dk_lobby.LobbyError, httpx.HTTPError, ValueError) as e:  # network or a DK change: one plain line
+        typer.echo(f"dk-fetch: {type(e).__name__}: {e}")
+        raise typer.Exit(1) from None
+    saved = [f for f in got if f.path]
+    for f in got:
+        what = f"skipped: {f.skipped}" if f.skipped else f"{f.rows} players, {len(f.games)} games"
+        typer.echo(f"{f.slate:<22} draft group {f.group.draft_group_id}  {what}")
+    if not saved:
+        typer.echo(f"dk-fetch: no salary files for {season} week {week} in the DK lobby")
+        raise typer.Exit(1)
+    if push:
+        try:
+            storage.push_salaries(season, week)
+        except storage.StorageError as e:
+            typer.echo(f"dk-fetch: saved locally, not pushed: {e}")
+            raise typer.Exit(1) from None
+    typer.echo(f"dk-fetch: {len(saved)} salary files for week {week}")
+
+
 @app.command("dk-salaries")
 def dk_salaries(
     season: int = typer.Option(...),

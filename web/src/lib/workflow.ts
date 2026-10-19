@@ -6,7 +6,7 @@
 export const PHASES = [
   { key: "refresh", label: "Refresh", detail: "Lines, scores, injury status, grade finished weeks, change check" },
   { key: "ingest", label: "Ingest", detail: "nflverse stats, schedules, rosters, depth charts" },
-  { key: "salaries", label: "Salaries", detail: "DK salary files and their injury tags" },
+  { key: "salaries", label: "Salaries", detail: "Fetch DK salary files from DraftKings, load them and their injury tags" },
   { key: "sim", label: "Sim", detail: "Simulate every game of the week" },
   { key: "lines", label: "Lines", detail: "Odds pull, fair lines and edges from the newest sim" },
   { key: "props", label: "Props", detail: "Fair props and prop edges" },
