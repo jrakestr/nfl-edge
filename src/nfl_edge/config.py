@@ -25,6 +25,8 @@ def dfs_settings() -> dict:
         "field_size": int(d.get("field_size", 3000)),
         "iterations": int(d.get("iterations", 5000)),
         "max_minutes": float(d.get("max_minutes", 3)),
+        "role_min_offense_pct": float(d.get("role_min_offense_pct", 0.10)),
+        "role_games": int(d.get("role_games", 3)),
     }
 
 

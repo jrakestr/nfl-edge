@@ -1016,6 +1016,8 @@ def dfs(
         f"{r['n_lineups']} lineups, {r['n_exposure']} exposure, "
         f"upload {r['upload']}"
     )
+    for d in r.get("role_dropped") or []:
+        typer.echo(f"  left out {d.get('name')} ({d.get('position')} {d.get('team')}): {d.get('status')}")
 
 
 @app.command("dfs-validate")

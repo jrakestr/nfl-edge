@@ -196,5 +196,6 @@ def run(
         "upload": str(export or upload_path),
         "draw_root": str(DATA_DIR / "dfs" / rid / site / slate),
         "injury_dropped": exported.get("injury_dropped") or [],
+        "role_dropped": exported.get("role_dropped") or [],
         "settings": settings,
     }
