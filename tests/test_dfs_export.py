@@ -488,3 +488,51 @@ def test_dfs_settings_come_from_sim_yaml():
     assert s["field_size"] == 3000
     assert s["iterations"] == 5000
     assert s["max_minutes"] == 3
+
+
+# --- role filter: players who don't play offense stay out of the pool -----------------------
+
+ROLE_SLATE = [
+    {"player_id": "james", "name": "Jordan James", "team": "SF", "position": "RB"},
+    {"player_id": "james", "name": "Jordan James", "team": "SF", "position": "RB",
+     "roster_position": "CPT"},
+    {"player_id": "sinnott", "name": "Ben Sinnott", "team": "WAS", "position": "TE"},
+    {"player_id": "kirk", "name": "Christian Kirk", "team": "SF", "position": "WR"},
+    {"player_id": "mariota", "name": "Marcus Mariota", "team": "WAS", "position": "QB"},
+    {"player_id": "k_sf", "name": "Eddy Pineiro", "team": "SF", "position": "K"},
+    {"player_id": "SF_DST", "name": "49ers", "team": "SF", "position": "DST"},
+]
+
+
+def test_role_filter_drops_players_without_offensive_snaps():
+    shares = {"james": 0.0, "sinnott": 0.37, "mariota": 0.0}   # kirk: no recent rows
+    kept, dropped = D.drop_no_role(ROLE_SLATE, shares, starters=set(), proj={}, min_pct=0.10)
+    assert [d["player_id"] for d in dropped] == ["james", "mariota"]
+    assert dropped[0]["kind"] == "no_offensive_role"
+    assert {r["player_id"] for r in kept} == {"sinnott", "kirk", "k_sf", "SF_DST"}
+
+
+def test_role_filter_keeps_this_weeks_depth_chart_starters():
+    shares = {"mariota": 0.0}
+    kept, dropped = D.drop_no_role(ROLE_SLATE, shares, starters={"mariota"}, proj={},
+                                   min_pct=0.10)
+    assert "mariota" in {r["player_id"] for r in kept}
+    assert all(d["player_id"] != "mariota" for d in dropped)
+
+
+def test_role_filter_without_history_drops_no_one():
+    kept, dropped = D.drop_no_role(ROLE_SLATE, {}, starters=set(), proj={}, min_pct=0.10)
+    assert dropped == [] and len(kept) == len(ROLE_SLATE)
+
+
+def test_max_offense_share_over_the_teams_recent_games():
+    rows = [  # (player_id, team, week, offense_pct)
+        {"player_id": "a", "team": "SF", "week": 2, "offense_pct": 0.15},
+        {"player_id": "a", "team": "SF", "week": 3, "offense_pct": 0.0},
+        {"player_id": "a", "team": "SF", "week": 5, "offense_pct": 0.0},
+        {"player_id": "b", "team": "SF", "week": 1, "offense_pct": 0.60},
+        {"player_id": "c", "team": "SF", "week": 5, "offense_pct": 0.40},
+    ]
+    # SF's last 3 games are weeks 2, 3, 5: a peaked at 15% (week 2); b only played week 1
+    assert D.recent_offense_share(rows, games=3) == {"a": 0.15, "c": 0.40}
+    assert D.recent_offense_share(rows, games=2) == {"a": 0.0, "c": 0.40}
