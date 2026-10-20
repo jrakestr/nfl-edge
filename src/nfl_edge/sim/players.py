@@ -149,7 +149,9 @@ def _gamma_yards(count: np.ndarray, mean_per: np.ndarray, shape_per: float,
 
 
 def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg: dict,
-             rng: np.random.Generator) -> PlayerDraws:
+             rng: np.random.Generator, target_rate: float = 1.0) -> PlayerDraws:
+    """target_rate: share of pass attempts thrown to a receiver (throwaways, spikes and batted
+    balls have none). The QB keeps every attempt; receivers split only the targeted ones."""
     pc = cfg["players"]
     conc = float(pc.get("usage_concentration", 40))
     fum_rate = float(pc.get("fumble_lost_rate", 0.01))
@@ -171,8 +173,9 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
     catch_rate = np.clip(col("catch_rate", 0.65), 0.2, 0.95)[:, None]
     ypr, ypc = col("yds_per_rec", 11.0)[:, None], col("yds_per_carry", 4.2)[:, None]
 
-    # receiving
-    targets = _dirichlet_split(team.pass_att, tgt_share, conc, rng)
+    # receiving: only targeted attempts reach a receiver
+    team_targets = team.pass_att if target_rate >= 1.0 else rng.binomial(team.pass_att, target_rate)
+    targets = _dirichlet_split(team_targets, tgt_share, conc, rng)
     # RZ share is the prior for who scores; the count only gates eligibility (no target, no TD)
     rec_td = _capped_split(team.pass_td, rz_t[:, None] * (targets > 0), targets, rng)
     # unbiased catch rate on the non-TD targets: E[rec] stays targets * catch_rate.
@@ -211,6 +214,8 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
             y2 = np.where(rec > 0, np.round(rec_yds * r2 / np.maximum(rec, 1)), 0).astype(np.int64)
             d2 = rng.hypergeometric(r2, np.maximum(rec_pool - r2, 0), np.minimum(rec_td, rec_pool))
             a2, c2, yy2, td2 = t2.sum(0), r2.sum(0), y2.sum(0), d2.sum(0)
+            if target_rate < 1.0:                                                # QB2's share of untargeted throws
+                a2 = a2 + rng.binomial(team.pass_att - team_targets, 1.0 - att_share)
             i2 = rng.binomial(tot_int, np.where(tot_att > 0, a2 / np.maximum(tot_att, 1), 0.0))
             pass_att[q2], cmp_[q2], pass_yds[q2], pass_td[q2], ints[q2] = a2, c2, yy2, td2, i2
             tot_att, tot_cmp, tot_yds = tot_att - a2, tot_cmp - c2, tot_yds - yy2

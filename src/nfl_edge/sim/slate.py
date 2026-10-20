@@ -304,7 +304,7 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
         eff = qb_adjusted_efficiency(priors.efficiency.filter(pl.col("player_id").is_in(usage["player_id"])), factor)
         if usage.is_empty():
             raise ValueError(f"{game_id}: no usage priors for {t.team}")
-        p = pp.allocate(t, usage, eff, cfg, rng)
+        p = pp.allocate(t, usage, eff, cfg, rng, target_rate=float(getattr(priors, "target_rate", 1.0)))
         pdraws[t.team] = p
         checks += _team_checks(t, p, usage, d, side, prior, game_id, cfg)
         fp = {"dk": np.empty_like(p.rec_yds, dtype=float), "fd": np.empty_like(p.rec_yds, dtype=float),
