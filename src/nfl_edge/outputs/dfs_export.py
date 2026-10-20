@@ -28,6 +28,8 @@ from ..config import CONFIG_DIR, DATA_DIR, dfs_settings, load_yaml
 from ..db import read_sql
 from ..dfs import construction as C
 from ..ingest.dk_salaries import slate_game_pairs, slate_type_for
+from ..priors import role
+from ..priors.role import recent_offense_share
 from ..sim import scoring
 
 PROJ_COLS = ["Name", "Position", "Team", "Salary", "Fpts", "Own%", "StdDev"]
@@ -230,28 +232,6 @@ def drop_injured(
 
 
 ROLE_EXEMPT = frozenset({"DST", "K"})
-STARTER_DEPTH = {"QB": 1, "RB": 1, "TE": 1, "WR": 3}
-
-
-def recent_offense_share(rows: list[dict], games: int = 3) -> dict[str, float]:
-    """Each player's best offensive snap share over his team's last `games` games.
-
-    rows: (player_id, team, week, offense_pct) for weeks before the target week. A player
-    with no row in those team games is absent from the result (no evidence either way).
-    """
-    team_weeks: dict[str, list[int]] = {}
-    for r in rows:
-        team_weeks.setdefault(r["team"], []).append(int(r["week"]))
-    recent = {t: set(sorted(set(w))[-games:]) for t, w in team_weeks.items()}
-    out: dict[str, float] = {}
-    for r in rows:
-        if int(r["week"]) not in recent.get(r["team"], set()):
-            continue
-        pct = float(r.get("offense_pct") or 0.0)
-        out[r["player_id"]] = max(out.get(r["player_id"], 0.0), pct)
-    return out
-
-
 def drop_no_role(
     slate: list[dict],
     shares: dict[str, float],
@@ -290,27 +270,11 @@ def drop_no_role(
     return kept, dropped
 
 
-def load_recent_snaps(season: int, week: int) -> list[dict]:
-    """Offensive snap shares for the season's weeks before `week` (as-of), keyed by gsis id."""
-    return read_sql(
-        "select p.gsis_id as player_id, s.team, s.week, s.offense_pct::float8 as offense_pct "
-        "from raw.snap_counts s join raw.players p on p.pfr_id = s.pfr_player_id "
-        "where s.season = %s and s.week < %s and p.gsis_id is not null",
-        (season, week),
-    ).to_dicts()
-
-
 def load_depth_starters(season: int, week: int) -> set[str]:
     """This week's depth-chart starters (QB1, RB1, TE1, WR1-3), pre-kickoff information."""
     from ..priors import depth
 
-    dc = depth.load_depth(season, week)
-    if dc.is_empty():
-        return set()
-    return {
-        r["player_id"] for r in dc.to_dicts()
-        if r.get("position") in STARTER_DEPTH and int(r["depth_rank"]) <= STARTER_DEPTH[r["position"]]
-    }
+    return role.depth_starters(depth.load_depth(season, week).to_dicts())
 
 
 def captain_fpts(fpts: float, site: str = "dk") -> float:
@@ -695,7 +659,7 @@ def run(
     slate_rows, injury_dropped = drop_injured(slate_rows, proj, overrides, site=site)
     knobs = dfs_settings()
     slate_rows, role_dropped = drop_no_role(
-        slate_rows, recent_offense_share(load_recent_snaps(season, week), knobs["role_games"]),
+        slate_rows, recent_offense_share(role.load_recent_snaps(season, week), knobs["role_games"]),
         load_depth_starters(season, week), proj, min_pct=knobs["role_min_offense_pct"], site=site,
     )
     corr = read_sql(
