@@ -27,6 +27,13 @@ priors:
   shrink_k_qb_share: 6       # Kish start-weeks for qb_att_share
   cold_start_frac: 0.6       # depth-chart-only players get frac * rank_factor * positional mean share
   cold_start_rank_factor: {1: 1.0, 2: 0.6, 3: 0.35, 4: 0.20, 5: 0.12}
+  # Realized-outcome calibration (priors/calibration.py), fit as-of on graded weeks < W only.
+  untargeted_attempts: true     # receivers split targets ~ Bin(pass_att, league targets/attempt)
+  realized_calibration: true    # pass rate, QB carries, target share by position, no-role usage
+  calibration_k_team_games: 32  # shrink: weight n / (n + k); one week of games ~ half weight
+  calibration_off: [pass_rate]  # OOS wk5 (fit wk1-3): pass_rate made carries worse (MAE 5.69 -> 5.93)
+  role_min_offense_pct: 0.10    # under this offensive snap share in each recent team game: no usage
+  role_games: 3
 team:
   plays_per_game_sd: 6
   pass_rate_sd: 0.03        # per-draw noise around the script-adjusted pass rate

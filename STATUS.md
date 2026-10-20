@@ -1,5 +1,13 @@
 # Status
 
+## Realized-outcome calibration applied (operator override of the gate, 2026-10-20)
+
+What changed: the operator said "just do it now", so the calibration.md gate was skipped on purpose. (1) Untargeted attempts: receivers split ~Bin(pass_att, r) targets, where r is the as-of league targets/attempt (0.953), and the QB still owns every attempt. (2) `priors/calibration.py` fits ratios of actual to projected values from `model.player_proj_actual` weeks < W (as-of): QB carries and target share by RB/WR/TE. Each ratio is shrunk n/(n+32) and clipped to 0.75–1.25. (3) The usage layer zeroes players under 10% offensive snaps in each of the team's last 3 games, unless they are depth starters or QB1. Their usage is renormalized onto the rest of the team. `priors/role.py` now holds the snap-share helpers that the DFS role filter shares. The pass-rate channel exists but is off (`calibration_off: [pass_rate]`).
+
+What was verified: an out-of-sample test that fits weeks 1–3 and tests week 5 (29 team-games, 2,000-sample bootstrap). The fitted factors were qb_carry 0.78, RB 1.02, WR 1.03, TE 0.92 (pass_rate 0.97, unused). MAE changed as follows: targets 7.35→6.89, QB carries 2.45→2.28, TE 2.80→2.36, WR 4.58→4.47, RB 2.38→2.32. Carries with the pass-rate channel on got worse, 5.69→5.93, which is why that channel is off. **No 95% CI excludes 0**: every result is directionally right but within noise. Role zeroing, weeks 2–6: 165 player-games would be zeroed. They were projected 1.89 DK and scored 0.64 (23% had any touch), which removes ~2.3 of the ~6 DK/team-game overprojection. pytest 772 passed (the same 4 pre-existing failures: fantasypros dry-run, 3 line_reference DB tests). ruff is clean on the touched files.
+
+What was deferred: re-run the OOS test once week 6 (and the missing week 4) are in `player_proj_actual`, and turn off any channel that fails. The pass-rate channel waits on the same check. Market-shrink of game edges is not started. The first week-7 sim picks all of this up; week-6 runs are unchanged.
+
 ## Week 6 review: kickers, DFS role filter, gated calibration items (2026-10-20)
 
 What changed: the sim writes a K row per team from its own FG/XP draws (FG split 0-39/40-49/50+ by the as-of league mix of made FGs, ~53/27/20%; DK/FD 3/4/5 + 1 per XP; own rng stream, so other draws are unchanged); grading scores kicker actuals from `fg_made_*`/`pat_made`; completeness counts, props and bias exclude K like DST. The DFS pool leaves out players under 10% offensive snaps in their team's last 3 games (depth-chart starters, DST, K and no-evidence players kept; every drop reported). The change check counts only teams still to play (`510b758`).
