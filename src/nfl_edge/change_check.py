@@ -5,6 +5,8 @@ Re-sim reasons: an availability override for the week whose status changed after
 that differs from the last snapshot at or before the sim. A change touching out / doubtful / IR /
 suspension affects the sim (those players get no usage); questionable is listed only. Market line
 moves are info: market lines never enter the sim, the Lines phase reprices them.
+Only games still to play count: a change on a team that has kicked off (or has no game this
+week) cannot change anything the sim still prices, so it is left out.
 """
 from __future__ import annotations
 
@@ -12,6 +14,27 @@ import json
 from datetime import datetime
 
 SIM_STATUSES = {"out", "doubtful", "ir", "injury_reserve", "suspension"}
+ESPN_TEAMS = {"WSH": "WAS", "LAR": "LA", "JAC": "JAX"}  # ESPN code -> raw.schedules code
+
+
+def team_code(team: str | None) -> str | None:
+    return ESPN_TEAMS.get(team, team) if team else None
+
+
+def drop_started(reasons: list[dict], kickoffs: dict[str, datetime], now: datetime) -> list[dict]:
+    """Keep changes on teams whose game is still to come. Unknown team (None) is kept."""
+    out = []
+    for r in reasons:
+        team = team_code(r.get("team"))
+        if team is not None and (team not in kickoffs
+                                 or (kickoffs[team] is not None and kickoffs[team] <= now)):
+            continue
+        out.append({**r, "team": team})
+    return out
+
+
+def drop_started_lines(lines: list[dict], started: set[str]) -> list[dict]:
+    return [x for x in lines if x["game_id"] not in started]
 SOURCES = (("dk ", "dk"), ("fp ", "fantasypros"), ("rts", "rts"))
 
 
@@ -78,7 +101,11 @@ def line_moves(games: list[dict], tol: float = 0.25) -> list[dict]:
 
 
 def summarize(sim: dict | None, overrides: list[dict], espn: list[dict],
-              lines: list[dict]) -> dict:
+              lines: list[dict], games_left: int | None = None) -> dict:
+    if games_left == 0:
+        return {"sim_run_id": sim["run_id"] if sim else None,
+                "sim_created_at": sim["created_at"] if sim else None,
+                "suggest_resim": False, "reasons": [], "info": []}
     if sim is None:
         return {"sim_run_id": None, "sim_created_at": None, "suggest_resim": True,
                 "reasons": [{"player": None, "team": None, "source": "no-sim", "before": None,
@@ -135,6 +162,19 @@ def load_espn(season: int, since: datetime) -> list[dict]:
     ).to_dicts()
 
 
+def load_kickoffs(season: int, week: int) -> list[dict]:
+    """game_id, home, away, kickoff (ET; a missing time counts as the start of gameday)."""
+    from .db import read_sql
+
+    return read_sql(
+        "select game_id, home_team, away_team, "
+        "((gameday::text || ' ' || coalesce(gametime, '00:00'))::timestamp "
+        "  at time zone 'America/New_York') as kickoff "
+        "from raw.schedules where season = %s and week = %s and game_type = 'REG'",
+        (season, week),
+    ).to_dicts()
+
+
 def load_lines(run_id: str) -> list[dict]:
     from .db import read_sql
 
@@ -148,21 +188,31 @@ def load_lines(run_id: str) -> list[dict]:
     ).to_dicts()
 
 
-def run(season: int, week: int) -> dict:
-    from datetime import timedelta
+def run(season: int, week: int, now: datetime | None = None) -> dict:
+    from datetime import UTC, timedelta
 
     from .db import read_sql
 
+    now = now or datetime.now(UTC)
+    games = load_kickoffs(season, week)
+    kickoffs = {}
+    for g in games:
+        kickoffs[g["home_team"]] = g["kickoff"]
+        kickoffs[g["away_team"]] = g["kickoff"]
+    started = {g["game_id"] for g in games if g["kickoff"] is not None and g["kickoff"] <= now}
+    games_left = len(games) - len(started)
+
     sim = newest_complete_sim(season, week)
     if sim is None:
-        result = summarize(None, [], [], [])
+        result = summarize(None, [], [], [], games_left=games_left)
     else:
         at = sim["created_at"]
         result = summarize(
             sim,
-            override_reasons(load_overrides(season, week), at),
-            espn_reasons(load_espn(season, at - timedelta(days=7)), at),
-            line_moves(load_lines(sim["run_id"])),
+            drop_started(override_reasons(load_overrides(season, week), at), kickoffs, now),
+            drop_started(espn_reasons(load_espn(season, at - timedelta(days=7)), at), kickoffs, now),
+            drop_started_lines(line_moves(load_lines(sim["run_id"])), started),
+            games_left=games_left,
         )
     read_sql(
         "insert into ops.change_checks "

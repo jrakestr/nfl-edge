@@ -91,3 +91,48 @@ def test_summarize_suggests_only_on_sim_relevant_changes():
                                     "SUSPENSION"])
 def test_sim_relevant_statuses(status):
     assert CC.affects_sim(status)
+
+
+# --- only games still to play ---------------------------------------------------------------
+
+def _r(player, team, affects=True):
+    return {"player": player, "team": team, "source": "espn", "before": "ACTIVE", "after": "OUT",
+            "at": at(1).isoformat(), "affects_sim": affects}
+
+
+def test_drop_started_keeps_only_teams_still_to_play():
+    now = at(30)
+    kickoffs = {"NE": at(10), "BUF": at(10), "SF": at(40), "WAS": at(40)}
+    got = CC.drop_started([_r("A", "NE"), _r("B", "SF"), _r("C", "WSH"), _r("D", None)],
+                          kickoffs, now)
+    assert [x["player"] for x in got] == ["B", "C", "D"]
+    assert got[1]["team"] == "WAS"
+
+
+def test_unknown_kickoff_counts_as_still_to_play():
+    assert [x["player"] for x in CC.drop_started([_r("A", "SF")], {"SF": None}, at(30))] == ["A"]
+
+
+def test_drop_started_drops_teams_without_a_game_this_week():
+    got = CC.drop_started([_r("A", "KC")], {"SF": at(40)}, at(30))
+    assert got == []
+
+
+def test_espn_codes_map_to_schedule_codes():
+    assert CC.team_code("WSH") == "WAS"
+    assert CC.team_code("LAR") == "LA"
+    assert CC.team_code("JAC") == "JAX"
+    assert CC.team_code("SF") == "SF"
+    assert CC.team_code(None) is None
+
+
+def test_line_moves_only_for_games_still_to_play():
+    lines = [{"game_id": "g1", "spread": [1.0, 2.0]}, {"game_id": "g2", "total": [40.0, 42.0]}]
+    assert CC.drop_started_lines(lines, {"g1"}) == [{"game_id": "g2", "total": [40.0, 42.0]}]
+
+
+def test_no_game_left_means_no_resim():
+    out = CC.summarize({"run_id": "r", "created_at": T}, [], [], [], games_left=0)
+    assert out["suggest_resim"] is False
+    out = CC.summarize(None, [], [], [], games_left=0)
+    assert out["suggest_resim"] is False and out["reasons"] == []
