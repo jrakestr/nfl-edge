@@ -403,7 +403,7 @@ def fair_props(run_id: str) -> dict:
         return {"run_id": run_id, "n_rows": 0, "by_stat": {}}
     by_path: dict[str, list[dict]] = {}
     for r in loc.to_dicts():
-        if r.get("position") == "DST" or not r.get("draws_path"):
+        if r.get("position") in ("DST", "K") or not r.get("draws_path"):
             continue
         by_path.setdefault(r["draws_path"], []).append(r)
     need = ["player_id", "pass_yds", "pass_td", "int", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td"]

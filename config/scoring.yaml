@@ -41,3 +41,9 @@ dst:
     - {max: 27, pts: 0}
     - {max: 34, pts: -1}
     - {max: 999, pts: -4}
+k:
+  # DK showdown and FanDuel kicker scoring. A made FG pays by distance; no penalty for a miss.
+  xp: 1
+  fg_0_39: 3
+  fg_40_49: 4
+  fg_50_plus: 5

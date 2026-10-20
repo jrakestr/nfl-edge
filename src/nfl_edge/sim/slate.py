@@ -161,6 +161,41 @@ def _dst_frame(team: str, n: int, dst_pts: np.ndarray) -> pl.DataFrame:
     return pl.DataFrame(cols)
 
 
+KICKER_STATS = ("fg_0_39", "fg_40_49", "fg_50_plus", "xp")
+
+
+def kicker_projection(t: TeamDraws, kicker_id: str, game_id: str, mix: list[float], rules: dict,
+                      rng: np.random.Generator) -> tuple[dict, pl.DataFrame, np.ndarray]:
+    """The team's kicker from its own draws: every made FG (split by `mix`) and XP, nothing else.
+
+    Returns (proj_players row, parquet frame, DK points per draw). `rng` is the kicker's own
+    stream, so adding kickers leaves every other draw of the game unchanged.
+    """
+    n = t.fg.shape[0]
+    xp = np.asarray(t.xp_made if t.xp_made is not None else np.zeros(n), dtype=np.int64)
+    short, mid, long_ = scoring.split_fg_by_distance(t.fg, mix, rng)
+    stats = {"fg_0_39": short, "fg_40_49": mid, "fg_50_plus": long_, "xp": xp}
+    pts = scoring.score_kicker(stats, rules)
+    fg = np.asarray(t.fg, dtype=np.int64)
+    row = {
+        "player_id": kicker_id, "game_id": game_id, "team": t.team, "position": "K",
+        "stat_summary": {"fg": _summarize("fg", fg), "xp": _summarize("xp", xp),
+                         **{k: _summarize(k, v) for k, v in stats.items() if k != "xp"},
+                         "fpts_ppr": _summarize("fpts_ppr", pts["ppr"])},
+        "fpts_dk_mean": float(pts["dk"].mean()), "fpts_dk_sd": float(pts["dk"].std()),
+        "fpts_fd_mean": float(pts["fd"].mean()), "fpts_fd_sd": float(pts["fd"].std()),
+    }
+    cols = {"draw_no": np.arange(n, dtype=np.int32),
+            "player_id": np.repeat(np.array([kicker_id], dtype=object), n)}
+    for s_ in PLAYER_STATS:
+        cols[s_] = np.zeros(n, dtype=np.int16)
+    for k in KICKER_STATS:
+        cols[k] = stats[k].astype(np.int16)
+    for site in ("dk", "fd", "ppr"):
+        cols[f"fpts_{site}"] = pts[site].astype(np.float32)
+    return row, pl.DataFrame(cols), pts["dk"]
+
+
 def _histogram(arr: np.ndarray, n_bins: int = 20) -> dict:
     counts, edges = np.histogram(arr, bins=n_bins)
     return {"bins": [round(float(x), 4) for x in edges], "counts": [int(c) for c in counts]}
@@ -308,11 +343,28 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
         })
         frames.append(_dst_frame(t.team, n, dst))
 
+    # Kicker for each side from its own FG/XP draws (own rng stream; other draws unchanged)
+    kicking = getattr(priors, "kicking", None) or {}
+    kickers, mix = kicking.get("kickers") or {}, kicking.get("fg_mix")
+    krng = game_rng(seed, f"{game_id}:K")
+    for _, t, _ in sides:
+        kid = kickers.get(t.team)
+        if kid is None or not mix:
+            checks.append({"game_id": game_id, "team": t.team, "check_name": "kicker_projected",
+                           "value": 0.0, "threshold": 1.0, "passed": False, "severity": "warning",
+                           "detail": "no single active kicker" if mix else "no FG distance history"})
+            continue
+        row, kframe, kdk = kicker_projection(t, kid, game_id, mix, rules, krng)
+        row.update(dk_rates(kdk, salaries.get(kid)))
+        fpts_dk[kid] = kdk
+        proj_players.append(row)
+        frames.append(kframe)
+
     # parquet
     out_dir.mkdir(parents=True, exist_ok=True)
     ppath = out_dir / f"{game_id}.parquet"
     gpath = out_dir / f"{game_id}.game.parquet"
-    pl.concat(frames).write_parquet(ppath, compression="zstd")
+    pl.concat(frames, how="diagonal").write_parquet(ppath, compression="zstd")
     _game_frame(d).write_parquet(gpath, compression="zstd")
     rel = str(ppath.relative_to(ROOT))
     for row in proj_players:
@@ -399,7 +451,7 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
         game_ids = games["game_id"].to_list()
         n_game_files = sum(1 for gid in game_ids if (out_dir / f"{gid}.game.parquet").is_file())
         n_player_files = sum(1 for gid in game_ids if (out_dir / f"{gid}.parquet").is_file())
-        off_games = {row["game_id"] for row in ppl if row.get("position") != "DST"}
+        off_games = {row["game_id"] for row in ppl if row.get("position") not in ("DST", "K")}
         n_player_games = len(off_games)
         chk.append({"game_id": None, "team": None, "check_name": "games_complete",
                     "value": float(n_game_files), "threshold": float(slate_n),
@@ -409,7 +461,7 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
                     "value": float(n_player_games), "threshold": float(slate_n),
                     "passed": n_player_games == slate_n and n_player_files == slate_n,
                     "severity": "invariant",
-                    "detail": f"{n_player_games}/{slate_n} games with non-DST players; "
+                    "detail": f"{n_player_games}/{slate_n} games with offensive players; "
                               f"{n_player_files} player parquet files"})
         proj_games = pl.DataFrame(pg).with_columns(pl.lit(run_id).alias("run_id"))
         proj_players = pl.DataFrame(ppl, infer_schema_length=None).with_columns(

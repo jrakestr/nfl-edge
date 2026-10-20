@@ -1,6 +1,7 @@
 """Vectorized fantasy scoring from config/scoring.yaml. Applied to every draw.
 
-score_offense(stats, rules) -> {"dk", "fd", "ppr"}; score_dst(stats, rules) -> array.
+score_offense(stats, rules) -> {"dk", "fd", "ppr"}; score_dst(stats, rules) -> array;
+score_kicker(stats, rules) -> {"dk", "fd", "ppr"} from FGs by distance and XPs made.
 PPR = DK rules without yardage bonuses and with INT/fumble at -2 (standard full-PPR).
 Captain multiplier is exposed via `captain()` but unused in this slice.
 """
@@ -53,6 +54,29 @@ def score_dst(stats: dict[str, np.ndarray], rules: dict) -> np.ndarray:
         + s["sacks"] * r["sack"] + s["int"] * r["int"] + s["fum_rec"] * r["fumble_rec"]
         + s["td"] * r["td"] + s["safety"] * r["safety"] + s["block_kick"] * r["block_kick"]
     )
+
+
+FG_BUCKETS = ("fg_0_39", "fg_40_49", "fg_50_plus")
+
+
+def split_fg_by_distance(fg: np.ndarray, mix: list[float], rng: np.random.Generator
+                         ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Each draw's made FGs split 0-39 / 40-49 / 50+ by `mix` (shares of made FGs)."""
+    fg = np.asarray(fg, dtype=np.int64)
+    p = np.asarray(mix, dtype=float)
+    p = p / p.sum()
+    short = rng.binomial(fg, p[0])
+    mid = rng.binomial(fg - short, min(1.0, p[1] / max(1e-12, 1.0 - p[0])))
+    return short, mid, fg - short - mid
+
+
+def score_kicker(stats: dict[str, np.ndarray], rules: dict) -> dict[str, np.ndarray]:
+    """DK and FD score kickers the same way; PPR has no kicker scoring, so it mirrors DK."""
+    r = rules["k"]
+    pts = np.asarray(stats.get("xp", 0), dtype=float) * r["xp"]
+    for b in FG_BUCKETS:
+        pts = pts + np.asarray(stats.get(b, 0), dtype=float) * r[b]
+    return {"dk": pts, "fd": pts.copy(), "ppr": pts.copy()}
 
 
 def captain(fpts: np.ndarray, rules: dict, site: str) -> np.ndarray:

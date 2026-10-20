@@ -132,7 +132,7 @@ def load_sim(game_runs: pl.DataFrame, salaries: pl.DataFrame) -> pl.DataFrame:
         return empty
     proj = read_sql(
         "select p.player_id, p.fpts_dk_mean::float8 as sim_dk_mean, p.fpts_dk_sd::float8 as sim_dk_sd, p.draws_path "
-        "from model.proj_players p where p.position <> 'DST' and (p.run_id::text, p.game_id) in "
+        "from model.proj_players p where p.position not in ('DST', 'K') and (p.run_id::text, p.game_id) in "
         "(select run_id, game_id from unnest(%s::text[], %s::text[]) as t(run_id, game_id))",
         (game_runs["run_id"].to_list(), game_runs["game_id"].to_list()),
     )

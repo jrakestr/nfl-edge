@@ -6,7 +6,7 @@ Per draw and team:
   plays = round(drives * plays_per_drive)                                      (never drawn independently)
   fg ~ Bin(drives, fg_per_drive)                          team FG rate held fixed
   p_td = (ppd_adj - 3*fg_per_drive) / (7*(1 - fg_per_drive)) clipped [0.05, 0.6]; td ~ Bin(drives - fg, p_td)
-  pts = 6*td + 3*fg + XP/2-pt outcomes per TD
+  pts = 6*td + 3*fg + XP/2-pt outcomes per TD; xp_made is kept on the draws for the kicker
   pass_att = plays * (neutral_pass_rate + k*sign(margin)*sqrt|margin| + noise) - sacks; rush_att = rest
   td split into pass_td / rush_td by pass_td_share; int ~ Bin(pass_att, int_rate)
 
@@ -73,6 +73,7 @@ class TeamDraws:
     fg: np.ndarray
     pts: np.ndarray
     int: np.ndarray
+    xp_made: np.ndarray | None = None
 
 
 @dataclass
@@ -114,20 +115,21 @@ def solve_p_td(ppd_adj: float, fg_per_drive: float) -> float:
     return float(np.clip((ppd_adj - 3 * fg_per_drive) / (7 * (1 - fg_per_drive)), 0.05, 0.6))
 
 
-def _points(td: np.ndarray, fg: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    """6 per TD + 3 per FG + per-TD conversion: XP (1) or 2-pt (2) or miss (0)."""
+def _points(td: np.ndarray, fg: np.ndarray, rng: np.random.Generator
+            ) -> tuple[np.ndarray, np.ndarray]:
+    """(pts, xp_made): 6 per TD + 3 per FG + per-TD conversion: XP (1) or 2-pt (2) or miss (0)."""
     two_pt_tries = rng.binomial(td, TWO_PT_RATE)
     xp_tries = td - two_pt_tries
     xp_made = rng.binomial(xp_tries, XP_MAKE)
     two_made = rng.binomial(two_pt_tries, TWO_PT_MAKE)
-    return 6 * td + 3 * fg + xp_made + 2 * two_made
+    return 6 * td + 3 * fg + xp_made + 2 * two_made, xp_made
 
 
 def _team_scoring(prior: TeamPrior, drives: np.ndarray, p_td: float, rng: np.random.Generator):
     fg = rng.binomial(drives, prior.fg_per_drive)
     td = rng.binomial(drives - fg, p_td)
-    pts = _points(td, fg, rng)
-    return td, fg, pts
+    pts, xp = _points(td, fg, rng)
+    return td, fg, pts, xp
 
 
 def _team_plays(prior: TeamPrior, drives: np.ndarray, margin: np.ndarray, td: np.ndarray, cfg: dict,
@@ -164,8 +166,8 @@ def simulate_game(home: TeamPrior, away: TeamPrior, ctx: GameContext, n: int,
     drives_h = np.clip(np.round(pace + rng.normal(0, 0.5, n)), MIN_DRIVES, MAX_DRIVES).astype(np.int64)
     drives_a = np.clip(np.round(pace + rng.normal(0, 0.5, n)), MIN_DRIVES, MAX_DRIVES).astype(np.int64)
 
-    td_h, fg_h, pts_h = _team_scoring(home, drives_h, p_td["home"], rng)
-    td_a, fg_a, pts_a = _team_scoring(away, drives_a, p_td["away"], rng)
+    td_h, fg_h, pts_h, xp_h = _team_scoring(home, drives_h, p_td["home"], rng)
+    td_a, fg_a, pts_a, xp_a = _team_scoring(away, drives_a, p_td["away"], rng)
 
     # Overtime: regulation ties get one extra drive for the winner; ~10% stay tied.
     tie = pts_h == pts_a
@@ -186,14 +188,14 @@ def simulate_game(home: TeamPrior, away: TeamPrior, ctx: GameContext, n: int,
             pts[sel] += np.where(fgs, 3, 6)
     margin = (pts_h - pts_a).astype(float)
 
-    def build(prior, drives, td, fg, pts, own_margin):
+    def build(prior, drives, td, fg, pts, xp, own_margin):
         ppd, plays, pa, ra, sk, ptd, rtd, ints = _team_plays(prior, drives, own_margin, td, cfg, rng)
         return TeamDraws(team=prior.team, drives=drives, plays_per_drive=ppd, plays=plays,
                          pass_att=pa, rush_att=ra, sacks=sk, td=td, pass_td=ptd, rush_td=rtd,
-                         fg=fg, pts=pts, int=ints)
+                         fg=fg, pts=pts, int=ints, xp_made=xp)
 
     return GameDraws(
-        home=build(home, drives_h, td_h, fg_h, pts_h, margin),
-        away=build(away, drives_a, td_a, fg_a, pts_a, -margin),
+        home=build(home, drives_h, td_h, fg_h, pts_h, xp_h, margin),
+        away=build(away, drives_a, td_a, fg_a, pts_a, xp_a, -margin),
         ppd_adj=ppd_adj, drives_mean=drives_mean, p_td=p_td,
     )

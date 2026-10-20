@@ -88,7 +88,7 @@ def newest_run(season: int, week: int) -> tuple[str, int, int] | None:
         "select r.run_id::text as run_id, "
         "(select count(*)::int from model.proj_games p where p.run_id = r.run_id) as n_games, "
         "(select count(distinct game_id)::int from model.proj_players p "
-        "  where p.run_id = r.run_id and p.position is distinct from 'DST') as n_player_games "
+        "  where p.run_id = r.run_id and p.position not in ('DST', 'K')) as n_player_games "
         "from model.sim_runs r where r.season = %s and r.week = %s "
         "order by r.created_at desc limit 1",
         (season, week),
@@ -121,7 +121,7 @@ def drop_incomplete(season: int, week: int, after: datetime) -> int:
         "and ("
         "  (select count(*) from model.proj_games p where p.run_id = r.run_id) <> %s"
         "  or (select count(distinct game_id) from model.proj_players p "
-        "      where p.run_id = r.run_id and p.position is distinct from 'DST') <> %s"
+        "      where p.run_id = r.run_id and p.position not in ('DST', 'K')) <> %s"
         ")",
         (season, week, after, n, n),
     )

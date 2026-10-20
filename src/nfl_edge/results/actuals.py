@@ -66,11 +66,28 @@ def return_td_points(stats: dict | None) -> float:
     return RETURN_TD_PTS * sum(_num(raw, k) for k in RETURN_TD_KEYS)
 
 
+KICK_KEYS = {
+    "fg_0_39": ("fg_made_0_19", "fg_made_20_29", "fg_made_30_39"),
+    "fg_40_49": ("fg_made_40_49",),
+    "fg_50_plus": ("fg_made_50_59", "fg_made_60_"),
+    "xp": ("pat_made",),
+}
+
+
+def kicker_points(stats: dict | None, rules: dict) -> float:
+    """Made FGs by distance and XPs, scored like the sim's kicker (0 for anyone who didn't kick)."""
+    if "k" not in rules:
+        return 0.0
+    s = stats or {}
+    made = {k: np.array([sum(_num(s, c) for c in cols)], dtype=float) for k, cols in KICK_KEYS.items()}
+    return float(scoring.score_kicker(made, rules)["dk"][0])
+
+
 def score_weekly(stats: dict | None, rules: dict) -> dict[str, float]:
     mapped = offense_from_weekly(stats)
     arr = {k: np.array([v], dtype=float) for k, v in mapped.items()}
     scored = scoring.score_offense(arr, rules)
-    extra = return_td_points(stats)
+    extra = return_td_points(stats) + kicker_points(stats, rules)
     return {site: float(scored[site][0]) + extra for site in ("dk", "fd", "ppr")}
 
 

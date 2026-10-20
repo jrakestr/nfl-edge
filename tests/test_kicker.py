@@ -124,3 +124,13 @@ def test_kicker_points_never_exceed_team_kicking_points(draws):
     _, _frame, dk = slate.kicker_projection(t, "k", "G1", MIX, RULES, np.random.default_rng(6))
     assert (dk >= t.xp_made + 3 * t.fg).all()
     assert (dk <= t.xp_made + 5 * t.fg).all()
+
+
+def test_graded_kicker_actual_matches_sim_scoring():
+    from nfl_edge.results import actuals
+
+    stats = {"fg_made_30_39": 1, "fg_made_40_49": 1, "fg_made_50_59": 1, "pat_made": 3}
+    assert actuals.kicker_points(stats, RULES) == 3 + 4 + 5 + 3
+    assert actuals.score_weekly(stats, RULES)["dk"] == 15.0
+    # skill players are untouched by kicking
+    assert actuals.kicker_points({"receptions": 5}, RULES) == 0.0

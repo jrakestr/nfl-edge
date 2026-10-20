@@ -76,7 +76,7 @@ export async function runsForWeekWithLineups(
     select r.run_id, r.season, r.week, r.created_at, r.draws_per_game, r.git_sha,
            (select count(*)::int from model.proj_games p where p.run_id = r.run_id) as n_games,
            (select count(distinct game_id)::int from model.proj_players p
-             where p.run_id = r.run_id and p.position is distinct from 'DST') as n_player_games,
+             where p.run_id = r.run_id and p.position not in ('DST', 'K')) as n_player_games,
            exists (
              select 1 from model.proj_games p
              where p.run_id = r.run_id
@@ -119,7 +119,7 @@ export async function runsForWeek(season: number, week: number): Promise<RunWith
     select r.run_id, r.season, r.week, r.created_at, r.draws_per_game, r.git_sha,
            (select count(*)::int from model.proj_games p where p.run_id = r.run_id) as n_games,
            (select count(distinct game_id)::int from model.proj_players p
-             where p.run_id = r.run_id and p.position is distinct from 'DST') as n_player_games,
+             where p.run_id = r.run_id and p.position not in ('DST', 'K')) as n_player_games,
            exists (
              select 1 from model.proj_games p
              where p.run_id = r.run_id

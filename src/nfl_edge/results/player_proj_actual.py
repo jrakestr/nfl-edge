@@ -188,7 +188,7 @@ def build_week(season: int, week: int) -> dict:
     proj_df = read_sql(
         "select run_id::text as run_id, player_id, game_id, team, position, "
         "fpts_dk_mean::float8 as fpts_dk_mean, stat_summary, draws_path "
-        "from model.proj_players where run_id = any(%s::uuid[]) and position is distinct from 'DST'",
+        "from model.proj_players where run_id = any(%s::uuid[]) and position not in ('DST', 'K')",
         (sorted(set(chosen.values())),),
     )
     proj = [r for r in proj_df.to_dicts() if chosen.get(str(r["game_id"])) == r["run_id"]]
