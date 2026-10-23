@@ -10,7 +10,8 @@ GitHub → nfl-edge → Actions → **Run phase** → Run workflow: pick a phase
 salaries, sim, lines, props, dfs, grade), optionally "run from here" through DFS, week, slate,
 draws, field size, iterations. One pipeline run at a time. DFS upload CSVs are attached to the
 run as an artifact. **Refresh** is the only schedule (Thu–Mon 9:00, 12:00, 15:00, 18:00 Phoenix)
-and also has its own button.
+and also has its own button. That scheduled run includes a full `ingest espn-league` (standings,
+scores, rosters, transactions). The LOC page button dispatches `loc.yml`, which is that pull alone.
 
 Salary files and draws reach the runner through private Supabase Storage:
 `nfl-edge storage push-salaries --week W` after saving the DK CSVs, and
@@ -118,7 +119,7 @@ Verify: `launchctl print gui/$(id -u)/com.nfl-edge.week-grade` shows Tuesday 09:
 - Does not write: either table when the roster or the pool comes back empty, or when the fetch fails. A status change between two pulls is invisible until the next successful pull. `/league` shows the pull time next to every status.
 - Log: `output/cron-loc-snapshot.log`.
 
-Command: `nfl-edge ingest espn-league --season 2026 --snapshot-only`. Needs `ESPN_S2` and `ESPN_SWID` in `.env`. An output that matches `ops/unreachable.sh` logs `unreachable, skipped` and exits 0. An ESPN API error is raised as `ESPN request failed (...); nothing was written` and exits non-zero. An empty roster or an empty pool exits non-zero with its own message and writes nothing. A full `ingest espn-league` (not this job) also appends a status set and replaces the pool.
+Command: `nfl-edge ingest espn-league --season 2026 --snapshot-only`. Needs `ESPN_S2` and `ESPN_SWID` in `.env`. An output that matches `ops/unreachable.sh` logs `unreachable, skipped` and exits 0. An ESPN API error is raised as `ESPN request failed (...); nothing was written` and exits non-zero. An empty roster or an empty pool exits non-zero with its own message and writes nothing. A full `ingest espn-league` (not this job) also appends a status set and replaces the pool. Standings and the Pulled from ESPN stamp on `/league` move only on that full pull.
 
 The window is Thursday through Monday, 06:00–19:59 Phoenix. Tuesday and Wednesday never pull. A change at or after 20:00 Phoenix waits until the next open hour: Friday 06:00 after Thursday, Thursday 06:00 after Monday.
 

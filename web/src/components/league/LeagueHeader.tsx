@@ -1,4 +1,5 @@
 import { PulledBadge } from "@/components/league/PulledBadge";
+import { UpdateLocButton } from "@/components/league/UpdateLocButton";
 import { isViewerTeam, progressLabel } from "@/lib/league";
 import { leagueTeams, leagueWeekStates } from "@/lib/queries/league";
 
@@ -10,7 +11,10 @@ export async function LeagueHeader({ season, title = "League of Champions" }: { 
   const yours = teams.find((t) => isViewerTeam(t.espn_team_id));
   return (
     <header>
-      <h1 className="t-title">{title}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="t-title">{title}</h1>
+        <UpdateLocButton season={season} asOf={asOf} />
+      </div>
       <p className="mt-1 flex flex-wrap items-baseline gap-x-4 t-caption">
         <span>{season} season</span>
         {progress ? <span>{progress}</span> : null}

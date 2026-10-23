@@ -227,7 +227,11 @@ def _each_week(cmd: str, then: Callable[[int], list[list[str]]]) -> Callable:
 
 
 def _refresh(ctx: Context) -> list[Step]:
-    """Lines and scores, injuries, league status, grade what finished, then the change check."""
+    """Lines and scores, injuries, full LOC pull, grade what finished, then the change check.
+
+    The LOC step is the full `ingest espn-league` (standings, scores, rosters, transactions),
+    which also appends a status snapshot. `--snapshot-only` does not move standings.
+    """
     sw = ctx.sw()
     season = ["--season", str(ctx.season)]
     return [
@@ -236,7 +240,7 @@ def _refresh(ctx: Context) -> list[Step]:
         _step("ingest", *season, "--lines-only", soft=True),
         Step(fn=_each_week("stale-weeks", lambda w: [["lines", *season, "--week", str(w)]])),
         _step("ingest", "fantasypros-status", *sw, soft=True),
-        _step("ingest", "espn-league", *season, "--snapshot-only", soft=True),
+        _step("ingest", "espn-league", *season, soft=True),
         _step("ingest", "live", *sw, soft=True),
         _step("actuals", *sw, soft=True),
         Step(fn=_each_week("ungraded-completed", lambda w: [

@@ -1,0 +1,58 @@
+# Full League of Champions pull. Dispatched by the "Update LOC stats" button on /league.
+# Standings also move on the scheduled Refresh (phase refresh). This workflow is the pull alone.
+# The repo is public: never echo a secret or a URL that holds one.
+name: Update LOC
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: Season
+        type: string
+        default: "2026"
+
+concurrency:
+  group: nfl-edge-loc
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  loc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ESPN_S2: ${{ secrets.ESPN_S2 }}
+      ESPN_SWID: ${{ secrets.ESPN_SWID }}
+      SEASON: ${{ inputs.season }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          missing=""
+          for k in DATABASE_URL ESPN_S2 ESPN_SWID; do
+            [ -n "${!k}" ] || missing="$missing $k"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: Apply migrations
+        run: uv run nfl-edge db migrate
+
+      - name: Update LOC
+        run: |
+          case "$SEASON" in
+            ''|*[!0-9]*) echo "::error::Season must be a year"; exit 1 ;;
+          esac
+          uv run nfl-edge ingest espn-league --season "$SEASON"

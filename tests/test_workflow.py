@@ -242,6 +242,8 @@ def test_refresh_order_and_never_sims():
                      ["ungraded-completed", "--season"], ["change-check", "--season"]]
     assert not any(c[0] == "sim" for c in run.calls)
     assert all(s.soft for s in steps if s.args and s.args[0] == "ingest")
+    espn = [c for c in run.calls if c[:2] == ["ingest", "espn-league"]]
+    assert espn == [["ingest", "espn-league", "--season", "2026"]]
 
 
 def test_refresh_lines_each_stale_week_and_grades_finished_ones():

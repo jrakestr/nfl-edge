@@ -3,9 +3,12 @@
 ## Data boundary
 - Read-only, except: `model.market_props` insert, `model.usage_claims` insert,
   `model.llm_calls` logging, the one-row promote `usage_claims` →
-  `raw.player_overrides`, and /workflow: GitHub `workflow_dispatch` of phase.yml and DK CSV
-  upload to the private `salary-files` bucket. Both sit behind `WORKFLOW_PASSWORD`; the
-  dispatch token and service key are server env only. No long job runs in a request.
+  `raw.player_overrides`, /workflow: GitHub `workflow_dispatch` of phase.yml and DK CSV
+  upload to the private `salary-files` bucket, and the LOC page button, which starts
+  `ingest espn-league` only. On Vercel that is `workflow_dispatch` of `loc.yml`. Off Vercel
+  it is a detached process in this repo. Workflow writes sit behind `WORKFLOW_PASSWORD`.
+  The LOC button does not: it only starts that pull. The dispatch token and service
+  key are server env only. No long job runs in a request.
 - Research Lab (`/research`): inserts and deletes rows of `model.research_metrics` (the user's
   display-only metrics). Fields come from `model.research_fields`, built in Python by
   `nfl-edge research build --week W` from weeks before W; the page scores them in TS and never

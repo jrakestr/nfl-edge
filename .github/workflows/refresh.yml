@@ -1,5 +1,6 @@
-# The only scheduled job: fresh lines, scores, injury status, grading of finished weeks, and the
-# change check. Thu–Mon at 9 AM, noon, 3 PM and 6 PM Phoenix (UTC-7, no DST); 3 Odds API credits each.
+# The only scheduled job: fresh lines, scores, injury status, a full LOC pull (standings, not
+# snapshot-only), grading of finished weeks, and the change check. Thu–Mon at 9 AM, noon, 3 PM
+# and 6 PM Phoenix (UTC-7, no DST); 3 Odds API credits each. The LOC page button uses loc.yml.
 # Also has a Run workflow button. Everything else is button-only (phase.yml).
 name: Refresh
 
