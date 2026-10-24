@@ -49,10 +49,12 @@ STAT_COLS = {
     "FantasyPoints": "fpts_dk",
 }
 
+OPTIONAL_STAT_COLS = ("pass_att", "pass_cmp", "rush_att", "rec")
+
 DB_COLS = [
     "source", "season", "week", "player_id", "name", "team", "opponent",
-    "game_id", "pass_yds", "pass_td", "pass_int", "rush_yds", "rush_td",
-    "rec_yds", "rec_td", "fpts_dk",
+    "game_id", "pass_att", "pass_cmp", "pass_yds", "pass_td", "pass_int",
+    "rush_att", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td", "fpts_dk",
 ]
 
 KEY_COLS = ["source", "season", "week", "name", "team"]
@@ -98,11 +100,255 @@ def parse_csv(path: Path) -> list[dict]:
             opponent = map_team(opp_full)
         except UnmappedTeam as e:
             raise UnmappedTeam(f"{opp_full!r} (player {name!r})") from e
-        row = {"name": name, "team": team, "opponent": opponent}
+        row = {
+            "name": name,
+            "team": team,
+            "opponent": opponent,
+            "team_full": team_full,
+            "opp_full": opp_full,
+        }
         for csv_col, db_col in STAT_COLS.items():
             row[db_col] = _num(rec.get(csv_col), csv_col, name)
         rows.append(row)
     return rows
+
+
+def _dk_offense_fpts(row: dict, rules: dict) -> float:
+    r = rules["dk"]
+    pass_yds = row.get("pass_yds") or 0.0
+    pass_td = row.get("pass_td") or 0.0
+    pass_int = row.get("pass_int") or 0.0
+    rush_yds = row.get("rush_yds") or 0.0
+    rush_td = row.get("rush_td") or 0.0
+    rec = row.get("rec") or 0.0
+    rec_yds = row.get("rec_yds") or 0.0
+    rec_td = row.get("rec_td") or 0.0
+    pts = (
+        pass_yds * r["pass_yd"] + pass_td * r["pass_td"] + pass_int * r["int"]
+        + rush_yds * r["rush_yd"] + rush_td * r["rush_td"]
+        + rec * r["rec"] + rec_yds * r["rec_yd"] + rec_td * r["rec_td"]
+    )
+    if pass_yds >= 300.0:
+        pts += r.get("pass_300_bonus", 0)
+    if rush_yds >= 100.0:
+        pts += r.get("rush_100_bonus", 0)
+    if rec_yds >= 100.0:
+        pts += r.get("rec_100_bonus", 0)
+    return round(pts, 1)
+
+
+def _dk_dst_fpts(pts_allowed: float, sacks: float, ints: float, rules: dict) -> float:
+    r = rules["dst"]
+    pa_pts = -4.0
+    for b in sorted(r["points_allowed"], key=lambda x: x["max"]):
+        if round(pts_allowed) <= b["max"]:
+            pa_pts = float(b["pts"])
+            break
+    return round(pa_pts + sacks * r["sack"] + ints * r["int"], 1)
+
+
+def parse_paste(
+    text: str,
+    schedules: pl.DataFrame | None = None,
+    scoring_rules: dict | None = None,
+) -> list[dict]:
+    """Parse an NFLGameSim multi-table paste (Fantasy Points, Passing, Rushing, Receiving,
+    Kicking, Punting, Defense) into merged player rows. Pure.
+    """
+    if scoring_rules is None:
+        from ..config import load_yaml
+
+        scoring_rules = load_yaml("scoring.yaml")
+
+    full_by_abbr: dict[str, str] = {}
+    from ..ingest.odds_api import TEAM_NAMES
+
+    for full_name, abbr in TEAM_NAMES.items():
+        full_by_abbr.setdefault(abbr, full_name)
+
+    opp_by_team: dict[str, str] = {}
+    if schedules is not None and not schedules.is_empty():
+        for s in schedules.iter_rows(named=True):
+            h, a = str(s["home_team"]), str(s["away_team"])
+            opp_by_team[h] = a
+            opp_by_team[a] = h
+
+    lines = [ln.strip() for ln in (text or "").splitlines()]
+    section: str | None = None
+    players: dict[tuple[str, str], dict] = {}
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        if not ln or ln.startswith("Show All"):
+            i += 1
+            continue
+        if ln.startswith("Fantasy Points"):
+            section = "fpts"
+            i += 1
+            while i < len(lines) and (lines[i].startswith("Player\t") or lines[i] == "Points"):
+                i += 1
+            continue
+        if ln in ("Passing", "Rushing", "Receiving", "Kicking", "Punting", "Defense"):
+            section = ln.lower()
+            i += 1
+            if i < len(lines) and (lines[i].startswith("Player\t") or lines[i].startswith("Team\t")):
+                i += 1
+            continue
+
+        if section == "defense":
+            if "\t" in ln:
+                parts = [p.strip() for p in ln.split("\t")]
+                team_full = parts[0]
+                try:
+                    team = map_team(team_full)
+                except UnmappedTeam as e:
+                    raise UnmappedTeam(f"{team_full!r} (defense)") from e
+                opp = opp_by_team.get(team)
+                if not opp:
+                    i += 1
+                    continue
+                opp_full = full_by_abbr.get(opp, opp)
+                vals = [_num(x, "defense", team_full) for x in parts[1:]]
+                # PTS ALLOWED, TKLS, TFL, SACKS, INTS
+                pts_allowed, _, _, sacks, ints = vals[:5]
+                key = (team_full, team)
+                players[key] = {
+                    "name": team_full,
+                    "team": team,
+                    "opponent": opp,
+                    "team_full": team_full,
+                    "opp_full": opp_full,
+                    "position": "DST",
+                    "pass_att": None,
+                    "pass_cmp": None,
+                    "pass_yds": 0.0,
+                    "pass_td": 0.0,
+                    "pass_int": 0.0,
+                    "rush_att": None,
+                    "rush_yds": 0.0,
+                    "rush_td": 0.0,
+                    "rec": None,
+                    "rec_yds": 0.0,
+                    "rec_td": 0.0,
+                    "fpts_dk": _dk_dst_fpts(pts_allowed, sacks, ints, scoring_rules),
+                }
+            i += 1
+            continue
+
+        if i + 1 < len(lines) and "\t" in lines[i + 1] and " vs " in lines[i + 1]:
+            name = ln
+            parts = [p.strip() for p in lines[i + 1].split("\t")]
+            matchup = parts[0]
+            team_full, opp_full = (p.strip() for p in matchup.split(" vs ", 1))
+            try:
+                team = map_team(team_full)
+            except UnmappedTeam as e:
+                raise UnmappedTeam(f"{team_full!r} (player {name!r})") from e
+            try:
+                opp = map_team(opp_full)
+            except UnmappedTeam as e:
+                raise UnmappedTeam(f"{opp_full!r} (player {name!r})") from e
+            vals = [_num(x, section or "stat", name) for x in parts[1:]]
+
+            if section == "punting":
+                i += 2
+                continue
+
+            key = (name, team)
+            rec = players.setdefault(
+                key,
+                {
+                    "name": name,
+                    "team": team,
+                    "opponent": opp,
+                    "team_full": team_full,
+                    "opp_full": opp_full,
+                    "pass_att": None,
+                    "pass_cmp": None,
+                    "pass_yds": 0.0,
+                    "pass_td": 0.0,
+                    "pass_int": 0.0,
+                    "rush_att": None,
+                    "rush_yds": 0.0,
+                    "rush_td": 0.0,
+                    "rec": None,
+                    "rec_yds": 0.0,
+                    "rec_td": 0.0,
+                    "fpts_dk": None,
+                    "_has_fpts": False,
+                },
+            )
+            if section == "fpts":
+                (
+                    rec["pass_yds"],
+                    rec["pass_td"],
+                    rec["pass_int"],
+                    rec["rush_yds"],
+                    rec["rush_td"],
+                    rec["rec_yds"],
+                    rec["rec_td"],
+                    rec["fpts_dk"],
+                ) = vals[:8]
+                rec["_has_fpts"] = True
+            elif section == "passing":
+                # ATT, CP, PCT, YDS, AVG, TD, INT, LG, RTG
+                rec["pass_att"] = vals[0]
+                rec["pass_cmp"] = vals[1]
+                if not rec["_has_fpts"]:
+                    rec["pass_yds"] = round(vals[3], 1)
+                    rec["pass_td"] = round(vals[5], 1)
+                    rec["pass_int"] = round(vals[6], 1)
+            elif section == "rushing":
+                # ATT, YDS, AVG, LG, TD
+                rec["rush_att"] = vals[0]
+                if not rec["_has_fpts"]:
+                    rec["rush_yds"] = round(vals[1], 1)
+                    rec["rush_td"] = round(vals[4], 1)
+            elif section == "receiving":
+                # ATT, YDS, AVG, LG, TD
+                rec["rec"] = vals[0]
+                if not rec["_has_fpts"]:
+                    rec["rec_yds"] = round(vals[1], 1)
+                    rec["rec_td"] = round(vals[4], 1)
+            elif section == "kicking":
+                # ATT, MADE, PCT, LG, XP, PTS
+                rec["fpts_dk"] = round(vals[5], 1)
+            i += 2
+            continue
+
+        i += 1
+
+    rows = []
+    for rec in players.values():
+        rec.pop("_has_fpts", None)
+        if rec["fpts_dk"] is None:
+            rec["fpts_dk"] = _dk_offense_fpts(rec, scoring_rules)
+        rows.append(rec)
+    rows.sort(key=lambda r: (-r["fpts_dk"], r["name"]))
+    return rows
+
+
+def write_csv(rows: list[dict], path: Path) -> Path:
+    """Write rows in the canonical 9-column NFLGameSim player CSV format."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f, quoting=csv.QUOTE_ALL, lineterminator="\n")
+        w.writerow(CSV_COLS)
+        for r in rows:
+            player_cell = f"{r['name']} \n{r['team_full']} vs {r['opp_full']}"
+            w.writerow([
+                player_cell,
+                f"{r['pass_yds']:.1f}",
+                f"{r['pass_td']:.1f}",
+                f"{r['pass_int']:.1f}",
+                f"{r['rush_yds']:.1f}",
+                f"{r['rush_td']:.1f}",
+                f"{r['rec_yds']:.1f}",
+                f"{r['rec_td']:.1f}",
+                f"{r['fpts_dk']:.1f}",
+            ])
+    return path
 
 
 def game_lookup(schedules: pl.DataFrame) -> dict[frozenset, list[str]]:
@@ -147,8 +393,16 @@ def attach_ids(
     prepared = catalog if "_dn" in catalog.columns else N.prepare_catalog(catalog)
     unmatched = []
     for row in rows:
-        m = N.match_one({"player": row["name"], "team": row["team"]},
-                        prepared, aliases, teams)
+        m = N.match_one(
+            {
+                "player": row["name"],
+                "team": row["team"],
+                "position": row.get("position"),
+            },
+            prepared,
+            aliases,
+            teams,
+        )
         row["player_id"] = m.player_id
         row["match_reason"] = m.reason or "matched"
         if m.player_id is None:
@@ -171,11 +425,15 @@ def _to_db_frame(rows: list[dict], season: int, week: int) -> pl.DataFrame:
         "team": pl.Utf8,
         "opponent": pl.Utf8,
         "game_id": pl.Utf8,
+        "pass_att": pl.Float64,
+        "pass_cmp": pl.Float64,
         "pass_yds": pl.Float64,
         "pass_td": pl.Float64,
         "pass_int": pl.Float64,
+        "rush_att": pl.Float64,
         "rush_yds": pl.Float64,
         "rush_td": pl.Float64,
+        "rec": pl.Float64,
         "rec_yds": pl.Float64,
         "rec_td": pl.Float64,
         "fpts_dk": pl.Float64,
@@ -189,6 +447,7 @@ def _to_db_frame(rows: list[dict], season: int, week: int) -> pl.DataFrame:
         "team": r["team"],
         "opponent": r.get("opponent"),
         "game_id": r.get("game_id"),
+        **{c: r.get(c) for c in OPTIONAL_STAT_COLS},
         **{c: r[c] for c in STAT_COLS.values()},
     } for r in rows]
     return pl.DataFrame(recs, schema=schema) if recs else pl.DataFrame(schema=schema)
