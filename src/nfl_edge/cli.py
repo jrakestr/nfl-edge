@@ -1743,12 +1743,46 @@ def research_audit(
         f"VETO={vc.get('VETO', 0)} NO_READ={vc.get('NO_READ', 0)}"
     )
     for p in r["players"]:
-        if p["verdict"] in ("VETO", "FLAG") or p["boost"]:
-            tag = f"{p['verdict']}{'+BOOST' if p['boost'] else ''}"
+        if p["verdict"] in ("VETO", "FLAG") or p["boost"] or p.get("chalk"):
+            tag = f"{p['verdict']}{'+BOOST' if p['boost'] else ''}{' CHALK' if p.get('chalk') else ''}"
+            reasons = list(p["reasons"]) + ([p["chalk"]] if p.get("chalk") else [])
             typer.echo(
                 f"  [{tag}] {p['name']} ({p['position']} {p['team']} ${p['salary']}): "
-                + "; ".join(p["reasons"])
+                + "; ".join(reasons)
             )
+    ch = r["chalk"]
+    hist = ",".join(str(w) for w in ch["history_weeks"]) or "none"
+    typer.echo(f"  chalk: {ch['tagged']} tagged of {ch['projected']} projected (contest history wk {hist})")
+
+
+@research_app.command("chalk")
+def research_chalk(
+    week: int = typer.Option(..., help="NFL week"),
+    season: int = typer.Option(2026),
+    slate: str = typer.Option("main"),
+    site: str = typer.Option("dk"),
+):
+    """Repeat-chalk tags for the week and, once its contest is loaded, how the tags did."""
+    from .research import chalk as C
+
+    t = C.tags(season, week, slate=slate, site=site)
+    hist = ",".join(str(w) for w in t["history_weeks"]) or "none"
+    typer.echo(f"chalk {season} wk{week} {slate}: {len(t['reasons'])} tagged of {t['projected']} projected "
+               f"(history wk {hist})")
+    if not t["projected"]:
+        typer.echo("  no model.dfs_exposure rows for this slate; nothing to tag")
+    for pid, reason in sorted(t["reasons"].items(), key=lambda kv: kv[1]):
+        typer.echo(f"  {t['names'].get(pid, pid)}: {reason}")
+    g = C.grade(season, week, slate=slate, site=site)
+    if not g["has_contest"]:
+        typer.echo(f"  grade: no week {week} Main contest loaded yet")
+        return
+    fmt = lambda x: "n/a" if x is None else f"{x * 100:.0f}%"
+    typer.echo(f"  grade wk{week}: tagged bust {fmt(g['tagged_bust_rate'])} ({len(g['tagged'])}) vs "
+               f"untagged chalk bust {fmt(g['untagged_bust_rate'])} ({g['untagged_chalk']})")
+    for x in g["tagged"]:
+        typer.echo(f"    {x['name']} ({x['position']} ${x['salary']}): field {x['own_actual'] * 100:.0f}% "
+                   f"(proj {x['own_proj'] * 100:.0f}%), {x['pts_per_k']:.2f} pts/$k {'BUST' if x['bust'] else 'paid'}")
 
 
 

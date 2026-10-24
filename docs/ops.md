@@ -192,6 +192,10 @@ The contest is tied to a salary slate only when the slate covers the contest's p
 
 `nfl-edge ingest dk-history <file>` and `nfl-edge ingest dk-standings <file> ...` load one history file or explicit standings files. Run history first so your own entries get slot rows.
 
+DK deletes the standings export after about 30 days (the URL returns 0 bytes). For those contests, `ops/dk-ownership.js` pasted into a logged-in draftkings.com console (`dkOwnership([<contest_key>, ...])`) downloads `dk-ownership-<id>.json` from the gamecenter API: top ~500 entry rosters, each carrying DK's contest-wide `percentDrafted` and points per player. `nfl-edge ingest dk-ownership <file> ...` loads it with `source = 'api'`: ownership and FPTS are real, the field size comes from the history row, and the top-1% columns stay null because the full field is not available. A contest already loaded from a full CSV is not overwritten without `--force`. Export the main-slate standings zip in the Tuesday checklist so this path stays the exception.
+
+`nfl-edge research chalk --week W` prints the repeat-chalk tags for the week (projected field ownership ≥ 15% and busted under 2.5 DK pts/$1k in ≥ 2 prior chalk weeks this season) and, once week W's Main contest is loaded, the bust rate of tagged versus untagged chalk. The same tag appears as `CHALK` beside the Jev verdict in `research audit` output; it never changes the verdict.
+
 ### FantasyPros
 
 Key: `FANTASY_PROS_API_KEY` in `.env` (CLI only, never `web/.env.local`). Reference docs: `docs/vendor/fantasypros/`. One call per command (free tier). `week-rebuild.sh` runs status, the projections benchmark, and rankings. A missing key or a failed call prints one line and the rebuild continues.

@@ -8,6 +8,7 @@ Evaluates the player pool for `(season, week, slate)` against `AUDIT_QUESTIONS` 
   - Enforces `--max-usd` (default $0.10) before making any API call.
   - Appends raw judgments to `model.jev_judgments` (`insert_ignore`).
   - Evaluates player verdicts (`KEEP`, `FLAG`, `VETO`, `NO_READ`) deterministically in code.
+  - Adds a numeric repeat-chalk tag per player (`chalk.py`) beside the verdict; it never changes it.
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ import polars as pl
 
 from ..db import insert_ignore, read_sql
 from . import audit_state as S
+from . import chalk as C
 from .audit_questions import (
     AUDIT_QUESTIONS,
     PINNED_JEV_MODEL,
@@ -209,6 +211,9 @@ def run_audit(
         df = pl.DataFrame(new_rows, schema=JUDGMENTS_SCHEMA)
         written = insert_ignore(df, "model.jev_judgments")
 
+    # Repeat-chalk tag: numeric, from contest history + projected ownership. Never touches the verdict.
+    chalk = C.tags(season, week, slate=slate, site=site)
+
     player_summaries: list[dict[str, Any]] = []
     counts = {"KEEP": 0, "FLAG": 0, "VETO": 0, "NO_READ": 0}
     for item in selected:
@@ -227,6 +232,7 @@ def run_audit(
             "verdict": ev.verdict,
             "reasons": ev.reasons,
             "boost": ev.boost_signal,
+            "chalk": chalk["reasons"].get(t.player_id),
             "state_hash": item["state_hash"],
         })
 
@@ -242,5 +248,7 @@ def run_audit(
         "models_resolved": sorted(resolved_models),
         "written_rows": written,
         "verdict_counts": counts,
+        "chalk": {"tagged": len(chalk["reasons"]), "projected": chalk["projected"],
+                  "history_weeks": chalk["history_weeks"]},
         "players": player_summaries,
     }

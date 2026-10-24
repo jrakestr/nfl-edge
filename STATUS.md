@@ -1,5 +1,21 @@
 # Status
 
+## Repeat-chalk tag + API ownership for purged contests (2026-10-24)
+
+What changed: DK had purged the standings export for weeks 2–4 (0-byte downloads). `ops/dk-ownership.js` pulls per-player `percentDrafted` and points from the gamecenter API (top ~500 rosters) and `nfl-edge ingest dk-ownership` loads it into `raw.dk_contests` with `source='api'` (migration 0052: `source` column, `top1_rank`/`top1_score` nullable; web `top1Score` nullable, Slate review says "API load; no top-1% line"). Weeks 2, 3, 4 Main (`$175K mini-MAX`) are loaded; week 1 Millionaire loaded from the CSV the operator still had. Six-week chalk study (122 players ≥ 15% owned): bust rate (< 2.5 pts/$1k) is 42% at ≥ $7k, 49% at $5.5–6.9k, 58% under $5.5k, and 54% for 15–30% owned vs 54% for 5–15% owned — no bucket signal, so the position × salary idea is dropped. Signal is per player: Bijan (wk 2, 6), Jeanty (2, 6), Chase (1, 2, 4), St. Brown (1, 3, 5), G. Wilson (1–4) busted ≥ 2 of their chalk weeks; Gibbs, K. Walker, Lamb, A. Jones never did. `src/nfl_edge/research/chalk.py` tags a player when `own_field_sim ≥ 0.15` and he busted in ≥ 2 prior chalk weeks (as-of `week < W`); `research audit` prints `CHALK` beside the Jev verdict (verdict unchanged, zero extra Jev calls) and `research chalk --week W` prints tags plus the tagged-vs-untagged bust rate once the week's contest is loaded. Week 7 tags Bijan (projected 15%).
+
+What was verified: `tests/test_dk_contests.py` 27, `tests/test_chalk.py` 3, `tests/test_jev_audit.py` green; ruff clean on touched files; web lint, typecheck, review tests; `npm run types:gen` committed. Live: `research chalk --week 6` tagged G. Wilson (he was not chalk in week 6's contest, so no grade row); untagged week-6 chalk bust 41% (17 players).
+
+What was deferred: `CHALK` in the web Research Lab (it recomputes verdicts in TS from `model.jev_judgments`; tag needs a query against `raw.dk_contests` + `model.dfs_exposure`). Lineup-level lift (points with vs without a player over the full field) for weeks 1, 5, 6. Our-entry `percentDrafted` vs `own_field_sim` calibration. Tuesday checklist: export the Main standings zip before DK purges it.
+
+## Contest history page + week bets panel (2026-10-24)
+
+What changed: added `/history` (`web/src/lib/contest-history.ts`, `queries/contest-history.ts`, `components/history/{ContestHistory,NetBySeason,CumulativeNet,RoiByBucket,HistoryTables}.tsx`, `app/history/page.tsx`) reading `raw.dk_entry_history` with GET sport/format filters (default NFL Classic), 6 summary tiles, SVG season/cumulative/fee charts, and field-size + top-finishes tables, plus the DFS sidebar link (`config.ts`, `icons.ts`, `slate.ts`, `breadcrumbs.ts`). Added fail-closed `weekBets` (`web/src/lib/bets.ts`) and `<BetsPanel>` (`components/board/BetsPanel.tsx`, wired in `WeekBoard.tsx` above `WeekScoreboard`) gating on unstarted games, check status `ok`/`warn`, `spread_gap_vs_market`/`total_gap_vs_market` check-news warnings, and `edge >= 0.03` with quarter-Kelly and flat 1.0u stakes, or grouped withheld reasons when zero bets clear.
+
+What was verified: `npm run lint && npm run typecheck && npm test && npm run build` in `web/` (109 test files, 739 tests, query-schema check, and production build green, covering Scenarios 1–11).
+
+What was deferred: prop bets panel (prop lines are manual and sparse); interactive bankroll dollar input (stakes render as quarter-Kelly % of bankroll plus flat 1.0u).
+
 ## Graded player weeks were missing (2026-10-24)
 
 What changed: `player_proj_actual.game_runs` grades a final game with no pre-kickoff run against the earliest run that projected it. Backfill wrote DET@BUF week 2 (28 players), ATL@GB week 3 (27), and all of week 4 (500). Weeks 2 and 3 only inserted games that had no rows, so stored DK p50 stayed.

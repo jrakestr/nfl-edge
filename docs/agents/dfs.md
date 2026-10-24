@@ -31,6 +31,13 @@
 - GPP field size must exceed lineups entered, or fail closed.
 - `model.dfs_exposure` columns: `own_ours` / `own_field_proj` / `own_field_sim`.
   Hide the panel when `own_field_sim` is null.
+- Chalk is judged per player, not per bucket: six 2026 Main weeks showed chalk at any
+  salary tier or position busting at the same ~50% rate as 5–15% owned players. The
+  `CHALK` tag (`research/chalk.py`) fires only on a player's own repeated busts at
+  ≥ 15% field ownership. It is numeric and never a Jev question; it sits beside the
+  Jev verdict and never changes it.
+- `raw.dk_contests.source`: `standings` (full CSV) or `api` (gamecenter pull for purged
+  exports; top-1% columns null). Anything reading `top1_score`/`top1_rate` handles null.
 - Every lineup is re-audited by `dfs/validate.py` from `raw.dk_salaries` (never the
   optimizer CSV) before persist/upload: roster shape, slot position, cap recomputed
   from slate salaries, ≥2 games (classic), CPT row + both teams (showdown), no
