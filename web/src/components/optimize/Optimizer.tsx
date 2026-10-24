@@ -24,7 +24,8 @@ import {
   type ConstructionId,
 } from "@/lib/optimize/construction";
 import { applySolveControls, parseSolveControls } from "@/lib/optimize/controls-url";
-import { poolFromPlayers } from "@/lib/optimize/pool";
+import { POINT_SOURCE_LABEL, POINT_SOURCES, projectionPoints } from "@/lib/optimize/points";
+import { PROJECTION_MINIMUM, defenseOnDkPoints, poolFromPlayers } from "@/lib/optimize/pool";
 import { solveSlate } from "@/lib/optimize/solve";
 import { type FlexPos, type SolveControls, type SolvedLineup } from "@/lib/optimize/types";
 import { useUrlBoundState } from "@/lib/url-bound-state";
@@ -122,16 +123,25 @@ export function Optimizer({
     const set = new Set(active);
     return players.filter((p) => p.game_id != null && set.has(p.game_id));
   }, [players, selectedGames, strip]);
-  const { pool, poolError } = useMemo(() => {
+  const { pool, poolError, omitted, dstOnDk } = useMemo(() => {
+    const opts = { uniquePlayerId: !showdown };
+    const empty = { pool: [] as ReturnType<typeof poolFromPlayers>, poolError: null as string | null, omitted: 0, dstOnDk: 0 };
     try {
-      return { pool: poolFromPlayers(visible, { uniquePlayerId: !showdown }), poolError: null };
+      const pool = poolFromPlayers(visible, { ...opts, points: controls.points });
+      const ids = new Set(pool.map((p) => p.player_dk_id));
+      const dstOnDk = visible.filter(
+        (p) => p.player_dk_id != null && ids.has(p.player_dk_id) && defenseOnDkPoints(p, controls.points),
+      ).length;
+      if (controls.points === "dk") return { ...empty, pool };
+      const dk = poolFromPlayers(visible, { ...opts, points: "dk" });
+      return { pool, poolError: null, omitted: dk.filter((p) => !ids.has(p.player_dk_id)).length, dstOnDk };
     } catch (e) {
       return {
-        pool: [] as ReturnType<typeof poolFromPlayers>,
+        ...empty,
         poolError: e instanceof Error ? e.message : "A player appears twice in this slate's pool.",
       };
     }
-  }, [visible, showdown]);
+  }, [visible, showdown, controls.points]);
   const yoursTeams = useMemo(() => {
     const m = { ...teams };
     for (const lu of yours) {
@@ -146,6 +156,10 @@ export function Optimizer({
       ...partial,
       flexEligible: { ...c.flexEligible, ...partial.flexEligible },
     }));
+    if (partial.points != null && partial.points !== controls.points) {
+      setYours([]);
+      setSelected(new Set());
+    }
   }
 
   function chooseConstruction(id: ConstructionId) {
@@ -188,6 +202,31 @@ export function Optimizer({
       excludes: picks.excl,
       stackIds: picks.stack,
     };
+    if (controls.points !== "dk") {
+      const label = POINT_SOURCE_LABEL[controls.points];
+      const dkIds = new Set(
+        poolFromPlayers(visible, { uniquePlayerId: !showdown, points: "dk" }).map((p) => p.player_dk_id),
+      );
+      const blocked = picks.lock.filter((id) => dkIds.has(id) && !pool.some((p) => p.player_dk_id === id));
+      if (blocked.length) {
+        const names = blocked.map((id) => {
+          const player = visible.find((p) => p.player_dk_id === id);
+          if (!player) return id;
+          const pts = projectionPoints(player, controls.points);
+          if (pts == null) return `${player.display_name} has no ${label} points`;
+          if (player.position !== "DST" && pts < PROJECTION_MINIMUM) {
+            return `${player.display_name}'s ${label} points are under ${PROJECTION_MINIMUM}`;
+          }
+          return player.display_name;
+        });
+        setError(names.join(". "));
+        return;
+      }
+      if (!showdown && !pool.some((p) => p.position === "DST")) {
+        setError(`No defense has ${label} points.`);
+        return;
+      }
+    }
     if (!showdown) {
       const conflict = flexConstructionError(live) ?? classicForcedInError(pool, live);
       if (conflict) {
@@ -265,6 +304,32 @@ export function Optimizer({
         {drifted.length ? (
           <p className="t-caption text-foreground">
             Differs from {CONSTRUCTION_LABEL[controls.construction]}: {drifted.join(", ")}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Point source">
+          <span className="t-colhead text-muted-foreground">Points</span>
+          {POINT_SOURCES.map((id) => (
+            <Button
+              key={id}
+              type="button"
+              size="sm"
+              variant={controls.points === id ? "secondary" : "outline"}
+              onClick={() => patch({ points: id })}
+            >
+              {POINT_SOURCE_LABEL[id]}
+            </Button>
+          ))}
+        </div>
+        {controls.points !== "dk" ? (
+          <p className="t-caption text-muted-foreground">
+            Lineups use {POINT_SOURCE_LABEL[controls.points]}. Cash uses that number instead of the sim floor.
+            Single Entry subtracts ownership and does not add the sim ceiling.
+            {omitted > 0
+              ? ` ${omitted} ${omitted === 1 ? "player" : "players"} in the DK pool ${omitted === 1 ? "has" : "have"} no usable ${POINT_SOURCE_LABEL[controls.points]} number.`
+              : ""}
+            {dstOnDk > 0
+              ? ` ${dstOnDk === 1 ? "Defense stays" : "Defenses stay"} on DK pts, because ${POINT_SOURCE_LABEL[controls.points]} is blank for them.`
+              : ""}
           </p>
         ) : null}
         <div className="flex flex-wrap items-end gap-3">
@@ -400,6 +465,7 @@ export function Optimizer({
                 }
                 slate={slate}
                 ownershipSum={lu.ownership_sum}
+                projLabel={controls.points === "dk" ? "Proj" : POINT_SOURCE_LABEL[controls.points]}
               />
             ))
           )}

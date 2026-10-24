@@ -59,6 +59,7 @@ export function LineupCard({
   runId = null,
   slateId = "",
   actual = null,
+  projLabel = "Proj",
 }: {
   lineup: DfsLineup;
   teams?: Record<string, string>;
@@ -72,6 +73,7 @@ export function LineupCard({
   runId?: string | null;
   slateId?: string;
   actual?: LineupActual | null;
+  projLabel?: string;
 }) {
   const bySlot = new Map(lineup.players.map((p) => [p.slot, p]));
   const stacks = stacksFromPlayers(lineup.players, teams);
@@ -136,7 +138,7 @@ export function LineupCard({
               </span>
             </MetricLabel>
             <MetricLabel metric="projection">
-              Proj{" "}
+              {projLabel}{" "}
               <span className="tnum font-semibold text-foreground">
                 {lineup.proj_fpts != null ? lineup.proj_fpts.toFixed(1) : "—"}
               </span>

@@ -85,7 +85,9 @@ describe("empty sidebar layouts", () => {
     expect(
       screen.getByText("Max exposure does not apply to locked players or a required stack."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Yours")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Yours" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "DK pts" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Adjusted" })).toBeInTheDocument();
     expect(screen.getByText("Sim 150")).toBeInTheDocument();
     expect(screen.getByText("No user lineups yet.")).toBeInTheDocument();
     expect(screen.queryByLabelText("Stack suggestions")).not.toBeInTheDocument();

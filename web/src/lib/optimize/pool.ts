@@ -1,18 +1,24 @@
 import { inOptimizerPool } from "@/lib/injury-status";
 import { normalizePosition } from "@/components/ui/PositionPill";
 import type { WeekPlayer } from "@/lib/types";
-import type { OptPlayer, OptPos } from "./types";
+import { projectionPoints } from "./points";
+import type { OptPlayer, OptPos, PointSource } from "./types";
 
 export const PROJECTION_MINIMUM = 5;
 
-export function toOptPlayer(p: WeekPlayer): OptPlayer | null {
+export function toOptPlayer(p: WeekPlayer, source: PointSource = "dk"): OptPlayer | null {
   const id = p.player_dk_id;
   const pos = normalizePosition(p.position);
   if (!id || !pos || p.salary == null || !p.team) return null;
   if (!inOptimizerPool(p.override_status, p.override_updated_at, p.run_created_at)) return null;
-  const proj = p.fpts_dk_mean ?? 0;
+  const raw = projectionPoints(p, source);
+  // Defenses are not graded in the miss table, so Adjusted and Yours are blank.
+  // A classic lineup still needs one, and that defense stays on DK pts.
+  const proj = source === "dk" || (raw == null && pos === "DST") ? (raw ?? p.fpts_dk_mean ?? 0) : raw;
+  if (proj == null) return null;
   if (pos !== "DST" && proj < PROJECTION_MINIMUM) return null;
-  const value = p.value ?? (p.salary > 0 ? proj / (p.salary / 1000) : 0);
+  const fromSalary = p.salary > 0 ? proj / (p.salary / 1000) : 0;
+  const value = source === "dk" || (raw == null && pos === "DST") ? (p.value ?? fromSalary) : fromSalary;
   return {
     player_id: p.player_id,
     player_dk_id: id,
@@ -64,14 +70,22 @@ export function assertUniquePlayerIds(
   }
 }
 
+/** True when a defense has no number for this source and the pool keeps his DK pts. */
+export function defenseOnDkPoints(p: WeekPlayer, source: PointSource): boolean {
+  if (source === "dk") return false;
+  if (normalizePosition(p.position) !== "DST") return false;
+  return projectionPoints(p, source) == null;
+}
+
 export function poolFromPlayers(
   players: WeekPlayer[],
-  opts: { uniquePlayerId?: boolean } = {},
+  opts: { uniquePlayerId?: boolean; points?: PointSource } = {},
 ): OptPlayer[] {
+  const source = opts.points ?? "dk";
   const out: OptPlayer[] = [];
   const seen = new Set<string>();
   for (const p of players) {
-    const row = toOptPlayer(p);
+    const row = toOptPlayer(p, source);
     if (!row || seen.has(row.player_dk_id)) continue;
     seen.add(row.player_dk_id);
     out.push(row);

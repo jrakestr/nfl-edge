@@ -14,7 +14,9 @@
   The `Adjusted` column is this week's sim plus his average miss from earlier weeks
   (`model.player_proj_actual`, week < W). The `Yours` column is `Adjusted + delta`
   (not `DK pts + delta`), and is blank (`—`) with no stepper buttons when `Adjusted`
-  is null. It is not saved back into the sim.
+  is null. It is not saved back into the sim. Optimize can build lineups on those
+  display numbers (Adjusted, Yours, NFLGameSim, FantasyPros). That read does not
+  write `proj_players` or priors.
 - Research Lab (`/research`): read-only display of Jev DFS Lineup Audits (`model.jev_judgments`
   and `raw.fantasypros_news`) alongside code-computed player context from `model.research_fields`
   (built in Python by `nfl-edge research build --week W` from weeks before W). The Jev audit is

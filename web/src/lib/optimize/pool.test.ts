@@ -35,6 +35,55 @@ describe("poolFromPlayers", () => {
     ).toThrow(/Jordan Love .* more than once/);
   });
 
+  it("builds on Adjusted and drops a player with no miss", () => {
+    const pool = poolFromPlayers(
+      [
+        wp({ player_id: "00-love", player_dk_id: "1", display_name: "Jordan Love", mean_miss: 2 }),
+        wp({ player_id: "00-willis", player_dk_id: "2", display_name: "Malik Willis", mean_miss: null }),
+      ],
+      { points: "adjusted" },
+    );
+    expect(pool.map((p) => [p.player_dk_id, p.proj])).toEqual([["1", 20]]);
+  });
+
+  it("builds Yours as Adjusted plus the saved step", () => {
+    const pool = poolFromPlayers(
+      [wp({ player_id: "00-love", player_dk_id: "1", display_name: "Jordan Love", mean_miss: 2, point_delta: 3 })],
+      { points: "yours" },
+    );
+    expect(pool[0]?.proj).toBe(23);
+    expect(pool[0]?.value).toBeCloseTo(23 / 7);
+  });
+
+  it("keeps a defense on DK pts when Adjusted is blank", () => {
+    const pool = poolFromPlayers(
+      [
+        wp({
+          player_id: "DST-gb",
+          player_dk_id: "dst",
+          display_name: "Packers",
+          position: "DST",
+          fpts_dk_mean: 8,
+          mean_miss: null,
+        }),
+      ],
+      { points: "adjusted" },
+    );
+    expect(pool[0]?.proj).toBe(8);
+  });
+
+  it("builds on FantasyPros and NFLGameSim when those numbers exist", () => {
+    const row = wp({
+      player_id: "00-love",
+      player_dk_id: "1",
+      display_name: "Jordan Love",
+      fp_fpts: 16,
+      ngs_fpts: 21,
+    });
+    expect(poolFromPlayers([row], { points: "fp" })[0]?.proj).toBe(16);
+    expect(poolFromPlayers([row], { points: "ngs" })[0]?.proj).toBe(21);
+  });
+
   it("allows the same player_id twice when the slate is showdown", () => {
     const pool = poolFromPlayers(
       [

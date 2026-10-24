@@ -1,6 +1,7 @@
 import { addUniqueness, classicConstraints, classicForcedInError, flexConstructionError } from "./classic";
 import { adjustedFpts, profile, type SlateKind } from "./construction";
 import { solveMip } from "./glpk";
+import { sourceObjective } from "./points";
 import { assertUniquePlayerIds, jitterProj, playerKey } from "./pool";
 import { addShowdownUniqueness, showdownConstraints } from "./showdown";
 import { assignClassic, assignShowdown, idsOf } from "./slots";
@@ -13,7 +14,10 @@ export function playerObjective(
   rng: () => number = () => 0,
 ): number {
   const prof = profile(kind, controls.construction);
-  const raw = adjustedFpts(p.proj, p.p25, p.p90, p.proj_own, prof);
+  const raw =
+    controls.points !== "dk"
+      ? sourceObjective(p.proj, p.proj_own, prof)
+      : adjustedFpts(p.proj, p.p25, p.p90, p.proj_own, prof);
   return jitterProj(raw, controls.randomness, rng);
 }
 

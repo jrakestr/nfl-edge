@@ -4,7 +4,7 @@ import { Optimizer } from "@/components/optimize/Optimizer";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { dfsLineups, salaryLookup, salaryPositions, slateCorrelations, slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
-import { slatePlayers } from "@/lib/queries/players";
+import { editsByPlayer, fpByPlayer, missByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
 import { stripGames } from "@/lib/queries/strip-games";
 import { slateCorrIds } from "@/lib/optimize/stack-suggestions";
 import { lineupRunForWeek } from "@/lib/queries/runs";
@@ -62,6 +62,20 @@ export default async function Page({
     weekOk ? stripGames(season, week) : Promise.resolve([]),
     sid ? slateGameInfos(siteKey, sid) : Promise.resolve([] as string[]),
   ]);
+  const ids = players.map((p) => p.player_id);
+  const [ngs, fp, miss, edits] = await Promise.all([
+    weekOk && ids.length ? ngsByPlayer(season, week, ids) : Promise.resolve({} as Record<string, number>),
+    weekOk && ids.length ? fpByPlayer(season, week, ids) : Promise.resolve({} as Record<string, number>),
+    weekOk ? missByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
+    weekOk ? editsByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
+  ]);
+  const merged = players.map((p) => ({
+    ...p,
+    ngs_fpts: ngs[p.player_id] ?? null,
+    fp_fpts: fp[p.player_id] ?? null,
+    mean_miss: miss[p.player_id] ?? null,
+    point_delta: edits[p.player_id] ?? 0,
+  }));
   const pairs = run ? await slateCorrelations(run.run_id, slateCorrIds(players)) : [];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
   const strip = infos.length ? filterGamesForSlate(chips, infos) : chips;
@@ -74,7 +88,7 @@ export default async function Page({
       slates={available}
       slateId={sid}
       runId={run?.run_id ?? null}
-      players={players}
+      players={merged}
       pairs={pairs}
       simLineups={simLineups}
       teams={teams}

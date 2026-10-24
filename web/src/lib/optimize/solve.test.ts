@@ -88,6 +88,14 @@ describe("construction objective", () => {
     expect(playerObjective(highFloor, cash, "classic")).toBe(11);
     expect(playerObjective(lowFloor, cash, "classic")).toBe(4);
   });
+
+  it("Adjusted points replace the sim floor in Cash and skip the sim ceiling in Single Entry", () => {
+    const row = { ...p("a", "A", "WR", "DET", "NO", 5000, 18), p25: 4, p90: 40, proj_own: 0.5 };
+    const cash = { ...DEFAULT_CLASSIC, construction: "cash" as const, points: "adjusted" as const };
+    const single = { ...DEFAULT_CLASSIC, construction: "single" as const, points: "adjusted" as const };
+    expect(playerObjective(row, cash, "classic")).toBe(18);
+    expect(playerObjective(row, single, "classic")).toBeCloseTo(18 - 4 * 0.5);
+  });
 });
 
 describe("classic ILP", () => {
@@ -242,6 +250,8 @@ describe("optimizer control URL", () => {
     ["classic flex RB off", { ...classicBaseline(), flexEligible: { RB: false, WR: true, TE: true } }, false],
     ["classic flex WR off", { ...classicBaseline(), flexEligible: { RB: true, WR: false, TE: true } }, false],
     ["classic flex TE off", { ...classicBaseline(), flexEligible: { RB: true, WR: true, TE: false } }, false],
+    ["classic points adjusted", { ...classicBaseline(), points: "adjusted" }, false],
+    ["classic points yours", { ...classicBaseline(), points: "yours" }, false],
     ["classic DEFAULT_CLASSIC lineups", { ...classicBaseline(), lineups: DEFAULT_CLASSIC.lineups }, false],
     ["showdown baseline", { ...DEFAULT_SHOWDOWN }, true],
     ["showdown lineups", { ...DEFAULT_SHOWDOWN, lineups: 10 }, true],

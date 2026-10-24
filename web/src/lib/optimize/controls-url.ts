@@ -1,3 +1,4 @@
+import { asPointSource } from "./points";
 import {
   DEFAULT_CLASSIC,
   DEFAULT_FLEX,
@@ -9,6 +10,7 @@ import {
 
 export const CONTROL_PARAMS = [
   "construction",
+  "pts",
   "lineups",
   "cap",
   "minSalary",
@@ -49,6 +51,7 @@ export function parseSolveControls(sp: URLSearchParams, showdown: boolean): Solv
   return {
     ...base,
     construction: asConstruction(sp.get("construction"), base.construction),
+    points: asPointSource(sp.get("pts")),
     minPlayerDiff: num(sp.get("minDiff"), base.minPlayerDiff),
     lineups: num(sp.get("lineups"), base.lineups),
     salaryCap: num(sp.get("cap"), base.salaryCap),
@@ -80,6 +83,7 @@ export function applySolveControls(
     else p.set(key, value);
   };
   setOrDel("construction", controls.construction, controls.construction === def.construction);
+  setOrDel("pts", controls.points, controls.points === def.points);
   setOrDel("minDiff", String(controls.minPlayerDiff), controls.minPlayerDiff === def.minPlayerDiff);
   setOrDel("lineups", String(controls.lineups), controls.lineups === def.lineups);
   setOrDel("cap", String(controls.salaryCap), controls.salaryCap === def.salaryCap);

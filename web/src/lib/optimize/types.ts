@@ -43,8 +43,13 @@ export const DEFAULT_POS_BOUNDS: Record<FlexPos, PosBound> = {
 
 export type ConstructionId = "cash" | "single" | "mass";
 
+/** Which number the web optimizer treats as a player's points. */
+export type PointSource = "dk" | "ngs" | "fp" | "adjusted" | "yours";
+
 export type SolveControls = {
   construction: ConstructionId;
+  /** DK pts keeps the sim objective. Any other source uses that number as the points. */
+  points: PointSource;
   minPlayerDiff: number;
   lineups: number;
   salaryCap: number;
@@ -65,6 +70,7 @@ export type SolveControls = {
 
 export const DEFAULT_CLASSIC: SolveControls = {
   construction: "mass",
+  points: "dk",
   minPlayerDiff: 3,
   lineups: 1,
   salaryCap: 50000,
