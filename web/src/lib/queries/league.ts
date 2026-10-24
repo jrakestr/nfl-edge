@@ -190,12 +190,15 @@ export type LeagueRoster = { rows: RosterRow[]; rankingsPulledAt: string | null 
 /** Current roster plus the newest FantasyPros rankings snapshot for the season. One gsis match or no rank. */
 export async function leagueRoster(season: number, teamId: number): Promise<LeagueRoster> {
   const rows = await sql()`
-    select r.player, r.position, r.nfl_team, r.slot, r.status_at_pull,
+    select r.week, r.player, r.position, r.nfl_team, w.opponent, r.slot, r.status_at_pull,
+           w.proj_pts::float8 as week_proj,
            r.season_pts::float8 as season_pts, r.season_proj::float8 as season_proj, r.pulled_at,
            s.payload as fp_payload,
            (select max(f.fetched_at) from raw.fantasypros_snapshots f
              where f.endpoint = 'rankings' and f.season = ${season}) as rankings_pulled_at
     from fantasy.loc_rosters r
+    left join fantasy.loc_player_week_scores w
+      on w.season = r.season and w.week = r.week and w.espn_team_id = r.espn_team_id and w.player = r.player
     left join lateral (
       select case when count(*) = 1 then min(p.gsis_id) end as player_id
       from raw.players p
@@ -210,15 +213,22 @@ export async function leagueRoster(season: number, teamId: number): Promise<Leag
       limit 1
     ) s on true
     where r.season = ${season} and r.espn_team_id = ${teamId}
+      and r.week = (
+        select max(cur.week) from fantasy.loc_rosters cur
+        where cur.season = ${season} and cur.espn_team_id = ${teamId}
+      )
     order by case r.slot when 'BE' then 2 when 'IR' then 3 else 1 end, r.slot, r.player`;
   const mapped = rows.map((r) => {
     const position = (r.position as string | null) ?? (r.slot as string | null);
     return {
+      week: Number(r.week),
       player: String(r.player),
       position: (r.position as string | null) ?? null,
       nfl_team: (r.nfl_team as string | null) ?? null,
+      opponent: (r.opponent as string | null) ?? null,
       slot: String(r.slot),
       status_at_pull: (r.status_at_pull as string | null) ?? null,
+      week_proj: r.week_proj == null ? null : Number(r.week_proj),
       season_pts: r.season_pts == null ? null : Number(r.season_pts),
       season_proj: r.season_proj == null ? null : Number(r.season_proj),
       pulled_at: iso(r.pulled_at) ?? "",
@@ -454,6 +464,10 @@ async function viewerStarters(season: number, runId: string | null): Promise<Sta
     left join model.proj_players j
       on j.run_id = ${runId} and j.player_id = m.player_id
     where r.season = ${season} and r.espn_team_id = ${VIEWER_ESPN_TEAM_ID}
+      and r.week = (
+        select max(cur.week) from fantasy.loc_rosters cur
+        where cur.season = ${season} and cur.espn_team_id = ${VIEWER_ESPN_TEAM_ID}
+      )
       and r.slot not in ('BE', 'IR')`;
   return (rows as unknown as StarterProj[]).map((r) => ({
     ...r,

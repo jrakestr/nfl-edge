@@ -21,7 +21,9 @@ export function RosterTable({
   if (rows.length === 0) {
     return <EmptyState title="No roster stored">Run nfl-edge ingest espn-league to load rosters.</EmptyState>;
   }
-  const pulled = rows[0]!.pulled_at;
+  const first = rows[0]!;
+  const pulled = first.pulled_at;
+  const week = first.week;
   const columns: DataColumn<RosterRow>[] = [
     { id: "slot", header: "Slot", sortValue: (r) => slotLabel(r.slot), cell: (r) => slotLabel(r.slot), className: "t-body" },
     {
@@ -37,11 +39,26 @@ export function RosterTable({
       ),
     },
     {
+      id: "opp",
+      header: "Opp",
+      sortValue: (r) => r.opponent ?? "ZZZ",
+      cell: (r) => r.opponent ?? <span className="text-muted-foreground">Bye</span>,
+      className: "t-body",
+    },
+    {
       id: "status",
       header: "Status",
       sortValue: (r) => espnStatusLabel(r.status_at_pull) ?? "Healthy",
       cell: (r) => espnStatusLabel(r.status_at_pull) ?? "Healthy",
       className: "t-body",
+    },
+    {
+      id: "week_proj",
+      header: `Wk ${week} proj`,
+      align: "right",
+      sortValue: (r) => r.week_proj,
+      className: "t-body tnum font-semibold",
+      cell: (r) => (r.week_proj != null ? r.week_proj.toFixed(1) : "—"),
     },
     {
       id: "pts",
@@ -78,7 +95,7 @@ export function RosterTable({
   ];
   return (
     <section className="flex flex-col gap-2" aria-label="Roster">
-      <h2 className="t-body font-semibold">Roster</h2>
+      <h2 className="t-body font-semibold">Roster (Week {week})</h2>
       <DataTable
         data={rows}
         columns={columns}
@@ -88,9 +105,10 @@ export function RosterTable({
         syncUrl={false}
       />
       <p className="t-caption">
-        Pts / proj is season points divided by ESPN&apos;s season projection. Color is points versus pace:
-        projection times {weeksDone} completed {weeksDone === 1 ? "week" : "weeks"} over the {seasonWeeks || "—"}-week
-        season. Status as of the ESPN pull {shortStamp(pulled)} ET. ROS rk is FantasyPros rest-of-season PPR.{" "}
+        Wk {week} proj is ESPN&apos;s projection for this week. Pts / proj is season points divided by ESPN&apos;s season
+        projection. Color is points versus pace: projection times {weeksDone} completed{" "}
+        {weeksDone === 1 ? "week" : "weeks"} over the {seasonWeeks || "—"}-week season. Status as of the ESPN pull{" "}
+        {shortStamp(pulled)} ET. ROS rk is FantasyPros rest-of-season PPR.{" "}
         {rankingsPulledAt
           ? `Pulled ${shortStamp(rankingsPulledAt)} ET.`
           : "Run nfl-edge ingest fantasypros-rankings."}

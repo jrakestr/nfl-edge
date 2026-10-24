@@ -149,11 +149,14 @@ export function acquirePaceSort(
 }
 
 export type RosterRow = {
+  week: number;
   player: string;
   position: string | null;
   nfl_team: string | null;
+  opponent: string | null;
   slot: string;
   status_at_pull: string | null;
+  week_proj: number | null;
   season_pts: number | null;
   season_proj: number | null;
   pulled_at: string;
@@ -599,6 +602,21 @@ export function paRanking(rows: LeagueTeamWeek[]): { espn_team_id: number; team:
   return [...last.values()]
     .map((r) => ({ espn_team_id: r.espn_team_id, team: r.team, cum_pa: r.cum_pa, weeks: r.week }))
     .sort((a, b) => b.cum_pa - a.cum_pa);
+}
+
+/** Mean of a team's final-week values; null when no week in the map is final. */
+export function teamFinalMean(
+  cells: ReadonlyMap<number, LeagueTeamWeek>,
+  pick: (r: LeagueTeamWeek) => number,
+): number | null {
+  let sum = 0;
+  let count = 0;
+  for (const c of cells.values()) {
+    if (!c.is_final) continue;
+    sum += pick(c);
+    count += 1;
+  }
+  return count > 0 ? sum / count : null;
 }
 
 export type TxnWeekTab = { key: string; label: string; groups: TxnGroup[] };
