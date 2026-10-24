@@ -17,9 +17,11 @@ import { price, signedPct } from "@/lib/edge";
 import type { FpWeek, SimWeek } from "@/lib/player-history";
 import { summarizeActuals, type PlayerActualWeek } from "@/lib/player-actuals";
 import type { CorrPair, FairProp, GameContext, Hist, MatchupRow, PlayerHeader, PlayerNewsItem, PlayerWeek, PropSnap } from "@/lib/types";
+import type { PeerOption } from "@/lib/queries/players";
 import { ordinal, rankTier, type DefenseVsPosition, type PlayerUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
 import { PlayerHomeCards } from "./PlayerHomeCards";
+import { PlayerIntelCard } from "./PlayerIntelCard";
 import { PlayerNewsCard } from "./PlayerNewsCard";
 import { PropCallout } from "./PropCallout";
 import { StatBars } from "./StatBars";
@@ -242,6 +244,7 @@ export function PropDetail({
   fptsHist = null,
   opponent = null,
   news = [],
+  peers = [],
   basePath = "/players",
 }: {
   player: PlayerHeader | null;
@@ -266,6 +269,7 @@ export function PropDetail({
   fptsHist?: Hist | null;
   opponent?: string | null;
   news?: PlayerNewsItem[];
+  peers?: PeerOption[];
   basePath?: "/players" | "/props";
 }) {
   const found = player != null;
@@ -441,6 +445,21 @@ export function PropDetail({
           </ToggleGroup>
         </div>
       </header>
+
+      {(detailTab === "all" || detailTab === "home") && found ? (
+        <PlayerIntelCard
+          playerId={playerId}
+          position={player?.position ?? null}
+          gameId={game?.game_id ?? null}
+          season={asOf?.season ?? currentSeason}
+          week={asOf?.week ?? 1}
+          fptsHist={fptsHist}
+          usage={usage}
+          defense={defense}
+          news={news}
+          peers={peers}
+        />
+      ) : null}
 
       {(detailTab === "all" || detailTab === "home") ? (
         <PlayerHomeCards

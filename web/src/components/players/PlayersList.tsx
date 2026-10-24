@@ -13,6 +13,7 @@ import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
 import { actualDisplay } from "@/lib/player-actual";
 import { positionPercentiles, positionRanks } from "@/lib/players/ranks";
+import { computeRowHolisticScore } from "@/lib/holistic-score";
 import { diffHeatmapClass, heatmapCellClass, signed } from "@/lib/edge";
 import { GameStrip } from "@/components/shell/GameStrip";
 import { useGamesSelection, useLiveSearchParams } from "@/components/shell/GamesSelection";
@@ -256,6 +257,7 @@ export function PlayersList({
   }, [players, selected, strip]);
   const ranks = useMemo(() => {
     const proj = positionRanks(players, (p) => p.position, (p) => p.fpts_dk_mean);
+    const projPct = positionPercentiles(players, (p) => p.position, (p) => p.fpts_dk_mean);
     const valPct = positionPercentiles(players, (p) => p.position, (p) => p.value);
     const floorPct = positionPercentiles(players, (p) => p.position, (p) => p.floor);
     const ceilPct = positionPercentiles(players, (p) => p.position, (p) => p.ceiling);
@@ -263,17 +265,24 @@ export function PlayersList({
       string,
       {
         proj: number | null;
+        projPct: number | null;
         valPct: number | null;
         floorPct: number | null;
         ceilPct: number | null;
+        holistic: ReturnType<typeof computeRowHolisticScore>;
       }
     >();
     players.forEach((p, i) => {
-      m.set(p.player_dk_id ?? p.player_id, {
-        proj: proj[i] ?? null,
+      const pcts = {
+        projPct: projPct[i] ?? null,
         valPct: valPct[i] ?? null,
         floorPct: floorPct[i] ?? null,
         ceilPct: ceilPct[i] ?? null,
+      };
+      m.set(p.player_dk_id ?? p.player_id, {
+        proj: proj[i] ?? null,
+        ...pcts,
+        holistic: computeRowHolisticScore(p, pcts),
       });
     });
     return m;
@@ -704,6 +713,38 @@ export function PlayersList({
                 {rankText(ranks.get(p.player_dk_id ?? p.player_id)?.proj)}
               </span>
             ),
+          },
+          {
+            id: "holistic",
+            header: "Holistic",
+            group: "PROJECTIONS",
+            align: "right",
+            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.holistic?.score ?? null,
+            cell: (p) => {
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              const h = ranks.get(p.player_dk_id ?? p.player_id)?.holistic;
+              if (!h) return <span className={tone(excluded)}>—</span>;
+              return (
+                <span className="inline-flex items-center justify-end gap-1.5 tnum">
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 t-caption font-bold",
+                      excluded
+                        ? "text-muted-foreground"
+                        : h.tier === "ELITE"
+                          ? "bg-edge-pos-tint text-edge-pos"
+                          : h.tier === "STRONG"
+                            ? "bg-line-tint text-line"
+                            : h.tier === "FLEX"
+                              ? "bg-surface-inset text-foreground"
+                              : "bg-edge-neg-tint text-edge-neg",
+                    )}
+                  >
+                    {h.score}
+                  </span>
+                </span>
+              );
+            },
           },
           {
             id: "ceiling",

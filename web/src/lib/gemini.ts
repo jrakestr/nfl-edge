@@ -23,6 +23,7 @@ const PHASE_MODEL: Record<string, string> = {
   explain: "gemini-3.5-flash-lite",
   claims: "gemini-3.8-flash",
   "optimize-nl": "gemini-3.8-flash",
+  "player-intel": "gemini-3.5-flash-lite",
 };
 
 export function geminiModel(phase: string): string {
@@ -81,6 +82,27 @@ export async function cachedExplain(runId: string, gameId: string): Promise<unkn
           and (output #>> '{}')::jsonb ? 'driver'
           and (output #>> '{}')::jsonb ? 'evidence_strength'
           and (output #>> '{}')::jsonb ? 'sentences'
+        )
+      )
+    order by created_at desc limit 1`;
+  return rows[0]?.output ?? null;
+}
+
+export async function cachedPlayerIntel(runId: string, refId: string): Promise<unknown | null> {
+  const rows = await sql()`
+    select
+      case
+        when jsonb_typeof(output) = 'string' then (output #>> '{}')::jsonb
+        else output
+      end as output
+    from model.llm_calls
+    where phase = 'player-intel' and run_id = ${runId}::uuid and ref_id = ${refId}
+      and (
+        (output ? 'headline' and output ? 'bullets')
+        or (
+          jsonb_typeof(output) = 'string'
+          and (output #>> '{}')::jsonb ? 'headline'
+          and (output #>> '{}')::jsonb ? 'bullets'
         )
       )
     order by created_at desc limit 1`;

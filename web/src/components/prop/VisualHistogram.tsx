@@ -1,66 +1,11 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { computeHistStats, type HistogramStats } from "@/lib/holistic-score";
 import type { Hist } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export type HistogramStats = {
-  total: number;
-  lo: number;
-  hi: number;
-  p10: number;
-  p25: number;
-  p50: number;
-  p75: number;
-  p90: number;
-  mean: number;
-};
-
-/** Compute interpolated quantiles and mean from a 20-bin Hist ({ bins, counts }). */
-export function computeHistStats(hist: Hist | null): HistogramStats | null {
-  if (!hist || hist.counts.length === 0 || hist.bins.length < 2) return null;
-  const { bins, counts } = hist;
-  const nBins = Math.min(counts.length, bins.length - 1);
-  const total = counts.slice(0, nBins).reduce((a, b) => a + b, 0);
-  if (total <= 0) return null;
-
-  const lo = bins[0]!;
-  const hi = bins[nBins]!;
-  let weightedSum = 0;
-  for (let i = 0; i < nBins; i++) {
-    const mid = (bins[i]! + bins[i + 1]!) / 2;
-    weightedSum += mid * counts[i]!;
-  }
-  const mean = weightedSum / total;
-
-  const quantileAt = (q: number): number => {
-    const target = q * total;
-    let cum = 0;
-    for (let i = 0; i < nBins; i++) {
-      const c = counts[i]!;
-      const b0 = bins[i]!;
-      const b1 = bins[i + 1]!;
-      if (cum + c >= target && c > 0) {
-        const frac = (target - cum) / c;
-        return b0 + frac * (b1 - b0);
-      }
-      cum += c;
-    }
-    return hi;
-  };
-
-  return {
-    total,
-    lo,
-    hi,
-    p10: quantileAt(0.1),
-    p25: quantileAt(0.25),
-    p50: quantileAt(0.5),
-    p75: quantileAt(0.75),
-    p90: quantileAt(0.9),
-    mean,
-  };
-}
+export { computeHistStats, type HistogramStats };
 
 /** Probability of landing strictly above `line`, interpolating proportionally inside a split bin. */
 export function probOverLine(hist: Hist | null, line: number | null): number | null {
