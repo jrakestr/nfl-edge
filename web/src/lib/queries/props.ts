@@ -200,21 +200,38 @@ export async function playerCorrs(runId: string, playerId: string): Promise<Corr
   return rows.map((r) => CorrPairSchema.parse(r));
 }
 
-export async function matchupRows(team: string | null, opponent: string | null): Promise<MatchupRow[]> {
+/**
+ * The opponent's team profile as of `week` of `season` (weeks before it); falls back to the
+ * prior season when the current one has no graded games yet.
+ */
+export async function matchupRows(
+  team: string | null,
+  opponent: string | null,
+  season: number,
+  week: number,
+): Promise<MatchupRow[]> {
   if (!opponent) return [];
-  const rows = await sql()`
+  const query = (s: number, w: number) => sql()`
     select avg(a.points)::float8 as pts,
            avg(o.points)::float8 as pts_allowed,
            avg(a.pass_rate)::float8 as pass_rate,
            avg(a.epa_per_play)::float8 as epa,
-           avg(a.plays)::float8 as plays
+           avg(a.plays)::float8 as plays,
+           count(*)::int as games
     from raw.team_game_agg a
     join raw.team_game_agg o on o.game_id = a.game_id and o.team = a.opponent
-    where a.team = ${opponent} and a.season = 2025`;
+    where a.team = ${opponent} and a.season = ${s} and a.week < ${w}`;
+  let rows = await query(season, week);
+  let label = `${season}, ${Number(rows[0]?.games ?? 0)} games`;
+  if (!rows[0] || rows[0].pts == null) {
+    rows = await query(season - 1, 99);
+    label = `${season - 1} season`;
+  }
   const r = rows[0];
   if (!r || r.pts == null) return [];
   const vs = team ? ` vs ${team}` : "";
   return [
+    { label: "Through", value: label },
     { label: "Points scored / game", value: Number(r.pts).toFixed(1) },
     { label: "Points allowed / game", value: Number(r.pts_allowed).toFixed(1) },
     { label: "Pass rate", value: `${Math.round(Number(r.pass_rate) * 100)}%` },

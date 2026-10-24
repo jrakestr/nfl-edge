@@ -2005,6 +2005,50 @@ export type Database = {
       }
     }
     Views: {
+      player_usage_weekly: {
+        Row: {
+          air_yds: number | null
+          attempts: number | null
+          carries: number | null
+          completions: number | null
+          dropbacks: number | null
+          fpts_dk: number | null
+          fpts_half: number | null
+          fpts_ppr: number | null
+          fpts_ppr_6pt: number | null
+          fpts_std: number | null
+          fumbles_lost: number | null
+          game_id: string | null
+          offense_pct: number | null
+          offense_snaps: number | null
+          opponent: string | null
+          opportunities: number | null
+          pass_int: number | null
+          pass_td: number | null
+          pass_yds: number | null
+          player_id: string | null
+          player_name: string | null
+          position: string | null
+          rec_td: number | null
+          rec_yds: number | null
+          receptions: number | null
+          routes_est: number | null
+          rush_td: number | null
+          rush_yds: number | null
+          sacks: number | null
+          season: number | null
+          target_share: number | null
+          targets: number | null
+          team: string | null
+          team_dropbacks: number | null
+          team_plays: number | null
+          touches: number | null
+          two_pt: number | null
+          week: number | null
+          wopr: number | null
+        }
+        Relationships: []
+      }
       dfs_lineup_entries: {
         Row: {
           cashed: boolean | null

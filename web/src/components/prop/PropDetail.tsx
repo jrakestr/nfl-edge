@@ -11,8 +11,10 @@ import { STAT_LABELS, STAT_ORDER, corrLabel, weeklyValue } from "@/lib/prop-stat
 import { price, signedPct } from "@/lib/edge";
 import { summarizeActuals, type PlayerActualWeek } from "@/lib/player-actuals";
 import type { CorrPair, FairProp, GameContext, Hist, MatchupRow, PlayerHeader, PlayerWeek, PropSnap } from "@/lib/types";
+import type { DefenseVsPosition, PlayerUsage } from "@/lib/usage";
 import { PropCallout } from "./PropCallout";
 import { StatBars } from "./StatBars";
+import { UsagePanel } from "./UsagePanel";
 
 const WINDOWS = ["L5", "L10", "L20", "season", "H2H"] as const;
 
@@ -84,6 +86,10 @@ export function PropDetail({
   actualRows = [],
   currentSeason,
   drawsPruned = false,
+  usage = null,
+  defense = null,
+  fptsHist = null,
+  opponent = null,
 }: {
   player: PlayerHeader | null;
   game: GameContext | null;
@@ -97,6 +103,10 @@ export function PropDetail({
   actualRows?: PlayerActualWeek[];
   currentSeason: number;
   drawsPruned?: boolean;
+  usage?: PlayerUsage | null;
+  defense?: DefenseVsPosition | null;
+  fptsHist?: Hist | null;
+  opponent?: string | null;
 }) {
   const found = player != null;
   const name = found ? player.display_name : "Player not found";
@@ -215,6 +225,13 @@ export function PropDetail({
           </ToggleGroup>
           <PropCallout sentence={sentence} lean={lean} oneSided={Boolean(fair?.one_sided)} />
         </header>
+        <UsagePanel
+          usage={usage}
+          position={player?.position ?? null}
+          opponent={opponent}
+          defense={defense}
+          fptsHist={fptsHist}
+        />
         <StatBars
           log={shownLog}
           stat={fair?.stat ?? stat}

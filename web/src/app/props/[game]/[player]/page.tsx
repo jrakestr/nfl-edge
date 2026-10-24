@@ -12,6 +12,7 @@ import {
   propTimeline,
 } from "@/lib/queries/props";
 import { displayWeek, runForWeek } from "@/lib/queries/runs";
+import { defenseVsPosition, playerUsage } from "@/lib/queries/usage";
 import type { Hist } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,12 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
   const [log, actualRows] = await Promise.all([playerLog(player, 20), playerFptsActual(player)]);
   const corrs = run ? await playerCorrs(run.run_id, player) : [];
   const opp = ctx && header?.latest_team ? (header.latest_team === ctx.home ? ctx.away : ctx.home) : null;
-  const matchup = await matchupRows(header?.latest_team ?? null, opp);
+  const [matchup, usage, defense, fptsHist] = await Promise.all([
+    matchupRows(header?.latest_team ?? null, opp, CURRENT_SEASON, week),
+    playerUsage(player, CURRENT_SEASON, week),
+    defenseVsPosition(CURRENT_SEASON, week, opp, header?.position ?? null),
+    run ? propHistogram(run.run_id, player, "fpts_ppr") : Promise.resolve(null),
+  ]);
   const stats = fairs.map((e) => e.stat);
   const histByStat: Record<string, Hist | null> = {};
   if (run) {
@@ -61,6 +67,10 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
       actualRows={actualRows}
       currentSeason={CURRENT_SEASON}
       drawsPruned={Boolean(run?.draws_pruned)}
+      usage={usage}
+      defense={defense}
+      fptsHist={fptsHist}
+      opponent={opp}
     />
   );
 }
