@@ -88,11 +88,30 @@ def test_game_runs_picks_newest_run_before_kickoff_and_names_unrun_games():
         {"run_id": "new", "created_at": datetime(2026, 9, 26, 20, tzinfo=ET)},
         {"run_id": "post", "created_at": datetime(2026, 9, 27, 14, tzinfo=ET)},
     ]
-    chosen, skipped = P.game_runs(sched, runs)
+    chosen, missing, late = P.game_runs(sched, runs)
     assert chosen == {"g1": "new", "tnf": "old"}
-    assert skipped == []
-    chosen, skipped = P.game_runs(sched, [runs[2]])
-    assert chosen == {} and sorted(skipped) == ["g1", "tnf"]
+    assert missing == [] and late == []
+    chosen, missing, late = P.game_runs(sched, [runs[2]])
+    assert chosen == {"g1": "post", "tnf": "post"}
+    assert missing == [] and sorted(late) == ["g1", "tnf"]
+
+
+def test_game_runs_uses_earliest_run_that_projected_a_post_kickoff_game():
+    sched = [
+        {"game_id": "g1", "gameday": "2026-09-27", "gametime": "13:00", "location": "Home", "result": 3},
+        {"game_id": "tnf", "gameday": "2026-09-24", "gametime": "20:15", "location": "Home", "result": 7},
+    ]
+    runs = [
+        {"run_id": "partial", "created_at": datetime(2026, 9, 25, 12, tzinfo=ET)},
+        {"run_id": "full", "created_at": datetime(2026, 9, 26, 12, tzinfo=ET)},
+    ]
+    covered = {"partial": {"g1"}, "full": {"g1", "tnf"}}
+    chosen, missing, late = P.game_runs(sched, runs, covered)
+    assert chosen == {"g1": "full", "tnf": "full"}
+    assert missing == [] and late == ["tnf"]
+    chosen, missing, late = P.game_runs(sched, runs, {"partial": {"g1"}, "full": {"g1"}})
+    assert chosen == {"g1": "full"}
+    assert missing == ["tnf"] and late == []
 
 
 # ----------------------------------------------------------------------------- fail closed

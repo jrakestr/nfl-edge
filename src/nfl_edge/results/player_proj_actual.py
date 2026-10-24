@@ -5,8 +5,10 @@ report in this module lists candidates, it does not apply them.
 
 Residual = actual - projected, so a positive residual means we underproject.
 Projection is model.proj_players on the newest run predating each game's kickoff (the rule
-grade.run uses). DK p50 and pass attempts are not stored in Postgres; they are read from the
-draw parquet at grade time and are null once that parquet is pruned.
+grade.run uses). A final game with no such run uses the earliest run that projected it,
+so a played week is not dropped because the sim landed after kickoff. DK p50 and pass
+attempts are not stored in Postgres; they are read from the draw parquet at grade time
+and are null once that parquet is pruned.
 """
 from __future__ import annotations
 
@@ -67,20 +69,68 @@ def assign_tiers(rows: list[dict]) -> list[dict]:
     return [{**r, "tier": "star" if id(r) in star else "rest"} for r in rows]
 
 
-def game_runs(sched: list[dict], runs: list[dict]) -> tuple[dict[str, str], list[str]]:
-    """game_id -> newest run created before kickoff; games with no such run are returned apart."""
+def _ts(ts: datetime) -> datetime:
+    if getattr(ts, "tzinfo", None) is None:
+        return ts.replace(tzinfo=ZoneInfo("UTC"))
+    return ts
+
+
+def _covers(run_id: str, game_id: str, games_by_run: dict[str, set[str]] | None) -> bool:
+    if games_by_run is None:
+        return True
+    return game_id in games_by_run.get(str(run_id), set())
+
+
+def _earliest_covering(
+    ordered: list[dict], game_id: str, games_by_run: dict[str, set[str]] | None,
+) -> str | None:
+    """Earliest run that projected this game. No coverage map: every run covers every game."""
+    for r in ordered:
+        rid = str(r["run_id"])
+        if _covers(rid, game_id, games_by_run):
+            return rid
+    return None
+
+
+def game_runs(
+    sched: list[dict],
+    runs: list[dict],
+    games_by_run: dict[str, set[str]] | None = None,
+) -> tuple[dict[str, str], list[str], list[str]]:
+    """game_id -> run. Newest pre-kickoff run that projected the game.
+
+    A final game with no such run takes the earliest run that projected it.
+    `games_by_run` omitted means every run projected every game.
+
+    Returns (chosen, games with no projection, games taken from a post-kickoff run).
+    """
+    ordered = sorted(runs, key=lambda r: _ts(r["created_at"]))
     chosen: dict[str, str] = {}
-    skipped: list[str] = []
+    missing: list[str] = []
+    late: list[str] = []
     for s in sched:
         if s.get("result") is None:
             continue
+        gid = str(s["game_id"])
         kick = kickoff_at(s["gameday"], s.get("gametime"), s.get("location"))
         rid = run_for_kickoff(runs, kick)
+        used_late = False
+        if rid is not None and not _covers(rid, gid, games_by_run):
+            prior = [
+                r for r in ordered
+                if _ts(r["created_at"]) < kick and _covers(r["run_id"], gid, games_by_run)
+            ]
+            rid = str(prior[-1]["run_id"]) if prior else None
         if rid is None:
-            skipped.append(str(s["game_id"]))
-        else:
-            chosen[str(s["game_id"])] = rid
-    return chosen, skipped
+            rid = _earliest_covering(ordered, gid, games_by_run)
+            if rid is None:
+                missing.append(gid)
+                continue
+            used_late = True
+        if used_late:
+            late.append(gid)
+        chosen[gid] = rid
+    return chosen, missing, late
 
 
 def build_rows(
@@ -157,8 +207,12 @@ def _draw_stats(proj: list[dict]) -> dict[tuple[str, str], dict]:
     return out
 
 
-def build_week(season: int, week: int) -> dict:
-    """Write model.player_proj_actual for a fully final week. Fails closed with a reason."""
+def build_week(season: int, week: int, *, missing_games_only: bool = False) -> dict:
+    """Write model.player_proj_actual for a fully final week. Fails closed with a reason.
+
+    `missing_games_only` upserts games that have no rows yet and leaves the rest of the
+    week alone, so a backfill cannot wipe DK p50 already stored from parquet.
+    """
     missing = games_missing_result(season, week)
     if missing:
         return skip(season, week, missing_finals_reason(missing))
@@ -182,9 +236,18 @@ def build_week(season: int, week: int) -> dict:
         "where season = %s and week = %s and game_type = 'REG'",
         (season, week),
     )
-    chosen, no_run = game_runs(sched.to_dicts(), runs.to_dicts())
+    run_ids = [r["run_id"] for r in runs.to_dicts()]
+    cover = read_sql(
+        "select distinct run_id::text as run_id, game_id from model.proj_players "
+        "where run_id = any(%s::uuid[]) and position not in ('DST', 'K')",
+        (run_ids,),
+    )
+    games_by_run: dict[str, set[str]] = {}
+    for row in cover.to_dicts():
+        games_by_run.setdefault(str(row["run_id"]), set()).add(str(row["game_id"]))
+    chosen, no_run, late = game_runs(sched.to_dicts(), runs.to_dicts(), games_by_run)
     if not chosen:
-        return skip(season, week, "no run predates kickoff for any game")
+        return skip(season, week, "no projection for any final game")
     proj_df = read_sql(
         "select run_id::text as run_id, player_id, game_id, team, position, "
         "fpts_dk_mean::float8 as fpts_dk_mean, stat_summary, draws_path "
@@ -200,10 +263,19 @@ def build_week(season: int, week: int) -> dict:
     actuals = {r["player_id"]: r for r in actual.to_dicts()}
     drawstats = _draw_stats(proj)
     rows = build_rows(season, week, proj, actuals, weekly, drawstats)
+    if missing_games_only:
+        have = read_sql(
+            "select distinct game_id from model.player_proj_actual "
+            "where season = %s and week = %s",
+            (season, week),
+        )
+        have_ids = {str(r["game_id"]) for r in have.to_dicts() if r.get("game_id")}
+        rows = [r for r in rows if str(r["game_id"]) not in have_ids]
     n = upsert(pl.DataFrame(rows, infer_schema_length=None), TABLE, KEY) if rows else 0
     return {
         "skipped": False, "reason": None, "season": season, "week": week, "n_rows": n,
         "games_without_run": no_run,
+        "games_after_kickoff": late,
         "with_parquet": sum(1 for r in rows if r["proj_dk_p50"] is not None),
         "runs": sorted(set(chosen.values())),
     }

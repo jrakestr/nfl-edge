@@ -1596,7 +1596,11 @@ def player_bias(
             typer.echo(
                 f"week {w}: {out['n_rows']} rows; {out['with_parquet']} with parquet "
                 f"(DK p50 and attempts null for the rest); "
-                f"{len(out['games_without_run'])} games had no run before kickoff"
+                f"{len(out['games_without_run'])} games had no projection"
+                + (
+                    f"; {len(out['games_after_kickoff'])} used the earliest post-kickoff run"
+                    if out.get("games_after_kickoff") else ""
+                )
             )
     path, rep = P.write_report(season)
     typer.echo(

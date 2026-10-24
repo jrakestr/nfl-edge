@@ -1,8 +1,9 @@
 # Grading and CLV
 
-- Grade each game against the newest `sim_runs` row that predates kickoff. Neutral
-  sites use `gameday` 00:00 ET as the cutoff. The board reads `model.results`
-  and does not re-select the run.
+- Grade each game against the newest `sim_runs` row that predates kickoff. A final
+  game with no such run is graded against the earliest run that projected it, so a
+  played week is not dropped. Neutral sites use `gameday` 00:00 ET as the cutoff.
+  The board reads `model.results` and does not re-select the run.
 - Grade every completed week not yet graded, or report the gap. Never grade a week
   with null results; name the missing games.
 - CLV reads `market_lines` snapshots / `schedules.total_line`, never
