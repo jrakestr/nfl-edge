@@ -286,6 +286,52 @@ export async function rtsByPlayer(
   }
 }
 
+/**
+ * His average miss before this week: actual DraftKings points minus the sim.
+ * One row per player. Empty when the table is missing. Earlier weeks only.
+ */
+export async function missByPlayer(season: number, week: number): Promise<Record<string, number>> {
+  try {
+    const rows = await sql()`
+      select player_id, avg(residual_dk)::float8 as mean_miss
+      from (
+        select distinct on (player_id, week) player_id, residual_dk
+        from model.player_proj_actual
+        where season = ${season} and week < ${week}
+          and had_opportunity
+          and residual_dk is not null
+        order by player_id, week, graded_at desc nulls last
+      ) one
+      group by player_id`;
+    const out: Record<string, number> = {};
+    for (const r of rows) {
+      if (r.player_id == null || r.mean_miss == null) continue;
+      out[String(r.player_id)] = Number(r.mean_miss);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Saved plus/minus steps for this week. Empty when the table is not there yet. */
+export async function editsByPlayer(season: number, week: number): Promise<Record<string, number>> {
+  try {
+    const rows = await sql()`
+      select player_id, delta
+      from model.player_point_edits
+      where season = ${season} and week = ${week}`;
+    const out: Record<string, number> = {};
+    for (const r of rows) {
+      if (r.player_id == null || r.delta == null) continue;
+      out[String(r.player_id)] = Number(r.delta);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 /** NFLGameSim fpts_dk per player_id; empty if the table is missing. Benchmark only. */
 export async function ngsByPlayer(
   season: number,

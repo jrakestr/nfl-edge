@@ -4,7 +4,7 @@ import { PlayersList } from "@/components/players/PlayersList";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
-import { actualsByPlayer, fpByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
+import { actualsByPlayer, editsByPlayer, fpByPlayer, missByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
 import { stripGames } from "@/lib/queries/strip-games";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
 import { filterGamesForSlate, missingSlateNotice, requestedSlate, resolveSlate } from "@/lib/slate";
@@ -82,13 +82,19 @@ export default async function Page({
           players.map((p) => p.player_id),
         )
       : {};
-  const actuals = weekOk && players.length ? await actualsByPlayer(season, week) : null;
+  const [actuals, miss, edits] = await Promise.all([
+    weekOk && players.length ? actualsByPlayer(season, week) : Promise.resolve(null),
+    weekOk ? missByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
+    weekOk ? editsByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
+  ]);
   const merged = players.map((p) => {
     const a = actuals?.byPlayer[p.player_id];
     return {
       ...p,
       ngs_fpts: ngs[p.player_id] ?? null,
       fp_fpts: fp[p.player_id] ?? null,
+      mean_miss: miss[p.player_id] ?? null,
+      point_delta: edits[p.player_id] ?? 0,
       actual_dk: a?.fpts_dk ?? null,
       actual_state: !actuals?.graded ? null : a?.had_opportunity ? ("played" as const) : ("dnp" as const),
     };
@@ -99,6 +105,7 @@ export default async function Page({
       slateId={sid}
       week={week}
       site={siteKey}
+      season={season}
       slate={slate}
       strip={strip}
       fallbackFrom={players.length === 0 ? slate : null}

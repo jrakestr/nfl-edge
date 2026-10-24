@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Matchup } from "@/components/board/TeamDot";
+import { PlayerAnalysis } from "@/components/players/PlayerAnalysis";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { DataTable } from "@/components/ui/DataTable";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TeamLogo } from "@/components/ui/TeamLogo";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { STAT_LABELS, STAT_ORDER, corrLabel, weeklyValue } from "@/lib/prop-stats";
 import { price, signedPct } from "@/lib/edge";
+import type { FpWeek, SimWeek } from "@/lib/player-history";
 import { summarizeActuals, type PlayerActualWeek } from "@/lib/player-actuals";
 import type { CorrPair, FairProp, GameContext, Hist, MatchupRow, PlayerHeader, PlayerWeek, PropSnap } from "@/lib/types";
 import { PropCallout } from "./PropCallout";
@@ -71,6 +76,60 @@ function HistRail({ hist, line }: { hist: Hist | null; line: number | null }) {
   );
 }
 
+function PlayerWeekSelect({
+  season,
+  week,
+  games,
+  playerId,
+  gameId,
+}: {
+  season: number;
+  week: number;
+  games: { week: number; game_id: string }[];
+  playerId: string;
+  gameId: string | null;
+}) {
+  const router = useRouter();
+  const options = [...games];
+  if (gameId && !options.some((g) => g.week === week)) {
+    options.push({ week, game_id: gameId });
+    options.sort((a, b) => a.week - b.week);
+  }
+  if (options.length === 0) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span className="t-caption">Week {week}</span>
+        <span className="t-caption">{season}</span>
+      </span>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        value={String(week)}
+        onValueChange={(v) => {
+          const next = Number(v);
+          const target = options.find((g) => g.week === next);
+          if (!target || next === week) return;
+          router.push(`/props/${target.game_id}/${playerId}`);
+        }}
+      >
+        <SelectTrigger aria-label="Week" className="h-8 w-[120px] rounded-md t-body">
+          <SelectValue>{`Week ${week}`}</SelectValue>
+        </SelectTrigger>
+        <SelectContent align="end">
+          {options.map((g) => (
+            <SelectItem key={g.week} value={String(g.week)}>
+              Week {g.week}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <span className="t-caption">{season}</span>
+    </div>
+  );
+}
+
 export function PropDetail({
   player,
   game,
@@ -84,6 +143,11 @@ export function PropDetail({
   actualRows = [],
   currentSeason,
   drawsPruned = false,
+  asOf = null,
+  seasonLog = [],
+  projections = [],
+  simProjections = [],
+  games = [],
 }: {
   player: PlayerHeader | null;
   game: GameContext | null;
@@ -97,6 +161,11 @@ export function PropDetail({
   actualRows?: PlayerActualWeek[];
   currentSeason: number;
   drawsPruned?: boolean;
+  asOf?: { season: number; week: number } | null;
+  seasonLog?: PlayerWeek[];
+  projections?: FpWeek[];
+  simProjections?: SimWeek[];
+  games?: { week: number; game_id: string }[];
 }) {
   const found = player != null;
   const name = found ? player.display_name : "Player not found";
@@ -119,49 +188,49 @@ export function PropDetail({
     return n != null ? log.slice(0, n) : log;
   }, [log, win, n, game, player]);
 
+  const showProps = fairs.length > 0;
+
   return (
-    <div className="flex flex-col gap-4 lg:flex-row">
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <header className="card flex flex-col gap-3 p-4">
-          <div className="flex items-start gap-3">
-            <span
-              aria-hidden
-              className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted t-body font-bold"
-            >
-              {initials(found ? player.display_name : playerId)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h1 className="t-title">{name}</h1>
-              <div className="mt-1 flex flex-wrap items-center gap-2 t-caption">
-                {player?.position ? <PositionPill position={player.position} /> : null}
-                {game ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Matchup home={game.home} away={game.away} />
-                    <span>
-                      {game.gameday}
-                      {game.gametime ? ` ${game.gametime}` : ""}
-                    </span>
+    <div className="flex flex-col gap-4">
+      <header className="card flex flex-col gap-3 p-4">
+        <div className="flex items-start gap-3">
+          <span
+            aria-hidden
+            className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted t-body font-bold"
+          >
+            {initials(found ? player.display_name : playerId)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="t-title">{name}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-2 t-caption">
+              {player?.position ? <PositionPill position={player.position} /> : null}
+              {player?.latest_team ? <TeamLogo team={player.latest_team} /> : null}
+              {asOf ? (
+                <PlayerWeekSelect
+                  season={asOf.season}
+                  week={asOf.week}
+                  games={games}
+                  playerId={playerId}
+                  gameId={game?.game_id ?? null}
+                />
+              ) : null}
+              {game ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Matchup home={game.home} away={game.away} />
+                  <span>
+                    {game.gameday}
+                    {game.gametime ? ` ${game.gametime}` : ""}
                   </span>
-                ) : (
-                  <span>Unknown game</span>
-                )}
-              </div>
+                </span>
+              ) : (
+                <span>Unknown game</span>
+              )}
+            </div>
               {realized.kind === "ok" ? (
                 <div className="mt-2" aria-label="Realized DK points">
                   <p className="t-body tnum font-semibold text-foreground">
                     {realized.season} DK · {realized.ppg.toFixed(1)} /g · {realized.gp} gp
                   </p>
-                  <ul className="mt-1 flex flex-col gap-0.5">
-                    {realized.games.map((g) => (
-                      <li key={`${g.season}-${g.week}`} className="flex justify-between gap-3 t-caption">
-                        <span>
-                          {g.gameday ?? `wk${g.week}`}
-                          {g.opponent ? ` · ${g.opponent}` : ""}
-                        </span>
-                        <span className="tnum font-semibold text-foreground">{g.fpts_dk.toFixed(1)}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ) : realized.kind === "none" ? (
                 <p className="mt-2 t-caption" role="status">
@@ -170,6 +239,24 @@ export function PropDetail({
               ) : null}
             </div>
           </div>
+      </header>
+      {asOf ? (
+        <PlayerAnalysis
+          position={player?.position ?? null}
+          season={asOf.season}
+          week={asOf.week}
+          log={seasonLog}
+          actuals={actualRows}
+          projections={projections}
+          simProjections={simProjections}
+        />
+      ) : null}
+      {showProps ? (
+      <section className="flex flex-col gap-4" aria-label="Props">
+        <h2 className="t-body font-semibold">Props</h2>
+        <div className="flex flex-col gap-4 lg:flex-row">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="card flex flex-col gap-3 p-4">
           <label className="flex max-w-xs flex-col gap-1">
             <span className="t-colhead text-muted-foreground">Entered line</span>
             {drawsPruned ? (
@@ -214,7 +301,7 @@ export function PropDetail({
             ))}
           </ToggleGroup>
           <PropCallout sentence={sentence} lean={lean} oneSided={Boolean(fair?.one_sided)} />
-        </header>
+          </div>
         <StatBars
           log={shownLog}
           stat={fair?.stat ?? stat}
@@ -389,6 +476,9 @@ export function PropDetail({
           )}
         </section>
       </aside>
+        </div>
+      </section>
+      ) : null}
     </div>
   );
 }

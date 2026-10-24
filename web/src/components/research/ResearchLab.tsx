@@ -1,294 +1,250 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
 import { PositionPill } from "@/components/ui/PositionPill";
-import { Button } from "@/components/ui/button";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable";
-import { Input } from "@/components/ui/input";
-import { deleteResearchMetric, saveResearchMetric } from "@/lib/actions/research-metrics";
-import { estimateJevRun, runJev, type JevPlan } from "@/lib/actions/research-jev";
-import { normalizeLabel, scoreText, termsText } from "@/lib/research/display";
-import { fieldLabel } from "@/lib/research/fields";
-import type { RubricStatus } from "@/lib/research/jev";
-import type { Metric, Normalize, ScoredPlayer } from "@/lib/research/score";
+import { shortStamp } from "@/lib/format";
+import { scoreText } from "@/lib/research/display";
+import {
+  buildNumericResearchRows,
+  type AuditedLineup,
+  type AuditedSlot,
+  type NumericResearchRow,
+  type PoolPlayer,
+  type VerdictKind,
+} from "@/lib/research/questions";
+import type { Metric, ScoredPlayer } from "@/lib/research/score";
 
-type Draft = { field: string; weight: string };
+const VERDICT_STYLE: Record<VerdictKind, string> = {
+  VETO: "border-edge-neg/40 bg-edge-neg/10 text-edge-neg",
+  FLAG: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  KEEP: "border-edge-pos/40 bg-edge-pos/10 text-edge-pos",
+  NO_READ: "border-border bg-muted/40 text-muted-foreground",
+};
 
-const SELECT = "h-8 rounded-md border border-border bg-card px-2 t-body";
+const VERDICT_LABEL: Record<VerdictKind, string> = {
+  VETO: "VETO",
+  FLAG: "FLAG",
+  KEEP: "KEEP",
+  NO_READ: "NO READ",
+};
 
-/** Jev cell text. A cached score shows as a number; otherwise the status. Never blank, never guessed. */
-export function jevCellText(status: RubricStatus, value?: number | null): string {
-  if (value != null) return value.toFixed(2);
-  return status.configured ? "Not run" : "Not configured";
+export function VerdictChip({ verdict }: { verdict: VerdictKind }) {
+  return (
+    <span
+      className={`inline-flex h-6 items-center rounded border px-1.5 font-semibold tracking-wide t-caption ${VERDICT_STYLE[verdict]}`}
+    >
+      {VERDICT_LABEL[verdict]}
+    </span>
+  );
 }
 
-const MAX_LIMIT = 100;
-
-function JevPanel({ week, metrics, jev }: { week: number; metrics: Metric[]; jev: RubricStatus }) {
-  const [metricId, setMetricId] = useState(metrics[0]?.id ?? "");
-  const [limit, setLimit] = useState("25");
-  const [plan, setPlan] = useState<JevPlan | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  const n = Number(limit);
-  const input = { week, metricId, limit: n };
-
-  function reset() {
-    setPlan(null);
-    setMessage(null);
-    setError(null);
-  }
-  function estimate() {
-    reset();
-    start(async () => {
-      const res = await estimateJevRun(input);
-      if (res.ok) setPlan(res);
-      else setError(res.error);
-    });
-  }
-  function run() {
-    setMessage(null);
-    setError(null);
-    start(async () => {
-      const res = await runJev(input);
-      if (res.ok) {
-        setPlan(null);
-        setMessage(res.toCall === 0 ? "All players already cached. No call made." : `Scored ${res.written} players.`);
-      } else setError(res.error);
-    });
-  }
-
-  if (!jev.configured) {
-    return <p className="t-caption text-muted-foreground">Jev rubric: not configured ({jev.reason}).</p>;
-  }
-  if (metrics.length === 0) return null;
+function SlotChip({ slot }: { slot: AuditedSlot }) {
+  const tone =
+    slot.verdict === "VETO"
+      ? "border-edge-neg/50 bg-edge-neg/10"
+      : slot.verdict === "FLAG"
+        ? "border-amber-500/50 bg-amber-500/10"
+        : "border-border-soft bg-card";
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="t-sentence font-semibold">Jev rubric</h3>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="t-colhead text-muted-foreground">Metric</span>
-          <select
-            className={`${SELECT} w-56`}
-            value={metricId}
-            onChange={(e) => {
-              setMetricId(e.target.value);
-              reset();
-            }}
-          >
-            {metrics.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex w-24 flex-col gap-1">
-          <span className="t-colhead text-muted-foreground">Top players</span>
-          <Input
-            inputMode="numeric"
-            value={limit}
-            onChange={(e) => {
-              setLimit(e.target.value);
-              reset();
-            }}
-          />
-        </label>
-        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={estimate}>
-          Estimate cost
-        </Button>
-        <Button type="button" size="sm" disabled={pending || !plan || plan.toCall === 0} onClick={run}>
-          {pending ? "Working" : "Run Jev"}
-        </Button>
-      </div>
-      {plan ? (
-        <p className="t-caption text-muted-foreground" role="status">
-          {plan.players} players ({plan.cached} cached, {plan.toCall} to score). About {plan.tokens.toLocaleString()}{" "}
-          input tokens, ${plan.usd.toFixed(4)}. Runs over $0.50 are refused.
-        </p>
-      ) : null}
-      {message ? (
-        <p className="t-caption text-muted-foreground" role="status">
-          {message}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="t-caption text-edge-neg">
-          {error}
-        </p>
-      ) : null}
-      <p className="t-caption text-muted-foreground">
-        Top players by this metric, 1 to {MAX_LIMIT}. Jev scores are display only (0 to 4 per field, weighted by your
-        weights) and cached by metric, week and model, so reruns are free.
-      </p>
+    <div
+      className={`flex items-center gap-1.5 rounded border px-2 py-1 ${tone}`}
+      title={slot.reasons.join(" · ")}
+    >
+      <span className="t-caption font-semibold text-muted-foreground">{slot.slot}</span>
+      <span className="t-body font-medium text-foreground">{slot.name}</span>
+      <VerdictChip verdict={slot.verdict} />
     </div>
   );
 }
 
-function MetricEditor({ fields }: { fields: string[] }) {
-  const [name, setName] = useState("");
-  const [normalize, setNormalize] = useState<Normalize>("zscore");
-  const [terms, setTerms] = useState<Draft[]>([{ field: fields[0] ?? "", weight: "1" }]);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-
-  function save() {
-    setError(null);
-    const parsed = terms.map((t) => ({ field: t.field, weight: t.weight.trim() === "" ? NaN : Number(t.weight) }));
-    start(async () => {
-      const res = await saveResearchMetric({ name, normalize, terms: parsed });
-      if (!res.ok) setError(res.error);
-      else {
-        setName("");
-        setTerms([{ field: fields[0] ?? "", weight: "1" }]);
-      }
-    });
-  }
-
+function LineupAuditCard({ lineup, index }: { lineup: AuditedLineup; index: number }) {
+  const w = lineup.weakestSlot;
   return (
-    <form
-      className="flex flex-col gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save();
-      }}
-    >
-      <h3 className="t-sentence font-semibold">New metric</h3>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex w-56 flex-col gap-1">
-          <span className="t-colhead text-muted-foreground">Name</span>
-          <Input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="Volume score" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="t-colhead text-muted-foreground">Scale</span>
-          <select className={SELECT} value={normalize} onChange={(e) => setNormalize(e.target.value as Normalize)}>
-            <option value="zscore">{normalizeLabel("zscore")}</option>
-            <option value="none">{normalizeLabel("none")}</option>
-          </select>
-        </label>
+    <article className="card flex flex-col gap-3 p-4" aria-label={`Lineup ${index + 1}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-soft pb-2">
+        <div className="flex items-center gap-2">
+          <span className="t-body font-semibold text-foreground">Lineup #{index + 1}</span>
+          <VerdictChip
+            verdict={lineup.status === "VETOED" ? "VETO" : lineup.status === "FLAGGED" ? "FLAG" : "KEEP"}
+          />
+          {lineup.vetoCount > 0 ? (
+            <span className="t-caption text-edge-neg">{lineup.vetoCount} veto</span>
+          ) : null}
+          {lineup.flagCount > 0 ? (
+            <span className="t-caption text-muted-foreground">{lineup.flagCount} flag</span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-3 t-caption tnum text-muted-foreground">
+          <span>${lineup.salaryUsed.toLocaleString()}</span>
+          {lineup.projFpts != null ? <span>{lineup.projFpts.toFixed(1)} proj</span> : null}
+          {lineup.simWinPct != null ? <span>{(lineup.simWinPct * 100).toFixed(1)}% win</span> : null}
+        </div>
       </div>
-      <div className="flex flex-col gap-2">
-        {terms.map((t, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="t-colhead text-muted-foreground">Field</span>
-              <select
-                className={`${SELECT} w-72`}
-                value={t.field}
-                onChange={(e) => setTerms(terms.map((x, j) => (j === i ? { ...x, field: e.target.value } : x)))}
-              >
-                {fields.map((f) => (
-                  <option key={f} value={f}>
-                    {fieldLabel(f)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex w-24 flex-col gap-1">
-              <span className="t-colhead text-muted-foreground">Weight</span>
-              <Input
-                inputMode="decimal"
-                value={t.weight}
-                onChange={(e) => setTerms(terms.map((x, j) => (j === i ? { ...x, weight: e.target.value } : x)))}
-              />
-            </label>
-            {terms.length > 1 ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Remove ${fieldLabel(t.field)}`}
-                onClick={() => setTerms(terms.filter((_, j) => j !== i))}
-              >
-                <Trash2 size={14} strokeWidth={1.5} aria-hidden />
-              </Button>
-            ) : null}
-          </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {lineup.slots.map((s, idx) => (
+          <SlotChip key={`${s.slot}-${s.playerId ?? idx}`} slot={s} />
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setTerms([...terms, { field: fields[0] ?? "", weight: "1" }])}
-        >
-          <Plus size={14} strokeWidth={1.5} aria-hidden />
-          Add field
-        </Button>
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Saving" : "Save metric"}
-        </Button>
-        {error ? (
-          <span role="alert" className="t-caption text-edge-neg">
-            {error}
-          </span>
-        ) : null}
-      </div>
-      <p className="t-caption text-muted-foreground">
-        A player missing any field in a metric gets no score for it. Nothing is filled in. Z-score puts every field
-        on one scale so weights are comparable.
-      </p>
-    </form>
+
+      {w ? (
+        <div className="flex flex-col gap-2 rounded-md border border-border-soft bg-muted/20 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="t-caption font-semibold text-muted-foreground">Weakest slot:</span>
+            <PositionPill position={w.position} />
+            <span className="t-body font-semibold text-foreground">{w.name}</span>
+            <span className="t-caption text-muted-foreground">({w.team})</span>
+            <VerdictChip verdict={w.verdict} />
+            <span className="t-caption text-foreground">{w.reasons.join(" · ")}</span>
+          </div>
+          {w.headline ? (
+            <p className="t-caption text-muted-foreground">News: &ldquo;{w.headline}&rdquo;</p>
+          ) : null}
+          {w.swaps.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="t-caption font-semibold text-muted-foreground">Suggested swaps (sim-ranked):</span>
+              {w.swaps.map((sw) => (
+                <span
+                  key={sw.playerId}
+                  className="inline-flex items-center gap-1.5 rounded border border-border bg-card px-2 py-1 t-caption tnum"
+                >
+                  <span className="font-semibold text-foreground">{sw.name}</span>
+                  <span className="text-muted-foreground">{sw.team}</span>
+                  <span>${sw.salary.toLocaleString()}</span>
+                  <span className="text-foreground">{sw.projDkMean.toFixed(1)} pts</span>
+                  <span className={sw.projDelta >= 0 ? "text-edge-pos" : "text-edge-neg"}>
+                    ({sw.projDelta >= 0 ? "+" : ""}
+                    {sw.projDelta.toFixed(1)})
+                  </span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="t-caption text-muted-foreground">No cap-legal KEEP replacement found in pool.</p>
+          )}
+        </div>
+      ) : (
+        <p className="t-caption text-muted-foreground">All slots cleared Jev injury and role checks.</p>
+      )}
+    </article>
   );
 }
 
-function MetricList({ metrics, errors }: { metrics: Metric[]; errors: Record<string, string[]> }) {
-  const [pending, start] = useTransition();
-  if (metrics.length === 0) {
-    return <p className="t-sentence text-muted-foreground">No metrics yet. Add one below to score players.</p>;
+export type LineupAuditProps = {
+  week: number;
+  slate: string;
+  auditedAt: string | null;
+  modelResolved: string | null;
+  auditedPlayerCount: number;
+  lineups: AuditedLineup[];
+};
+
+export function LineupAuditSection({
+  week,
+  slate,
+  auditedAt,
+  modelResolved,
+  auditedPlayerCount,
+  lineups,
+}: LineupAuditProps) {
+  const [filter, setFilter] = useState<"ALL" | "RISK" | "CLEAR">("ALL");
+  const cliCmd = `uv run nfl-edge research audit --week ${week} --site dk --slate ${slate}`;
+
+  if (lineups.length === 0) {
+    return (
+      <section className="flex flex-col gap-3" aria-label="Lineup Audit">
+        <EmptyState title={`No saved lineups for week ${week} (${slate})`}>
+          Build lineups for week {week} and run <code>{cliCmd}</code> to inspect Jev slot verdicts and swap
+          suggestions.
+        </EmptyState>
+      </section>
+    );
   }
+
+  const vetoed = lineups.filter((l) => l.status === "VETOED").length;
+  const flagged = lineups.filter((l) => l.status === "FLAGGED").length;
+  const clear = lineups.filter((l) => l.status === "CLEAR").length;
+
+  const visible = lineups.filter((l) => {
+    if (filter === "RISK") return l.status === "VETOED" || l.status === "FLAGGED";
+    if (filter === "CLEAR") return l.status === "CLEAR";
+    return true;
+  });
+
   return (
-    <ul className="flex flex-col divide-y divide-border-soft">
-      {metrics.map((m) => (
-        <li key={m.id} className="flex flex-wrap items-center gap-3 py-2">
-          <span className="t-body min-w-40 font-semibold">{m.name}</span>
-          <span className="t-caption min-w-0 flex-1 text-muted-foreground">
-            {termsText(m)}. {normalizeLabel(m.normalize)}.
-          </span>
-          {errors[m.id] ? (
-            <span role="alert" className="t-caption text-edge-neg">
-              Not scored: {errors[m.id]!.join(" ")}
+    <section className="flex flex-col gap-4" aria-label="Lineup Audit">
+      <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="t-title">Jev Lineup Audit</h2>
+            <span className="t-caption text-muted-foreground">
+              {lineups.length} lineups ({vetoed} vetoed, {flagged} flagged, {clear} clear)
             </span>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            disabled={pending}
-            aria-label={`Delete ${m.name}`}
-            onClick={() => start(async () => void (await deleteResearchMetric(Number(m.id))))}
-          >
-            <Trash2 size={14} strokeWidth={1.5} aria-hidden />
-          </Button>
-        </li>
-      ))}
-    </ul>
+          </div>
+          {auditedAt ? (
+            <p className="t-caption text-muted-foreground">
+              Last audit {shortStamp(auditedAt)} · model <code>{modelResolved ?? "jev-latest"}</code> ·{" "}
+              {auditedPlayerCount} players judged. Display-only; sim and optimizer untouched.
+            </p>
+          ) : (
+            <p className="t-caption text-muted-foreground">
+              No Jev judgments recorded for this slate yet. Run <code>{cliCmd}</code> after{" "}
+              <code>uv run nfl-edge ingest fantasypros-news</code>.
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5" role="group" aria-label="Filter lineups">
+          {(["ALL", "RISK", "CLEAR"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setFilter(mode)}
+              className={`h-7 rounded border px-2.5 t-caption font-medium ${
+                filter === mode
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card text-foreground"
+              }`}
+            >
+              {mode === "ALL" ? `All (${lineups.length})` : mode === "RISK" ? `Flag/Veto (${vetoed + flagged})` : `Clear (${clear})`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {visible.map((lu, i) => (
+          <LineupAuditCard key={lu.lineupId} lineup={lu} index={i} />
+        ))}
+      </div>
+    </section>
   );
 }
+
+type TableRow = NumericResearchRow & { scores: ScoredPlayer["scores"] };
 
 export function ResearchLab({
   rows,
-  metrics,
-  metricErrors,
-  fields,
-  jev,
-  week,
-  jevScores,
+  metrics = [],
+  metricErrors = {},
+  poolByPid = {},
+  audit,
 }: {
   rows: ScoredPlayer[];
-  metrics: Metric[];
-  metricErrors: Record<string, string[]>;
-  fields: string[];
-  jev: RubricStatus;
-  week: number;
-  /** Metric id → player id → cached Jev score. */
-  jevScores: Record<string, Record<string, number>>;
+  metrics?: Metric[];
+  metricErrors?: Record<string, string[]>;
+  poolByPid?: Record<string, PoolPlayer>;
+  audit?: LineupAuditProps;
 }) {
   const scored = metrics.filter((m) => !metricErrors[m.id]);
-  const columns: DataColumn<ScoredPlayer>[] = [
+  const numericRows = buildNumericResearchRows(rows, poolByPid);
+  const tableRows: TableRow[] = numericRows.map((nr, i) => ({
+    ...nr,
+    scores: rows[i]?.scores ?? {},
+  }));
+
+  const columns: DataColumn<TableRow>[] = [
     {
       id: "player",
       header: "Player",
@@ -301,7 +257,54 @@ export function ResearchLab({
       ),
     },
     { id: "team", header: "Team", sortValue: (r) => r.team, cell: (r) => <span className="t-body">{r.team}</span> },
-    ...scored.map<DataColumn<ScoredPlayer>>((m) => ({
+    {
+      id: "verdict",
+      header: "Jev Verdict",
+      sortValue: (r) => r.verdict,
+      cell: (r) => <VerdictChip verdict={r.verdict} />,
+    },
+    {
+      id: "reason",
+      header: "Audit Note",
+      sortable: false,
+      className: "max-w-xs whitespace-normal",
+      cell: (r) => (
+        <span className="t-caption leading-snug text-muted-foreground" title={r.headline ?? undefined}>
+          {r.reason}
+        </span>
+      ),
+    },
+    {
+      id: "salary",
+      header: "Salary",
+      align: "right",
+      sortValue: (r) => r.salary,
+      cell: (r) => (
+        <span className="t-body tnum">{r.salary != null ? `$${r.salary.toLocaleString()}` : "—"}</span>
+      ),
+    },
+    {
+      id: "simMean",
+      header: "Sim Mean",
+      align: "right",
+      sortValue: (r) => r.simMean,
+      cell: (r) => <span className="t-body tnum">{r.simMean != null ? r.simMean.toFixed(1) : "—"}</span>,
+    },
+    {
+      id: "simP90",
+      header: "Ceiling (P90)",
+      align: "right",
+      sortValue: (r) => r.simP90,
+      cell: (r) => <span className="t-body tnum">{r.simP90 != null ? r.simP90.toFixed(1) : "—"}</span>,
+    },
+    {
+      id: "valueX",
+      header: "Value (pts/$1k)",
+      align: "right",
+      sortValue: (r) => r.valueX,
+      cell: (r) => <span className="t-body tnum">{r.valueX != null ? r.valueX.toFixed(2) : "—"}</span>,
+    },
+    ...scored.map<DataColumn<TableRow>>((m) => ({
       id: `m${m.id}`,
       header: m.name,
       align: "right",
@@ -317,55 +320,36 @@ export function ResearchLab({
         }
         return (
           <span className="t-body tnum">
-            {scoreText(s.value)} <span className="t-caption text-muted-foreground">#{s.positionRank} {r.position}</span>
+            {scoreText(s.value)}{" "}
+            <span className="t-caption text-muted-foreground">
+              #{s.positionRank} {r.position}
+            </span>
           </span>
         );
       },
     })),
-    ...(scored.length
-      ? scored.map<DataColumn<ScoredPlayer>>((m) => ({
-          id: `jev${m.id}`,
-          header: `Jev: ${m.name}`,
-          align: "right",
-          sortValue: (r) => jevScores[m.id]?.[r.playerId] ?? null,
-          cell: (r) => (
-            <span className="t-caption tnum text-muted-foreground">
-              {jevCellText(jev, jevScores[m.id]?.[r.playerId])}
-            </span>
-          ),
-        }))
-      : [
-          {
-            id: "jev",
-            header: "Jev rubric",
-            sortable: false,
-            cell: () => <span className="t-caption text-muted-foreground">{jevCellText(jev)}</span>,
-          } satisfies DataColumn<ScoredPlayer>,
-        ]),
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="card flex flex-col gap-4 p-4" aria-label="Metrics">
-        <h2 className="t-title">Metrics</h2>
-        <MetricList metrics={metrics} errors={metricErrors} />
-        <MetricEditor fields={fields} />
-        <JevPanel week={week} metrics={scored} jev={jev} />
+    <div className="flex flex-col gap-6">
+      {audit ? <LineupAuditSection {...audit} /> : null}
+      <section className="flex flex-col gap-3" aria-label="Player Pool">
+        <h2 className="t-title">Player Pool &amp; Sim Context</h2>
+        <DataTable
+          data={tableRows}
+          columns={columns}
+          getRowId={(r) => r.playerId}
+          empty="No players."
+          ariaLabel="Scored players"
+          defaultSort={{ id: "simMean", dir: "desc" }}
+          searchPlaceholder="Search players"
+          filters={{
+            search: (r, q) => r.name.toLowerCase().includes(q),
+            position: (r) => r.position,
+            team: (r) => r.team,
+          }}
+        />
       </section>
-      <DataTable
-        data={rows}
-        columns={columns}
-        getRowId={(r) => r.playerId}
-        empty="No players."
-        ariaLabel="Scored players"
-        defaultSort={scored[0] ? { id: `m${scored[0].id}`, dir: "desc" } : { id: "player", dir: "asc" }}
-        searchPlaceholder="Search players"
-        filters={{
-          search: (r, q) => r.name.toLowerCase().includes(q),
-          position: (r) => r.position,
-          team: (r) => r.team,
-        }}
-      />
     </div>
   );
 }

@@ -6,9 +6,12 @@ import {
   matchupRows,
   playerCorrs,
   playerFairProps,
+  playerFantasyPros,
   playerFptsActual,
   playerLog,
-  propHistogram,
+  playerSeasonLog,
+  playerSimProjections,
+  playerWeekGames,
   propTimeline,
 } from "@/lib/queries/props";
 import { displayWeek, runForWeek } from "@/lib/queries/runs";
@@ -20,33 +23,51 @@ export async function generateMetadata({
   params,
 }: PageProps<"/props/[game]/[player]">): Promise<Metadata> {
   const { player } = await params;
-  return { title: player };
+  const header = await playerById(player);
+  return { title: header?.display_name ?? "Player" };
 }
 
 export default async function PropPage({ params }: PageProps<"/props/[game]/[player]">) {
   const { game, player } = await params;
-  const week = await displayWeek(CURRENT_SEASON);
-  const run = await runForWeek(CURRENT_SEASON, week);
-  const [header, ctx] = await Promise.all([playerById(player), gameById(game)]);
-  const fairs = run ? await playerFairProps(run.run_id, player) : [];
-  const [log, actualRows] = await Promise.all([playerLog(player, 20), playerFptsActual(player)]);
-  const corrs = run ? await playerCorrs(run.run_id, player) : [];
+  const [header, ctx, openWeek] = await Promise.all([
+    playerById(player),
+    gameById(game),
+    displayWeek(CURRENT_SEASON),
+  ]);
+  const season = ctx?.season ?? CURRENT_SEASON;
+  const week = ctx?.week ?? openWeek;
+  const runPromise = runForWeek(season, week);
+  const [run, seasonLog, actualRows, projections, simProjections, games, fairs] = await Promise.all([
+    runPromise,
+    playerSeasonLog(player, season, week),
+    playerFptsActual(player),
+    playerFantasyPros(player, season),
+    playerSimProjections(player, season),
+    playerWeekGames(player, season, header?.latest_team ?? null),
+    runPromise.then((ready) => (ready ? playerFairProps(ready.run_id, player) : [])),
+  ]);
   const opp = ctx && header?.latest_team ? (header.latest_team === ctx.home ? ctx.away : ctx.home) : null;
-  const matchup = await matchupRows(header?.latest_team ?? null, opp);
-  const stats = fairs.map((e) => e.stat);
   const histByStat: Record<string, Hist | null> = {};
-  if (run) {
-    await Promise.all(
-      stats.map(async (stat) => {
-        histByStat[stat] = await propHistogram(run.run_id, player, stat);
-      }),
-    );
+  let log: Awaited<ReturnType<typeof playerLog>> = [];
+  let corrs: Awaited<ReturnType<typeof playerCorrs>> = [];
+  let matchup: Awaited<ReturnType<typeof matchupRows>> = [];
+  let timeline: Awaited<ReturnType<typeof propTimeline>> = [];
+  if (fairs.length > 0) {
+    const first = fairs[0]!;
+    const [gameLog, corrRows, matchupRowsFor, snaps] = await Promise.all([
+      playerLog(player, 20),
+      run ? playerCorrs(run.run_id, player) : Promise.resolve([]),
+      matchupRows(header?.latest_team ?? null, opp),
+      ctx ? propTimeline(ctx.season, ctx.week, player, first.stat) : Promise.resolve([]),
+    ]);
+    log = gameLog;
+    corrs = corrRows;
+    matchup = matchupRowsFor;
+    timeline = snaps;
+    for (const fair of fairs) {
+      histByStat[fair.stat] = fair.hist ?? null;
+    }
   }
-  const first = fairs[0];
-  const timeline =
-    first && ctx
-      ? await propTimeline(ctx.season, ctx.week, player, first.stat)
-      : [];
   return (
     <PropDetail
       player={header}
@@ -61,6 +82,11 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
       actualRows={actualRows}
       currentSeason={CURRENT_SEASON}
       drawsPruned={Boolean(run?.draws_pruned)}
+      asOf={{ season, week }}
+      seasonLog={seasonLog}
+      projections={projections}
+      simProjections={simProjections}
+      games={games}
     />
   );
 }

@@ -33,6 +33,12 @@ describe("check-query-schema", () => {
     expect(players.some((e) => e.includes("e.proj_own"))).toBe(true);
   });
 
+  it("fails on nonexistent table even without qualified columns", () => {
+    const badTable = `select run_id from model.runs where season = null`;
+    const errs = checkSql(badTable, schema, "bad-table");
+    expect(errs).toContain("bad-table: model.runs is not in generated types");
+  });
+
   it("accepts the current query files against generated types", () => {
     const { errors } = checkQuerySchema({ typesPath });
     expect(errors).toEqual([]);

@@ -1,11 +1,9 @@
 """Research Lab DFS context fields: pure functions only, no database."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import polars as pl
 
 from nfl_edge.research import context as X
-
-UTC = timezone.utc
 
 
 def test_bucket_bounds_and_names():

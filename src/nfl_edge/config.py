@@ -51,6 +51,13 @@ def fantasypros_api_key() -> str:
     return key
 
 
+def bettingpros_api_key() -> str:
+    key = os.environ.get("BETTING_PROS_API_KEY")
+    if not key:
+        raise RuntimeError("BETTING_PROS_API_KEY not set (see .env.example)")
+    return key
+
+
 def espn_credentials() -> tuple[str, str]:
     """(espn_s2, swid) browser cookies for the private ESPN league. Never printed or logged."""
     s2, swid = os.environ.get("ESPN_S2"), os.environ.get("ESPN_SWID")
@@ -58,6 +65,16 @@ def espn_credentials() -> tuple[str, str]:
         if not val:
             raise RuntimeError(f"{name} not set (see .env.example)")
     return s2, swid
+
+
+def typesafe_api_key() -> str:
+    """TYPESAFE or TYPESAFE_API_KEY from .env for System One (Jev). Never printed or logged."""
+    for name in ("TYPESAFE", "TYPESAFE_API_KEY"):
+        val = (os.environ.get(name) or "").strip()
+        if val:
+            return val
+    raise RuntimeError("TYPESAFE (or TYPESAFE_API_KEY) not set (see .env.example)")
+
 
 
 def line_reference() -> dict:

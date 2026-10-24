@@ -261,6 +261,11 @@ Sunday 2026-09-13 08:40 (LaunchAgent, `--note sun-inactives`): re-export Main an
 
 `uv run python scripts/optimal_freq.py --run <run_id|prefix> --slate main --draws 300` re-solves the classic MILP once per sampled correlated draw and writes `data/dfs/<run>/dk/<slate>/optimal_freq.csv` (optimal %, `own_field_sim`, `own_field_proj`, leverage). Read-only on the DB. About 0.04 s per draw. Not part of the pipeline; see STATUS.md 2026-10-19 for the gate result.
 
-## Research Lab fields
+## Research Lab fields & Jev lineup audit
 
 `uv run nfl-edge research build --week W` (after ingest for week W-1 results). Reads only weeks before W, replaces `model.research_fields` for (season, W) in one transaction, and exits non-zero with the missing input named if usage priors or in-season games are absent. Rerunnable. The `/research` page shows "No research data" until it has run for the displayed week.
+
+Thursday and Saturday (after injury reports and DFS lineups are built):
+1. `uv run nfl-edge ingest fantasypros-news` — pulls up to 4 `/nfl/news` feeds (`injury`, `breaking`, `rumor`, unfiltered) into `raw.fantasypros_news` (append-only on `news_id`).
+2. `uv run nfl-edge research audit --season 2026 --week W --site dk --slate main` — builds as-of text states for distinct players in the slate's saved lineups, prints token and USD estimate (refusing over $0.50 or 100 players without override flags), fans out the 8 atomic Noul/Score questions per uncached player via `typesafe-sdk`, and appends raw judgments keyed by `state_hash` to `model.jev_judgments`. Players with no pre-kickoff news or injury row are recorded as `NO READ` with 0 API calls.
+3. After the week completes: `uv run nfl-edge grade-jev --season 2026 --week W` grades pre-kickoff judgments against `model.slate_actuals` and snap counts.

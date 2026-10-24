@@ -374,6 +374,10 @@ export const WeekPlayerSchema = z.object({
   ngs_fpts: numOrNull.optional(),
   /** FantasyPros projected DK points (benchmark only; the sim never reads it). */
   fp_fpts: numOrNull.optional(),
+  /** Average of (actual minus sim) over earlier weeks this season. Null when he has no graded week. */
+  mean_miss: numOrNull.optional(),
+  /** Whole points added to a display copy of the sim. The sim column stays put. */
+  point_delta: z.number().int().optional(),
   /** Realized DK points once the week is graded; actual_state null means not graded yet. */
   actual_dk: numOrNull.optional(),
   actual_state: z.enum(["played", "dnp"]).nullable().optional(),
