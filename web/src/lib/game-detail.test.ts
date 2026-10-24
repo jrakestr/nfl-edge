@@ -1,4 +1,4 @@
-import { corrLabel, markerPercent, nearestRunSnapId, signedCorr, trimIntHist } from "./game-detail";
+import { chartLayout, corrLabel, markerPercent, nearestRunSnapId, signedCorr, trimIntHist } from "./game-detail";
 import { plural } from "./format";
 
 describe("plural", () => {
@@ -41,6 +41,30 @@ describe("nearestRunSnapId", () => {
     expect(nearestRunSnapId(snaps, "2026-09-12T18:00:00.000Z")).toBe(2);
     expect(nearestRunSnapId([], "2026-09-12T18:00:00.000Z")).toBeNull();
     expect(nearestRunSnapId(snaps, null)).toBeNull();
+  });
+});
+
+describe("chartLayout", () => {
+  const snaps = [
+    { id: 1, captured_at: "2026-09-10T12:00:00.000Z", value: -3 },
+    { id: 2, captured_at: "2026-09-12T18:00:00.000Z", value: -3.5 },
+    { id: 3, captured_at: "2026-09-13T12:00:00.000Z", value: -1.5 },
+  ];
+
+  it("ends the series at the latest snapshot and keeps the fair line on the same scale", () => {
+    const layout = chartLayout(snaps, -2.5, 320, 64);
+    expect(layout).not.toBeNull();
+    const points = layout!.points;
+    expect(points.map((p) => p.id)).toEqual([1, 2, 3]);
+    expect(points[2]!.x).toBeGreaterThan(points[0]!.x);
+    expect(points[2]!.x).toBeGreaterThan(points[1]!.x);
+    expect(layout!.fairY).not.toBeNull();
+    expect(layout!.lo).toBeLessThan(-3.5);
+    expect(layout!.hi).toBeGreaterThan(-1.5);
+  });
+
+  it("returns null when every snapshot is missing the value", () => {
+    expect(chartLayout([{ id: 1, captured_at: "2026-09-10T12:00:00.000Z", value: null }], 3, 320, 64)).toBeNull();
   });
 });
 

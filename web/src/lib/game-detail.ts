@@ -43,6 +43,70 @@ export function markerPercent(value: number | null | undefined, lo: number, hi: 
   return Math.min(100, Math.max(0, raw));
 }
 
+export type ChartPoint = {
+  id: number;
+  x: number;
+  y: number;
+  value: number;
+  captured_at: string;
+};
+
+export type ChartLayout = {
+  points: ChartPoint[];
+  fairY: number | null;
+  lo: number;
+  hi: number;
+};
+
+const CHART_PAD = { l: 4, r: 8, t: 8, b: 8 };
+
+/**
+ * Map market snapshots onto a plot that ends at the latest snapshot.
+ * Y includes the fair line so both stay on the same scale.
+ */
+export function chartLayout(
+  snaps: readonly { id: number; captured_at: string; value: number | null }[],
+  fair: number | null,
+  width: number,
+  height: number,
+): ChartLayout | null {
+  const pts = snaps.filter((s): s is { id: number; captured_at: string; value: number } => s.value != null);
+  if (!pts.length) return null;
+  const times = pts.map((s) => new Date(s.captured_at).getTime());
+  const t0 = Math.min(...times);
+  const t1 = Math.max(...times);
+  const span = t1 - t0;
+  const values = pts.map((s) => s.value);
+  if (fair != null) values.push(fair);
+  let lo = Math.min(...values);
+  let hi = Math.max(...values);
+  if (hi - lo < 0.5) {
+    lo -= 0.5;
+    hi += 0.5;
+  } else {
+    const pad = (hi - lo) * 0.12;
+    lo -= pad;
+    hi += pad;
+  }
+  const innerW = Math.max(1, width - CHART_PAD.l - CHART_PAD.r);
+  const innerH = Math.max(1, height - CHART_PAD.t - CHART_PAD.b);
+  const xOf = (t: number) =>
+    CHART_PAD.l + (span === 0 ? innerW : ((t - t0) / span) * innerW);
+  const yOf = (v: number) => CHART_PAD.t + ((hi - v) / (hi - lo)) * innerH;
+  return {
+    lo,
+    hi,
+    fairY: fair == null ? null : yOf(fair),
+    points: pts.map((s, i) => ({
+      id: s.id,
+      value: s.value,
+      captured_at: s.captured_at,
+      x: xOf(times[i]!),
+      y: yOf(s.value),
+    })),
+  };
+}
+
 /** Snapshot id whose captured_at is closest to runCreatedAt (on or before preferred on ties). */
 export function nearestRunSnapId(
   snaps: readonly LineHistorySnap[],

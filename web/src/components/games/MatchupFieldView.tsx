@@ -320,14 +320,14 @@ export function MatchupFieldView({
     {
       label: "Sim Prior (Adj Points / Drive)",
       offText: offInput?.off_ppd_adj != null ? offInput.off_ppd_adj.toFixed(2) : "—",
-      defText: defInput?.def_ppd_adj != null ? defInput.def_ppd_adj.toFixed(2) : "—",
+      defText: defInput?.def_ppd_allowed != null ? defInput.def_ppd_allowed.toFixed(2) : "—",
       offPct:
         offInput?.off_ppd_adj != null
           ? Math.min(95, Math.max(15, Math.round((offInput.off_ppd_adj / 3.0) * 100)))
           : 55,
       defPct:
-        defInput?.def_ppd_adj != null
-          ? Math.min(95, Math.max(15, Math.round(((3.2 - defInput.def_ppd_adj) / 2.2) * 100)))
+        defInput?.def_ppd_allowed != null
+          ? Math.min(95, Math.max(15, Math.round(((3.2 - defInput.def_ppd_allowed) / 2.2) * 100)))
           : 55,
     },
   ];

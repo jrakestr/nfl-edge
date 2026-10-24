@@ -27,8 +27,7 @@ import { UsagePanel } from "./UsagePanel";
 import { VisualHistogram } from "./VisualHistogram";
 
 const WINDOWS = ["L5", "L10", "L20", "season", "H2H"] as const;
-const DETAIL_TABS = ["all", "home", "trends", "gamelogs", "correlations"] as const;
-type DetailTab = (typeof DETAIL_TABS)[number];
+type DetailTab = "all" | "home" | "trends" | "gamelogs" | "correlations";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);

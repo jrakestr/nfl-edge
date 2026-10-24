@@ -108,7 +108,7 @@ export function GameDrawer({
                   <div className="flex flex-col gap-6 lg:col-span-5">
                     <WhyExplain runId={runId} gameId={row.game_id} open={open} />
                     <ScoreDistribution grid={detail?.grid ?? null} row={row} />
-                    <LineHistory history={detail?.lineHistory ?? []} row={row} runCreatedAt={runCreatedAt} />
+                    <LineHistory history={detail?.lineHistory ?? []} row={row} />
                     <CorrelationStrip correlations={detail?.correlations ?? []} />
                     <PlayerProjections players={players} />
                     <ChecksSection checks={checks} row={row} runCreatedAt={runCreatedAt} />

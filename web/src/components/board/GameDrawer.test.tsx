@@ -215,7 +215,7 @@ describe("GameDrawer review scenarios and panels", () => {
         },
       ],
       correlations: [
-        { a: "Lamar Jackson", b: "Zay Flowers", a_pos: "QB", b_pos: "WR", corr: 0.44 },
+        { a: "Joe Burrow", b: "Ja'Marr Chase", a_pos: "QB", b_pos: "WR", corr: 0.44 },
         { a: "Derrick Henry", b: "IND DST", a_pos: "RB", b_pos: "DST", corr: -0.28 },
       ],
     };
@@ -240,15 +240,18 @@ describe("GameDrawer review scenarios and panels", () => {
     expect(dist.querySelectorAll('[data-mark="market"]')).toHaveLength(2);
 
     const hist = screen.getByRole("region", { name: "Fair vs market history" });
-    const snapItems = within(hist).getAllByRole("listitem");
-    expect(snapItems).toHaveLength(3);
-    expect(snapItems[1]).toHaveTextContent("at run Sat 14:00");
+    expect(within(hist).queryAllByRole("listitem")).toHaveLength(0);
+    expect(within(hist).getByRole("img", { name: /Spread from .+ to .+/ })).toBeInTheDocument();
+    expect(hist.querySelector("[data-current]")).toBeTruthy();
+    expect(within(hist).getAllByText(/Book/).length).toBeGreaterThan(0);
 
     const corr = screen.getByRole("region", { name: "Correlations" });
     const corrItems = within(corr).getAllByRole("listitem");
     expect(corrItems).toHaveLength(2);
-    expect(corrItems[0]).toHaveTextContent("Lamar Jackson");
-    expect(corrItems[0]).toHaveTextContent("Zay Flowers");
+    const burrow = within(corr).getByText("Joe Burrow");
+    const chase = within(corr).getByText("Ja'Marr Chase");
+    expect(burrow.className).not.toMatch(/truncate/);
+    expect(chase.className).not.toMatch(/truncate/);
     expect(corrItems[0]).toHaveTextContent("usually up");
     expect(corrItems[0]).toHaveTextContent("+0.44");
     expect(corrItems[1]).toHaveTextContent("usually down");
