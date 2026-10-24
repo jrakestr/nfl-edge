@@ -5,7 +5,7 @@
  */
 import type { Hist } from "@/lib/types";
 
-export type UsageWindow = "season" | "l3";
+export type UsageWindow = "season" | "l5" | "l3";
 
 export type UsageRates = {
   window: UsageWindow;
@@ -67,6 +67,7 @@ export type DefenseVsPosition = {
 
 export type PlayerUsage = {
   season: UsageRates | null;
+  l5?: UsageRates | null;
   l3: UsageRates | null;
   ranks: RateRank[];
   weeks: UsageWeek[];
@@ -85,7 +86,9 @@ export type RateMetric =
   | "snap_pct"
   | "routes_pg_est"
   | "yprr_est"
-  | "tprr_est";
+  | "tprr_est"
+  | "wopr"
+  | "air_yds_pg";
 
 export const RATE_LABELS: Record<RateMetric, string> = {
   dk_pg: "DK points per game",
@@ -101,6 +104,8 @@ export const RATE_LABELS: Record<RateMetric, string> = {
   routes_pg_est: "Routes per game (est.)",
   yprr_est: "Yards per route (est.)",
   tprr_est: "Targets per route (est.)",
+  wopr: "WOPR",
+  air_yds_pg: "Air yards per game",
 };
 
 /** Which rates matter for a position, in display order. */
@@ -132,6 +137,8 @@ export function metricsFor(position: string | null): RateMetric[] {
         "target_share",
         "snap_pct",
         "routes_pg_est",
+        "wopr",
+        "air_yds_pg",
       ];
   }
 }
@@ -140,9 +147,18 @@ export function metricsFor(position: string | null): RateMetric[] {
 export function formatRate(metric: RateMetric, v: number | null | undefined): string {
   if (v == null || Number.isNaN(v)) return "—";
   if (metric === "target_share" || metric === "snap_pct" || metric === "tprr_est") return `${Math.round(v * 100)}%`;
-  if (metric === "routes_pg_est") return v.toFixed(0);
+  if (metric === "routes_pg_est" || metric === "air_yds_pg") return v.toFixed(0);
   if (metric === "dk_pg") return v.toFixed(1);
   return v.toFixed(2);
+}
+
+/** Tier classification for a positional rank (1 = best out of N). */
+export function rankTier(rank: number, of: number): "good" | "mid" | "bad" {
+  if (of <= 0) return "mid";
+  const pct = rank / of;
+  if (pct <= 0.28) return "good";
+  if (pct >= 0.72) return "bad";
+  return "mid";
 }
 
 export function ordinal(n: number): string {

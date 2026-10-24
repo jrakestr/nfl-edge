@@ -8,6 +8,7 @@ import {
   playerFairProps,
   playerFptsActual,
   playerLog,
+  playerNews,
   playerWeekGames,
   playerWeekLog,
   propHistogram,
@@ -37,12 +38,13 @@ export default async function PlayerDetailPage({ params }: PageProps<"/players/[
   const season = ctx?.season ?? CURRENT_SEASON;
   const week = ctx?.week ?? openWeek;
   const runPromise = runForWeek(season, week);
-  const [run, weekLog, actualRows, games, fairs] = await Promise.all([
+  const [run, weekLog, actualRows, games, fairs, news] = await Promise.all([
     runPromise,
     playerWeekLog(player, season, week),
     playerFptsActual(player),
     playerWeekGames(player, season, header?.latest_team ?? null),
     runPromise.then((ready) => (ready ? playerFairProps(ready.run_id, player) : [])),
+    playerNews(player),
   ]);
   const opp = ctx && header?.latest_team ? (header.latest_team === ctx.home ? ctx.away : ctx.home) : null;
   const [usage, defense, fptsHist] = await Promise.all([
@@ -94,6 +96,7 @@ export default async function PlayerDetailPage({ params }: PageProps<"/players/[
       defense={defense}
       fptsHist={fptsHist}
       opponent={opp}
+      news={news}
       basePath="/players"
     />
   );

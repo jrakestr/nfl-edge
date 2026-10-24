@@ -264,13 +264,14 @@ def ingest_fantasypros_news(
         None, help="Optional category: injury | recap | transaction | rumor | breaking"
     ),
     limit: int = typer.Option(100, help="News items to fetch (1..100)"),
+    fpid: int = typer.Option(None, help="Optional FantasyPros player ID to fetch player-specific news"),
 ):
     """One FantasyPros news pull appended to raw.fantasypros_news (idempotent on news_id)."""
     from .ingest import fantasypros_news as fpn
     from .ingest.fantasypros import FantasyProsError
 
     try:
-        r = fpn.run(category=category, limit=limit)
+        r = fpn.run(category=category, limit=limit, fpid=fpid)
     except (FantasyProsError, RuntimeError, ValueError) as e:
         typer.echo(f"error: {e}")
         raise typer.Exit(code=1) from None

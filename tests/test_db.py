@@ -48,3 +48,11 @@ def test_migration_0050_defines_fk_and_lookup_indexes():
         assert f"create index if not exists {name}" in sql
     assert "on raw.dk_player_crosswalk (gsis_id)" in sql
 
+    sql_0051 = (
+        (ROOT / "db" / "migrations" / "0051_dk_salaries_slate_expr_index.sql").read_text().lower()
+    )
+    assert "create index if not exists dk_salaries_slate_year_month_idx" in sql_0051
+    assert "(split_part(slate_id, '_', 1)::int)" in sql_0051
+    assert "(split_part(slate_id, '_', 2)::int)" in sql_0051
+
+

@@ -10,6 +10,11 @@ export type TokenSet = {
   glass: string;
   muted: string;
   accent: string;
+  tableHeadBg: string;
+  tableHeadFg: string;
+  tableStripe: string;
+  sortedCol: string;
+  surfaceInset: string;
   foreground: string;
   mutedForeground: string;
   posInk: string;
@@ -20,6 +25,7 @@ export type TokenSet = {
   edgeNeg: string;
   edgeNegTint: string;
   warn: string;
+  warnTint: string;
   line: string;
   lineTint: string;
   posQb: string;
@@ -43,6 +49,11 @@ export const LIGHT: TokenSet = {
   glass: "#F9FAFB",
   muted: "#FAFBFC",
   accent: "#F7F8FA",
+  tableHeadBg: "#182032",
+  tableHeadFg: "#F8FAFC",
+  tableStripe: "#F8FAFC",
+  sortedCol: "#F1F5F9",
+  surfaceInset: "#F4F6FA",
   foreground: "#111318",
   mutedForeground: "#5B6270",
   posInk: "#FFFFFF",
@@ -53,6 +64,7 @@ export const LIGHT: TokenSet = {
   edgeNeg: "#B8342A",
   edgeNegTint: "#FCE9E6",
   warn: "#9A5A00",
+  warnTint: "#FEF3E2",
   line: "#1F56D9",
   lineTint: "#EEF3FF",
   posQb: "#1F3D99",
@@ -76,6 +88,11 @@ export const DARK: TokenSet = {
   glass: "#181A22",
   muted: "#2A2E38",
   accent: "#242832",
+  tableHeadBg: "#141722",
+  tableHeadFg: "#F2F3F6",
+  tableStripe: "#20232D",
+  sortedCol: "#222634",
+  surfaceInset: "#161820",
   foreground: "#F2F3F6",
   mutedForeground: "#A8AFBC",
   posInk: "#FFFFFF",
@@ -86,6 +103,7 @@ export const DARK: TokenSet = {
   edgeNeg: "#F07167",
   edgeNegTint: "#3D2422",
   warn: "#E8A040",
+  warnTint: "#3A2A14",
   line: "#7B9CFF",
   lineTint: "#1A2744",
   posQb: "#1F3D99",
@@ -151,6 +169,9 @@ export function surfacesOf(t: TokenSet) {
     card: t.card,
     muted: t.muted,
     accent: t.accent,
+    tableStripe: t.tableStripe,
+    sortedCol: t.sortedCol,
+    surfaceInset: t.surfaceInset,
     glass: t.glass,
   } as const;
 }
@@ -171,6 +192,7 @@ export function classToFgOf(t: TokenSet): Record<string, string> {
   return {
     "text-foreground": t.foreground,
     "text-muted-foreground": t.mutedForeground,
+    "text-table-head-fg": t.tableHeadFg,
     "text-edge-pos": t.edgePos,
     "text-edge-neg": t.edgeNeg,
     "text-edge-flat": t.mutedForeground,
@@ -192,9 +214,14 @@ export function classToBgOf(t: TokenSet): Record<string, string> {
     "bg-card": t.card,
     "bg-muted": t.muted,
     "bg-accent": t.accent,
+    "bg-table-head-bg": t.tableHeadBg,
+    "bg-table-stripe": t.tableStripe,
+    "bg-sorted-col": t.sortedCol,
+    "bg-surface-inset": t.surfaceInset,
     glass: t.glass,
     "bg-edge-pos-tint": t.edgePosTint,
     "bg-edge-neg-tint": t.edgeNegTint,
+    "bg-warn-tint": t.warnTint,
     "bg-line-tint": t.lineTint,
     "bg-pos-qb": t.posQb,
     "bg-pos-rb": t.posRb,

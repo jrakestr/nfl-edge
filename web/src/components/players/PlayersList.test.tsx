@@ -235,9 +235,9 @@ describe("PlayersList slate rows", () => {
     search = new URLSearchParams("sort=value&dir=desc");
     render(<PlayersList players={[...MAIN].reverse()} />);
     const rows = screen.getAllByRole("row");
-    // Header + 2 players: highest value first despite the input order.
-    expect(rows[1]).toHaveTextContent("Jahmyr Gibbs");
-    expect(rows[2]).toHaveTextContent("Main Only");
+    // Group header + col header + 2 players: highest value first despite the input order.
+    expect(rows.at(-2)).toHaveTextContent("Jahmyr Gibbs");
+    expect(rows.at(-1)).toHaveTextContent("Main Only");
   });
 
   it("FLEX row shows the real position, never a FLEX chip", () => {
@@ -437,8 +437,8 @@ describe("PlayersList NFLGameSim", () => {
       />,
     );
     const rows = screen.getAllByRole("row");
-    expect(rows[1]).toHaveTextContent("Main Only");
-    expect(rows[2]).toHaveTextContent("Jahmyr Gibbs");
+    expect(rows.at(-2)).toHaveTextContent("Main Only");
+    expect(rows.at(-1)).toHaveTextContent("Jahmyr Gibbs");
   });
 
   it("steps Yours from Adjusted while leaving DK pts and Adjusted untouched", () => {
@@ -507,7 +507,7 @@ describe("PlayersList NFLGameSim", () => {
     search = new URLSearchParams("sort=ngs&dir=desc");
     render(<PlayersList players={[...NGS].reverse()} />);
     const rows = screen.getAllByRole("row");
-    expect(rows[1]).toHaveTextContent("Jahmyr Gibbs");
-    expect(rows[2]).toHaveTextContent("Main Only");
+    expect(rows.at(-2)).toHaveTextContent("Jahmyr Gibbs");
+    expect(rows.at(-1)).toHaveTextContent("Main Only");
   });
 });

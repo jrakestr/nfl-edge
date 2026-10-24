@@ -167,4 +167,31 @@ describe("DataTable", () => {
     expect(stickyHead).toHaveStyle({ width: "160px" });
     expect(bodyCell).toHaveStyle({ width: "160px" });
   });
+
+  it("renders multi-tier category header groups and active-sort column tinting", () => {
+    const { container } = render(
+      <DataTable
+        syncUrl={false}
+        defaultSort={{ id: "passYds", dir: "desc" }}
+        data={[
+          { id: "1", name: "Alpha", passYds: 250, rushYds: 20 },
+          { id: "2", name: "Beta", passYds: 190, rushYds: 45 },
+        ]}
+        getRowId={(r) => r.id}
+        empty="none"
+        ariaLabel="GroupedDemo"
+        columns={[
+          { id: "name", header: "Player", sortValue: (r) => r.name, cell: (r) => r.name },
+          { id: "passYds", header: "Pass Yds", group: "PASSING", align: "right", sortValue: (r) => r.passYds, cell: (r) => r.passYds },
+          { id: "rushYds", header: "Rush Yds", group: "RUSHING", align: "right", sortValue: (r) => r.rushYds, cell: (r) => r.rushYds },
+        ]}
+      />,
+    );
+    expect(screen.getByText("PASSING")).toBeInTheDocument();
+    expect(screen.getByText("RUSHING")).toBeInTheDocument();
+    const sortedHeader = container.querySelector('th[data-col-id="passYds"]');
+    expect(sortedHeader).toHaveAttribute("data-active-sort", "desc");
+    const sortedCells = container.querySelectorAll('td[data-active-sort="desc"]');
+    expect(sortedCells.length).toBe(2);
+  });
 });

@@ -29,6 +29,11 @@ Reference products for feel: Outlier.bet for the prop/game detail layout (header
 | `--card` | `#FFFFFF` | `#1C1E26` | cards and any table surface (never glass) |
 | `--muted` | `#FAFBFC` | `#2A2E38` | table header; GapTrack rail |
 | `--accent` | `#F7F8FA` | `#242832` | hover row |
+| `--table-head-bg` | `#182032` | `#141722` | high-contrast multi-tier table header fill |
+| `--table-head-fg` | `#F8FAFC` | `#F2F3F6` | table header foreground on `--table-head-bg` |
+| `--table-stripe` | `#F8FAFC` | `#20232D` | subtle zebra row surface |
+| `--sorted-col` | `#F1F5F9` | `#222634` | active-sorted column highlight |
+| `--surface-inset` | `#F4F6FA` | `#161820` | recessed hero metric and filter well |
 | `--border` | `#B8BCC4` | `#4A5060` | structural: card edge, ledger header underline, rule after a market+sentence |
 | `--border-soft` | `#E4E7EC` | `#2E323C` | intra-row only (the two vertical group rails) |
 | `--foreground` | `#111318` | `#F2F3F6` | text, numbers |
@@ -45,7 +50,7 @@ Dark values are lifted, not inverted. `#0B7A4C` / `#1F56D9` fail ~3:1 on a dark 
 | `--edge-pos` | `#0B7A4C` (tint `#E5F6EE`) | `#3DCC8A` (tint `#1A3D2E`) | model likes it (positive edge / over / favorite covers) |
 | `--edge-neg` | `#B8342A` (tint `#FCE9E6`) | `#F07167` (tint `#3D2422`) | model fades it |
 | `--edge-flat` | `--muted-foreground` | `--muted-foreground` | \|edge\| below threshold |
-| `--warn` | `#9A5A00` | `#E8A040` | stale run, check warning, injury override active |
+| `--warn` | `#9A5A00` (tint `#FEF3E2`) | `#E8A040` (tint `#3A2A14`) | stale run, check warning, injury override active, mid-tier badge |
 | `--line` | `#1F56D9` (tint `#EEF3FF`) | `#7B9CFF` (tint `#1A2744`) | market line / market side of any comparison |
 | `--model` | `--foreground` | `--foreground` | model side of any comparison |
 

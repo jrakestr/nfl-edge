@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { DistributionSpark } from "@/components/board/DistributionSpark";
 import { PositionPill } from "@/components/ui/PositionPill";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { TeamLogo } from "@/components/ui/TeamLogo";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
@@ -22,6 +24,8 @@ import { useMemo, useState, useTransition, type ComponentProps, type ReactNode }
 import { savePlayerDelta } from "@/lib/actions/player-points";
 import { adjustedForMiss, editedPoints } from "@/lib/player-edit";
 import { CURRENT_SEASON } from "@/lib/config";
+
+type PlayersViewMode = "projections" | "statsuite";
 
 function rowFlags(p: WeekPlayer) {
   const stale = staleInjury(p.override_status, p.override_updated_at, p.run_created_at);
@@ -185,6 +189,7 @@ export function PlayersList({
   strip?: StripGame[];
 }) {
   const weekN = typeof week === "number" ? week : Number(week);
+  const [mode, setMode] = useState<PlayersViewMode>("projections");
   const { picks, toggle, setPicks } = useSlatePicks(slateId);
   const live = useLiveSearchParams();
   const { selected } = useGamesSelection();
@@ -215,6 +220,7 @@ export function PlayersList({
         {
           id: "actual",
           header: "Actual",
+          group: "PROJECTIONS",
           align: "right",
           sortValue: (p) => (p.actual_state === "played" ? p.actual_dk : null),
           cell: (p) => (
@@ -226,6 +232,7 @@ export function PlayersList({
         {
           id: "diff",
           header: "Diff",
+          group: "PROJECTIONS",
           align: "right",
           sortValue: (p) => actualDisplay(p).diffValue,
           cell: (p) => {
@@ -251,6 +258,61 @@ export function PlayersList({
       ]
     : [];
 
+  const statSuiteColumns: DataColumn<WeekPlayer>[] =
+    mode === "statsuite"
+      ? [
+          {
+            id: "floor",
+            header: "Floor (P10)",
+            group: "STATSUITE+ RANGE",
+            align: "right",
+            sortValue: (p) => p.floor,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(p.floor)}
+              </span>
+            ),
+          },
+          {
+            id: "sd",
+            header: "Volatility (SD)",
+            group: "STATSUITE+ RANGE",
+            align: "right",
+            sortValue: (p) => p.fpts_dk_sd,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(p.fpts_dk_sd)}
+              </span>
+            ),
+          },
+          {
+            id: "spark",
+            header: "Sim dist",
+            group: "STATSUITE+ RANGE",
+            sortable: false,
+            cell: (p) => (
+              <DistributionSpark
+                counts={p.hist?.counts ?? null}
+                bins={p.hist?.bins ?? null}
+                marker={p.typical_dk}
+              />
+            ),
+          },
+          {
+            id: "envTotal",
+            header: "Game total",
+            group: "ENVIRONMENT",
+            align: "right",
+            sortValue: (p) => p.market_total,
+            cell: (p) => (
+              <span className="tnum font-semibold text-line">
+                {p.market_total != null ? p.market_total.toFixed(1) : "—"}
+              </span>
+            ),
+          },
+        ]
+      : [];
+
   function pickAction(key: PickKey, p: WeekPlayer) {
     const id = p.player_dk_id;
     if (!id) return;
@@ -260,7 +322,24 @@ export function PlayersList({
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-3">
-        <h1 className="t-title">Players</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="t-title">Players</h1>
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(v) => v && setMode(v as PlayersViewMode)}
+            size="sm"
+            spacing={0}
+            aria-label="Players view mode"
+          >
+            <ToggleGroupItem value="projections" className="t-caption h-8 px-3">
+              Projections
+            </ToggleGroupItem>
+            <ToggleGroupItem value="statsuite" className="t-caption h-8 px-3">
+              StatSuite+ Range
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
         {toolbar}
         <p className="t-caption text-muted-foreground">
           Plus and minus change your copy by one point. Adjusted is the sim plus his average miss from earlier weeks.
@@ -381,6 +460,7 @@ export function PlayersList({
           {
             id: "salary",
             header: "Salary",
+            group: "DFS SLATE",
             metric: "salary",
             align: "right",
             sortValue: (p) => p.salary,
@@ -393,6 +473,7 @@ export function PlayersList({
           {
             id: "proj",
             header: "DK pts",
+            group: "PROJECTIONS",
             metric: "projection",
             align: "right",
             sortValue: (p) => p.fpts_dk_mean,
@@ -415,6 +496,7 @@ export function PlayersList({
           {
             id: "ngs",
             header: "NFLGameSim",
+            group: "PROJECTIONS",
             align: "right",
             sortValue: (p) => p.ngs_fpts,
             cell: (p) => (
@@ -424,6 +506,7 @@ export function PlayersList({
           {
             id: "fp",
             header: "FantasyPros",
+            group: "PROJECTIONS",
             align: "right",
             sortValue: (p) => p.fp_fpts,
             cell: (p) => (
@@ -433,6 +516,7 @@ export function PlayersList({
           {
             id: "adj",
             header: "Adjusted",
+            group: "PROJECTIONS",
             align: "right",
             sortValue: (p) => adjustedForMiss(p.fpts_dk_mean, p.mean_miss),
             cell: (p) => (
@@ -444,6 +528,7 @@ export function PlayersList({
           {
             id: "yours",
             header: "Yours",
+            group: "PROJECTIONS",
             align: "right",
             sortValue: (p) =>
               editedPoints(adjustedForMiss(p.fpts_dk_mean, p.mean_miss), p.point_delta ?? 0),
@@ -464,6 +549,7 @@ export function PlayersList({
           {
             id: "projRk",
             header: "Pts rk",
+            group: "PROJECTIONS",
             align: "right",
             sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.proj,
             cell: (p) => (
@@ -475,6 +561,7 @@ export function PlayersList({
           {
             id: "ceiling",
             header: "Ceiling",
+            group: "VALUE & OWNERSHIP",
             align: "right",
             sortValue: (p) => p.ceiling,
             cell: (p) => (
@@ -483,9 +570,11 @@ export function PlayersList({
               </span>
             ),
           },
+          ...statSuiteColumns,
           {
             id: "own",
             header: "Own",
+            group: "VALUE & OWNERSHIP",
             metric: "ownership",
             align: "right",
             sortValue: (p) => p.proj_own,
@@ -498,14 +587,18 @@ export function PlayersList({
           {
             id: "value",
             header: "Value",
+            group: "VALUE & OWNERSHIP",
             metric: "value",
             align: "right",
             sortValue: (p) => p.value,
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {num(p.value, 2)}
-              </span>
-            ),
+            cell: (p) => {
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              return (
+                <span className={tone(excluded)}>
+                  {num(p.value, 2)}
+                </span>
+              );
+            },
           },
           {
             id: "injury",

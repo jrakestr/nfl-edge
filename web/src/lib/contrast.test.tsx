@@ -149,7 +149,13 @@ function expectCssMatches(theme: "light" | "dark", t: TokenSet) {
   expect(cssToken(css, "edge-pos-tint", theme)).toBe(t.edgePosTint.toLowerCase());
   expect(cssToken(css, "edge-neg-tint", theme)).toBe(t.edgeNegTint.toLowerCase());
   expect(cssToken(css, "warn", theme)).toBe(t.warn.toLowerCase());
+  expect(cssToken(css, "warn-tint", theme)).toBe(t.warnTint.toLowerCase());
   expect(cssToken(css, "line", theme)).toBe(t.line.toLowerCase());
+  expect(cssToken(css, "table-head-bg", theme)).toBe(t.tableHeadBg.toLowerCase());
+  expect(cssToken(css, "table-head-fg", theme)).toBe(t.tableHeadFg.toLowerCase());
+  expect(cssToken(css, "table-stripe", theme)).toBe(t.tableStripe.toLowerCase());
+  expect(cssToken(css, "sorted-col", theme)).toBe(t.sortedCol.toLowerCase());
+  expect(cssToken(css, "surface-inset", theme)).toBe(t.surfaceInset.toLowerCase());
   expect(cssToken(css, "pos-ink", theme)).toBe(t.posInk.toLowerCase());
   expect(cssToken(css, "pos-qb", theme)).toBe(t.posQb.toLowerCase());
   expect(cssToken(css, "pos-rb", theme)).toBe(t.posRb.toLowerCase());
@@ -202,7 +208,9 @@ describe("token contrast ≥ 4.5:1", () => {
   ] as const)("%s semantic colors on their tints; pos-ink on fills", (_name, t) => {
     expect(contrastRatio(t.edgePos, t.edgePosTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(t.edgeNeg, t.edgeNegTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(t.warn, t.warnTint)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(t.line, t.lineTint)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(t.tableHeadFg, t.tableHeadBg)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(t.posInk, t.posQb)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(t.posInk, t.posRb)).toBeGreaterThanOrEqual(AA);
     expect(contrastRatio(t.posInk, t.posWr)).toBeGreaterThanOrEqual(AA);

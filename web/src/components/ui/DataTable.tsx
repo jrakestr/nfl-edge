@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 export type DataColumn<T> = {
   id: string;
   header: string;
+  /** Optional StatRankings-style multi-tier category super-header (e.g., "FANTASY", "PASSING"). */
+  group?: string;
   sortable?: boolean;
   align?: "left" | "right";
   metric?: Metric;
@@ -102,6 +104,23 @@ function applyHideUnproj<T>(rows: T[], state: TableState, access?: FilterAccess<
 
 function unique<T>(rows: T[], pick: (row: T) => string | null | undefined): string[] {
   return [...new Set(rows.map(pick).filter((v): v is string => !!v))].sort();
+}
+
+type CategorySpan = { group: string; span: number; startColId: string };
+
+function computeCategorySpans<T>(columns: DataColumn<T>[]): CategorySpan[] | null {
+  if (!columns.some((c) => Boolean(c.group))) return null;
+  const spans: CategorySpan[] = [];
+  for (const col of columns) {
+    const g = col.group ?? "";
+    const last = spans[spans.length - 1];
+    if (last && last.group === g) {
+      last.span += 1;
+    } else {
+      spans.push({ group: g, span: 1, startColId: col.id });
+    }
+  }
+  return spans;
 }
 
 export function DataTable<T extends object>(props: DataTableProps<T>) {
@@ -249,6 +268,8 @@ function DataTableInner<T extends object>({
     };
   }, [stickyHeader, filtered, columns, sortId, sortDir, colWidths]);
 
+  const categorySpans = useMemo(() => computeCategorySpans(columns), [columns]);
+
   const headerRows = (mode: "frozen" | "layout" | "normal") => (
     <TableHeader
       inert={mode === "layout" ? true : undefined}
@@ -261,6 +282,28 @@ function DataTableInner<T extends object>({
           <TableHead colSpan={columns.length} resizable={false} className="h-auto bg-muted py-2">
             {headerNote}
           </TableHead>
+        </TableRow>
+      ) : null}
+      {mode !== "layout" && categorySpans ? (
+        <TableRow
+          role="presentation"
+          className="hover:bg-transparent border-b border-border-soft"
+          data-slot="category-header-row"
+        >
+          {categorySpans.map((sp, idx) => (
+            <TableHead
+              key={`${sp.startColId}-${idx}`}
+              role="presentation"
+              colSpan={sp.span}
+              resizable={false}
+              className={cn(
+                "h-7 py-1 px-2 text-center t-colhead text-muted-foreground bg-surface-inset",
+                idx > 0 && "border-l border-border-soft",
+              )}
+            >
+              {sp.group}
+            </TableHead>
+          ))}
         </TableRow>
       ) : null}
       {table.getHeaderGroups().map((hg) => (
@@ -286,9 +329,9 @@ function DataTableInner<T extends object>({
                 {sortable ? (
                   active ? (
                     sortDir === "asc" ? (
-                      <ArrowUp size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
+                      <ArrowUp size={14} strokeWidth={1.5} aria-hidden className="shrink-0 text-foreground" />
                     ) : (
-                      <ArrowDown size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
+                      <ArrowDown size={14} strokeWidth={1.5} aria-hidden className="shrink-0 text-foreground" />
                     )
                   ) : (
                     <ChevronsUpDown size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
@@ -300,12 +343,13 @@ function DataTableInner<T extends object>({
               <TableHead
                 key={h.id}
                 data-col-id={h.id}
+                data-active-sort={active ? sortDir : undefined}
                 resizable={mode !== "layout"}
                 onResizeWidth={(w) => setColumnWidth(h.id, w)}
                 style={widthStyle}
                 className={cn(
                   "t-colhead text-muted-foreground",
-                  mode !== "layout" && "bg-muted",
+                  mode !== "layout" && (active ? "bg-sorted-col text-foreground border-b-2 border-b-line" : "bg-muted"),
                   col?.align === "right" && "text-right",
                   col?.headClassName,
                 )}
@@ -336,7 +380,10 @@ function DataTableInner<T extends object>({
   return (
     <div className="flex flex-col gap-4">
       {showBar ? (
-        <div className="flex flex-wrap items-end gap-3">
+        <div
+          className="flex flex-wrap items-end gap-2.5 rounded-lg border border-border-soft bg-surface-inset p-2.5"
+          data-slot="v2-filter-bar"
+        >
           {filters?.search ? (
             <label className="flex max-w-sm flex-col gap-1">
               <span className="t-colhead text-muted-foreground">Search</span>
@@ -344,6 +391,7 @@ function DataTableInner<T extends object>({
                 placeholder={searchPlaceholder}
                 value={state.q}
                 onChange={(e) => setState({ q: e.target.value })}
+                className="bg-card"
               />
             </label>
           ) : null}
@@ -360,11 +408,21 @@ function DataTableInner<T extends object>({
             <span className="flex items-end gap-2">
               <label className="flex w-24 flex-col gap-1">
                 <span className="t-colhead text-muted-foreground">Salary min</span>
-                <Input inputMode="numeric" value={state.salMin} onChange={(e) => setState({ salMin: e.target.value })} />
+                <Input
+                  inputMode="numeric"
+                  value={state.salMin}
+                  onChange={(e) => setState({ salMin: e.target.value })}
+                  className="bg-card"
+                />
               </label>
               <label className="flex w-24 flex-col gap-1">
                 <span className="t-colhead text-muted-foreground">Salary max</span>
-                <Input inputMode="numeric" value={state.salMax} onChange={(e) => setState({ salMax: e.target.value })} />
+                <Input
+                  inputMode="numeric"
+                  value={state.salMax}
+                  onChange={(e) => setState({ salMax: e.target.value })}
+                  className="bg-card"
+                />
               </label>
             </span>
           ) : null}
@@ -377,7 +435,12 @@ function DataTableInner<T extends object>({
           {filters?.minProj ? (
             <label className="flex w-36 flex-col gap-1">
               <span className="t-colhead text-muted-foreground">{minProjLabel}</span>
-              <Input inputMode="decimal" value={state.minProj} onChange={(e) => setState({ minProj: e.target.value })} />
+              <Input
+                inputMode="decimal"
+                value={state.minProj}
+                onChange={(e) => setState({ minProj: e.target.value })}
+                className="bg-card"
+              />
             </label>
           ) : null}
           {filters?.hideUnproj ? (
@@ -427,14 +490,17 @@ function DataTableInner<T extends object>({
             ) : (
               visibleRows.map((row, i) => {
                 const extra = rowProps?.(row.original, i) ?? {};
+                const stripe = i % 2 === 1;
                 return (
                   <TableRow
                     key={row.id}
                     {...extra}
+                    className={cn(stripe && "bg-table-stripe", extra.className)}
                     onClick={onRowClick ? () => onRowClick(row.original) : extra.onClick}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const col = columns.find((c) => c.id === cell.column.id);
+                      const activeCol = sortId === cell.column.id;
                       const widthPx = colWidths[cell.column.id] ?? col?.size;
                       const cellStyle: React.CSSProperties | undefined =
                         widthPx != null
@@ -449,10 +515,12 @@ function DataTableInner<T extends object>({
                       return (
                         <TableCell
                           key={cell.id}
+                          data-active-sort={activeCol ? sortDir : undefined}
                           style={cellStyle}
                           className={cn(
                             col?.align === "right" && "text-right",
                             widthPx != null && "overflow-hidden text-ellipsis",
+                            activeCol && "bg-sorted-col",
                             col?.className,
                           )}
                         >

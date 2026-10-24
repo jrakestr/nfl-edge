@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { DistributionSpark } from "@/components/board/DistributionSpark";
 import { EdgeDiff } from "@/components/board/EdgeCell";
 import { GameStrip } from "@/components/shell/GameStrip";
 import { useGamesSelection } from "@/components/shell/GamesSelection";
@@ -15,6 +16,7 @@ import { saveMarketLine } from "@/lib/actions/save-market-line";
 import { direction, intensity, pct, price, signedPct } from "@/lib/edge";
 import { pOverFromHist, STAT_LABELS, STAT_ORDER, probToAmerican } from "@/lib/prop-stats";
 import type { FairProp } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const STAT_RANK = Object.fromEntries(STAT_ORDER.map((s, i) => [s, i]));
 
@@ -30,17 +32,20 @@ function gameLabel(r: FairProp): string {
 function RangeBar({ row }: { row: FairProp }) {
   const p10 = row.p10;
   const p90 = row.p90;
-  if (p10 == null || p90 == null || p90 <= p10) return <span className="t-caption">—</span>;
-  const mark = row.stat === "anytime_td" ? row.mean : row.fair_line;
-  const t = mark == null ? 0.5 : Math.min(1, Math.max(0, (mark - p10) / (p90 - p10)));
+  const mark = row.market_line ?? (row.stat === "anytime_td" ? row.mean : row.fair_line);
   return (
-    <div
-      className="relative h-2 w-16 rounded-sm bg-muted"
-      title={`${p10.toFixed(0)}–${p90.toFixed(0)}`}
-    >
-      <div className="absolute inset-y-0 w-full rounded-sm bg-foreground/25" />
-      <div className="absolute top-0 h-full w-px bg-foreground" style={{ left: `${t * 100}%` }} />
-    </div>
+    <span className="inline-flex items-center gap-2">
+      <DistributionSpark
+        counts={row.hist?.counts ?? null}
+        bins={row.hist?.bins ?? null}
+        marker={mark}
+      />
+      {p10 != null && p90 != null && p90 > p10 ? (
+        <span className="t-caption tnum">
+          {p10.toFixed(0)}–{p90.toFixed(0)}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -80,7 +85,7 @@ function EnterLine({
       }}
     >
       <Input
-        className="h-7 w-16 tnum"
+        className="h-7 w-16 tnum bg-card"
         inputMode="decimal"
         aria-label={`Enter a line for ${row.player_name} ${STAT_LABELS[row.stat] ?? row.stat}`}
         value={raw}
@@ -146,22 +151,53 @@ export function FairPropsIndex({
             draws pruned for this run
           </p>
         ) : null}
-        <label className="flex w-fit flex-col gap-1">
-          <span className="t-colhead text-muted-foreground">Stat</span>
-          <select
-            className="h-8 rounded-md border border-border bg-card px-2 t-body"
-            aria-label="Stat"
-            value={stat}
-            onChange={(e) => setStat(e.target.value)}
-          >
-            <option value="all">All</option>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex w-fit flex-col gap-1">
+            <span className="t-colhead text-muted-foreground">Stat</span>
+            <select
+              className="h-8 rounded-md border border-border bg-card px-2 t-body"
+              aria-label="Stat"
+              value={stat}
+              onChange={(e) => setStat(e.target.value)}
+            >
+              <option value="all">All</option>
+              {STAT_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  {STAT_LABELS[s] ?? s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5 pt-4" role="group" aria-label="Quick stat filter">
+            <button
+              type="button"
+              onClick={() => setStat("all")}
+              className={cn(
+                "rounded-md px-2.5 py-1 t-caption font-semibold transition-colors",
+                stat === "all"
+                  ? "bg-foreground text-background"
+                  : "bg-surface-inset text-muted-foreground hover:text-foreground",
+              )}
+            >
+              All Markets
+            </button>
             {STAT_ORDER.map((s) => (
-              <option key={s} value={s}>
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStat(s)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 t-caption font-semibold transition-colors",
+                  stat === s
+                    ? "bg-foreground text-background"
+                    : "bg-surface-inset text-muted-foreground hover:text-foreground",
+                )}
+              >
                 {STAT_LABELS[s] ?? s}
-              </option>
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
       </header>
       {strip.length ? <GameStrip games={strip} /> : null}
       <DataTable
@@ -218,6 +254,7 @@ export function FairPropsIndex({
           {
             id: "fair_line",
             header: "Our line",
+            group: "MODEL FAIR",
             align: "right",
             sortValue: (r) => (r.stat === "anytime_td" ? r.p_over : r.fair_line),
             cell: (r) => <span className="tnum font-semibold text-foreground">{ourLine(r)}</span>,
@@ -225,6 +262,7 @@ export function FairPropsIndex({
           {
             id: "p_over",
             header: "P(over)",
+            group: "MODEL FAIR",
             align: "right",
             sortValue: (r) => r.p_over,
             cell: (r) => <span className="tnum font-semibold text-foreground">{pct(r.p_over)}</span>,
@@ -232,12 +270,14 @@ export function FairPropsIndex({
           {
             id: "range",
             header: "p10–p90",
+            group: "MODEL FAIR",
             sortable: false,
             cell: (r) => <RangeBar row={r} />,
           },
           {
             id: "market_line",
             header: "Market",
+            group: "MARKET & EDGE",
             align: "right",
             sortValue: (r) => r.market_line,
             cell: (r) => (
@@ -247,6 +287,7 @@ export function FairPropsIndex({
           {
             id: "market_p_over",
             header: "P(over) mkt",
+            group: "MARKET & EDGE",
             align: "right",
             sortValue: (r) => r.market_p_over,
             cell: (r) => (
@@ -258,6 +299,7 @@ export function FairPropsIndex({
           {
             id: "edge",
             header: "Edge",
+            group: "MARKET & EDGE",
             metric: "edge",
             align: "right",
             sortValue: (r) => (r.one_sided ? r.edge_floor : r.edge),

@@ -109,7 +109,7 @@ def test_run_fails_closed_before_write(monkeypatch):
     class Boom:
         calls = 1
 
-        def news(self, category=None, limit=100):
+        def news(self, category=None, limit=100, fpid=None):
             raise fp.FantasyProsError("FantasyPros /nfl/news returned HTTP 500; nothing written")
 
     wrote = []
@@ -117,3 +117,16 @@ def test_run_fails_closed_before_write(monkeypatch):
     with pytest.raises(fp.FantasyProsError, match="nothing written"):
         fpn.run(client=Boom())
     assert wrote == []
+
+
+def test_client_news_with_fpid_allows_empty_items():
+    calls = []
+
+    def transport(path, params, key):
+        calls.append((path, dict(params)))
+        return 200, {"sport": "NFL", "items": []}
+
+    c = fp.Client(api_key="k", transport=transport)
+    resp = c.news(limit=10, fpid=19797)
+    assert resp["items"] == []
+    assert calls == [("/nfl/news", {"limit": 10, "fpid": 19797})]

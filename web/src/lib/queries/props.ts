@@ -12,6 +12,7 @@ import {
   type FairProp,
   type Hist,
   type MatchupRow,
+  type PlayerNewsItem,
   type PlayerWeek,
   type PropEdge,
   type PropSnap,
@@ -325,4 +326,31 @@ export async function matchupRows(
     { label: "EPA / play", value: Number(r.epa).toFixed(2) },
     { label: `Plays / game${vs}`, value: Number(r.plays).toFixed(1) },
   ];
+}
+
+/**
+ * Latest FantasyPros player news items stored in `raw.fantasypros_news` for `playerId`.
+ * Display-only (docs/agents/data-sources.md): never modifies simulator projections.
+ */
+export async function playerNews(playerId: string, limit = 6): Promise<PlayerNewsItem[]> {
+  const rows = await sql()`
+    select news_id, player_id, team,
+           to_char(created_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI" UTC"') as created_at,
+           title, description, impact, categories, author, link
+    from raw.fantasypros_news
+    where player_id = ${playerId}
+    order by created_at desc, news_id desc
+    limit ${limit}`;
+  return rows.map((r) => ({
+    news_id: Number(r.news_id),
+    player_id: r.player_id != null ? String(r.player_id) : null,
+    team: r.team != null ? String(r.team) : null,
+    created_at: String(r.created_at ?? ""),
+    title: String(r.title ?? ""),
+    description: String(r.description ?? ""),
+    impact: String(r.impact ?? ""),
+    categories: Array.isArray(r.categories) ? r.categories.map(String) : [],
+    author: r.author != null ? String(r.author) : null,
+    link: r.link != null ? String(r.link) : null,
+  }));
 }

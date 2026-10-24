@@ -428,3 +428,16 @@ export type GameContext = {
   gameday: string;
   gametime: string | null;
 };
+
+export type PlayerNewsItem = {
+  news_id: number;
+  player_id: string | null;
+  team: string | null;
+  created_at: string;
+  title: string;
+  description: string;
+  impact: string;
+  categories: string[];
+  author: string | null;
+  link: string | null;
+};

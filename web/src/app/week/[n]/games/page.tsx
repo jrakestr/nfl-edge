@@ -6,7 +6,7 @@ import { CURRENT_SEASON } from "@/lib/config";
 import { boardRows, scheduleRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
-import { ngsByGame } from "@/lib/queries/games";
+import { ngsByGame, trenchRanksForWeek } from "@/lib/queries/games";
 import { topPlayersByGame } from "@/lib/queries/players";
 import { teamInputsForRun } from "@/lib/queries/team-inputs";
 import { weekScoreboard } from "@/lib/queries/results";
@@ -63,7 +63,7 @@ export default async function Page({
   const run = pickDefaultRun(runs, weekGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
 
-  const [allRows, verdicts, checks, playersByGame, infos, scoreboard, teamInputs] = run
+  const [allRows, verdicts, checks, playersByGame, infos, scoreboard, teamInputs, trenchRanks] = run
     ? await Promise.all([
         boardRows(run.run_id),
         verdictsForRun(run.run_id),
@@ -72,6 +72,7 @@ export default async function Page({
         sid ? slateGameInfos("dk", sid) : Promise.resolve([] as string[]),
         weekScoreboard(season, week),
         teamInputsForRun(run.run_id),
+        weekOk ? trenchRanksForWeek(season, week) : Promise.resolve({}),
       ])
     : await Promise.all([
         scheduleRows(season, week),
@@ -81,6 +82,7 @@ export default async function Page({
         sid ? slateGameInfos("dk", sid) : Promise.resolve([] as string[]),
         weekScoreboard(season, week),
         Promise.resolve({}),
+        weekOk ? trenchRanksForWeek(season, week) : Promise.resolve({}),
       ]);
 
   const slateRows = infos.length ? filterGamesForSlate(allRows, infos) : allRows;
@@ -105,6 +107,7 @@ export default async function Page({
       runCreatedAt={run ? run.created_at.toISOString() : null}
       runId={run?.run_id ?? null}
       teamInputs={teamInputs}
+      trenchRanks={trenchRanks}
       toolbar={
         <SlateSelector key="slate" week={week} site="dk" page="games" slate={slate} slates={available} />
       }

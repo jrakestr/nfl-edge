@@ -122,17 +122,24 @@ class Client:
         self._non_empty(body, "players", path)
         return body
 
-    def news(self, category: str | None = None, limit: int = 100) -> dict:
+    def news(
+        self,
+        category: str | None = None,
+        limit: int = 100,
+        fpid: int | str | None = None,
+    ) -> dict:
         path = "/nfl/news"
         params: dict[str, str | int] = {"limit": limit}
         if category is not None:
             params["category"] = category
+        if fpid is not None:
+            params["fpid"] = int(fpid)
         body = self._get(path, params)
         if str(body.get("sport")).upper() != "NFL":
             raise FantasyProsError(
                 f"FantasyPros {path} answered sport {body.get('sport')}, asked NFL; nothing written"
             )
-        if not body.get("items"):
+        if fpid is None and not body.get("items"):
             raise FantasyProsError(f"FantasyPros {path} returned no items (items empty); nothing written")
         return body
 

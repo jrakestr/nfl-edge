@@ -51,12 +51,18 @@
   --color-border-soft: var(--border-soft);
   --color-glass: var(--glass);
   --color-glass-border: var(--glass-border);
+  --color-table-head-bg: var(--table-head-bg);
+  --color-table-head-fg: var(--table-head-fg);
+  --color-table-stripe: var(--table-stripe);
+  --color-sorted-col: var(--sorted-col);
+  --color-surface-inset: var(--surface-inset);
   --color-edge-pos: var(--edge-pos);
   --color-edge-pos-tint: var(--edge-pos-tint);
   --color-edge-neg: var(--edge-neg);
   --color-edge-neg-tint: var(--edge-neg-tint);
   --color-edge-flat: var(--muted-foreground);
   --color-warn: var(--warn);
+  --color-warn-tint: var(--warn-tint);
   --color-line: var(--line);
   --color-line-tint: var(--line-tint);
   --color-model: var(--foreground);
@@ -134,8 +140,16 @@
   --edge-neg: #b8342a;
   --edge-neg-tint: #fce9e6;
   --warn: #9a5a00;
+  --warn-tint: #fef3e2;
   --line: #1f56d9;
   --line-tint: #eef3ff;
+
+  /* table & surface hierarchy (StatRankings-inspired) */
+  --table-head-bg: #182032;
+  --table-head-fg: #f8fafc;
+  --table-stripe: #f8fafc;
+  --sorted-col: #f1f5f9;
+  --surface-inset: #f4f6fa;
 
   /* position identity — not edge */
   --pos-qb: #1f3d99;
@@ -206,8 +220,14 @@
   --edge-neg: #f07167;
   --edge-neg-tint: #3d2422;
   --warn: #e8a040;
+  --warn-tint: #3a2a14;
   --line: #7b9cff;
   --line-tint: #1a2744;
+  --table-head-bg: #141722;
+  --table-head-fg: #f2f3f6;
+  --table-stripe: #20232d;
+  --sorted-col: #222634;
+  --surface-inset: #161820;
   --pos-qb: #1f3d99;
   --pos-qb-tint: #1a2040;
   --pos-rb: #2f6a14;
@@ -266,8 +286,14 @@
     --edge-neg: #f07167;
     --edge-neg-tint: #3d2422;
     --warn: #e8a040;
+    --warn-tint: #3a2a14;
     --line: #7b9cff;
     --line-tint: #1a2744;
+    --table-head-bg: #141722;
+    --table-head-fg: #f2f3f6;
+    --table-stripe: #20232d;
+    --sorted-col: #222634;
+    --surface-inset: #161820;
     --pos-qb: #1f3d99;
     --pos-qb-tint: #1a2040;
     --pos-rb: #2f6a14;

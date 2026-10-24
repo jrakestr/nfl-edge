@@ -23,10 +23,12 @@ const RANKED: RateMetric[] = [
   "routes_pg_est",
   "yprr_est",
   "tprr_est",
+  "wopr",
+  "air_yds_pg",
 ];
 
 /**
- * Season-to-date and last-3 usage rates for one player, as of `week` (reads `week < week` only),
+ * Season-to-date, last-5, and last-3 usage rates for one player, as of `week` (reads `week < week` only),
  * with his rank at the position for each rate and his week-by-week usage rows.
  */
 export async function playerUsage(playerId: string, season: number, week: number): Promise<PlayerUsage> {
@@ -38,6 +40,8 @@ export async function playerUsage(playerId: string, season: number, week: number
       ),
       win as (
         select 'season'::text as w, g.* from g
+        union all
+        select 'l5', g.* from (select * from g order by week desc limit 5) g
         union all
         select 'l3', g.* from (select * from g order by week desc limit 3) g
       )
@@ -77,7 +81,9 @@ export async function playerUsage(playerId: string, season: number, week: number
                avg(offense_pct) as snap_pct,
                avg(routes_est) as routes_pg_est,
                sum(rec_yds) / nullif(sum(routes_est), 0) as yprr_est,
-               sum(targets) / nullif(sum(routes_est), 0) as tprr_est
+               sum(targets) / nullif(sum(routes_est), 0) as tprr_est,
+               avg(wopr) as wopr,
+               avg(air_yds) as air_yds_pg
         from model.player_usage_weekly u
         where u.season = ${season} and u.week < ${week}
           and u.position = (select position from model.player_usage_weekly where player_id = ${playerId} limit 1)
@@ -98,7 +104,9 @@ export async function playerUsage(playerId: string, season: number, week: number
                rank() over (order by snap_pct desc nulls last) as snap_pct,
                rank() over (order by routes_pg_est desc nulls last) as routes_pg_est,
                rank() over (order by yprr_est desc nulls last) as yprr_est,
-               rank() over (order by tprr_est desc nulls last) as tprr_est
+               rank() over (order by tprr_est desc nulls last) as tprr_est,
+               rank() over (order by wopr desc nulls last) as wopr,
+               rank() over (order by air_yds_pg desc nulls last) as air_yds_pg
         from agg
       )
       select * from ranked where player_id = ${playerId}`,
@@ -146,6 +154,7 @@ export async function playerUsage(playerId: string, season: number, week: number
     : [];
   return {
     season: byWindow.get("season") ?? null,
+    l5: byWindow.get("l5") ?? null,
     l3: byWindow.get("l3") ?? null,
     ranks: rankList,
     weeks: weeks.map(

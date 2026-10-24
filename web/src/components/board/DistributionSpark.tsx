@@ -1,4 +1,4 @@
-/** 40×16 density spark from a 20-bin hist. Neutral; marker in --line when a prop line exists. */
+/** 40×16 density spark from a 20-bin hist. Over-line bins use --edge-pos; marker in --line when a prop line exists. */
 export function DistributionSpark({
   counts,
   bins,
@@ -21,13 +21,19 @@ export function DistributionSpark({
       role="img"
       aria-label={counts?.length ? "Sim density" : "No distribution"}
     >
-      {(counts ?? Array.from({ length: 20 }, () => 0)).slice(0, 20).map((c, i) => (
-        <span
-          key={i}
-          className="min-w-0 flex-1 rounded-sm bg-foreground/40"
-          style={{ height: `${Math.max(8, (c / max) * 100)}%` }}
-        />
-      ))}
+      {(counts ?? Array.from({ length: 20 }, () => 0)).slice(0, 20).map((c, i) => {
+        const b0 = bins && bins.length > i ? bins[i]! : null;
+        const b1 = bins && bins.length > i + 1 ? bins[i + 1]! : b0;
+        const mid = b0 != null && b1 != null ? (b0 + b1) / 2 : null;
+        const isOver = marker != null && mid != null && mid >= marker;
+        return (
+          <span
+            key={i}
+            className={isOver ? "min-w-0 flex-1 rounded-sm bg-edge-pos/75" : "min-w-0 flex-1 rounded-sm bg-foreground/40"}
+            style={{ height: `${Math.max(8, (c / max) * 100)}%` }}
+          />
+        );
+      })}
       {markerPct != null ? (
         <span
           aria-hidden

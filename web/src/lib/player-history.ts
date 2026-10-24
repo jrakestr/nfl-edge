@@ -11,7 +11,7 @@ import type { PlayerActualWeek } from "@/lib/player-actuals";
 import { weeklyValue } from "@/lib/prop-stats";
 import type { PlayerWeek } from "@/lib/types";
 
-export type StatColumn = { id: string; header: string };
+export type StatColumn = { id: string; header: string; group?: string };
 
 export type FpWeek = {
   season: number;
@@ -35,6 +35,9 @@ export type WeekRow = {
   week: number;
   opponent: string | null;
   gameday: string | null;
+  homeAway: "home" | "away" | null;
+  outcome: "W" | "L" | "T" | null;
+  scoreLabel: string | null;
   /** DraftKings points from the stored actual. Null when the week is not scored. */
   scored: number | null;
   /** Our simulation's DraftKings projection (fpts_dk_mean). Null when that week was not simulated. */
@@ -63,28 +66,28 @@ export type PlayerAnalysisModel = {
 type Col = StatColumn & { stat?: string; key?: string };
 
 const QB: Col[] = [
-  { id: "passYds", header: "Pass yds", stat: "pass_yds" },
-  { id: "passTd", header: "Pass TD", stat: "pass_td" },
-  { id: "int", header: "INT", stat: "int" },
-  { id: "rushYds", header: "Rush yds", stat: "rush_yds" },
-  { id: "rushTd", header: "Rush TD", stat: "rush_td" },
+  { id: "passYds", header: "Pass yds", stat: "pass_yds", group: "PASSING" },
+  { id: "passTd", header: "Pass TD", stat: "pass_td", group: "PASSING" },
+  { id: "int", header: "INT", stat: "int", group: "PASSING" },
+  { id: "rushYds", header: "Rush yds", stat: "rush_yds", group: "RUSHING" },
+  { id: "rushTd", header: "Rush TD", stat: "rush_td", group: "RUSHING" },
 ];
 
 const RB: Col[] = [
-  { id: "carries", header: "Carries", key: "carries" },
-  { id: "rushYds", header: "Rush yds", stat: "rush_yds" },
-  { id: "rushTd", header: "Rush TD", stat: "rush_td" },
-  { id: "rec", header: "Rec", stat: "rec" },
-  { id: "recYds", header: "Rec yds", stat: "rec_yds" },
+  { id: "carries", header: "Carries", key: "carries", group: "RUSHING" },
+  { id: "rushYds", header: "Rush yds", stat: "rush_yds", group: "RUSHING" },
+  { id: "rushTd", header: "Rush TD", stat: "rush_td", group: "RUSHING" },
+  { id: "rec", header: "Rec", stat: "rec", group: "RECEIVING" },
+  { id: "recYds", header: "Rec yds", stat: "rec_yds", group: "RECEIVING" },
 ];
 
 const RECEIVER: Col[] = [
-  { id: "targets", header: "Targets", key: "targets" },
-  { id: "rec", header: "Rec", stat: "rec" },
-  { id: "recYds", header: "Rec yds", stat: "rec_yds" },
-  { id: "recTd", header: "Rec TD", stat: "rec_td" },
-  { id: "carries", header: "Carries", key: "carries" },
-  { id: "rushYds", header: "Rush yds", stat: "rush_yds" },
+  { id: "targets", header: "Targets", key: "targets", group: "RECEIVING" },
+  { id: "rec", header: "Rec", stat: "rec", group: "RECEIVING" },
+  { id: "recYds", header: "Rec yds", stat: "rec_yds", group: "RECEIVING" },
+  { id: "recTd", header: "Rec TD", stat: "rec_td", group: "RECEIVING" },
+  { id: "carries", header: "Carries", key: "carries", group: "RUSHING" },
+  { id: "rushYds", header: "Rush yds", stat: "rush_yds", group: "RUSHING" },
 ];
 
 const DASH = "\u2014";
@@ -241,12 +244,28 @@ export function buildPlayerAnalysis(input: {
               : null,
         ]),
       );
+      let homeAway: "home" | "away" | null = null;
+      let outcome: "W" | "L" | "T" | null = null;
+      let scoreLabel: string | null = null;
+      if (played?.team && (played.home || played.away)) {
+        const isHome = played.team === played.home;
+        homeAway = isHome ? "home" : "away";
+        if (played.home_score != null && played.away_score != null) {
+          const teamPts = isHome ? played.home_score : played.away_score;
+          const oppPts = isHome ? played.away_score : played.home_score;
+          outcome = teamPts > oppPts ? "W" : teamPts < oppPts ? "L" : "T";
+          scoreLabel = `${teamPts}–${oppPts}`;
+        }
+      }
       return {
         key: weekKey(season, wk),
         season,
         week: wk,
         opponent: actual?.opponent ?? played?.opponent ?? sim?.opponent ?? proj?.opponent ?? null,
         gameday: played?.gameday ?? actual?.gameday ?? null,
+        homeAway,
+        outcome,
+        scoreLabel,
         scored,
         simProjected,
         projected,

@@ -97,13 +97,18 @@ def to_news_frame(rows: list[dict]) -> pl.DataFrame:
     return pl.DataFrame(rows, schema=NEWS_SCHEMA)
 
 
-def run(category: str | None = None, limit: int = 100, client=None) -> dict:
+def run(
+    category: str | None = None,
+    limit: int = 100,
+    fpid: int | str | None = None,
+    client=None,
+) -> dict:
     """One FantasyPros news pull -> raw.fantasypros_news (insert_ignore on news_id)."""
     from ..db import insert_ignore
     from .fantasypros import Client
 
     client = client or Client()
-    resp = client.news(category=category, limit=limit)
+    resp = client.news(category=category, limit=limit, fpid=fpid)
     first_seen = datetime.now(UTC)
     rows, unmatched = news_rows(resp, M.load_fp_map(), N.load_teams(), first_seen)
     frame = to_news_frame(rows)
@@ -113,6 +118,53 @@ def run(category: str | None = None, limit: int = 100, client=None) -> dict:
         "items": len(rows),
         "written": written,
         "matched": sum(1 for r in rows if r["player_id"]),
+        "unmatched_n": len(unmatched),
+        "unmatched": unmatched,
+        "first_seen_at": first_seen.isoformat(),
+    }
+
+
+def run_players(
+    fpids: list[int | str],
+    limit: int = 10,
+    sleep_sec: float = 1.0,
+    client=None,
+) -> dict:
+    """Pull per-player news (`GET /nfl/news?fpid=`) for a list of FantasyPros player IDs."""
+    import time
+
+    from ..db import insert_ignore
+    from .fantasypros import Client, FantasyProsError
+
+    client = client or Client()
+    fp_map = M.load_fp_map()
+    teams = N.load_teams()
+    first_seen = datetime.now(UTC)
+    all_rows: list[dict] = []
+    seen_ids: set[int] = set()
+    unmatched: list[dict] = []
+    for idx, raw_fpid in enumerate(fpids):
+        if idx > 0 and sleep_sec > 0:
+            time.sleep(sleep_sec)
+        try:
+            resp = client.news(limit=limit, fpid=raw_fpid)
+        except FantasyProsError as e:
+            if "HTTP 429" in str(e):
+                break
+            raise
+        rows, unm = news_rows(resp, fp_map, teams, first_seen)
+        for r in rows:
+            if r["news_id"] not in seen_ids:
+                seen_ids.add(r["news_id"])
+                all_rows.append(r)
+        unmatched.extend(unm)
+    frame = to_news_frame(all_rows)
+    written = insert_ignore(frame, "raw.fantasypros_news")
+    return {
+        "calls": client.calls,
+        "items": len(all_rows),
+        "written": written,
+        "matched": sum(1 for r in all_rows if r["player_id"]),
         "unmatched_n": len(unmatched),
         "unmatched": unmatched,
         "first_seen_at": first_seen.isoformat(),
