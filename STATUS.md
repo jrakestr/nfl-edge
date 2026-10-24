@@ -1,5 +1,13 @@
 # Status
 
+## Graded player weeks were missing (2026-10-24)
+
+What changed: `player_proj_actual.game_runs` grades a final game with no pre-kickoff run against the earliest run that projected it. Backfill wrote DET@BUF week 2 (28 players), ATL@GB week 3 (27), and all of week 4 (500). Weeks 2 and 3 only inserted games that had no rows, so stored DK p50 stayed.
+
+What was verified: `tests/test_player_proj_actual.py` 22 passed, ruff clean on the touched files. Every final game in weeks 1–6 now has rows. Gibbs residuals: +14.1, −0.4, +15.9, −6.3, +15.1 (bye week 6). Mean miss +7.7, so week-7 Adjusted is 34.6 against a 37.5 PPR ceiling.
+
+What was deferred: nothing on this hole. Market `model.results` for week 4 was already present (16 games) and was left as stored.
+
 ## Player usage panel on the player page (2026-10-24)
 
 What changed: migration 0050 adds `model.player_usage_weekly`, one row per player-week from `raw.player_stats_weekly` + `raw.snap_counts` + `raw.team_stats_weekly` (counts, DK/PPR/half/standard/6-pt-pass-TD points, snaps, team dropbacks, `routes_est` = snaps × team dropback rate; display only). The player page (`/props/{game}/{player}` and `/players/{game}/{player}`) gains a "Usage and rates" card under the header: position-specific rates (points per target / opportunity / touch / snap / estimated route / rush / dropback, target and snap share, estimated routes, YPRR and TPRR) with a Season / Last 3 toggle and the player's rank among position peers with 3+ games and 15+ opportunities; the chance of each scoring band (0–5 … 30+) from the run's `fpts_ppr` histogram; a plain-English sentence on DK points the opponent allows to the position with its league rank; and a week-by-week usage table. "Up against" now reads the current season as-of the display week (it was hardcoded to 2025) and falls back to the prior season. `web/src/lib/usage.ts` holds the SQL-free band maths and labels; `queries/usage.ts` the as-of aggregation (`week < W`). The view's `database.types.ts` entry was added by hand (no Supabase CLI in the session): rerun `npm run types:gen` on the next column change. Applied to Supabase through the connector and recorded in `model._migrations` with the file's sha.
