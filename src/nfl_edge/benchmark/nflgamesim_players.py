@@ -486,13 +486,18 @@ def run(
     schedules: pl.DataFrame | None = None,
     catalog: pl.DataFrame | None = None,
 ) -> dict:
-    """Parse the CSV, resolve games/ids, upsert raw.external_players. Fail closed."""
+    """Parse the CSV or paste, resolve games/ids, upsert raw.external_players. Fail closed."""
     from ..db import upsert
     from ..ingest import names as N
 
     src = Path(path) if path is not None else csv_path(season, week)
-    rows = parse_csv(src)
     sched = load_schedules(season, week) if schedules is None else schedules
+    first_line = src.read_text().splitlines()[0].strip() if src.exists() else ""
+    if first_line.startswith("Fantasy Points") or "\t" in first_line:
+        rows = parse_paste(src.read_text(), schedules=sched)
+        write_csv(rows, csv_path(season, week))
+    else:
+        rows = parse_csv(src)
     rows, unresolved = resolve_games(rows, sched)
     cat = load_catalog() if catalog is None else catalog
     rows, unmatched = attach_ids(rows, cat, N.load_aliases(), N.load_teams())
