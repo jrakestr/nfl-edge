@@ -38,7 +38,7 @@ export function PlayerNewsCard({ news }: { news: PlayerNewsItem[] }) {
       </div>
 
       {news.length === 0 ? (
-        <p className="t-caption" role="status">
+        <p className="t-caption">
           No FantasyPros news stored for this player yet. Run{" "}
           <code>uv run nfl-edge ingest fantasypros-news</code> to refresh.
         </p>

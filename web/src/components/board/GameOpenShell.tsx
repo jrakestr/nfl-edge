@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import type { DrawerPlayer } from "@/lib/queries/players";
 import type { TeamInput } from "@/lib/team-input";
-import type { BoardRow, GameChecks, VerdictPayload } from "@/lib/types";
+import type { BoardRow, GameChecks, GameDetail, VerdictPayload } from "@/lib/types";
 import { GameDrawer } from "./GameDrawer";
 import { useGameOpen } from "./useGameOpen";
 
@@ -17,6 +17,7 @@ export function GameOpenShell({
   verdict,
   checks,
   players = [],
+  detail = null,
   runCreatedAt,
   runId,
   teamInputs = {},
@@ -28,6 +29,7 @@ export function GameOpenShell({
   verdict: VerdictPayload | null;
   checks: GameChecks | null;
   players?: DrawerPlayer[];
+  detail?: GameDetail | null;
   runCreatedAt?: string | null;
   runId?: string | null;
   teamInputs?: Record<string, TeamInput>;
@@ -43,6 +45,7 @@ export function GameOpenShell({
         verdict={verdict}
         checks={checks}
         players={players}
+        detail={detail}
         runCreatedAt={runCreatedAt}
         runId={runId}
         teamInputs={teamInputs}

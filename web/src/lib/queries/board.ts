@@ -5,7 +5,7 @@ import { lineSourceLabel } from "@/lib/line-source";
 import { resolveBoardEdges, type LineGrid, type PersistedEdge } from "@/lib/line-grid";
 import { BoardRowSchema, type BoardRow, type GradedMarket } from "@/lib/types";
 
-function asGrid(raw: unknown): LineGrid | null {
+export function asGrid(raw: unknown): LineGrid | null {
   if (!raw || typeof raw !== "object") return null;
   const g = raw as LineGrid;
   if (!g.margin?.counts || !g.total?.counts) return null;

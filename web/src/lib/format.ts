@@ -70,3 +70,9 @@ export function shortRun(runId: string): string {
 export function noProjectionsNotice(week: number): string {
   return `No projections for week ${week} yet — showing the schedule and current lines.`;
 }
+
+/** "1 invariant" / "2 invariants". */
+export function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+

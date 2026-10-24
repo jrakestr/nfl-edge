@@ -163,7 +163,7 @@ Horizontally scrollable kickoff-grouped chips on the Edge board (below WeekHeade
 - Week summary sentence card with Plain English / Table toggle. Plain English also has Full / Compact (`?density=compact`; omitted when Full).
 - Plain English: stack of `VerdictCard`s sorted by |max edge|. Compact collapses each game to one 48px row (matchup, three market edges, warning dot) that expands on click. Table: four summary tiles then the dense table below.
 - Table, one row per game, sorted by |max edge| desc. Columns: matchup (dots + abbrs, kickoff), `EdgeCell` spread, `EdgeCell` total, `EdgeCell` ML (as prob), P(cover) at market, `MarketPill`, `CheckStatus`.
-- Row click → `Sheet` drawer: score distribution (two-team histogram), fair vs. market history, top-10 player projections with `DistributionSpark`, correlation heat strip for that game.
+- Row click → `Sheet` drawer: score distribution (margin and total from the run's line grid), fair vs. market history, top-10 player projections with `DistributionSpark`, correlation heat strip for that game.
 - Filters (top-left, persistent): slate (main/early/late/primetime), min |edge|, hide flat.
 
 ### Lineup review (`/week/[n]/dfs/[site]/[slate]`)

@@ -326,15 +326,70 @@ describe("player analysis without props", () => {
     expect(screen.getByRole("columnheader", { name: "Sim DK" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "FantasyPros" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Pass yds" })).toBeInTheDocument();
-    expect(screen.getByText("287")).toBeInTheDocument();
+    expect(screen.getAllByText("287").length).toBeGreaterThan(0);
     expect(screen.queryByRole("columnheader", { name: "Rec yds" })).toBeNull();
-    expect(screen.getByText("23.8")).toBeInTheDocument();
-    expect(screen.getByText("22.0")).toBeInTheDocument();
-    expect(screen.getByText("+1.8")).toBeInTheDocument();
+    expect(screen.getAllByText("23.8").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("22.0").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("+1.8").length).toBeGreaterThan(0);
+    expect(screen.getByText("Totals")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Filter by opponent")).toBeInTheDocument();
     expect(screen.getByText(/Projection/)).toBeInTheDocument();
     expect(screen.queryByText("Entered line")).toBeNull();
     expect(screen.queryByRole("region", { name: "Props" })).toBeNull();
     expect(screen.getByRole("combobox", { name: "Week" })).toBeInTheDocument();
+
+    // Opponent filter input filters the game log rows
+    fireEvent.change(screen.getByPlaceholderText("Filter by opponent"), {
+      target: { value: "CHI" },
+    });
+    expect(screen.queryByText("(24–17)")).toBeNull();
+  });
+
+  it("switches detail workspace tabs to Correlations and renders the sortable Correlations DataTable", () => {
+    render(
+      <PropDetail
+        {...emptyDetail}
+        player={{ ...HEADER, position: "QB", latest_team: "NE", display_name: "Drake Maye" }}
+        game={{
+          game_id: "2026_06_NYJ_NE",
+          season: 2026,
+          week: 6,
+          home: "NE",
+          away: "NYJ",
+          gameday: "2026-10-12",
+          gametime: "13:00",
+        }}
+        corrs={[
+          {
+            a: "DeMario Douglas",
+            b: "00-0039139",
+            a_id: "00-0038550",
+            corr: 0.42,
+            avg_pts: 12.65,
+            games: 6,
+          },
+          {
+            a: "Rhamondre Stevenson",
+            b: "00-0039139",
+            a_id: "00-0036875",
+            corr: -0.18,
+            avg_pts: 14.1,
+            games: 6,
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Correlations" }));
+    expect(screen.getByRole("heading", { name: "When X goes over, who else does" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Player" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Correlation" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Avg Points" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Count" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "DeMario Douglas" })).toHaveAttribute(
+      "href",
+      "/players/2026_06_NYJ_NE/00-0038550",
+    );
+    expect(screen.getByText("12.65")).toBeInTheDocument();
   });
 
   it("keeps props as a section when a line is loaded", () => {

@@ -115,3 +115,24 @@ export function pivotEdges(rows: RawEdge[] | null): BoardRow["edges"] {
   }
   return out;
 }
+
+/**
+ * Percentile heatmap cell classes (0..1 scale) using WCAG 2.1 AA verified semantic tokens.
+ * When `invert` is true, lower values are treated as better (e.g. sack rate allowed).
+ */
+export function heatmapCellClass(pctVal: number | null | undefined, invert = false): string {
+  if (pctVal == null || !Number.isFinite(pctVal)) return "";
+  const p = invert ? 1 - pctVal : pctVal;
+  if (p >= 0.7) return "bg-edge-pos-tint text-edge-pos";
+  if (p <= 0.3) return "bg-edge-neg-tint text-edge-neg";
+  return "";
+}
+
+/**
+ * Signed difference heatmap cell classes (positive = green tint, negative = red tint).
+ */
+export function diffHeatmapClass(diff: number | null | undefined, threshold = 0.01): string {
+  if (diff == null || !Number.isFinite(diff) || Math.abs(diff) < threshold) return "";
+  return diff > 0 ? "bg-edge-pos-tint text-edge-pos" : "bg-edge-neg-tint text-edge-neg";
+}
+

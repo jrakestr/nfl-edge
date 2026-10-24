@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Matchup } from "@/components/board/TeamDot";
@@ -18,6 +19,7 @@ import { summarizeActuals, type PlayerActualWeek } from "@/lib/player-actuals";
 import type { CorrPair, FairProp, GameContext, Hist, MatchupRow, PlayerHeader, PlayerNewsItem, PlayerWeek, PropSnap } from "@/lib/types";
 import { ordinal, rankTier, type DefenseVsPosition, type PlayerUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
+import { PlayerHomeCards } from "./PlayerHomeCards";
 import { PlayerNewsCard } from "./PlayerNewsCard";
 import { PropCallout } from "./PropCallout";
 import { StatBars } from "./StatBars";
@@ -25,6 +27,8 @@ import { UsagePanel } from "./UsagePanel";
 import { VisualHistogram } from "./VisualHistogram";
 
 const WINDOWS = ["L5", "L10", "L20", "season", "H2H"] as const;
+const DETAIL_TABS = ["all", "home", "trends", "gamelogs", "correlations"] as const;
+type DetailTab = (typeof DETAIL_TABS)[number];
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -270,6 +274,7 @@ export function PropDetail({
   const stats = STAT_ORDER.filter((s) => fairs.some((f) => f.stat === s));
   const [stat, setStat] = useState<string>(stats[0] ?? "rush_yds");
   const [win, setWin] = useState<(typeof WINDOWS)[number]>("L10");
+  const [detailTab, setDetailTab] = useState<DetailTab>("all");
   const fair = fairs.find((f) => f.stat === stat) ?? fairs[0] ?? null;
   const line = fair?.market_line ?? fair?.fair_line ?? null;
   const sentence = fair?.market_sentence ?? fair?.sentence;
@@ -408,20 +413,62 @@ export function PropDetail({
             </div>
           </div>
         </div>
+
+        {/* FantasyLabs Workspace Navigation Tabs */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border-soft pt-3">
+          <ToggleGroup
+            type="single"
+            value={detailTab}
+            onValueChange={(v) => v && setDetailTab(v as DetailTab)}
+            size="sm"
+            spacing={0}
+            aria-label="Player detail sections"
+          >
+            <ToggleGroupItem value="all" className="t-caption h-8 px-3">
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="home" className="t-caption h-8 px-3">
+              Home
+            </ToggleGroupItem>
+            <ToggleGroupItem value="trends" className="t-caption h-8 px-3">
+              Trends
+            </ToggleGroupItem>
+            <ToggleGroupItem value="gamelogs" className="t-caption h-8 px-3">
+              Game Logs
+            </ToggleGroupItem>
+            <ToggleGroupItem value="correlations" className="t-caption h-8 px-3">
+              Correlations
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </header>
 
-      <UsagePanel
-        usage={usage}
-        position={player?.position ?? null}
-        opponent={opponent}
-        defense={defense}
-        fptsHist={fptsHist}
-      />
+      {(detailTab === "all" || detailTab === "home") ? (
+        <PlayerHomeCards
+          actualRows={actualRows}
+          projections={projections}
+          simProjections={simProjections}
+          fptsHist={fptsHist}
+          usage={usage}
+          defense={defense}
+          currentSeason={currentSeason}
+        />
+      ) : null}
 
-      <PlayerNewsCard news={news} />
+      {(detailTab === "all" || detailTab === "trends") ? (
+        <UsagePanel
+          usage={usage}
+          position={player?.position ?? null}
+          opponent={opponent}
+          defense={defense}
+          fptsHist={fptsHist}
+        />
+      ) : null}
+
+      {(detailTab === "all" || detailTab === "home") ? <PlayerNewsCard news={news} /> : null}
 
       {/* When no prop lines are loaded, still display the interactive DK points histogram if available */}
-      {!showProps && fptsHist ? (
+      {(detailTab === "all" || detailTab === "home") && !showProps && fptsHist ? (
         <VisualHistogram
           hist={fptsHist}
           title="Simulated DraftKings points distribution"
@@ -429,7 +476,7 @@ export function PropDetail({
         />
       ) : null}
 
-      {asOf ? (
+      {(detailTab === "all" || detailTab === "gamelogs") && asOf ? (
         <PlayerAnalysis
           position={player?.position ?? null}
           season={asOf.season}
@@ -439,6 +486,82 @@ export function PropDetail({
           projections={projections}
           simProjections={simProjections}
         />
+      ) : null}
+
+      {detailTab === "correlations" ? (
+        <section className="card p-4" aria-label="Player correlations">
+          <h2 className="t-body font-semibold">When X goes over, who else does</h2>
+          {corrs.length === 0 ? (
+            <p className="mt-2 t-caption">No correlations on this run.</p>
+          ) : (
+            <div className="mt-3">
+              <DataTable
+                data={corrs}
+                getRowId={(c) => c.a_id ?? c.a}
+                empty="No correlations on this run."
+                ariaLabel="Player correlations"
+                syncUrl={false}
+                defaultSort={{ id: "corr", dir: "desc" }}
+                columns={[
+                  {
+                    id: "player",
+                    header: "Player",
+                    sortValue: (c) => c.a,
+                    cell: (c) =>
+                      c.a_id && game?.game_id ? (
+                        <Link
+                          href={`${basePath}/${game.game_id}/${c.a_id}`}
+                          className="font-semibold text-foreground underline-offset-2 hover:underline"
+                        >
+                          {c.a}
+                        </Link>
+                      ) : (
+                        <span className="font-semibold text-foreground">{c.a}</span>
+                      ),
+                  },
+                  {
+                    id: "corr",
+                    header: "Correlation",
+                    align: "right",
+                    sortValue: (c) => c.corr,
+                    cell: (c) => (
+                      <span
+                        className={cn(
+                          "tnum font-semibold",
+                          c.corr > 0 ? "text-edge-pos" : c.corr < 0 ? "text-edge-neg" : "text-foreground",
+                        )}
+                      >
+                        {corrLabel(c.corr)} · {c.corr.toFixed(2)} ({signedPct(c.corr)})
+                      </span>
+                    ),
+                  },
+                  {
+                    id: "avgPts",
+                    header: "Avg Points",
+                    align: "right",
+                    sortValue: (c) => c.avg_pts,
+                    cell: (c) => (
+                      <span className="tnum font-semibold text-foreground">
+                        {c.avg_pts != null ? c.avg_pts.toFixed(2) : "—"}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: "count",
+                    header: "Count",
+                    align: "right",
+                    sortValue: (c) => c.games,
+                    cell: (c) => (
+                      <span className="tnum font-semibold text-foreground">
+                        {c.games != null ? c.games : "—"}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          )}
+        </section>
       ) : null}
 
       {showProps ? (
@@ -731,16 +854,72 @@ export function PropDetail({
                 {corrs.length === 0 ? (
                   <p className="mt-1 t-caption">No correlations on this run.</p>
                 ) : (
-                  <ul className="mt-2 flex flex-col gap-1 t-caption">
-                    {corrs.map((c) => (
-                      <li key={c.a} className="flex justify-between gap-2">
-                        <span>{c.a}</span>
-                        <span>
-                          {corrLabel(c.corr)} · {signedPct(c.corr)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-2">
+                    <DataTable
+                      data={corrs}
+                      getRowId={(c) => c.a_id ?? c.a}
+                      empty="No correlations on this run."
+                      ariaLabel="Player correlations"
+                      syncUrl={false}
+                      defaultSort={{ id: "corr", dir: "desc" }}
+                      columns={[
+                        {
+                          id: "player",
+                          header: "Player",
+                          sortValue: (c) => c.a,
+                          cell: (c) =>
+                            c.a_id && game?.game_id ? (
+                              <Link
+                                href={`${basePath}/${game.game_id}/${c.a_id}`}
+                                className="font-semibold text-foreground underline-offset-2 hover:underline"
+                              >
+                                {c.a}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-foreground">{c.a}</span>
+                            ),
+                        },
+                        {
+                          id: "corr",
+                          header: "Correlation",
+                          align: "right",
+                          sortValue: (c) => c.corr,
+                          cell: (c) => (
+                            <span
+                              className={cn(
+                                "tnum font-semibold",
+                                c.corr > 0 ? "text-edge-pos" : c.corr < 0 ? "text-edge-neg" : "text-foreground",
+                              )}
+                            >
+                              {corrLabel(c.corr)} · {signedPct(c.corr)}
+                            </span>
+                          ),
+                        },
+                        {
+                          id: "avgPts",
+                          header: "Avg Points",
+                          align: "right",
+                          sortValue: (c) => c.avg_pts,
+                          cell: (c) => (
+                            <span className="tnum font-semibold text-foreground">
+                              {c.avg_pts != null ? c.avg_pts.toFixed(2) : "—"}
+                            </span>
+                          ),
+                        },
+                        {
+                          id: "count",
+                          header: "Count",
+                          align: "right",
+                          sortValue: (c) => c.games,
+                          cell: (c) => (
+                            <span className="tnum font-semibold text-foreground">
+                              {c.games != null ? c.games : "—"}
+                            </span>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
                 )}
               </section>
             </aside>

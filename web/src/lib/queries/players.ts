@@ -169,7 +169,10 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
   const runMeta = await sql()`select season, week from model.sim_runs where run_id = ${runId}::uuid`;
   const season = Number(runMeta[0]?.season ?? 0);
   const week = Number(runMeta[0]?.week ?? 0);
-  const elevated = season && week ? await elevatedByInjury(season, week) : new Map();
+  const [elevated, oppPlusMinus] = await Promise.all([
+    season && week ? elevatedByInjury(season, week) : Promise.resolve(new Map()),
+    season && week ? oppPlusMinusByTeamPos(season, week) : Promise.resolve(new Map<string, number>()),
+  ]);
   return rows.map((r) => {
     const salary = r.salary != null ? Number(r.salary) : null;
     const fpts = r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null;
@@ -180,6 +183,9 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
     const homeTeam = r.home_team != null ? String(r.home_team) : null;
     const homeAway = nflTeam && homeTeam ? (nflTeam === homeTeam ? "home" : "away") : null;
     const elev = r.player_id ? elevated.get(String(r.player_id)) : undefined;
+    const opp = r.opponent != null ? String(r.opponent) : null;
+    const pos = r.position != null ? String(r.position) : null;
+    const oppPm = opp && pos ? (oppPlusMinus.get(`${opp}:${pos}`) ?? null) : null;
     return WeekPlayerSchema.parse({
       ...r,
       hist: null,
@@ -193,6 +199,7 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
       home_away: homeAway,
       market_total: r.market_total != null ? Number(r.market_total) : null,
       market_spread: r.market_spread != null ? Number(r.market_spread) : null,
+      opp_plus_minus: oppPm,
       kickoff_window: gameday ? kickoffWindow(gameday, gametime, location) : null,
       elevated: Boolean(elev),
       elevated_reason: elev?.reason ?? null,
@@ -201,7 +208,51 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
   });
 }
 
+/**
+ * Positional defensive DK points allowed minus league average for each `${oppTeam}:${position}`
+ * strictly before `week` in `season` (as-of rule). Empty map when usage rows are absent.
+ */
+export async function oppPlusMinusByTeamPos(
+  season: number,
+  week: number,
+): Promise<Map<string, number>> {
+  if (week <= 1) return new Map();
+  try {
+    const rows = await sql()`
+      with team_pos_game as (
+        select opponent as def_team, position, week, sum(coalesce(fpts_ppr, 0))::float8 as pts_allowed
+        from model.player_usage_weekly
+        where season = ${season} and week < ${week}
+          and opponent is not null and position in ('QB', 'RB', 'WR', 'TE')
+        group by opponent, position, week
+      ),
+      def_avg as (
+        select def_team, position, avg(pts_allowed)::float8 as avg_allowed
+        from team_pos_game
+        group by def_team, position
+      ),
+      league_avg as (
+        select position, avg(avg_allowed)::float8 as lg_allowed
+        from def_avg
+        group by position
+      )
+      select d.def_team, d.position, (d.avg_allowed - l.lg_allowed)::float8 as opp_pm
+      from def_avg d
+      join league_avg l on l.position = d.position`;
+    const out = new Map<string, number>();
+    for (const r of rows) {
+      if (r.def_team && r.position && r.opp_pm != null) {
+        out.set(`${String(r.def_team)}:${String(r.position)}`, Number(r.opp_pm));
+      }
+    }
+    return out;
+  } catch {
+    return new Map();
+  }
+}
+
 export type DrawerPlayer = {
+  player_id: string;
   display_name: string;
   position: string | null;
   fpts_dk_mean: number | null;
@@ -211,6 +262,7 @@ export type DrawerPlayer = {
 export async function topPlayersByGame(runId: string): Promise<Record<string, DrawerPlayer[]>> {
   const rows = await sql()`
     select pp.game_id,
+           pp.player_id,
            coalesce(p.display_name, pp.player_id) as display_name,
            pp.position,
            pp.fpts_dk_mean::float8 as fpts_dk_mean
@@ -224,6 +276,7 @@ export async function topPlayersByGame(runId: string): Promise<Record<string, Dr
     const list = out[gid] ?? (out[gid] = []);
     if (list.length >= 10) continue;
     list.push({
+      player_id: String(r.player_id),
       display_name: String(r.display_name),
       position: r.position != null ? String(r.position) : null,
       fpts_dk_mean: r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null,

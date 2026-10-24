@@ -271,20 +271,47 @@ export async function playerFptsActual(playerId: string): Promise<PlayerActualWe
 
 export async function playerCorrs(runId: string, playerId: string): Promise<CorrPair[]> {
   const rows = await sql()`
-    select case
-             when c.player_id_a = ${playerId} then coalesce(pb.display_name, c.player_id_b)
-             else coalesce(pa.display_name, c.player_id_a)
-           end as a,
-           ${playerId} as b,
-           c.corr_dk::float8 as corr
-    from model.player_correlations c
-    left join raw.players pa on pa.gsis_id = c.player_id_a
-    left join raw.players pb on pb.gsis_id = c.player_id_b
-    where c.run_id = ${runId}::uuid
-      and (c.player_id_a = ${playerId} or c.player_id_b = ${playerId})
-      and c.corr_dk is not null
-    order by abs(c.corr_dk) desc
-    limit 8`;
+    with run as (
+      select season, week from model.sim_runs where run_id = ${runId}::uuid
+    ),
+    pairs as (
+      select case
+               when c.player_id_a = ${playerId} then c.player_id_b
+               else c.player_id_a
+             end as other_id,
+             case
+               when c.player_id_a = ${playerId} then coalesce(pb.display_name, c.player_id_b)
+               else coalesce(pa.display_name, c.player_id_a)
+             end as a,
+             ${playerId} as b,
+             c.corr_dk::float8 as corr
+      from model.player_correlations c
+      left join raw.players pa on pa.gsis_id = c.player_id_a
+      left join raw.players pb on pb.gsis_id = c.player_id_b
+      where c.run_id = ${runId}::uuid
+        and (c.player_id_a = ${playerId} or c.player_id_b = ${playerId})
+        and c.corr_dk is not null
+      order by abs(c.corr_dk) desc
+      limit 12
+    )
+    select p.a,
+           p.b,
+           p.corr,
+           p.other_id as a_id,
+            coalesce(pp.fpts_dk_mean::float8, avg_u.avg_pts) as avg_pts,
+           coalesce(avg_u.games, 0)::int as games
+    from pairs p
+    left join model.proj_players pp
+      on pp.run_id = ${runId}::uuid and pp.player_id = p.other_id
+    left join lateral (
+      select avg(u.fpts_ppr)::float8 as avg_pts, count(*)::int as games
+      from model.player_usage_weekly u
+      cross join run
+      where u.player_id = p.other_id
+        and u.season = run.season
+        and u.week < run.week
+    ) avg_u on true
+    order by abs(p.corr) desc`;
   return rows.map((r) => CorrPairSchema.parse(r));
 }
 

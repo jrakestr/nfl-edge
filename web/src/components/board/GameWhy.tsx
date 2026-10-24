@@ -25,7 +25,7 @@ export function GameWhy({
 
   return (
     <section aria-label="Why" className="flex flex-col gap-3">
-      <h4 className="t-colhead text-muted-foreground">Why</h4>
+      <h3 className="t-colhead text-muted-foreground">Why</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {(["away", "home"] as const).map((side) => {
           const ours = model?.[side] ?? null;

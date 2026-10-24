@@ -136,3 +136,263 @@ export async function trenchRanksForWeek(
     return {};
   }
 }
+
+export type VegasGameSnap = {
+  captured_at: string;
+  spread_line: number | null;
+  total_line: number | null;
+};
+
+export type VegasMovementData = {
+  game_id: string;
+  open_spread: number | null;
+  live_spread: number | null;
+  open_total: number | null;
+  live_total: number | null;
+  snaps: VegasGameSnap[];
+  roof: string | null;
+  surface: string | null;
+  temp: number | null;
+  wind: number | null;
+};
+
+/**
+ * Earliest (open) vs latest (live) market lines and snapshot history per game on this week,
+ * plus stadium weather (`roof`, `surface`, `temp`, `wind`) from `raw.schedules`.
+ */
+export async function vegasMovementByGame(
+  gameIds: string[],
+): Promise<Record<string, VegasMovementData>> {
+  if (gameIds.length === 0) return {};
+  try {
+    const [snapRows, schRows] = await Promise.all([
+      sql()`
+        select m.game_id,
+               to_char(m.captured_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') as captured_at,
+               m.spread_line::float8 as spread_line,
+               m.total_line::float8 as total_line
+        from raw.market_lines m
+        join model.market_lines_latest l on l.game_id = m.game_id
+        where m.game_id = any(${gameIds})
+          and m.source = l.source
+          and m.bookmaker is not distinct from l.bookmaker
+        order by m.game_id, m.captured_at asc, m.id asc`,
+      sql()`
+        select game_id, roof, surface, temp::float8 as temp, wind::float8 as wind
+        from raw.schedules
+        where game_id = any(${gameIds})`,
+    ]);
+
+    const out: Record<string, VegasMovementData> = {};
+    for (const s of schRows) {
+      const gid = String(s.game_id);
+      out[gid] = {
+        game_id: gid,
+        open_spread: null,
+        live_spread: null,
+        open_total: null,
+        live_total: null,
+        snaps: [],
+        roof: s.roof != null ? String(s.roof) : null,
+        surface: s.surface != null ? String(s.surface) : null,
+        temp: s.temp != null ? Number(s.temp) : null,
+        wind: s.wind != null ? Number(s.wind) : null,
+      };
+    }
+
+    for (const r of snapRows) {
+      const gid = String(r.game_id);
+      const entry =
+        out[gid] ??
+        (out[gid] = {
+          game_id: gid,
+          open_spread: null,
+          live_spread: null,
+          open_total: null,
+          live_total: null,
+          snaps: [],
+          roof: null,
+          surface: null,
+          temp: null,
+          wind: null,
+        });
+      const snap: VegasGameSnap = {
+        captured_at: String(r.captured_at ?? ""),
+        spread_line: r.spread_line != null ? Number(r.spread_line) : null,
+        total_line: r.total_line != null ? Number(r.total_line) : null,
+      };
+      entry.snaps.push(snap);
+    }
+
+    for (const entry of Object.values(out)) {
+      const first = entry.snaps[0];
+      const last = entry.snaps.at(-1);
+      entry.open_spread = first?.spread_line ?? null;
+      entry.live_spread = last?.spread_line ?? null;
+      entry.open_total = first?.total_line ?? null;
+      entry.live_total = last?.total_line ?? null;
+    }
+
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export type FieldSkillPlayer = {
+  player_id: string;
+  display_name: string;
+  position: string;
+  team: string;
+  game_id: string;
+  salary: number | null;
+  fpts_dk_mean: number | null;
+  yr_target_share: number | null;
+  mth_target_share: number | null;
+  yr_snap_pct: number | null;
+  mth_snap_pct: number | null;
+  yr_fpts_pg: number | null;
+  mth_fpts_pg: number | null;
+  yr_opps_pg: number | null;
+  mth_opps_pg: number | null;
+  yr_yprr: number | null;
+  mth_yprr: number | null;
+};
+
+/**
+ * Skill players per team with Season (`Yr`) and Last-4-Weeks (`Mth`) usage & efficiency metrics
+ * from `model.player_usage_weekly` strictly before `week` (`week < W`), joined to `model.proj_players`
+ * when a simulation run exists.
+ */
+export async function skillPlayersForWeek(
+  season: number,
+  week: number,
+  runId: string | null,
+  gameIds: string[],
+): Promise<Record<string, FieldSkillPlayer[]>> {
+  if (gameIds.length === 0) return {};
+  try {
+    const rows = await sql()`
+      with sch as (
+        select game_id, home_team, away_team
+        from raw.schedules
+        where game_id = any(${gameIds})
+      ),
+      teams as (
+        select game_id, home_team as team from sch
+        union all
+        select game_id, away_team as team from sch
+      ),
+      u_ranked as (
+        select u.player_id,
+               u.team,
+               u.position,
+               u.week,
+               u.snap_pct::float8 as snap_pct,
+               u.target_share::float8 as target_share,
+               u.fpts_ppr::float8 as fpts_ppr,
+               (coalesce(u.targets, 0) + coalesce(u.carries, 0))::float8 as opps,
+               case
+                 when coalesce(u.routes_est, 0) > 0 then (coalesce(u.rec_yds, 0)::float8 / u.routes_est)
+                 else null
+               end as yprr,
+               row_number() over (partition by u.player_id order by u.week desc) as rn
+        from model.player_usage_weekly u
+        where u.season = ${season} and u.week < ${week}
+          and u.position in ('QB', 'RB', 'WR', 'TE')
+      ),
+      u_agg as (
+        select player_id,
+               max(team) as u_team,
+               max(position) as u_pos,
+               avg(target_share)::float8 as yr_target_share,
+               avg(target_share) filter (where rn <= 4)::float8 as mth_target_share,
+               avg(snap_pct)::float8 as yr_snap_pct,
+               avg(snap_pct) filter (where rn <= 4)::float8 as mth_snap_pct,
+               avg(fpts_ppr)::float8 as yr_fpts_pg,
+               avg(fpts_ppr) filter (where rn <= 4)::float8 as mth_fpts_pg,
+               avg(opps)::float8 as yr_opps_pg,
+               avg(opps) filter (where rn <= 4)::float8 as mth_opps_pg,
+               avg(yprr)::float8 as yr_yprr,
+               avg(yprr) filter (where rn <= 4)::float8 as mth_yprr
+        from u_ranked
+        group by player_id
+      ),
+      proj as (
+        select pp.player_id,
+               pp.team,
+               pp.position,
+               pp.game_id,
+               pp.fpts_dk_mean::float8 as fpts_dk_mean
+        from model.proj_players pp
+        where ${runId != null} and pp.run_id = ${runId ?? "00000000-0000-0000-0000-000000000000"}::uuid
+          and pp.game_id = any(${gameIds})
+          and pp.position in ('QB', 'RB', 'WR', 'TE')
+      ),
+      dk as (
+        select distinct on (s.player_id) s.player_id, s.salary
+        from raw.dk_salaries s
+        where s.site = 'dk'
+          and s.player_id is not null
+          and split_part(s.slate_id, '_', 1)::int = ${season}
+          and split_part(s.slate_id, '_', 2)::int = ${week}
+        order by s.player_id,
+                 case when split_part(s.slate_id, '_', 3) = 'main' then 0 else 1 end
+      ),
+      combined as (
+        select coalesce(pr.player_id, ua.player_id) as player_id,
+               coalesce(pr.team, ua.u_team) as team,
+               coalesce(pr.position, ua.u_pos) as position,
+               t.game_id,
+               pr.fpts_dk_mean,
+               dk.salary,
+               ua.yr_target_share,
+               ua.mth_target_share,
+               ua.yr_snap_pct,
+               ua.mth_snap_pct,
+               ua.yr_fpts_pg,
+               ua.mth_fpts_pg,
+               ua.yr_opps_pg,
+               ua.mth_opps_pg,
+               ua.yr_yprr,
+               ua.mth_yprr
+        from u_agg ua
+        full outer join proj pr on pr.player_id = ua.player_id
+        join teams t on t.team = coalesce(pr.team, ua.u_team)
+        left join dk on dk.player_id = coalesce(pr.player_id, ua.player_id)
+      )
+      select c.*, coalesce(p.display_name, c.player_id) as display_name
+      from combined c
+      left join raw.players p on p.gsis_id = c.player_id
+      order by c.game_id, c.team, coalesce(c.fpts_dk_mean, c.yr_fpts_pg, 0) desc`;
+
+    const out: Record<string, FieldSkillPlayer[]> = {};
+    for (const r of rows) {
+      const gid = String(r.game_id);
+      const list = out[gid] ?? (out[gid] = []);
+      list.push({
+        player_id: String(r.player_id),
+        display_name: String(r.display_name),
+        position: String(r.position ?? "WR"),
+        team: String(r.team),
+        game_id: gid,
+        salary: r.salary != null ? Number(r.salary) : null,
+        fpts_dk_mean: r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null,
+        yr_target_share: r.yr_target_share != null ? Number(r.yr_target_share) : null,
+        mth_target_share: r.mth_target_share != null ? Number(r.mth_target_share) : null,
+        yr_snap_pct: r.yr_snap_pct != null ? Number(r.yr_snap_pct) : null,
+        mth_snap_pct: r.mth_snap_pct != null ? Number(r.mth_snap_pct) : null,
+        yr_fpts_pg: r.yr_fpts_pg != null ? Number(r.yr_fpts_pg) : null,
+        mth_fpts_pg: r.mth_fpts_pg != null ? Number(r.mth_fpts_pg) : null,
+        yr_opps_pg: r.yr_opps_pg != null ? Number(r.yr_opps_pg) : null,
+        mth_opps_pg: r.mth_opps_pg != null ? Number(r.mth_opps_pg) : null,
+        yr_yprr: r.yr_yprr != null ? Number(r.yr_yprr) : null,
+        mth_yprr: r.mth_yprr != null ? Number(r.mth_yprr) : null,
+      });
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+

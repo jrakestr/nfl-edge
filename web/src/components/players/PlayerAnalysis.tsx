@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { DataTable } from "@/components/ui/DataTable";
+import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   buildPlayerAnalysis,
@@ -38,6 +39,7 @@ export function PlayerAnalysis({
   simProjections?: SimWeek[];
 }) {
   const [split, setSplit] = useState<SplitMode>("all");
+  const [oppQuery, setOppQuery] = useState("");
   const model = buildPlayerAnalysis({
     position,
     season,
@@ -49,20 +51,52 @@ export function PlayerAnalysis({
   });
 
   const filteredRows = useMemo(() => {
-    if (split === "all") return model.rows;
-    const completed = model.rows.filter((r) => !r.upcoming && !r.dnp);
-    if (split === "l5") {
-      const keys = new Set(completed.slice(-5).map((r) => r.key));
-      return model.rows.filter((r) => keys.has(r.key));
+    let base = model.rows;
+    if (split !== "all") {
+      const completed = model.rows.filter((r) => !r.upcoming && !r.dnp);
+      if (split === "l5") {
+        const keys = new Set(completed.slice(-5).map((r) => r.key));
+        base = model.rows.filter((r) => keys.has(r.key));
+      } else if (split === "l3") {
+        const keys = new Set(completed.slice(-3).map((r) => r.key));
+        base = model.rows.filter((r) => keys.has(r.key));
+      } else if (split === "home") {
+        base = model.rows.filter((r) => r.homeAway === "home");
+      } else if (split === "away") {
+        base = model.rows.filter((r) => r.homeAway === "away");
+      }
     }
-    if (split === "l3") {
-      const keys = new Set(completed.slice(-3).map((r) => r.key));
-      return model.rows.filter((r) => keys.has(r.key));
+    const q = oppQuery.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((r) => (r.opponent ?? "").toLowerCase().includes(q));
+  }, [model.rows, split, oppQuery]);
+
+  const totals = useMemo(() => {
+    const completed = filteredRows.filter((r) => !r.upcoming && !r.dnp);
+    const sumField = (fn: (r: (typeof filteredRows)[number]) => number | null) => {
+      let sum = 0;
+      let has = false;
+      for (const r of completed) {
+        const v = fn(r);
+        if (v != null && Number.isFinite(v)) {
+          sum += v;
+          has = true;
+        }
+      }
+      return has ? sum : null;
+    };
+    const statSums: Record<string, number | null> = {};
+    for (const col of model.columns) {
+      statSums[col.id] = sumField((r) => r.values[col.id] ?? null);
     }
-    if (split === "home") return model.rows.filter((r) => r.homeAway === "home");
-    if (split === "away") return model.rows.filter((r) => r.homeAway === "away");
-    return model.rows;
-  }, [model.rows, split]);
+    return {
+      scored: sumField((r) => r.scored),
+      simProjected: sumField((r) => r.simProjected),
+      projected: sumField((r) => r.projected),
+      delta: sumField((r) => r.delta),
+      statSums,
+    };
+  }, [filteredRows, model.columns]);
 
   return (
     <section className="card p-4" aria-label="Season game log">
@@ -75,31 +109,41 @@ export function PlayerAnalysis({
           </p>
         </div>
         {!model.empty ? (
-          <ToggleGroup
-            type="single"
-            value={split}
-            onValueChange={(v) => v && setSplit(v as SplitMode)}
-            size="sm"
-            spacing={0}
-            className="w-fit"
-            aria-label="Game log split"
-          >
-            <ToggleGroupItem value="all" className="t-caption h-8 px-2.5">
-              All
-            </ToggleGroupItem>
-            <ToggleGroupItem value="l5" className="t-caption h-8 px-2.5">
-              L5
-            </ToggleGroupItem>
-            <ToggleGroupItem value="l3" className="t-caption h-8 px-2.5">
-              L3
-            </ToggleGroupItem>
-            <ToggleGroupItem value="home" className="t-caption h-8 px-2.5">
-              Home
-            </ToggleGroupItem>
-            <ToggleGroupItem value="away" className="t-caption h-8 px-2.5">
-              Away
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="search"
+              value={oppQuery}
+              onChange={(e) => setOppQuery(e.target.value)}
+              placeholder="Filter by opponent"
+              aria-label="Filter by opponent"
+              className="h-8 w-44"
+            />
+            <ToggleGroup
+              type="single"
+              value={split}
+              onValueChange={(v) => v && setSplit(v as SplitMode)}
+              size="sm"
+              spacing={0}
+              className="w-fit"
+              aria-label="Game log split"
+            >
+              <ToggleGroupItem value="all" className="t-caption h-8 px-2.5">
+                All
+              </ToggleGroupItem>
+              <ToggleGroupItem value="l5" className="t-caption h-8 px-2.5">
+                L5
+              </ToggleGroupItem>
+              <ToggleGroupItem value="l3" className="t-caption h-8 px-2.5">
+                L3
+              </ToggleGroupItem>
+              <ToggleGroupItem value="home" className="t-caption h-8 px-2.5">
+                Home
+              </ToggleGroupItem>
+              <ToggleGroupItem value="away" className="t-caption h-8 px-2.5">
+                Away
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         ) : null}
       </div>
       {model.empty ? (
@@ -119,6 +163,7 @@ export function PlayerAnalysis({
                 header: "Week",
                 align: "right",
                 sortValue: (row) => row.week,
+                footer: "Totals",
                 cell: (row) => (
                   <span className="font-semibold text-foreground">
                     <span className="tnum">{row.week}</span>
@@ -148,7 +193,7 @@ export function PlayerAnalysis({
                     ) : null}
                     <span>{row.opponent ?? "—"}</span>
                     {row.scoreLabel ? (
-                      <span className="t-caption tnum">{row.scoreLabel}</span>
+                      <span className="t-caption tnum">({row.scoreLabel})</span>
                     ) : null}
                   </span>
                 ),
@@ -159,6 +204,7 @@ export function PlayerAnalysis({
                 group: "FANTASY",
                 align: "right",
                 sortValue: (row) => row.scored,
+                footer: pointsLabel(totals.scored),
                 cell: (row) => (
                   <span className="tnum font-semibold text-foreground">{scoredLabel(row)}</span>
                 ),
@@ -169,6 +215,7 @@ export function PlayerAnalysis({
                 group: "FANTASY",
                 align: "right",
                 sortValue: (row) => row.simProjected,
+                footer: pointsLabel(totals.simProjected),
                 cell: (row) => (
                   <span className="tnum font-semibold text-foreground">
                     {pointsLabel(row.simProjected)}
@@ -181,6 +228,7 @@ export function PlayerAnalysis({
                 group: "FANTASY",
                 align: "right",
                 sortValue: (row) => row.projected,
+                footer: pointsLabel(totals.projected),
                 cell: (row) => (
                   <span className="tnum font-semibold text-foreground">
                     {pointsLabel(row.projected)}
@@ -193,6 +241,17 @@ export function PlayerAnalysis({
                 group: "FANTASY",
                 align: "right",
                 sortValue: (row) => row.delta,
+                footer: (
+                  <span
+                    className={cn(
+                      "tnum font-semibold",
+                      deltaTone(totals.delta) === "pos" && "text-edge-pos",
+                      deltaTone(totals.delta) === "neg" && "text-edge-neg",
+                    )}
+                  >
+                    {deltaLabel(totals.delta)}
+                  </span>
+                ),
                 cell: (row) => {
                   const tone = deltaTone(row.delta);
                   return (
@@ -215,6 +274,7 @@ export function PlayerAnalysis({
                 group: col.group,
                 align: "right" as const,
                 sortValue: (row: (typeof model.rows)[number]) => row.values[col.id],
+                footer: countLabel(totals.statSums[col.id] ?? null),
                 cell: (row: (typeof model.rows)[number]) => (
                   <span className="tnum font-semibold text-foreground">
                     {countLabel(row.values[col.id] ?? null)}

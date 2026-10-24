@@ -55,6 +55,18 @@ describe("statusFor", () => {
     ).toBe("BAL@IND 7.5 (limit 4.0) · at run Sat 14:00");
   });
 
+  it("formats a game line without the run clock when runAt is omitted", () => {
+    expect(
+      formatFailedLine("BAL", "IND", {
+        check_name: "spread_gap_vs_market",
+        value: 7.5,
+        threshold: 4,
+        team: null,
+        severity: "warning",
+      }),
+    ).toBe("BAL@IND 7.5 (limit 4.0)");
+  });
+
   it("writes a warn caption that includes the gap, limit, and run clock", () => {
     expect(
       formatGapCaption(

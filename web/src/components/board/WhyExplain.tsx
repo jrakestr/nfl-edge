@@ -54,7 +54,7 @@ export function WhyExplain({
 
   return (
     <section aria-label="Why the number" className="flex flex-col gap-2">
-      <h4 className="t-colhead text-muted-foreground">Why the number</h4>
+      <h3 className="t-colhead text-muted-foreground">Why the number</h3>
       {sentences.length === 0 && !error ? <p className="t-body text-muted-foreground">Explaining…</p> : null}
       {sentences.map((s, i) => (
         <p key={i} className="t-sentence">

@@ -271,8 +271,42 @@ export const CorrPairSchema = z.object({
   a: z.string(),
   b: z.string(),
   corr: num,
+  a_id: z.string().nullable().optional(),
+  a_pos: z.string().nullable().optional(),
+  b_pos: z.string().nullable().optional(),
+  avg_pts: numOrNull.optional(),
+  games: z.number().int().nullable().optional(),
 });
 export type CorrPair = z.infer<typeof CorrPairSchema>;
+
+export const IntHistSchema = z.object({
+  lo: z.number().int(),
+  counts: z.array(z.number()),
+});
+
+export const LineGridSchema = z.object({
+  margin: IntHistSchema,
+  total: IntHistSchema,
+});
+
+export const LineHistorySnapSchema = z.object({
+  id: z.number().int(),
+  captured_at: z
+    .union([z.date(), z.string()])
+    .transform((d) => (typeof d === "string" ? d : d.toISOString())),
+  spread_line: numOrNull,
+  total_line: numOrNull,
+  home_moneyline: z.number().int().nullable(),
+  away_moneyline: z.number().int().nullable(),
+});
+export type LineHistorySnap = z.infer<typeof LineHistorySnapSchema>;
+
+export const GameDetailSchema = z.object({
+  grid: LineGridSchema.nullable(),
+  lineHistory: z.array(LineHistorySnapSchema),
+  correlations: z.array(CorrPairSchema),
+});
+export type GameDetail = z.infer<typeof GameDetailSchema>;
 
 export const HistSchema = z.object({
   bins: z.array(num),
@@ -403,6 +437,8 @@ export const WeekPlayerSchema = z.object({
   home_away: z.enum(["home", "away"]).nullable().optional(),
   market_total: numOrNull.optional(),
   market_spread: numOrNull.optional(),
+  /** Positional defensive DK points allowed minus league positional average (positive = easier matchup). */
+  opp_plus_minus: numOrNull.optional(),
   kickoff_window: z.enum(["early", "afternoon", "primetime"]).nullable().optional(),
   elevated: z.boolean().optional(),
   elevated_reason: z.string().nullable().optional(),

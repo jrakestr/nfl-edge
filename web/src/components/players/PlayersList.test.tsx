@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { GamesSelectionProvider } from "@/components/shell/GamesSelection";
 import type { StripGame } from "@/lib/kickoff";
 import { PLAYER_CELL, PlayersList } from "./PlayersList";
@@ -477,6 +477,46 @@ describe("PlayersList NFLGameSim", () => {
     );
   });
 
+  it("keeps stepping while a save is in flight and sends only the newest value after", async () => {
+    let release: (() => void) | null = null;
+    savePlayerDeltaMock.mockImplementationOnce(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          release = () => resolve({ ok: true });
+        }),
+    );
+    render(
+      <PlayersList
+        players={[
+          {
+            ...MAIN[0]!,
+            player_id: "00-0039139",
+            fpts_dk_mean: 18.2,
+            mean_miss: 2.0,
+            point_delta: 0,
+          },
+        ]}
+        season={2026}
+        week={6}
+        site="dk"
+        slate="main"
+      />,
+    );
+    const plus = () => screen.getByRole("button", { name: "Increase points for Jahmyr Gibbs" });
+    fireEvent.click(plus());
+    expect(plus()).not.toBeDisabled();
+    fireEvent.click(plus());
+    fireEvent.click(plus());
+    expect(screen.getByText("23.2")).toBeInTheDocument();
+    expect(savePlayerDeltaMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      release?.();
+    });
+    await waitFor(() => expect(savePlayerDeltaMock).toHaveBeenCalledTimes(2));
+    expect(savePlayerDeltaMock).toHaveBeenLastCalledWith(expect.objectContaining({ delta: 3 }));
+    expect(screen.getByText("23.2")).toBeInTheDocument();
+  });
+
   it("renders em dashes in Adjusted and Yours with no stepper buttons when mean_miss is null", () => {
     render(
       <PlayersList
@@ -510,4 +550,25 @@ describe("PlayersList NFLGameSim", () => {
     expect(rows.at(-2)).toHaveTextContent("Jahmyr Gibbs");
     expect(rows.at(-1)).toHaveTextContent("Main Only");
   });
+
+  it("renders Proj +/-, Bargain, and Opp +/- with heatmap shading in StatSuite+ mode", () => {
+    render(
+      <PlayersList
+        players={[
+          { ...MAIN[0]!, opp_plus_minus: 3.4 },
+          { ...MAIN[1]!, opp_plus_minus: -2.1 },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "StatSuite+ Range" }));
+    expect(screen.getByRole("columnheader", { name: "Floor (P10)" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Proj +/-" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Bargain" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Opp +/-" })).toBeInTheDocument();
+    expect(screen.getByText("+3.4")).toHaveClass("bg-edge-pos-tint");
+    expect(screen.getByText("−2.1")).toHaveClass("bg-edge-neg-tint");
+    expect(screen.getByText("+1.1")).toHaveClass("bg-edge-pos-tint");
+    expect(screen.getByText("−1.8")).toHaveClass("bg-edge-neg-tint");
+  });
 });
+

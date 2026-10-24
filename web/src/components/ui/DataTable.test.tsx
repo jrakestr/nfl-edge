@@ -194,4 +194,28 @@ describe("DataTable", () => {
     const sortedCells = container.querySelectorAll('td[data-active-sort="desc"]');
     expect(sortedCells.length).toBe(2);
   });
+
+  it("renders a TableFooter summary row when columns define footer cells", () => {
+    const { container } = render(
+      <DataTable
+        syncUrl={false}
+        data={[
+          { id: "1", name: "Game 1", pts: 24.5 },
+          { id: "2", name: "Game 2", pts: 15.5 },
+        ]}
+        getRowId={(r) => r.id}
+        empty="none"
+        ariaLabel="FooterDemo"
+        columns={[
+          { id: "name", header: "Game", cell: (r) => r.name, footer: "Totals" },
+          { id: "pts", header: "Points", align: "right", cell: (r) => r.pts, footer: "40.0" },
+        ]}
+      />,
+    );
+    const tfoot = container.querySelector('tfoot[data-slot="table-footer"]');
+    expect(tfoot).toBeTruthy();
+    expect(tfoot).toHaveTextContent("Totals");
+    expect(tfoot).toHaveTextContent("40.0");
+  });
 });
+

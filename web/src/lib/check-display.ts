@@ -11,8 +11,14 @@ export function formatFailedGame(away: string, home: string, row: FailedCheck): 
   return `${away}@${home} ${val} (limit ${lim})`;
 }
 
-export function formatFailedLine(away: string, home: string, row: FailedCheck, runAt: string | Date): string {
-  return `${formatFailedGame(away, home, row)} · ${atRunLabel(runAt)}`;
+export function formatFailedLine(
+  away: string,
+  home: string,
+  row: FailedCheck,
+  runAt?: string | Date | null,
+): string {
+  const base = formatFailedGame(away, home, row);
+  return runAt ? `${base} · ${atRunLabel(runAt)}` : base;
 }
 
 export function formatGapCaption(row: FailedCheck, runAt: string | Date): string {

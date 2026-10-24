@@ -2,7 +2,7 @@ import type { TrackRecord, WeekScoreboard as WeekScoreboardData } from "@/lib/qu
 import type { DrawerPlayer } from "@/lib/queries/players";
 import { marketGapCaptions } from "@/lib/check-display";
 import { inputsForMatchup, type TeamInput } from "@/lib/team-input";
-import type { BoardRow, GameChecks, VerdictRow } from "@/lib/types";
+import type { BoardRow, GameChecks, GameDetail, VerdictRow } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { BoardTable } from "./BoardTable";
 import { GameOpenShell } from "./GameOpenShell";
@@ -34,6 +34,7 @@ export type WeekBoardProps = {
   scoreboard: WeekScoreboardData;
   playersByGame?: Record<string, DrawerPlayer[]>;
   openGameId?: string | null;
+  openGameDetail?: GameDetail | null;
   teamInputs?: Record<string, TeamInput>;
 };
 
@@ -156,6 +157,7 @@ export function WeekBoard(p: WeekBoardProps) {
         verdict={p.openGameId ? (byGame[p.openGameId] ?? null) : null}
         checks={p.openGameId ? (p.checks[p.openGameId] ?? null) : null}
         players={p.openGameId ? (p.playersByGame?.[p.openGameId] ?? []) : []}
+        detail={p.openGameDetail ?? null}
         runCreatedAt={run.created_at}
         runId={run.run_id}
         teamInputs={openRow ? inputsForMatchup(p.teamInputs ?? {}, openRow.away, openRow.home) : {}}

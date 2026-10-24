@@ -6,6 +6,7 @@ import { CURRENT_SEASON } from "@/lib/config";
 import { boardRows, scheduleRows } from "@/lib/queries/board";
 import { checksForRun } from "@/lib/queries/checks";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
+import { gameDetail } from "@/lib/queries/game-detail";
 import { ngsByGame, trenchRanksForWeek } from "@/lib/queries/games";
 import { topPlayersByGame } from "@/lib/queries/players";
 import { teamInputsForRun } from "@/lib/queries/team-inputs";
@@ -62,8 +63,9 @@ export default async function Page({
   const slate = resolved.slate;
   const run = pickDefaultRun(runs, weekGames, pinned);
   const sid = weekOk ? slateId(season, week, slate) : "";
+  const openGameId = one(sp.game) ?? null;
 
-  const [allRows, verdicts, checks, playersByGame, infos, scoreboard, teamInputs, trenchRanks] = run
+  const [allRows, verdicts, checks, playersByGame, infos, scoreboard, teamInputs, trenchRanks, openGameDetail] = run
     ? await Promise.all([
         boardRows(run.run_id),
         verdictsForRun(run.run_id),
@@ -73,6 +75,7 @@ export default async function Page({
         weekScoreboard(season, week),
         teamInputsForRun(run.run_id),
         weekOk ? trenchRanksForWeek(season, week) : Promise.resolve({}),
+        openGameId ? gameDetail(run.run_id, openGameId) : Promise.resolve(null),
       ])
     : await Promise.all([
         scheduleRows(season, week),
@@ -83,6 +86,7 @@ export default async function Page({
         weekScoreboard(season, week),
         Promise.resolve({}),
         weekOk ? trenchRanksForWeek(season, week) : Promise.resolve({}),
+        Promise.resolve(null),
       ]);
 
   const slateRows = infos.length ? filterGamesForSlate(allRows, infos) : allRows;
@@ -101,6 +105,8 @@ export default async function Page({
       verdicts={Object.fromEntries(verdicts.map((v) => [v.game_id, v.payload]))}
       checks={Object.fromEntries(checks)}
       playersByGame={playersByGame}
+      openGameId={openGameId}
+      openGameDetail={openGameDetail}
       scoreboard={scoreboard}
       fallbackFrom={slateRows.length === 0 ? slate : null}
       notice={run ? null : weekOk ? noProjectionsNotice(week) : null}

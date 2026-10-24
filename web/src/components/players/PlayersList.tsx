@@ -12,7 +12,8 @@ import { fallbackNotice } from "@/lib/slate";
 import { MetricIcon, type Metric } from "@/lib/icons";
 import { REBUILD_PENDING, inOptimizerPool, staleInjury } from "@/lib/injury-status";
 import { actualDisplay } from "@/lib/player-actual";
-import { positionRanks } from "@/lib/players/ranks";
+import { positionPercentiles, positionRanks } from "@/lib/players/ranks";
+import { diffHeatmapClass, heatmapCellClass, signed } from "@/lib/edge";
 import { GameStrip } from "@/components/shell/GameStrip";
 import { useGamesSelection, useLiveSearchParams } from "@/components/shell/GamesSelection";
 import { selectedOnSlate } from "@/lib/games-param";
@@ -20,7 +21,15 @@ import type { StripGame } from "@/lib/kickoff";
 import { applyPicksToParams, emptyPicks, useSlatePicks, type PickKey } from "@/lib/slate-picks";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
-import { useMemo, useState, useTransition, type ComponentProps, type ReactNode } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { savePlayerDelta } from "@/lib/actions/player-points";
 import { adjustedForMiss, editedPoints } from "@/lib/player-edit";
 import { CURRENT_SEASON } from "@/lib/config";
@@ -93,48 +102,93 @@ function tone(excluded: boolean, extra?: string) {
   return cn("tnum font-semibold", excluded ? "text-muted-foreground" : "text-foreground", extra);
 }
 
-function PointStepper({
-  name,
-  base,
-  delta,
+type PointEdits = {
+  /** Local copy of each player's delta. Wins over the server value until the save lands. */
+  deltas: Record<string, number>;
+  errors: Record<string, string>;
+  move: (playerId: string, next: number) => void;
+};
+
+/**
+ * Keeps the plus/minus copy outside the table cell. DataTable renders each
+ * cell function as a component, so cell-local state is lost on every
+ * re-render; the page re-renders after each save.
+ */
+function usePointEdits({
   season,
   week,
   site,
   slate,
-  playerId,
-  excluded,
 }: {
-  name: string;
-  base: number | null;
-  delta: number;
   season: number;
   week: number;
   site: string;
   slate: string;
+}): PointEdits {
+  const [deltas, setDeltas] = useState<Record<string, number>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [, start] = useTransition();
+  // One save in flight per player; the newest value waits and goes next.
+  const inflight = useRef<Set<string>>(new Set());
+  const queued = useRef<Map<string, number>>(new Map());
+
+  const move = useCallback(
+    (playerId: string, next: number) => {
+      const send = (delta: number) => {
+        inflight.current.add(playerId);
+        start(async () => {
+          const res = await savePlayerDelta({ season, week, site, slate, playerId, delta });
+          inflight.current.delete(playerId);
+          if (!res.ok) {
+            queued.current.delete(playerId);
+            setDeltas((d) => omit(d, playerId));
+            setErrors((e) => ({ ...e, [playerId]: res.error }));
+            return;
+          }
+          const later = queued.current.get(playerId);
+          queued.current.delete(playerId);
+          if (later != null && later !== delta) send(later);
+        });
+      };
+      setErrors((e) => (playerId in e ? omit(e, playerId) : e));
+      setDeltas((d) => ({ ...d, [playerId]: next }));
+      if (inflight.current.has(playerId)) queued.current.set(playerId, next);
+      else send(next);
+    },
+    [season, week, site, slate, start],
+  );
+
+  return { deltas, errors, move };
+}
+
+function omit<V>(rec: Record<string, V>, key: string): Record<string, V> {
+  const out = { ...rec };
+  delete out[key];
+  return out;
+}
+
+function PointStepper({
+  name,
+  base,
+  delta,
+  playerId,
+  excluded,
+  edits,
+}: {
+  name: string;
+  base: number | null;
+  delta: number;
   playerId: string;
   excluded?: boolean;
+  edits: PointEdits;
 }) {
-  const [step, setStep] = useState(delta);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-
   if (base == null) {
     return <span className={tone(Boolean(excluded))}>—</span>;
   }
 
+  const step = edits.deltas[playerId] ?? delta;
+  const error = edits.errors[playerId];
   const edited = editedPoints(base, step);
-
-  function move(next: number) {
-    setError(null);
-    setStep(next);
-    start(async () => {
-      const res = await savePlayerDelta({ season, week, site, slate, playerId, delta: next });
-      if (!res.ok) {
-        setStep(delta);
-        setError(res.error);
-      }
-    });
-  }
 
   return (
     <span className="inline-flex items-center justify-end gap-0.5">
@@ -144,8 +198,7 @@ function PointStepper({
         size="sm"
         className="h-7 px-2"
         aria-label={`Decrease points for ${name}`}
-        disabled={pending}
-        onClick={() => move(step - 1)}
+        onClick={() => edits.move(playerId, step - 1)}
       >
         −
       </Button>
@@ -156,8 +209,7 @@ function PointStepper({
         size="sm"
         className="h-7 px-2"
         aria-label={`Increase points for ${name}`}
-        disabled={pending}
-        onClick={() => move(step + 1)}
+        onClick={() => edits.move(playerId, step + 1)}
       >
         +
       </Button>
@@ -191,6 +243,7 @@ export function PlayersList({
   const weekN = typeof week === "number" ? week : Number(week);
   const [mode, setMode] = useState<PlayersViewMode>("projections");
   const { picks, toggle, setPicks } = useSlatePicks(slateId);
+  const edits = usePointEdits({ season, week: weekN, site, slate });
   const live = useLiveSearchParams();
   const { selected } = useGamesSelection();
   const buildQs = applyPicksToParams(picks, new URLSearchParams(live.toString())).toString();
@@ -203,10 +256,24 @@ export function PlayersList({
   }, [players, selected, strip]);
   const ranks = useMemo(() => {
     const proj = positionRanks(players, (p) => p.position, (p) => p.fpts_dk_mean);
-    const m = new Map<string, { proj: number | null }>();
+    const valPct = positionPercentiles(players, (p) => p.position, (p) => p.value);
+    const floorPct = positionPercentiles(players, (p) => p.position, (p) => p.floor);
+    const ceilPct = positionPercentiles(players, (p) => p.position, (p) => p.ceiling);
+    const m = new Map<
+      string,
+      {
+        proj: number | null;
+        valPct: number | null;
+        floorPct: number | null;
+        ceilPct: number | null;
+      }
+    >();
     players.forEach((p, i) => {
       m.set(p.player_dk_id ?? p.player_id, {
         proj: proj[i] ?? null,
+        valPct: valPct[i] ?? null,
+        floorPct: floorPct[i] ?? null,
+        ceilPct: ceilPct[i] ?? null,
       });
     });
     return m;
@@ -267,11 +334,90 @@ export function PlayersList({
             group: "STATSUITE+ RANGE",
             align: "right",
             sortValue: (p) => p.floor,
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {num(p.floor)}
-              </span>
-            ),
+            cell: (p) => {
+              const rk = ranks.get(p.player_dk_id ?? p.player_id);
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              return (
+                <span
+                  className={cn(
+                    "inline-block rounded-sm px-1.5 py-0.5",
+                    tone(excluded),
+                    !excluded && heatmapCellClass(rk?.floorPct),
+                  )}
+                >
+                  {num(p.floor)}
+                </span>
+              );
+            },
+          },
+          {
+            id: "projPlusMinus",
+            header: "Proj +/-",
+            group: "STATSUITE+ RANGE",
+            align: "right",
+            sortValue: (p) =>
+              p.fpts_dk_mean != null && p.typical_dk != null ? p.fpts_dk_mean - p.typical_dk : null,
+            cell: (p) => {
+              const pm =
+                p.fpts_dk_mean != null && p.typical_dk != null
+                  ? p.fpts_dk_mean - p.typical_dk
+                  : null;
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              return (
+                <span
+                  className={cn(
+                    "inline-block rounded-sm px-1.5 py-0.5",
+                    tone(excluded),
+                    !excluded && diffHeatmapClass(pm, 0.5),
+                  )}
+                >
+                  {pm != null ? signed(pm, 1) : "—"}
+                </span>
+              );
+            },
+          },
+          {
+            id: "bargain",
+            header: "Bargain",
+            group: "STATSUITE+ RANGE",
+            align: "right",
+            sortValue: (p) => ranks.get(p.player_dk_id ?? p.player_id)?.valPct,
+            cell: (p) => {
+              const valPct = ranks.get(p.player_dk_id ?? p.player_id)?.valPct;
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              return (
+                <span
+                  className={cn(
+                    "inline-block rounded-sm px-1.5 py-0.5",
+                    tone(excluded),
+                    !excluded && heatmapCellClass(valPct),
+                  )}
+                >
+                  {valPct != null ? `${Math.round(valPct * 99)}%` : "—"}
+                </span>
+              );
+            },
+          },
+          {
+            id: "oppPlusMinus",
+            header: "Opp +/-",
+            group: "ENVIRONMENT",
+            align: "right",
+            sortValue: (p) => p.opp_plus_minus,
+            cell: (p) => {
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              return (
+                <span
+                  className={cn(
+                    "inline-block rounded-sm px-1.5 py-0.5",
+                    tone(excluded),
+                    !excluded && diffHeatmapClass(p.opp_plus_minus, 0.5),
+                  )}
+                >
+                  {p.opp_plus_minus != null ? signed(p.opp_plus_minus, 1) : "—"}
+                </span>
+              );
+            },
           },
           {
             id: "sd",
@@ -352,6 +498,7 @@ export function PlayersList({
         getRowId={(p) => p.player_dk_id ?? p.player_id}
         empty="No projections listed yet"
         ariaLabel="Players"
+        stickyHeader
         rowProps={(p) => {
           const id = p.player_dk_id;
           const locked = id != null && picks.lock.includes(id);
@@ -531,18 +678,18 @@ export function PlayersList({
             group: "PROJECTIONS",
             align: "right",
             sortValue: (p) =>
-              editedPoints(adjustedForMiss(p.fpts_dk_mean, p.mean_miss), p.point_delta ?? 0),
+              editedPoints(
+                adjustedForMiss(p.fpts_dk_mean, p.mean_miss),
+                edits.deltas[p.player_id] ?? p.point_delta ?? 0,
+              ),
             cell: (p) => (
               <PointStepper
                 name={p.display_name}
                 base={adjustedForMiss(p.fpts_dk_mean, p.mean_miss)}
                 delta={p.point_delta ?? 0}
-                season={season}
-                week={weekN}
-                site={site}
-                slate={slate}
                 playerId={p.player_id}
                 excluded={Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id))}
+                edits={edits}
               />
             ),
           },
@@ -564,11 +711,21 @@ export function PlayersList({
             group: "VALUE & OWNERSHIP",
             align: "right",
             sortValue: (p) => p.ceiling,
-            cell: (p) => (
-              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {num(p.ceiling)}
-              </span>
-            ),
+            cell: (p) => {
+              const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              const ceilPct = ranks.get(p.player_dk_id ?? p.player_id)?.ceilPct;
+              return (
+                <span
+                  className={cn(
+                    mode === "statsuite" && "inline-block rounded-sm px-1.5 py-0.5",
+                    tone(excluded),
+                    mode === "statsuite" && !excluded && heatmapCellClass(ceilPct),
+                  )}
+                >
+                  {num(p.ceiling)}
+                </span>
+              );
+            },
           },
           ...statSuiteColumns,
           {
@@ -593,8 +750,15 @@ export function PlayersList({
             sortValue: (p) => p.value,
             cell: (p) => {
               const excluded = Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id));
+              const valPct = ranks.get(p.player_dk_id ?? p.player_id)?.valPct;
               return (
-                <span className={tone(excluded)}>
+                <span
+                  className={cn(
+                    mode === "statsuite" && "inline-block rounded-sm px-1.5 py-0.5",
+                    tone(excluded),
+                    mode === "statsuite" && !excluded && heatmapCellClass(valPct),
+                  )}
+                >
                   {num(p.value, 2)}
                 </span>
               );

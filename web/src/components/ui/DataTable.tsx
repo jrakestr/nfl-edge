@@ -9,7 +9,7 @@ import {
   type LegacyColumnDef as ColumnDef,
 } from "@tanstack/react-table/legacy";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { MetricLabel, type Metric } from "@/lib/icons";
 import { useTableState, type TableState } from "@/lib/table-state";
@@ -27,6 +27,8 @@ export type DataColumn<T> = {
   minSize?: number;
   sortValue?: (row: T) => string | number | null | undefined;
   cell: (row: T) => React.ReactNode;
+  /** Optional summary cell rendered in the sticky TableFooter row when any column defines a footer. */
+  footer?: React.ReactNode;
   className?: string;
   headClassName?: string;
 };
@@ -48,7 +50,7 @@ export type DataTableProps<T> = {
   columns: DataColumn<T>[];
   getRowId: (row: T) => string;
   empty: string;
-  ariaLabel: string;
+  ariaLabel?: string;
   filters?: FilterAccess<T>;
   searchPlaceholder?: string;
   minProjLabel?: string;
@@ -533,6 +535,24 @@ function DataTableInner<T extends object>({
               })
             )}
           </TableBody>
+          {visibleRows.length > 0 && columns.some((c) => c.footer !== undefined) ? (
+            <TableFooter data-slot="table-footer">
+              <TableRow className="bg-surface-inset font-semibold hover:bg-surface-inset">
+                {columns.map((col) => (
+                  <TableCell
+                    key={col.id}
+                    className={cn(
+                      "t-body font-semibold text-foreground",
+                      col.align === "right" && "text-right tnum",
+                      col.className,
+                    )}
+                  >
+                    {col.footer ?? null}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableFooter>
+          ) : null}
         </Table>
       </section>
     </div>
