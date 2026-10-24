@@ -18,6 +18,7 @@ dependencies = [
     "pulp>=2.8",
     "fastexcel>=0.21.0",
     "espn-api>=1.0.0",
+    "typesafe-sdk>=0.1.0",
 ]
 
 [project.optional-dependencies]

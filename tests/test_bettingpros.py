@@ -153,3 +153,199 @@ def test_persist_replaces_source_slice(monkeypatch):
     assert written["over_odds"] is None
     assert written["under_odds"] == -170
     assert written["captured_at"] == CAPTURED
+
+
+API_BODY = {
+    "_parameters": {
+        "sport": "NFL", "season": 2026, "week": "7",
+        "include_markets": "true", "ev_threshold": "false",
+    },
+    "_pagination": {
+        "page": 1, "limit": 50, "total_pages": 1, "total_items": 3,
+        "paginated_array": "props", "self": "/v3/props",
+    },
+    "utc": "2026-10-23 18:04:00",
+    "props": [
+        {
+            "market_id": 103,
+            "participant": {
+                "id": "15501", "name": "Jared Goff",
+                "player": {"position": "QB", "team": "DET"},
+            },
+            "over": {"line": 274.5, "odds": 104, "consensus_line": 265.5, "consensus_odds": -112},
+            "under": {"line": 266.5, "odds": -107, "consensus_line": 265.5, "consensus_odds": -115},
+        },
+        {
+            "market_id": 104,
+            "participant": {"id": "28168", "name": "Matt Hibner", "player": {"team": "DET"}},
+            "over": {"consensus_line": 12.5, "consensus_odds": -110},
+            "under": {"consensus_line": 12.5, "consensus_odds": -110},
+        },
+        {
+            "market_id": 400,
+            "participant": {"id": "15501", "name": "Jared Goff"},
+            "over": {"consensus_line": 30.5, "consensus_odds": -115},
+            "under": {"consensus_line": 30.5, "consensus_odds": -115},
+        },
+    ],
+    "markets": [
+        {
+            "id": 103, "slug": "passing-yards", "period": "game", "category": "player-props",
+            "stat": "", "meta": {"label": "Passing Yards", "short_label": "Pass Yds"},
+        },
+        {
+            "id": 104, "slug": "receiving-yards", "period": "game", "category": "player-props",
+            "stat": "", "meta": {"label": "Receiving Yards", "short_label": "Rec Yds"},
+        },
+        {
+            "id": 400, "slug": "rushing-attempts", "period": "game", "category": "player-props",
+            "stat": "", "meta": {"label": "Rushing Attempts", "short_label": "Rush Atts"},
+        },
+    ],
+}
+FP_PLAYERS = pl.DataFrame({
+    "fantasypros_id": ["15501"],
+    "gsis_id": ["00-0033106"],
+})
+
+
+def test_api_sends_key_and_maps_market_props(monkeypatch):
+    import json
+
+    monkeypatch.setenv("BETTING_PROS_API_KEY", "fake-bettingpros-key")
+    monkeypatch.setenv("FANTASY_PROS_API_KEY", "fantasy-key-should-not-be-sent")
+    captured = {}
+
+    class Resp:
+        status = 200
+
+        def read(self):
+            return json.dumps(API_BODY).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    def fake_urlopen(req, context=None, timeout=60):
+        captured["url"] = req.full_url
+        captured["header"] = req.get_header("X-api-key")
+        return Resp()
+
+    saved = {}
+
+    def persist(season, week, matched, captured_at):
+        saved["season"] = season
+        saved["week"] = week
+        saved["rows"] = matched
+        saved["captured_at"] = captured_at
+        return len(matched)
+
+    monkeypatch.setattr(B, "urlopen", fake_urlopen)
+    monkeypatch.setattr(B, "persist", persist)
+    out = B.run_api(2026, 7, known_stats=KNOWN, players=FP_PLAYERS)
+    assert captured["header"] == "fake-bettingpros-key"
+    assert "fake-bettingpros-key" not in captured["url"]
+    assert "fantasy-key-should-not-be-sent" not in captured["url"]
+    assert "x-api-key" not in captured["url"]
+    assert "sport=NFL" in captured["url"]
+    assert "season=2026" in captured["url"]
+    assert "week=7" in captured["url"]
+    assert out["written"] == 1
+    assert out["n_joined"] == 1
+    names = {u["player"] for u in out["unmatched"]}
+    assert names == {"Matt Hibner"}
+    assert out["unmatched"][0]["fp_id"] == "28168"
+    assert {m["market"] for m in out["rejected_markets"]} == {"rushing-attempts"}
+    row = saved["rows"][0]
+    assert row["player_id"] == "00-0033106"
+    assert row["player_name"] == "Jared Goff"
+    assert row["stat"] == "pass_yds"
+    assert row["line"] == 265.5
+    assert row["over_odds"] == -112
+    assert row["under_odds"] == -115
+    assert saved["season"] == 2026
+    assert saved["week"] == 7
+    assert saved["captured_at"] == datetime(2026, 10, 23, 18, 4, tzinfo=UTC)
+
+
+def _props_page(page: int, n_props: int, total_pages: int, total_items: int, limit: int) -> dict:
+    return {
+        "_parameters": {"sport": "NFL", "season": "2026", "week": "7"},
+        "_pagination": {
+            "page": page, "limit": limit, "total_pages": total_pages, "total_items": total_items,
+            "paginated_array": "props", "self": "/v3/props",
+        },
+        "props": [
+            {"market_id": page * 100 + i, "event_id": 1, "participant": {"id": str(page * 100 + i)}}
+            for i in range(n_props)
+        ],
+        "markets": [],
+    }
+
+
+def test_short_last_page_stores_when_total_is_high():
+    """A finished walk with a short last page is complete. total_items may sit above the sum."""
+    def transport(path, params, key):
+        assert key == "fake-key"
+        page = int(params.get("page", "1"))
+        n_props = 2 if page == 1 else 1
+        return 200, _props_page(page, n_props, total_pages=2, total_items=4, limit=2)
+
+    out = B.fetch_props(2026, 7, api_key="fake-key", transport=transport, sleep=lambda _s: None)
+    assert len(out["props"]) == 3
+
+
+def test_full_last_page_short_of_total_writes_nothing():
+    def transport(path, params, key):
+        page = int(params.get("page", "1"))
+        return 200, _props_page(page, 2, total_pages=2, total_items=5, limit=2)
+
+    with pytest.raises(B.BettingProsError, match="last page is full"):
+        B.fetch_props(2026, 7, api_key="fake-key", transport=transport, sleep=lambda _s: None)
+
+
+def test_short_middle_page_writes_nothing():
+    def transport(path, params, key):
+        page = int(params.get("page", "1"))
+        n_props = 2 if page == 1 else 1
+        return 200, _props_page(page, n_props, total_pages=3, total_items=4, limit=2)
+
+    with pytest.raises(B.BettingProsError, match="page 2"):
+        B.fetch_props(2026, 7, api_key="fake-key", transport=transport, sleep=lambda _s: None)
+
+
+def test_repeated_page_writes_nothing():
+    first = _props_page(1, 2, total_pages=2, total_items=4, limit=2)
+
+    def transport(path, params, key):
+        asked = int(params.get("page", "1"))
+        body = _props_page(asked, 2, total_pages=2, total_items=4, limit=2)
+        if asked == 2:
+            body["props"] = first["props"]
+        return 200, body
+
+    with pytest.raises(B.BettingProsError, match="repeats"):
+        B.fetch_props(2026, 7, api_key="fake-key", transport=transport, sleep=lambda _s: None)
+
+
+def test_api_season_mismatch_writes_nothing(monkeypatch):
+    import json
+
+    body = json.loads(json.dumps(API_BODY))
+    body["_parameters"]["week"] = 6
+
+    def transport(path, params, key):
+        assert key == "fake-key"
+        return 200, body
+
+    def persist(*args, **kwargs):
+        raise AssertionError("persist")
+
+    monkeypatch.setattr(B, "persist", persist)
+    with pytest.raises(B.BettingProsError, match="_parameters.week"):
+        B.run_api(
+            2026, 7, api_key="fake-key", transport=transport,
+            known_stats=KNOWN, players=FP_PLAYERS,
+        )

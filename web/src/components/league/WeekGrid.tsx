@@ -3,7 +3,7 @@ import { Delta } from "@/components/league/Delta";
 import { TeamLink } from "@/components/league/TeamLink";
 import { EmptyState } from "@/components/EmptyState";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { buildWeekGrid, leagueHref, viewerRow, type LeagueTeamWeek } from "@/lib/league";
+import { buildWeekGrid, leagueHref, teamFinalMean, viewerRow, type LeagueTeamWeek } from "@/lib/league";
 
 /** Each team's actual minus projected points, one column per week. Open weeks show an em dash. */
 export function WeekGrid({ rows, season }: { rows: LeagueTeamWeek[]; season: number }) {
@@ -24,10 +24,14 @@ export function WeekGrid({ rows, season }: { rows: LeagueTeamWeek[]; season: num
                 </Link>
               </TableHead>
             ))}
+            <TableHead className="border-l border-border-soft t-colhead text-right text-muted-foreground">
+              Avg
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {grid.teams.map((t) => {
+            const avg = teamFinalMean(t.cells, (c) => c.own_pm);
             return (
               <TableRow key={t.espn_team_id} {...viewerRow(t.espn_team_id)}>
                 <TableCell className="t-body">
@@ -41,6 +45,9 @@ export function WeekGrid({ rows, season }: { rows: LeagueTeamWeek[]; season: num
                     </TableCell>
                   );
                 })}
+                <TableCell className="border-l border-border-soft t-body tnum text-right font-semibold">
+                  {avg != null ? <Delta value={avg} /> : <span className="text-muted-foreground">—</span>}
+                </TableCell>
               </TableRow>
             );
           })}

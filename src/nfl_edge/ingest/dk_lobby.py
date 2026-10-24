@@ -20,7 +20,7 @@ import csv
 import io
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -110,7 +110,8 @@ def csv_games(text: str) -> tuple[int, list[str], list[date]]:
         games.add(info.split(" ")[0])
         m = GAME_DATE.search(info)
         if m:
-            dates.add(datetime.strptime(m.group(1), "%m/%d/%Y").date())
+            mm, dd, yyyy = (int(p) for p in m.group(1).split("/"))
+            dates.add(date(yyyy, mm, dd))
     return len(rows), sorted(games), sorted(dates)
 
 

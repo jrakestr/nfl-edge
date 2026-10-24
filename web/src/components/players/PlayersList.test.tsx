@@ -6,7 +6,10 @@ import type { WeekPlayer } from "@/lib/types";
 import { REBUILD_PENDING } from "@/lib/injury-status";
 import { slateStorageKey } from "@/lib/slate-picks";
 
-const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+const { replace, savePlayerDeltaMock } = vi.hoisted(() => ({
+  replace: vi.fn(),
+  savePlayerDeltaMock: vi.fn(async () => ({ ok: true as const })),
+}));
 
 let search = new URLSearchParams();
 
@@ -18,7 +21,12 @@ vi.mock("next/navigation", () => ({
 
 beforeEach(() => {
   search = new URLSearchParams();
+  savePlayerDeltaMock.mockClear();
 });
+
+vi.mock("@/lib/actions/player-points", () => ({
+  savePlayerDelta: savePlayerDeltaMock,
+}));
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -332,7 +340,9 @@ describe("PlayersList injury status", () => {
     const row = screen.getByRole("row", { name: /stale out/i });
     expect(row).toHaveAttribute("data-in-pool", "false");
     expect(screen.getByLabelText("OUT")).toHaveTextContent("OUT");
-    expect(screen.getByText(REBUILD_PENDING)).toBeInTheDocument();
+    const note = screen.getByText(REBUILD_PENDING);
+    expect(note).toBeInTheDocument();
+    expect(note).toHaveClass("whitespace-normal", "max-w-44");
     expect(screen.getByText("14.4")).toHaveClass("text-muted-foreground");
   });
 
@@ -429,6 +439,68 @@ describe("PlayersList NFLGameSim", () => {
     const rows = screen.getAllByRole("row");
     expect(rows[1]).toHaveTextContent("Main Only");
     expect(rows[2]).toHaveTextContent("Jahmyr Gibbs");
+  });
+
+  it("steps Yours from Adjusted while leaving DK pts and Adjusted untouched", () => {
+    render(
+      <PlayersList
+        players={[
+          {
+            ...MAIN[0]!,
+            player_id: "00-0039139",
+            fpts_dk_mean: 18.2,
+            mean_miss: 2.0,
+            point_delta: 0,
+          },
+        ]}
+        season={2026}
+        week={6}
+        site="dk"
+        slate="main"
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Adjusted" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Yours" })).toBeInTheDocument();
+    expect(screen.getByText("18.2")).toBeInTheDocument();
+    expect(screen.getAllByText("20.2")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Increase points for Jahmyr Gibbs" }));
+    expect(screen.getByText("18.2")).toBeInTheDocument();
+    expect(screen.getByText("20.2")).toBeInTheDocument();
+    expect(screen.getByText("21.2")).toBeInTheDocument();
+    expect(savePlayerDeltaMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        season: 2026,
+        week: 6,
+        playerId: "00-0039139",
+        delta: 1,
+      }),
+    );
+  });
+
+  it("renders em dashes in Adjusted and Yours with no stepper buttons when mean_miss is null", () => {
+    render(
+      <PlayersList
+        players={[
+          {
+            ...MAIN[0]!,
+            fpts_dk_mean: 18.2,
+            mean_miss: null,
+            point_delta: 0,
+          },
+        ]}
+        season={2026}
+        week={6}
+        site="dk"
+        slate="main"
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Increase points for/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Decrease points for/i })).not.toBeInTheDocument();
+    const row = screen.getByRole("row", { name: /jahmyr gibbs/i });
+    const cells = row.querySelectorAll("td");
+    // Player(0), Team(1), Opp(2), Kickoff(3), Salary(4), DK pts(5), NFLGameSim(6), FantasyPros(7), Adjusted(8), Yours(9)
+    expect(cells[8]).toHaveTextContent("—");
+    expect(cells[9]).toHaveTextContent("—");
   });
 
   it("sorts by the bench from ?sort=ngs&dir=desc", () => {

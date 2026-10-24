@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "flaim-app-mcp": {
+      "url": "https://api.flaim.app/mcp?auth=required"
+      
+    }
+  }
+}

@@ -939,6 +939,66 @@ export type Database = {
           },
         ]
       }
+      jev_judgments: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: number
+          input_tokens: number
+          kind: string
+          model_requested: string
+          model_resolved: string
+          news_asof: string | null
+          player_id: string
+          probabilities: Json | null
+          question_hash: string
+          question_id: string
+          season: number
+          slate: string
+          state_hash: string
+          value: number | null
+          week: number
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: number
+          input_tokens?: number
+          kind: string
+          model_requested: string
+          model_resolved: string
+          news_asof?: string | null
+          player_id: string
+          probabilities?: Json | null
+          question_hash: string
+          question_id: string
+          season: number
+          slate: string
+          state_hash: string
+          value?: number | null
+          week: number
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: number
+          input_tokens?: number
+          kind?: string
+          model_requested?: string
+          model_resolved?: string
+          news_asof?: string | null
+          player_id?: string
+          probabilities?: Json | null
+          question_hash?: string
+          question_id?: string
+          season?: number
+          slate?: string
+          state_hash?: string
+          value?: number | null
+          week?: number
+        }
+        Relationships: []
+      }
       line_reference: {
         Row: {
           bookmaker: string
@@ -1179,6 +1239,30 @@ export type Database = {
           season?: number
           season_type?: string
           team?: string | null
+          week?: number
+        }
+        Relationships: []
+      }
+      player_point_edits: {
+        Row: {
+          delta: number
+          player_id: string
+          season: number
+          updated_at: string
+          week: number
+        }
+        Insert: {
+          delta: number
+          player_id: string
+          season: number
+          updated_at?: string
+          week: number
+        }
+        Update: {
+          delta?: number
+          player_id?: string
+          season?: number
+          updated_at?: string
           week?: number
         }
         Relationships: []
@@ -1500,6 +1584,8 @@ export type Database = {
           built_at: string
           fields: Json
           full_name: string
+          game_id: string | null
+          opponent: string | null
           player_id: string
           position: string
           season: number
@@ -1510,6 +1596,8 @@ export type Database = {
           built_at?: string
           fields: Json
           full_name: string
+          game_id?: string | null
+          opponent?: string | null
           player_id: string
           position: string
           season: number
@@ -1520,43 +1608,12 @@ export type Database = {
           built_at?: string
           fields?: Json
           full_name?: string
+          game_id?: string | null
+          opponent?: string | null
           player_id?: string
           position?: string
           season?: number
           team?: string
-          week?: number
-        }
-        Relationships: []
-      }
-      research_jev_scores: {
-        Row: {
-          answers: Json
-          created_at: string
-          metric_hash: string
-          model: string
-          player_id: string
-          score: number
-          season: number
-          week: number
-        }
-        Insert: {
-          answers: Json
-          created_at?: string
-          metric_hash: string
-          model: string
-          player_id: string
-          score: number
-          season: number
-          week: number
-        }
-        Update: {
-          answers?: Json
-          created_at?: string
-          metric_hash?: string
-          model?: string
-          player_id?: string
-          score?: number
-          season?: number
           week?: number
         }
         Relationships: []
@@ -2124,6 +2181,23 @@ export type Database = {
           spread_line: number | null
           total_line: number | null
           under_odds: number | null
+        }
+        Relationships: []
+      }
+      player_week_log: {
+        Row: {
+          fp_dk: number | null
+          gameday: string | null
+          had_opportunity: boolean | null
+          opponent: string | null
+          player_id: string | null
+          proj_stats: Json | null
+          scored_dk: number | null
+          season: number | null
+          sim_dk: number | null
+          stats: Json | null
+          team: string | null
+          week: number | null
         }
         Relationships: []
       }
@@ -2941,6 +3015,51 @@ export type Database = {
           source?: string
           team?: string
           week?: number
+        }
+        Relationships: []
+      }
+      fantasypros_news: {
+        Row: {
+          author: string | null
+          categories: string[]
+          created_at: string
+          description: string
+          first_seen_at: string
+          fp_player_id: string | null
+          impact: string
+          link: string | null
+          news_id: number
+          player_id: string | null
+          team: string | null
+          title: string
+        }
+        Insert: {
+          author?: string | null
+          categories?: string[]
+          created_at: string
+          description: string
+          first_seen_at?: string
+          fp_player_id?: string | null
+          impact: string
+          link?: string | null
+          news_id: number
+          player_id?: string | null
+          team?: string | null
+          title: string
+        }
+        Update: {
+          author?: string | null
+          categories?: string[]
+          created_at?: string
+          description?: string
+          first_seen_at?: string
+          fp_player_id?: string | null
+          impact?: string
+          link?: string | null
+          news_id?: number
+          player_id?: string | null
+          team?: string | null
+          title?: string
         }
         Relationships: []
       }

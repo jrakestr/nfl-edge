@@ -129,10 +129,10 @@ export function tableAliases(sql) {
     aliases.set(key, list);
   };
 
-  const tableRe = /\b(?:from|join)\s+(model|raw)\.(\w+)(?:\s+(?:as\s+)?(\w+))?/gi;
+  const tableRe = /\b(?:from|join)\s+(model|raw|fantasy|ops)\.(\w+)(?:\s+(?:as\s+)?(\w+))?/gi;
   let m;
   while ((m = tableRe.exec(sql))) {
-    const schema = m[1];
+    const schema = m[1].toLowerCase();
     const table = m[2];
     add(table, schema, table);
     const rawAlias = m[3];
@@ -164,6 +164,15 @@ export function checkSql(sql, schema, label) {
   const cleaned = stripSqlComments(sql);
   const { aliases, skip } = tableAliases(cleaned);
   const errors = [];
+  const tableRe = /\b(?:from|join)\s+(model|raw|fantasy|ops)\.(\w+)(?:\s+(?:as\s+)?(\w+))?/gi;
+  let tm;
+  while ((tm = tableRe.exec(cleaned))) {
+    const schemaName = tm[1].toLowerCase();
+    const tableName = tm[2];
+    if (!schema[schemaName]?.[tableName]) {
+      errors.push(`${label}: ${schemaName}.${tableName} is not in generated types`);
+    }
+  }
   const re = /\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\b/g;
   let m;
   while ((m = re.exec(cleaned))) {

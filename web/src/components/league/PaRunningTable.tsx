@@ -1,6 +1,6 @@
 import { TeamLink } from "@/components/league/TeamLink";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { buildWeekGrid, paRanking, viewerRow, type LeagueTeamWeek } from "@/lib/league";
+import { buildWeekGrid, paRanking, teamFinalMean, viewerRow, type LeagueTeamWeek } from "@/lib/league";
 
 /**
  * Running points against by week, toughest schedule first. The running total comes from the view; a
@@ -25,24 +25,33 @@ export function PaRunningTable({ rows, season }: { rows: LeagueTeamWeek[]; seaso
                   Wk {w}
                 </TableHead>
               ))}
+              <TableHead className="border-l border-border-soft t-colhead text-right text-muted-foreground">
+                Avg
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teams.map((t) => (
-              <TableRow key={t.espn_team_id} {...viewerRow(t.espn_team_id)}>
-                <TableCell className="t-body">
-                  <TeamLink id={t.espn_team_id} name={t.team} season={season} />
-                </TableCell>
-                {grid.weeks.map((w) => {
-                  const c = t.cells.get(w);
-                  return (
-                    <TableCell key={w} className="t-body tnum text-right">
-                      {c ? c.cum_pa.toFixed(1) : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
+            {teams.map((t) => {
+              const avg = teamFinalMean(t.cells, (c) => c.opp_actual_pts);
+              return (
+                <TableRow key={t.espn_team_id} {...viewerRow(t.espn_team_id)}>
+                  <TableCell className="t-body">
+                    <TeamLink id={t.espn_team_id} name={t.team} season={season} />
+                  </TableCell>
+                  {grid.weeks.map((w) => {
+                    const c = t.cells.get(w);
+                    return (
+                      <TableCell key={w} className="t-body tnum text-right">
+                        {c ? c.cum_pa.toFixed(1) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="border-l border-border-soft t-body tnum text-right font-semibold">
+                    {avg != null ? avg.toFixed(1) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

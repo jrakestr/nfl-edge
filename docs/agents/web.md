@@ -9,13 +9,21 @@
   it is a detached process in this repo. Workflow writes sit behind `WORKFLOW_PASSWORD`.
   The LOC button does not: it only starts that pull. The dispatch token and service
   key are server env only. No long job runs in a request.
-- Research Lab (`/research`): inserts and deletes rows of `model.research_metrics` (the user's
-  display-only metrics). Fields come from `model.research_fields`, built in Python by
-  `nfl-edge research build --week W` from weeks before W; the page scores them in TS and never
-  recomputes priors. The optional Jev rubric column is display-only, off unless
-  `TYPESAFE` (or `TYPESAFE_API_KEY`) is set. Loading the page never calls Jev. A run is explicit:
-  estimate first, refused over $0.50, capped at 100 players, results cached in
-  `model.research_jev_scores` (migration 0045) and shown only on `/research`.
+- Players table plus/minus: upserts `model.player_point_edits` (a whole-point `delta`
+  for that player-week). Display only. It does not change `proj_players` or priors.
+  The `Adjusted` column is this week's sim plus his average miss from earlier weeks
+  (`model.player_proj_actual`, week < W). The `Yours` column is `Adjusted + delta`
+  (not `DK pts + delta`), and is blank (`—`) with no stepper buttons when `Adjusted`
+  is null. It is not saved back into the sim.
+- Research Lab (`/research`): read-only display of Jev DFS Lineup Audits (`model.jev_judgments`
+  and `raw.fantasypros_news`) alongside code-computed player context from `model.research_fields`
+  (built in Python by `nfl-edge research build --week W` from weeks before W). The Jev audit is
+  run from the Python CLI (`nfl-edge research audit --week W --site dk --slate S`) after
+  `nfl-edge ingest fantasypros-news`; loading `/research` never calls Jev. Per-player verdicts
+  (`KEEP`, `FLAG`, `VETO`, `NO READ`), weakest slot identification, and cap-legal replacement
+  swap candidates are composed deterministically in code from raw stored judgments and simulator
+  projections. Display-only: never touches `sim/`, `priors/`, `raw.player_overrides`, or the
+  optimizer.
 - Python-generated copy (verdicts, PropCallout) is persisted in Postgres. Never
   reimplement those generators in TypeScript.
 - Never recompute priors in TS. "Why" and diagnostics read `model.run_team_inputs`

@@ -28,6 +28,12 @@
 - The manual market CSV is optional and used for edges only.
 
 ## Props
+- BettingPros (`nfl-edge bettingpros --api --season S --week W`) reads
+  `BETTING_PROS_API_KEY` from `.env` (header `x-api-key`, never the URL). One
+  `GET /v3/props` pull for that NFL week; pages of that response are the same
+  pull. Writes `model.market_props` (`source='bettingpros'`). Player id is
+  `participant.id` joined to `raw.players.fantasypros_id` only. The Smart Money
+  spreadsheet (`--file`) is unchanged. `FANTASY_PROS_API_KEY` is a different key.
 - Board props come from `model.fair_props` (sim medians rounded to the nearest
   half), written by `nfl-edge lines`.
 - Break-even ("Needs") comes from the posted price, not the de-vigged probability.
@@ -47,6 +53,10 @@
 ## FantasyPros (Python CLI only)
 - `FANTASY_PROS_API_KEY` in `.env` only. Pulls append to
   `raw.fantasypros_snapshots` keyed by `fetched_at`.
+- `nfl-edge ingest fantasypros-news` pulls `GET /nfl/news` into
+  `raw.fantasypros_news` (append-only on `news_id`, preserving `created_at` and
+  `first_seen_at`). Display and qualitative research audit only; never read by
+  `sim/`, `priors/`, `raw.player_overrides`, or the optimizer.
 - Vendor docs (local): FantasyPros `docs/vendor/fantasypros/README.md`; TypeSafe/Jev `docs/vendor/typesafe/INDEX.md`.
 
 ## Promoting external projections (NFLGameSim, RTS, FantasyPros…)

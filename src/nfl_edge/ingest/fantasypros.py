@@ -121,3 +121,18 @@ class Client:
         body = self._get(path, {"external_ids": "draftkings"})
         self._non_empty(body, "players", path)
         return body
+
+    def news(self, category: str | None = None, limit: int = 100) -> dict:
+        path = "/nfl/news"
+        params: dict[str, str | int] = {"limit": limit}
+        if category is not None:
+            params["category"] = category
+        body = self._get(path, params)
+        if str(body.get("sport")).upper() != "NFL":
+            raise FantasyProsError(
+                f"FantasyPros {path} answered sport {body.get('sport')}, asked NFL; nothing written"
+            )
+        if not body.get("items"):
+            raise FantasyProsError(f"FantasyPros {path} returned no items (items empty); nothing written")
+        return body
+

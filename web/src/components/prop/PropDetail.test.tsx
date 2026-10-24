@@ -5,7 +5,7 @@ import { FairPropsIndex } from "@/components/props/FairPropsIndex";
 import { PropCallout } from "@/components/prop/PropCallout";
 import { PropDetail } from "@/components/prop/PropDetail";
 import { PlayersList } from "@/components/players/PlayersList";
-import type { FairProp, PropEdge, WeekPlayer } from "@/lib/types";
+import type { FairProp, PlayerWeek, PropEdge, WeekPlayer } from "@/lib/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -188,7 +188,7 @@ const emptyDetail = {
 };
 
 describe("realized DK on the player card", () => {
-  it("labels the source season and games played", () => {
+  it("labels the source season and games played without repeating a weekly list in the header", () => {
     render(
       <PropDetail
         {...emptyDetail}
@@ -205,7 +205,9 @@ describe("realized DK on the player card", () => {
         ]}
       />,
     );
-    expect(screen.getByLabelText("Realized DK points")).toHaveTextContent("2025 DK · 18.4 /g · 1 gp");
+    const realized = screen.getByLabelText("Realized DK points");
+    expect(realized).toHaveTextContent("2025 DK · 18.4 /g · 1 gp");
+    expect(realized.querySelector("ul")).toBeNull();
   });
 
   it("switches to current season when those games exist", () => {
@@ -262,5 +264,115 @@ describe("realized DK on the player card", () => {
     );
     expect(screen.queryByLabelText("Realized DK points")).toBeNull();
     expect(screen.queryByText(/No prior-season data/)).toBeNull();
+  });
+});
+
+const QB_LOG: PlayerWeek = {
+  season: 2026,
+  week: 6,
+  gameday: "2026-10-12",
+  opponent: "NYJ",
+  team: "NE",
+  home: "NE",
+  away: "NYJ",
+  home_score: 24,
+  away_score: 17,
+  stats: {
+    passing_yards: 287,
+    passing_tds: 2,
+    passing_interceptions: 1,
+    rushing_yards: 18,
+    rushing_tds: 0,
+    receptions: 1,
+    receiving_yards: 9,
+  },
+};
+
+describe("player analysis without props", () => {
+  it("shows a unified season game log table with scored, sim, FantasyPros, and counting stats when no lines are loaded", () => {
+    render(
+      <PropDetail
+        {...emptyDetail}
+        player={{ ...HEADER, position: "QB", latest_team: "NE", display_name: "Drake Maye" }}
+        asOf={{ season: 2026, week: 7 }}
+        seasonLog={[QB_LOG]}
+        actualRows={[
+          {
+            season: 2026,
+            week: 6,
+            opponent: "NYJ",
+            gameday: "2026-10-12",
+            fpts_dk: 23.8,
+            had_opportunity: true,
+          },
+        ]}
+        projections={[
+          { season: 2026, week: 6, fpts_dk: 21.2, opponent: "NYJ" },
+          { season: 2026, week: 7, fpts_dk: 21.1, opponent: "CHI" },
+        ]}
+        simProjections={[
+          { season: 2026, week: 6, fpts_dk: 22.0, opponent: "NYJ" },
+          { season: 2026, week: 7, fpts_dk: 20.5, opponent: "CHI" },
+        ]}
+        games={[{ week: 6, game_id: "2026_06_NYJ_NE" }, { week: 7, game_id: "2026_07_NE_CHI" }]}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Season game log" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Scored DK" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Sim DK" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "FantasyPros" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Pass yds" })).toBeInTheDocument();
+    expect(screen.getByText("287")).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Rec yds" })).toBeNull();
+    expect(screen.getByText("23.8")).toBeInTheDocument();
+    expect(screen.getByText("22.0")).toBeInTheDocument();
+    expect(screen.getByText("+1.8")).toBeInTheDocument();
+    expect(screen.getByText(/Projection/)).toBeInTheDocument();
+    expect(screen.queryByText("Entered line")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Props" })).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Week" })).toBeInTheDocument();
+  });
+
+  it("keeps props as a section when a line is loaded", () => {
+    const fair: FairProp = {
+      player_id: "00-0039139",
+      player_name: "Jahmyr Gibbs",
+      position: "RB",
+      team: "DET",
+      opponent: "NO",
+      game_id: "2026_01_NO_DET",
+      home: "DET",
+      away: "NO",
+      stat: "rush_yds",
+      fair_line: 70,
+      p_over: 0.4,
+      p10: 20,
+      p25: 40,
+      p75: 90,
+      p90: 120,
+      mean: 68,
+      sentence: "Our line is 70",
+      fpts_dk_mean: 18,
+      hist: null,
+      market_line: 83.5,
+      market_p_over: 0.5,
+      edge: -0.1,
+      lean: "under",
+      over_odds: -110,
+      under_odds: -110,
+      market_sentence: "Gibbs goes under.",
+    };
+    render(
+      <PropDetail
+        {...emptyDetail}
+        player={HEADER}
+        fairs={[fair]}
+        asOf={{ season: 2026, week: 7 }}
+        projections={[]}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "Props" })).toBeInTheDocument();
+    expect(screen.getByText("Entered line")).toBeInTheDocument();
+    expect(screen.getByText("No 2026 stats before week 7.")).toBeInTheDocument();
   });
 });

@@ -258,6 +258,30 @@ def ingest_fantasypros_points(
         typer.echo(f"  {u['reason']}: {u['name']} team={u['team']} pos={u['position']}")
 
 
+@ingest_app.command("fantasypros-news")
+def ingest_fantasypros_news(
+    category: str = typer.Option(
+        None, help="Optional category: injury | recap | transaction | rumor | breaking"
+    ),
+    limit: int = typer.Option(100, help="News items to fetch (1..100)"),
+):
+    """One FantasyPros news pull appended to raw.fantasypros_news (idempotent on news_id)."""
+    from .ingest import fantasypros_news as fpn
+    from .ingest.fantasypros import FantasyProsError
+
+    try:
+        r = fpn.run(category=category, limit=limit)
+    except (FantasyProsError, RuntimeError, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        f"fantasypros news: {r['calls']} call, {r['written']} new of {r['items']} items, "
+        f"{r['matched']} matched, {r['unmatched_n']} unmatched"
+    )
+    for u in r["unmatched"][:15]:
+        typer.echo(f"  unmatched fp_id={u['fp_player_id']} team={u['team']}: {u['title'][:60]}")
+
+
 @ingest_app.command("fantasypros-status")
 def ingest_fantasypros_status(
     season: int = typer.Option(...),
@@ -1276,12 +1300,38 @@ def benchmark_nflgamesim_players(
 def bettingpros(
     week: int = typer.Option(...),
     season: int = typer.Option(2026),
-    file: str = typer.Option(..., "--file", help="Smart Money xlsx or a directory of them"),
+    file: str = typer.Option(None, "--file", help="Smart Money xlsx or a directory of them"),
+    api: bool = typer.Option(False, "--api", help="Pull GET /v3/props for this NFL week"),
 ):
-    """Ingest BettingPros Smart Money player props into model.market_props. No edges."""
+    """Ingest BettingPros player props into model.market_props. No edges."""
     from pathlib import Path
 
     from .market import bettingpros as bp
+
+    if api == (file is not None):
+        typer.echo("error: pass --file or --api")
+        raise typer.Exit(code=1)
+    if api:
+        try:
+            r = bp.run_api(season, week)
+        except bp.BettingProsError as e:
+            typer.echo(f"error: {e}")
+            raise typer.Exit(code=1) from None
+        typer.echo(
+            f"bettingpros api {r['season']} wk{r['week']}: "
+            f"{r['written']} written, {r['n_joined']} matched, {len(r['unmatched'])} unmatched"
+        )
+        if r["rejected_markets"]:
+            parts = ", ".join(f"{m['market']} {m['n']}" for m in r["rejected_markets"])
+            typer.echo(f"    rejected markets: {parts}")
+        for u in r["unmatched"]:
+            typer.echo(
+                f"    {u.get('reason', 'unmatched')}: {u.get('player')} fp={u.get('fp_id')}"
+            )
+        if r["stopped"]:
+            typer.echo("stopped: nothing written")
+            raise typer.Exit(code=1)
+        return
 
     r = bp.run(season, week, Path(file))
     typer.echo("fair_props stats: " + " ".join(r["fair_stats"]))
@@ -1529,6 +1579,41 @@ def player_bias(
     typer.echo(path)
 
 
+@app.command("grade-jev")
+def grade_jev_cmd(
+    week: int = typer.Option(..., help="Completed NFL week to grade"),
+    season: int = typer.Option(2026),
+    slate: str = typer.Option("main", help="DFS slate key"),
+):
+    """Grade pre-kickoff Jev lineup audit verdicts against realized DK points and snap share."""
+    from .results import jev_grade as JG
+
+    r = JG.run(season, week, slate=slate)
+    typer.echo(
+        f"grade-jev {r['season']} wk{r['week']} {r['slate']}: {r['n_players']} pre-kickoff audited players with final actuals"
+    )
+    if not r["verdicts"]:
+        typer.echo("  no pre-kickoff audited rows with final actuals")
+        return
+    for v in r["verdicts"]:
+        typer.echo(
+            f"  {v['verdict']:<8} n={v['players']:<3} "
+            f"proj={v['mean_proj_dk'] if v['mean_proj_dk'] is not None else '-':>6} "
+            f"actual={v['mean_actual_dk'] if v['mean_actual_dk'] is not None else '-':>6} "
+            f"resid={v['mean_residual_dk']:+6.2f if v['mean_residual_dk'] is not None else '     -'} "
+            f"snap={v['mean_realized_snap_pct'] if v['mean_realized_snap_pct'] is not None else 0.0:.2f} "
+            f"dnp={v['dnp_rate']:.1%}"
+        )
+    for q in r["questions"]:
+        if q["n_triggered"] > 0:
+            typer.echo(
+                f"  q:{q['question_id']:<28} trig={q['n_triggered']} "
+                f"(resid={q['trig_mean_residual']:+.2f}) vs clear={q['n_cleared']} "
+                f"(resid={q['clear_mean_residual'] or 0.0:+.2f})"
+            )
+
+
+
 research_app = typer.Typer(help="Research Lab: as-of player fields scored by user-defined metrics.")
 app.add_typer(research_app, name="research")
 
@@ -1547,6 +1632,67 @@ def research_build(
         typer.echo(f"error: {e}")
         raise typer.Exit(code=1) from None
     typer.echo(f"research fields {season} week {week}: {n} players (as-of: before week {week})")
+
+
+@research_app.command("audit")
+def research_audit(
+    week: int = typer.Option(..., help="NFL week"),
+    season: int = typer.Option(2026),
+    slate: str = typer.Option("main", help="DFS slate key (main, full, ...)"),
+    site: str = typer.Option("dk"),
+    limit: int = typer.Option(60, help="Max players to evaluate on the slate"),
+    max_usd: float = typer.Option(0.10, "--max-usd", help="Hard USD cap for the run"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print cost and cache status; make zero API calls"),
+    as_of: str = typer.Option(None, "--as-of", help="Optional UTC ISO timestamp cutoff (default: game kickoff)"),
+):
+    """Run Jev qualitative lineup audit over the slate player pool and append to model.jev_judgments."""
+    from datetime import datetime
+
+    from .research import audit as A
+    from .research.jev_client import JevAuditError
+
+    cutoff_dt = datetime.fromisoformat(as_of) if as_of else None
+    try:
+        r = A.run_audit(
+            season=season,
+            week=week,
+            slate=slate,
+            site=site,
+            limit=limit,
+            max_usd=max_usd,
+            dry_run=dry_run,
+            as_of=cutoff_dt,
+        )
+    except (JevAuditError, RuntimeError, ValueError) as e:
+        typer.echo(f"error: {e}")
+        raise typer.Exit(code=1) from None
+
+    est = r["estimate"]
+    mode = "dry-run " if r["dry_run"] else ""
+    typer.echo(
+        f"{mode}research audit {r['season']} wk{r['week']} {r['slate']}: "
+        f"{est.players_total} players ({est.players_cached} cached, {est.players_no_read} no_read, "
+        f"{est.players_to_call} to call), est {est.est_input_tokens} tok (${est.est_usd:.4f})"
+    )
+    if not r["dry_run"]:
+        models = ", ".join(r["models_resolved"]) if r["models_resolved"] else r["model_requested"]
+        typer.echo(
+            f"  wrote {r['written_rows']} judgment rows, actual {r['actual_input_tokens']} tok "
+            f"(${r['actual_usd']:.4f}), model={models}"
+        )
+    vc = r["verdict_counts"]
+    typer.echo(
+        f"  verdicts: KEEP={vc.get('KEEP', 0)} FLAG={vc.get('FLAG', 0)} "
+        f"VETO={vc.get('VETO', 0)} NO_READ={vc.get('NO_READ', 0)}"
+    )
+    for p in r["players"]:
+        if p["verdict"] in ("VETO", "FLAG") or p["boost"]:
+            tag = f"{p['verdict']}{'+BOOST' if p['boost'] else ''}"
+            typer.echo(
+                f"  [{tag}] {p['name']} ({p['position']} {p['team']} ${p['salary']}): "
+                + "; ".join(p["reasons"])
+            )
+
 
 
 if __name__ == "__main__":
