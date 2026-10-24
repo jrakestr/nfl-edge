@@ -25,3 +25,26 @@ def test_update_from_sql_one_statement_n_keys():
 
 def test_update_from_empty_is_zero():
     assert db.update_from(pl.DataFrame(), "model.fair_props", ["run_id"]) == 0
+
+
+def test_migration_0050_defines_fk_and_lookup_indexes():
+    from nfl_edge.config import ROOT
+
+    sql = (ROOT / "db" / "migrations" / "0050_fk_and_lookup_indexes.sql").read_text().lower()
+    expected = [
+        "dfs_lineups_run_slate_idx",
+        "edges_market_line_idx",
+        "results_market_line_idx",
+        "results_close_market_line_idx",
+        "verdicts_market_line_idx",
+        "usage_claims_llm_call_idx",
+        "dk_player_crosswalk_gsis_idx",
+        "dk_salaries_player_site_idx",
+        "players_espn_idx",
+        "market_props_week_player_stat_idx",
+        "schedules_season_week_idx",
+    ]
+    for name in expected:
+        assert f"create index if not exists {name}" in sql
+    assert "on raw.dk_player_crosswalk (gsis_id)" in sql
+

@@ -28,6 +28,9 @@ export async function saveMarketLine(args: {
     values
       (${args.season}, ${args.week}, ${playerId}, ${name}, ${args.stat}, ${line}, -110, -110, 'manual')`;
   revalidatePath("/props");
-  if (args.gameId) revalidatePath(`/props/${args.gameId}/${playerId}`);
+  if (args.gameId) {
+    revalidatePath(`/props/${args.gameId}/${playerId}`);
+    revalidatePath(`/players/${args.gameId}/${playerId}`);
+  }
   return { ok: true };
 }

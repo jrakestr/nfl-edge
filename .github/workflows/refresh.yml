@@ -34,6 +34,7 @@ jobs:
       FANTASY_PROS_API_KEY: ${{ secrets.FANTASY_PROS_API_KEY }}
       ESPN_S2: ${{ secrets.ESPN_S2 }}
       ESPN_SWID: ${{ secrets.ESPN_SWID }}
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
       WEEK: ${{ inputs.week }}
     steps:
       - uses: actions/checkout@v4

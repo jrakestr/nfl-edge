@@ -263,9 +263,15 @@ Sunday 2026-09-13 08:40 (LaunchAgent, `--note sun-inactives`): re-export Main an
 
 ## Research Lab fields & Jev lineup audit
 
-`uv run nfl-edge research build --week W` (after ingest for week W-1 results). Reads only weeks before W, replaces `model.research_fields` for (season, W) in one transaction, and exits non-zero with the missing input named if usage priors or in-season games are absent. Rerunnable. The `/research` page shows "No research data" until it has run for the displayed week.
+Every `nfl-edge dfs` build (manual CLI, `/workflow` button, `ops/week-rebuild.sh`, or GitHub Actions `phase.yml`) automatically runs `research.auto_sync.run_post_dfs_sync` after persisting lineups:
+1. Rebuilds `model.research_fields` for `(season, week)` (strictly as-of `week < W`).
+2. Pulls `raw.fantasypros_news` if `FANTASY_PROS_API_KEY` is set and the last pull was >= 15 minutes ago.
+3. Runs `research audit` over the slate's lineup players if `TYPESAFE` / `TYPESAFE_API_KEY` is set (already-evaluated `(player_id, state_hash)` pairs hit the DB cache for 0 API calls / $0).
 
-Thursday and Saturday (after injury reports and DFS lineups are built):
-1. `uv run nfl-edge ingest fantasypros-news` — pulls up to 4 `/nfl/news` feeds (`injury`, `breaking`, `rumor`, unfiltered) into `raw.fantasypros_news` (append-only on `news_id`).
-2. `uv run nfl-edge research audit --season 2026 --week W --site dk --slate main` — builds as-of text states for distinct players in the slate's saved lineups, prints token and USD estimate (refusing over $0.50 or 100 players without override flags), fans out the 8 atomic Noul/Score questions per uncached player via `typesafe-sdk`, and appends raw judgments keyed by `state_hash` to `model.jev_judgments`. Players with no pre-kickoff news or injury row are recorded as `NO READ` with 0 API calls.
-3. After the week completes: `uv run nfl-edge grade-jev --season 2026 --week W` grades pre-kickoff judgments against `model.slate_actuals` and snap counts.
+Every `nfl-edge grade` run (Tuesday `ops/week-grade.sh`, `Refresh` workflow, or manual `grade`) automatically runs `grade-jev` for completed weeks alongside standard DFS/props grading.
+
+Manual overrides/standalone commands remain available when needed:
+- `uv run nfl-edge research build --week W`
+- `uv run nfl-edge ingest fantasypros-news`
+- `uv run nfl-edge research audit --season 2026 --week W --site dk --slate main`
+- `uv run nfl-edge grade-jev --season 2026 --week W`

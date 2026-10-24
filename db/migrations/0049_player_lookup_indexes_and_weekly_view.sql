@@ -27,7 +27,10 @@ create index if not exists prop_edges_market_prop_idx
 -- CTEs are NOT MATERIALIZED so a `where player_id = $1` on the view pushes into every branch
 -- (index scans on the player_id indexes above). Materialized, the same query seq-scans
 -- player_stats_weekly and proj_players: ~14.5 s, at the web_reader 15 s statement_timeout.
-create or replace view model.player_week_log as
+-- sim_stats and fp_stats stay separate so the reader can fall back per key (a graded
+-- player_proj_actual row carries no pass_td / rec / rec_td means).
+drop view if exists model.player_week_log;
+create view model.player_week_log as
 with sim_combined as not materialized (
   select pp.player_id,
          sr.season,
@@ -146,7 +149,12 @@ select k.player_id,
        sl.sim_dk,
        fl.fp_dk,
        rs.stats,
-       coalesce(sl.proj_stats, fl.fp_stats) as proj_stats
+       sl.proj_stats as sim_stats,
+       fl.fp_stats,
+       sc.home_team,
+       sc.away_team,
+       sc.home_score,
+       sc.away_score
 from keys k
 left join reg_stats rs on rs.player_id = k.player_id and rs.season = k.season and rs.week = k.week
 left join reg_actuals ra on ra.player_id = k.player_id and ra.season = k.season and ra.week = k.week

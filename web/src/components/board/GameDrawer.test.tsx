@@ -74,4 +74,34 @@ describe("GameDrawer checks", () => {
     expect(within(section).getByText(/spread_gap_vs_market/)).toBeInTheDocument();
     expect(section).toHaveTextContent(`${row.away}@${row.home} 7.5 (limit 4.0) · at run Sat 14:00`);
   });
+
+  it("renders in a centered wide modal (max-w-5xl) with all six Edges columns in a fixed table and closes on Escape", () => {
+    const row = fixtureRows()[0]!;
+    const payload = fixturePayloads().find((p) => p.game_id === row.game_id) ?? fixturePayloads()[0]!;
+    const onOpenChange = vi.fn();
+    render(
+      <GameDrawer
+        row={row}
+        verdict={payload}
+        checks={fixtureChecks()[row.game_id] ?? null}
+        open
+        onOpenChange={onOpenChange}
+      />,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("data-side", "center");
+    expect(dialog.className).toContain("data-[side=center]:max-w-5xl");
+    expect(dialog.className).toContain("data-[side=center]:w-[min(94vw,64rem)]");
+
+    const edgesRegion = screen.getAllByRole("region", { name: "Edges" })[0]!;
+    const table = within(edgesRegion).getByRole("table");
+    expect(table).toHaveClass("w-full", "table-fixed");
+    for (const col of ["Side", "Model", "Market", "Edge", "Price", "¼ Kelly"]) {
+      expect(within(edgesRegion).getByRole("columnheader", { name: new RegExp(col) })).toBeInTheDocument();
+    }
+
+    const closeBtn = within(dialog).getByRole("button", { name: "Close" });
+    closeBtn.click();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

@@ -1042,6 +1042,19 @@ def dfs(
     )
     for d in r.get("role_dropped") or []:
         typer.echo(f"  left out {d.get('name')} ({d.get('position')} {d.get('team')}): {d.get('status')}")
+    from .research import auto_sync
+
+    sync = auto_sync.run_post_dfs_sync(season, week, site=site, slate=slate)
+    aud = sync.get("audit")
+    if aud:
+        vc = aud.get("verdict_counts") or {}
+        typer.echo(
+            f"  jev audit {r['slate_id']}: KEEP={vc.get('KEEP', 0)} FLAG={vc.get('FLAG', 0)} "
+            f"VETO={vc.get('VETO', 0)} NO_READ={vc.get('NO_READ', 0)} "
+            f"(wrote {aud.get('written_rows', 0)}, ${aud.get('actual_usd', 0.0):.4f})"
+        )
+    elif sync.get("audit_error"):
+        typer.echo(f"  jev audit skipped: {sync['audit_error']}")
 
 
 @app.command("dfs-validate")
@@ -1517,6 +1530,23 @@ def grade(
     else:
         typer.echo(f"player_proj_actual: {ppa['n_rows']} players, {ppa['with_parquet']} with DK p50")
         PPA.write_report(season)
+
+    from .results import jev_grade as JG
+
+    try:
+        jg = JG.run(season, week, slate="main")
+        if jg["n_players"] > 0:
+            typer.echo(f"grade-jev {season} wk{week} main: {jg['n_players']} pre-kickoff audited players graded")
+            for v in jg["verdicts"]:
+                typer.echo(
+                    f"  {v['verdict']:<8} n={v['players']:<3} "
+                    f"resid={v['mean_residual_dk']:+6.2f if v['mean_residual_dk'] is not None else '     -'} "
+                    f"snap={v['mean_realized_snap_pct'] if v['mean_realized_snap_pct'] is not None else 0.0:.2f} "
+                    f"dnp={v['dnp_rate']:.1%}"
+                )
+    except (RuntimeError, ValueError, OSError) as e:
+        typer.echo(f"grade-jev: skipped ({e})")
+
     from .rebuild import prune_draws
 
     for line in prune_draws(season=season, week=week):

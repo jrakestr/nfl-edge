@@ -37,6 +37,14 @@ describe("Sidebar slate links", () => {
     loc.pathname = "/week/1/players/dk/full";
   });
 
+  it("marks Players as current on /players/[game]/[player]", () => {
+    loc.pathname = "/players/2026_01_NO_DET/00-0039139";
+    render(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(screen.getByRole("link", { name: "Players" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Props" })).not.toHaveAttribute("aria-current");
+    loc.pathname = "/week/1/players/dk/full";
+  });
+
   it("LOC league carries no week, slate, or games params", () => {
     render(<Sidebar collapsed={false} onToggle={() => {}} />);
     expect(screen.getByRole("link", { name: "LOC league" })).toHaveAttribute("href", "/league");

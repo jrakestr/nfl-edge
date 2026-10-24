@@ -58,10 +58,10 @@ export function GameDrawer({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[520px] gap-0 overflow-y-auto p-0 sm:max-w-[520px]">
+      <SheetContent side="center" className="gap-0 overflow-hidden p-0">
         {row ? (
           <>
-            <SheetHeader className="border-b border-border-soft p-6 pb-4">
+            <SheetHeader className="shrink-0 border-b border-border-soft p-6 pb-4">
               <SheetTitle className="t-title flex items-center gap-3">
                 <Matchup home={row.home} away={row.away} variant="logo" />
               </SheetTitle>
@@ -84,169 +84,174 @@ export function GameDrawer({
               </SheetDescription>
             </SheetHeader>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto p-6">
               {scheduleOnly ? (
                 row.has_started ? <GameOutcome row={row} /> : null
               ) : (
-              <section aria-label="Verdict" className="flex flex-col gap-1 t-sentence">
-                {row.has_started ? (
-                  <GameOutcome row={row} />
-                ) : verdict ? (
-                  verdict.sentences.map((s, i) => <p key={i}>{emphasize(s)}</p>)
-                ) : (
-                  <p className="text-muted-foreground">No verdict at the newest line yet.</p>
-                )}
-              </section>
-              )}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                  <div className="flex flex-col gap-6 lg:col-span-7">
+                    <section aria-label="Verdict" className="flex flex-col gap-1 t-sentence">
+                      {row.has_started ? (
+                        <GameOutcome row={row} />
+                      ) : verdict ? (
+                        verdict.sentences.map((s, i) => <p key={i}>{emphasize(s)}</p>)
+                      ) : (
+                        <p className="text-muted-foreground">No verdict at the newest line yet.</p>
+                      )}
+                    </section>
 
-              {!scheduleOnly && !row.has_started ? (
-              <section aria-label="Edges">
-                <h4 className="t-colhead mb-2 text-muted-foreground">Model vs market at the newest line</h4>
-                <DataTable
-                  data={(Object.keys(SIDE_LABEL) as (keyof BoardRow["edges"])[]).map((k) => ({
-                    id: k,
-                    label: SIDE_LABEL[k](row),
-                    e: row.edges[k],
-                  }))}
-                  getRowId={(r) => r.id}
-                  empty="—"
-                  ariaLabel="Edges"
-                  syncUrl={false}
-                  defaultSort={{ id: "edge", dir: "desc" }}
-                  rowProps={() => ({ className: "h-10" })}
-                  columns={[
-                    {
-                      id: "side",
-                      header: "Side",
-                      sortValue: (r) => r.label,
-                      cell: (r) => <span className="t-body">{r.label}</span>,
-                    },
-                    {
-                      id: "model",
-                      header: "Model",
-                      align: "right",
-                      sortValue: (r) => r.e?.model_prob,
-                      cell: (r) => <span className="tnum font-semibold">{r.e ? pct(r.e.model_prob) : "—"}</span>,
-                    },
-                    {
-                      id: "market",
-                      header: "Market",
-                      align: "right",
-                      sortValue: (r) => r.e?.market_prob,
-                      cell: (r) => (
-                        <span className="tnum font-semibold text-line">{r.e ? pct(r.e.market_prob) : "—"}</span>
-                      ),
-                    },
-                    {
-                      id: "edge",
-                      header: "Edge",
-                      metric: "edge",
-                      align: "right",
-                      sortValue: (r) => r.e?.edge,
-                      cell: (r) =>
-                        r.e ? (
-                          <EdgeDiff dir={direction(r.e.edge)} inten={intensity(r.e.edge)}>
-                            {signedPct(r.e.edge)}
-                          </EdgeDiff>
-                        ) : (
-                          "—"
-                        ),
-                    },
-                    {
-                      id: "price",
-                      header: "Price",
-                      align: "right",
-                      sortValue: (r) => r.e?.price,
-                      cell: (r) => (
-                        <span className="tnum font-semibold text-foreground">{r.e ? price(r.e.price) : "—"}</span>
-                      ),
-                    },
-                    {
-                      id: "kelly",
-                      header: "¼ Kelly",
-                      align: "right",
-                      sortValue: (r) => r.e?.kelly_fraction,
-                      cell: (r) => (
-                        <span className="tnum font-semibold text-foreground">
-                          {r.e ? `${(r.e.kelly_fraction * 100).toFixed(1)}%` : "—"}
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
-              </section>
-              ) : null}
-
-              {!scheduleOnly ? (
-              <>
-              <GameWhy row={row} runCreatedAt={runCreatedAt} inputs={teamInputs} />
-
-              <WhyExplain runId={runId} gameId={row.game_id} open={open} />
-
-              <section aria-label="Checks" className="flex flex-col gap-1">
-                <h4 className="t-colhead text-muted-foreground">Checks</h4>
-                {checks ? (
-                  <>
-                    <p className="t-body text-muted-foreground">
-                      {checks.invariants} invariant{checks.invariants === 1 ? "" : "s"}, {checks.warnings} warning
-                      {checks.warnings === 1 ? "" : "s"}
-                      {checks.failedRows.length === 0 ? " · all passed" : ""}
-                    </p>
-                    {checks.failedRows.length ? (
-                      <ul className="flex flex-col gap-0.5">
-                        {checks.failedRows.map((r) => (
-                          <li key={`${r.check_name}-${r.team ?? ""}`} className="t-body text-foreground">
-                            {r.check_name}
-                            {" · "}
-                            {runCreatedAt
-                              ? formatFailedLine(row.away, row.home, r, runCreatedAt)
-                              : `${row.away}@${row.home} ${r.value == null ? "—" : r.value.toFixed(1)} (limit ${r.threshold == null ? "—" : r.threshold.toFixed(1)})`}
-                          </li>
-                        ))}
-                      </ul>
+                    {!row.has_started ? (
+                      <section aria-label="Edges">
+                        <h4 className="t-colhead mb-2 text-muted-foreground">Model vs market at the newest line</h4>
+                        <DataTable
+                          data={(Object.keys(SIDE_LABEL) as (keyof BoardRow["edges"])[]).map((k) => ({
+                            id: k,
+                            label: SIDE_LABEL[k](row),
+                            e: row.edges[k],
+                          }))}
+                          getRowId={(r) => r.id}
+                          empty="—"
+                          ariaLabel="Edges"
+                          syncUrl={false}
+                          defaultSort={{ id: "edge", dir: "desc" }}
+                          tableClassName="w-full table-fixed"
+                          rowProps={() => ({ className: "h-10" })}
+                          columns={[
+                            {
+                              id: "side",
+                              header: "Side",
+                              className: "w-[28%] truncate",
+                              headClassName: "w-[28%]",
+                              sortValue: (r) => r.label,
+                              cell: (r) => <span className="t-body truncate">{r.label}</span>,
+                            },
+                            {
+                              id: "model",
+                              header: "Model",
+                              align: "right",
+                              sortValue: (r) => r.e?.model_prob,
+                              cell: (r) => <span className="tnum font-semibold">{r.e ? pct(r.e.model_prob) : "—"}</span>,
+                            },
+                            {
+                              id: "market",
+                              header: "Market",
+                              align: "right",
+                              sortValue: (r) => r.e?.market_prob,
+                              cell: (r) => (
+                                <span className="tnum font-semibold text-line">{r.e ? pct(r.e.market_prob) : "—"}</span>
+                              ),
+                            },
+                            {
+                              id: "edge",
+                              header: "Edge",
+                              metric: "edge",
+                              align: "right",
+                              sortValue: (r) => r.e?.edge,
+                              cell: (r) =>
+                                r.e ? (
+                                  <EdgeDiff dir={direction(r.e.edge)} inten={intensity(r.e.edge)}>
+                                    {signedPct(r.e.edge)}
+                                  </EdgeDiff>
+                                ) : (
+                                  "—"
+                                ),
+                            },
+                            {
+                              id: "price",
+                              header: "Price",
+                              align: "right",
+                              sortValue: (r) => r.e?.price,
+                              cell: (r) => (
+                                <span className="tnum font-semibold text-foreground">{r.e ? price(r.e.price) : "—"}</span>
+                              ),
+                            },
+                            {
+                              id: "kelly",
+                              header: "¼ Kelly",
+                              align: "right",
+                              sortValue: (r) => r.e?.kelly_fraction,
+                              cell: (r) => (
+                                <span className="tnum font-semibold text-foreground">
+                                  {r.e ? `${(r.e.kelly_fraction * 100).toFixed(1)}%` : "—"}
+                                </span>
+                              ),
+                            },
+                          ]}
+                        />
+                      </section>
                     ) : null}
-                  </>
-                ) : (
-                  <p className="t-body text-muted-foreground">No game-level checks recorded.</p>
-                )}
-              </section>
 
-              <section aria-label="Top player projections" className="flex flex-col gap-2">
-                <h4 className="t-colhead text-muted-foreground">
-                  <MetricLabel metric="projection">Top-10 player projections</MetricLabel>
-                </h4>
-                {players.length === 0 ? (
-                  <p className="t-caption">No player projections on this run.</p>
-                ) : (
-                  <ul className="flex flex-col gap-1">
-                    {players.map((p) => (
-                      <li key={p.display_name} className="flex items-center justify-between gap-2">
-                        <span className="inline-flex min-w-0 items-center gap-1.5">
-                          <PositionPill position={p.position} />
-                          <span className="truncate font-semibold text-foreground">{p.display_name}</span>
-                        </span>
-                        <span className="tnum font-semibold text-foreground">
-                          {p.fpts_dk_mean != null ? p.fpts_dk_mean.toFixed(1) : "—"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <section aria-label="Coming with the draws API" className="flex flex-col gap-2">
-                {["Score distribution", "Fair vs market history", "Correlation strip"].map((t) => (
-                  <div
-                    key={t}
-                    className="flex h-12 items-center justify-between rounded-md border border-dashed border-border px-3"
-                  >
-                    <span className="t-body text-muted-foreground">{t}</span>
-                    <span className="t-caption">coming with the draws API</span>
+                    <GameWhy row={row} runCreatedAt={runCreatedAt} inputs={teamInputs} />
                   </div>
-                ))}
-              </section>
-              </>
-              ) : null}
+
+                  <div className="flex flex-col gap-6 lg:col-span-5">
+                    <WhyExplain runId={runId} gameId={row.game_id} open={open} />
+
+                    <section aria-label="Top player projections" className="flex flex-col gap-2">
+                      <h4 className="t-colhead text-muted-foreground">
+                        <MetricLabel metric="projection">Top-10 player projections</MetricLabel>
+                      </h4>
+                      {players.length === 0 ? (
+                        <p className="t-caption">No player projections on this run.</p>
+                      ) : (
+                        <ul className="flex flex-col gap-1">
+                          {players.map((p) => (
+                            <li key={p.display_name} className="flex items-center justify-between gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-1.5">
+                                <PositionPill position={p.position} />
+                                <span className="truncate font-semibold text-foreground">{p.display_name}</span>
+                              </span>
+                              <span className="tnum font-semibold text-foreground">
+                                {p.fpts_dk_mean != null ? p.fpts_dk_mean.toFixed(1) : "—"}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+
+                    <section aria-label="Checks" className="flex flex-col gap-1">
+                      <h4 className="t-colhead text-muted-foreground">Checks</h4>
+                      {checks ? (
+                        <>
+                          <p className="t-body text-muted-foreground">
+                            {checks.invariants} invariant{checks.invariants === 1 ? "" : "s"}, {checks.warnings} warning
+                            {checks.warnings === 1 ? "" : "s"}
+                            {checks.failedRows.length === 0 ? " · all passed" : ""}
+                          </p>
+                          {checks.failedRows.length ? (
+                            <ul className="flex flex-col gap-0.5">
+                              {checks.failedRows.map((r) => (
+                                <li key={`${r.check_name}-${r.team ?? ""}`} className="t-body text-foreground">
+                                  {r.check_name}
+                                  {" · "}
+                                  {runCreatedAt
+                                    ? formatFailedLine(row.away, row.home, r, runCreatedAt)
+                                    : `${row.away}@${row.home} ${r.value == null ? "—" : r.value.toFixed(1)} (limit ${r.threshold == null ? "—" : r.threshold.toFixed(1)})`}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="t-body text-muted-foreground">No game-level checks recorded.</p>
+                      )}
+                    </section>
+
+                    <section aria-label="Coming with the draws API" className="flex flex-col gap-2">
+                      {["Score distribution", "Fair vs market history", "Correlation strip"].map((t) => (
+                        <div
+                          key={t}
+                          className="flex h-12 items-center justify-between rounded-md border border-dashed border-border px-3"
+                        >
+                          <span className="t-body text-muted-foreground">{t}</span>
+                          <span className="t-caption">coming with the draws API</span>
+                        </div>
+                      ))}
+                    </section>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : null}

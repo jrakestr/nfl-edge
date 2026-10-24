@@ -84,12 +84,14 @@ function PlayerWeekSelect({
   games,
   playerId,
   gameId,
+  basePath = "/players",
 }: {
   season: number;
   week: number;
   games: { week: number; game_id: string }[];
   playerId: string;
   gameId: string | null;
+  basePath?: "/players" | "/props";
 }) {
   const router = useRouter();
   const options = [...games];
@@ -113,7 +115,7 @@ function PlayerWeekSelect({
           const next = Number(v);
           const target = options.find((g) => g.week === next);
           if (!target || next === week) return;
-          router.push(`/props/${target.game_id}/${playerId}`);
+          router.push(`${basePath}/${target.game_id}/${playerId}`);
         }}
       >
         <SelectTrigger aria-label="Week" className="h-8 w-[120px] rounded-md t-body">
@@ -154,6 +156,7 @@ export function PropDetail({
   defense = null,
   fptsHist = null,
   opponent = null,
+  basePath = "/players",
 }: {
   player: PlayerHeader | null;
   game: GameContext | null;
@@ -176,6 +179,7 @@ export function PropDetail({
   defense?: DefenseVsPosition | null;
   fptsHist?: Hist | null;
   opponent?: string | null;
+  basePath?: "/players" | "/props";
 }) {
   const found = player != null;
   const name = found ? player.display_name : "Player not found";
@@ -222,6 +226,7 @@ export function PropDetail({
                   games={games}
                   playerId={playerId}
                   gameId={game?.game_id ?? null}
+                  basePath={basePath}
                 />
               ) : null}
               {game ? (

@@ -26,33 +26,35 @@ export function GameWhy({
   return (
     <section aria-label="Why" className="flex flex-col gap-3">
       <h4 className="t-colhead text-muted-foreground">Why</h4>
-      {(["away", "home"] as const).map((side) => {
-        const ours = model?.[side] ?? null;
-        const live = now?.[side] ?? null;
-        const run = atRun?.[side] ?? null;
-        const diff = ours != null && live != null ? ours - live : null;
-        const dir = direction(diff);
-        const input = inputs[row[side]];
-        return (
-          <div key={side} className="flex flex-col gap-1" data-side={side}>
-            <p className="t-body font-semibold text-foreground">{row[side]}</p>
-            <WhyRow label="Mean points" value={ours} tone="model" digits={1} />
-            <WhyRow label={`Market ${asOf}`} value={live} tone="market" digits={1} />
-            {moved ? <WhyRow label={`Market ${runStamp}`} value={run} tone="market" digits={1} /> : null}
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="t-caption text-muted-foreground">Difference vs current</span>
-              {diff == null ? (
-                <span className="t-caption">—</span>
-              ) : (
-                <EdgeDiff dir={dir} inten={intensity(diff)}>
-                  {signed(diff)}
-                </EdgeDiff>
-              )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {(["away", "home"] as const).map((side) => {
+          const ours = model?.[side] ?? null;
+          const live = now?.[side] ?? null;
+          const run = atRun?.[side] ?? null;
+          const diff = ours != null && live != null ? ours - live : null;
+          const dir = direction(diff);
+          const input = inputs[row[side]];
+          return (
+            <div key={side} className="flex flex-col gap-1.5 rounded-lg border border-border-soft bg-muted/30 p-3.5" data-side={side}>
+              <p className="t-body font-semibold text-foreground">{row[side]}</p>
+              <WhyRow label="Mean points" value={ours} tone="model" digits={1} />
+              <WhyRow label={`Market ${asOf}`} value={live} tone="market" digits={1} />
+              {moved ? <WhyRow label={`Market ${runStamp}`} value={run} tone="market" digits={1} /> : null}
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="t-caption text-muted-foreground">Difference vs current</span>
+                {diff == null ? (
+                  <span className="t-caption">—</span>
+                ) : (
+                  <EdgeDiff dir={dir} inten={intensity(diff)}>
+                    {signed(diff)}
+                  </EdgeDiff>
+                )}
+              </div>
+              <WhyPriors input={input} />
             </div>
-            <WhyPriors input={input} />
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </section>
   );
 }

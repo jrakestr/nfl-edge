@@ -94,5 +94,9 @@ describe("GameWhy", () => {
     const why = screen.getByRole("region", { name: "Why" });
     expect(why).toHaveTextContent("as of Sat 16:00");
     expect(why).not.toHaveTextContent("at run");
+    const awayCard = within(why).getByText("MIA").closest("[data-side]")!;
+    const homeCard = within(why).getByText("LV").closest("[data-side]")!;
+    expect(awayCard.parentElement).toBe(homeCard.parentElement);
+    expect(awayCard.parentElement).toHaveClass("sm:grid-cols-2");
   });
 });

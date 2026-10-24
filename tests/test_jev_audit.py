@@ -265,3 +265,48 @@ def test_zero_leakage_into_sim_priors_or_dfs_optimizer():
             text = py.read_text()
             for token in forbidden:
                 assert token not in text, f"{py} references {token}"
+
+
+def test_post_dfs_auto_sync_runs_fields_news_and_audit(monkeypatch):
+    from nfl_edge.ingest import fantasypros_news as fpn
+    from nfl_edge.research import audit as A
+    from nfl_edge.research import auto_sync as AS
+    from nfl_edge.research import fields as F
+
+    calls: list[str] = []
+    monkeypatch.setattr(F, "run", lambda s, w: calls.append(f"fields:{s}:{w}") or 438)
+    monkeypatch.setattr(AS, "_has_fp_key", lambda: True)
+    monkeypatch.setattr(AS, "_has_typesafe_key", lambda: True)
+    monkeypatch.setattr(AS, "latest_news_seen", lambda: None)
+    monkeypatch.setattr(fpn, "run", lambda limit=100: calls.append("news") or {"written": 12})
+    monkeypatch.setattr(
+        A,
+        "run_audit",
+        lambda season, week, slate, site: calls.append(f"audit:{season}:{week}:{site}:{slate}")
+        or {"verdict_counts": {"KEEP": 10}, "written_rows": 80, "actual_usd": 0.0012},
+    )
+
+    rep = AS.run_post_dfs_sync(2026, 7, site="dk", slate="main")
+    assert calls == ["fields:2026:7", "news", "audit:2026:7:dk:main"]
+    assert rep["fields_rows"] == 438
+    assert rep["news_written"] == 12
+    assert rep["audit"]["verdict_counts"] == {"KEEP": 10}
+
+
+def test_post_dfs_auto_sync_respects_news_cooldown_and_never_raises(monkeypatch):
+    from nfl_edge.research import audit as A
+    from nfl_edge.research import auto_sync as AS
+    from nfl_edge.research import fields as F
+
+    now = datetime(2026, 10, 24, 16, 0, tzinfo=UTC)
+    recent = datetime(2026, 10, 24, 15, 55, tzinfo=UTC)  # 5m ago (< 15m cooldown)
+    monkeypatch.setattr(F, "run", lambda s, w: 438)
+    monkeypatch.setattr(AS, "_has_fp_key", lambda: True)
+    monkeypatch.setattr(AS, "_has_typesafe_key", lambda: True)
+    monkeypatch.setattr(AS, "latest_news_seen", lambda: recent)
+    monkeypatch.setattr(A, "run_audit", lambda **k: (_ for _ in ()).throw(RuntimeError("api down")))
+
+    rep = AS.run_post_dfs_sync(2026, 7, site="dk", slate="main", now=now)
+    assert rep["news_skipped"] == "recent pull (<15m)"
+    assert rep["audit_error"] == "api down"
+

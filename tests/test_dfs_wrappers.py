@@ -605,6 +605,7 @@ def test_cli_dfs_field_is_a_deprecated_name_for_iterations(monkeypatch):
 
     from nfl_edge import cli
     from nfl_edge.dfs import pipeline
+    from nfl_edge.research import auto_sync
 
     got: dict = {}
 
@@ -613,6 +614,7 @@ def test_cli_dfs_field_is_a_deprecated_name_for_iterations(monkeypatch):
         return {"slate_id": "2026_07_main", "n_lineups": 0, "n_exposure": 0, "upload": "u"}
 
     monkeypatch.setattr(pipeline, "run", _run)
+    monkeypatch.setattr(auto_sync, "run_post_dfs_sync", lambda *a, **k: {})
     r = CliRunner().invoke(cli.app, ["dfs", "--week", "7", "--slate", "main", "--field", "777"])
     assert r.exit_code == 0, r.output
     assert got["iterations"] == 777

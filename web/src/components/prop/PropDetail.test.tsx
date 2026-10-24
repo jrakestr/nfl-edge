@@ -158,9 +158,13 @@ describe("props-web surfaces", () => {
     expect(screen.queryByLabelText(/Enter a line/)).toBeNull();
   });
 
-  it("Players search filters and links to prop detail", () => {
+  it("Players search filters and links to player detail under /players/[game]/[player]", () => {
     render(<PlayersList players={[PLAYER]} />);
     expect(screen.getByText("Jahmyr Gibbs")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Jahmyr Gibbs" })).toHaveAttribute(
+      "href",
+      "/players/2026_01_NO_DET/00-0039139",
+    );
     expect(screen.getByLabelText("RB")).toBeInTheDocument();
     expect(screen.getByText("22.3")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Name or team"), { target: { value: "zzz" } });

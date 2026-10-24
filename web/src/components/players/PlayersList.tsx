@@ -315,7 +315,7 @@ export function PlayersList({
                 <span className="inline-flex items-center gap-1.5">
                   <PositionPill position={p.position} />
                   <Link
-                    href={`/props/${p.game_id ?? "unknown"}/${p.player_id}`}
+                    href={`/players/${p.game_id ?? "unknown"}/${p.player_id}`}
                     className={cn(
                       "font-semibold underline-offset-2 hover:underline",
                       excluded ? "text-muted-foreground" : "text-foreground",

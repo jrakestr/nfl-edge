@@ -6,12 +6,10 @@ import {
   matchupRows,
   playerCorrs,
   playerFairProps,
-  playerFantasyPros,
   playerFptsActual,
   playerLog,
-  playerSeasonLog,
-  playerSimProjections,
   playerWeekGames,
+  playerWeekLog,
   propHistogram,
   propTimeline,
 } from "@/lib/queries/props";
@@ -39,12 +37,10 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
   const season = ctx?.season ?? CURRENT_SEASON;
   const week = ctx?.week ?? openWeek;
   const runPromise = runForWeek(season, week);
-  const [run, seasonLog, actualRows, projections, simProjections, games, fairs] = await Promise.all([
+  const [run, weekLog, actualRows, games, fairs] = await Promise.all([
     runPromise,
-    playerSeasonLog(player, season, week),
+    playerWeekLog(player, season, week),
     playerFptsActual(player),
-    playerFantasyPros(player, season),
-    playerSimProjections(player, season),
     playerWeekGames(player, season, header?.latest_team ?? null),
     runPromise.then((ready) => (ready ? playerFairProps(ready.run_id, player) : [])),
   ]);
@@ -90,14 +86,15 @@ export default async function PropPage({ params }: PageProps<"/props/[game]/[pla
       currentSeason={CURRENT_SEASON}
       drawsPruned={Boolean(run?.draws_pruned)}
       asOf={{ season, week }}
-      seasonLog={seasonLog}
-      projections={projections}
-      simProjections={simProjections}
+      seasonLog={weekLog.log}
+      projections={weekLog.projections}
+      simProjections={weekLog.simProjections}
       games={games}
       usage={usage}
       defense={defense}
       fptsHist={fptsHist}
       opponent={opp}
+      basePath="/props"
     />
   );
 }
