@@ -18,7 +18,10 @@ import type { StripGame } from "@/lib/kickoff";
 import { applyPicksToParams, emptyPicks, useSlatePicks, type PickKey } from "@/lib/slate-picks";
 import { cn } from "@/lib/utils";
 import type { WeekPlayer } from "@/lib/types";
-import { useMemo, type ComponentProps, type ReactNode } from "react";
+import { useMemo, useState, useTransition, type ComponentProps, type ReactNode } from "react";
+import { savePlayerDelta } from "@/lib/actions/player-points";
+import { adjustedForMiss, editedPoints } from "@/lib/player-edit";
+import { CURRENT_SEASON } from "@/lib/config";
 
 function rowFlags(p: WeekPlayer) {
   const stale = staleInjury(p.override_status, p.override_updated_at, p.run_created_at);
@@ -86,11 +89,85 @@ function tone(excluded: boolean, extra?: string) {
   return cn("tnum font-semibold", excluded ? "text-muted-foreground" : "text-foreground", extra);
 }
 
+function PointStepper({
+  name,
+  base,
+  delta,
+  season,
+  week,
+  site,
+  slate,
+  playerId,
+  excluded,
+}: {
+  name: string;
+  base: number | null;
+  delta: number;
+  season: number;
+  week: number;
+  site: string;
+  slate: string;
+  playerId: string;
+  excluded?: boolean;
+}) {
+  const [step, setStep] = useState(delta);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  if (base == null) {
+    return <span className={tone(Boolean(excluded))}>—</span>;
+  }
+
+  const edited = editedPoints(base, step);
+
+  function move(next: number) {
+    setError(null);
+    setStep(next);
+    start(async () => {
+      const res = await savePlayerDelta({ season, week, site, slate, playerId, delta: next });
+      if (!res.ok) {
+        setStep(delta);
+        setError(res.error);
+      }
+    });
+  }
+
+  return (
+    <span className="inline-flex items-center justify-end gap-0.5">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2"
+        aria-label={`Decrease points for ${name}`}
+        disabled={pending}
+        onClick={() => move(step - 1)}
+      >
+        −
+      </Button>
+      <span className={tone(Boolean(excluded))}>{num(edited)}</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2"
+        aria-label={`Increase points for ${name}`}
+        disabled={pending}
+        onClick={() => move(step + 1)}
+      >
+        +
+      </Button>
+      {error ? <span className="t-caption text-warn">{error}</span> : null}
+    </span>
+  );
+}
+
 /** Slate player library. Rows from raw.dk_salaries ⨝ proj_players for this slate. */
 export function PlayersList({
   players = [],
   slateId = "",
   week = 1,
+  season = CURRENT_SEASON,
   site = "dk",
   slate = "main",
   toolbar,
@@ -100,12 +177,14 @@ export function PlayersList({
   players?: WeekPlayer[];
   slateId?: string;
   week?: number | string;
+  season?: number;
   site?: string;
   slate?: string;
   toolbar?: ReactNode;
   fallbackFrom?: string | null;
   strip?: StripGame[];
 }) {
+  const weekN = typeof week === "number" ? week : Number(week);
   const { picks, toggle, setPicks } = useSlatePicks(slateId);
   const live = useLiveSearchParams();
   const { selected } = useGamesSelection();
@@ -183,6 +262,9 @@ export function PlayersList({
       <header className="flex flex-col gap-3">
         <h1 className="t-title">Players</h1>
         {toolbar}
+        <p className="t-caption text-muted-foreground">
+          Plus and minus change your copy by one point. Adjusted is the sim plus his average miss from earlier weeks.
+        </p>
         {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
       </header>
       {strip.length ? <GameStrip games={strip} /> : null}
@@ -320,7 +402,11 @@ export function PlayersList({
               return (
                 <span className="flex flex-col items-end gap-0.5">
                   <span className={tone(excluded || stale)}>{num(p.fpts_dk_mean)}</span>
-                  {stale ? <span className="t-caption text-warn">{REBUILD_PENDING}</span> : null}
+                  {stale ? (
+                    <span className="max-w-44 text-right leading-tight whitespace-normal t-caption text-warn">
+                      {REBUILD_PENDING}
+                    </span>
+                  ) : null}
                 </span>
               );
             },
@@ -342,6 +428,37 @@ export function PlayersList({
             sortValue: (p) => p.fp_fpts,
             cell: (p) => (
               <span className="t-caption text-muted-foreground">{num(p.fp_fpts)}</span>
+            ),
+          },
+          {
+            id: "adj",
+            header: "Adjusted",
+            align: "right",
+            sortValue: (p) => adjustedForMiss(p.fpts_dk_mean, p.mean_miss),
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(adjustedForMiss(p.fpts_dk_mean, p.mean_miss))}
+              </span>
+            ),
+          },
+          {
+            id: "yours",
+            header: "Yours",
+            align: "right",
+            sortValue: (p) =>
+              editedPoints(adjustedForMiss(p.fpts_dk_mean, p.mean_miss), p.point_delta ?? 0),
+            cell: (p) => (
+              <PointStepper
+                name={p.display_name}
+                base={adjustedForMiss(p.fpts_dk_mean, p.mean_miss)}
+                delta={p.point_delta ?? 0}
+                season={season}
+                week={weekN}
+                site={site}
+                slate={slate}
+                playerId={p.player_id}
+                excluded={Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id))}
+              />
             ),
           },
           {

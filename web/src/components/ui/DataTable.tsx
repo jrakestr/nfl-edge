@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flexRender, type SortingState } from "@tanstack/react-table";
 import {
   getCoreRowModel,
@@ -21,6 +21,8 @@ export type DataColumn<T> = {
   sortable?: boolean;
   align?: "left" | "right";
   metric?: Metric;
+  size?: number;
+  minSize?: number;
   sortValue?: (row: T) => string | number | null | undefined;
   cell: (row: T) => React.ReactNode;
   className?: string;
@@ -195,6 +197,18 @@ function DataTableInner<T extends object>({
   const pools = filters?.pool ? unique(data, filters.pool) : [];
   const healths = filters?.health ? unique(data, filters.health) : [];
 
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
+  const setColumnWidth = (colId: string, widthPx: number | null) => {
+    setColWidths((prev) => {
+      if (widthPx == null) {
+        const next = { ...prev };
+        delete next[colId];
+        return next;
+      }
+      return { ...prev, [colId]: widthPx };
+    });
+  };
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const headTableRef = useRef<HTMLTableElement>(null);
 
@@ -214,7 +228,9 @@ function DataTableInner<T extends object>({
       src.forEach((cell, i) => {
         const th = dst[i] as HTMLElement | undefined;
         if (!th) return;
-        const w = `${cell.getBoundingClientRect().width}px`;
+        const colId = th.getAttribute("data-col-id");
+        const manual = colId ? colWidths[colId] : undefined;
+        const w = manual != null ? `${manual}px` : `${cell.getBoundingClientRect().width}px`;
         th.style.width = w;
         th.style.minWidth = w;
         th.style.maxWidth = w;
@@ -231,7 +247,7 @@ function DataTableInner<T extends object>({
       scroller.removeEventListener("scroll", apply);
       window.removeEventListener("resize", apply);
     };
-  }, [stickyHeader, filtered, columns, sortId, sortDir]);
+  }, [stickyHeader, filtered, columns, sortId, sortDir, colWidths]);
 
   const headerRows = (mode: "frozen" | "layout" | "normal") => (
     <TableHeader
@@ -242,7 +258,7 @@ function DataTableInner<T extends object>({
     >
       {mode !== "layout" && headerNote ? (
         <TableRow className="hover:bg-transparent">
-          <TableHead colSpan={columns.length} className="h-auto bg-muted py-2">
+          <TableHead colSpan={columns.length} resizable={false} className="h-auto bg-muted py-2">
             {headerNote}
           </TableHead>
         </TableRow>
@@ -253,6 +269,17 @@ function DataTableInner<T extends object>({
             const col = columns.find((c) => c.id === h.id);
             const sortable = col?.sortable !== false;
             const active = sortId === h.id;
+            const widthPx = colWidths[h.id] ?? col?.size;
+            const widthStyle: React.CSSProperties | undefined =
+              widthPx != null
+                ? {
+                    width: `${widthPx}px`,
+                    minWidth: `${widthPx}px`,
+                    maxWidth: `${widthPx}px`,
+                  }
+                : col?.minSize != null
+                  ? { minWidth: `${col.minSize}px` }
+                  : undefined;
             const label = (
               <span className={cn("inline-flex max-w-full items-end gap-1 whitespace-normal", col?.align === "right" && "ml-auto text-right")}>
                 <span>{col?.metric ? <MetricLabel metric={col.metric}>{col.header}</MetricLabel> : col?.header}</span>
@@ -272,6 +299,10 @@ function DataTableInner<T extends object>({
             return (
               <TableHead
                 key={h.id}
+                data-col-id={h.id}
+                resizable={mode !== "layout"}
+                onResizeWidth={(w) => setColumnWidth(h.id, w)}
+                style={widthStyle}
                 className={cn(
                   "t-colhead text-muted-foreground",
                   mode !== "layout" && "bg-muted",
@@ -404,10 +435,26 @@ function DataTableInner<T extends object>({
                   >
                     {row.getVisibleCells().map((cell) => {
                       const col = columns.find((c) => c.id === cell.column.id);
+                      const widthPx = colWidths[cell.column.id] ?? col?.size;
+                      const cellStyle: React.CSSProperties | undefined =
+                        widthPx != null
+                          ? {
+                              width: `${widthPx}px`,
+                              minWidth: `${widthPx}px`,
+                              maxWidth: `${widthPx}px`,
+                            }
+                          : col?.minSize != null
+                            ? { minWidth: `${col.minSize}px` }
+                            : undefined;
                       return (
                         <TableCell
                           key={cell.id}
-                          className={cn(col?.align === "right" && "text-right", col?.className)}
+                          style={cellStyle}
+                          className={cn(
+                            col?.align === "right" && "text-right",
+                            widthPx != null && "overflow-hidden text-ellipsis",
+                            col?.className,
+                          )}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>

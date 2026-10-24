@@ -89,4 +89,82 @@ describe("DataTable", () => {
     );
     expect(container.querySelector("svg")).toBeTruthy();
   });
+
+  it("resizes a column when dragging the column resizer and resets on double-click", () => {
+    render(
+      <DataTable
+        data={[{ id: "1", name: "Alpha" }]}
+        getRowId={(r) => r.id}
+        empty="none"
+        ariaLabel="ResizeDemo"
+        columns={[{ id: "name", header: "Name", sortValue: (r) => r.name, cell: (r) => r.name }]}
+      />,
+    );
+    const th = screen.getByRole("columnheader", { name: /Name/i });
+    vi.spyOn(th, "getBoundingClientRect").mockReturnValue({
+      width: 120,
+      height: 40,
+      top: 0,
+      left: 0,
+      bottom: 40,
+      right: 120,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    const resizer = th.querySelector('[data-slot="column-resizer"]')!;
+    expect(resizer).toBeTruthy();
+
+    fireEvent.pointerDown(resizer, { clientX: 100 });
+    fireEvent.pointerMove(window, { clientX: 180 });
+    fireEvent.pointerUp(window);
+
+    expect(th).toHaveStyle({ width: "200px" });
+
+    // Clamps to minimum width (48px)
+    fireEvent.pointerDown(resizer, { clientX: 200 });
+    fireEvent.pointerMove(window, { clientX: 10 });
+    fireEvent.pointerUp(window);
+    expect(th).toHaveStyle({ width: "48px" });
+
+    // Double-click resets width
+    fireEvent.doubleClick(resizer);
+    expect(th.style.width).toBe("");
+  });
+
+  it("syncs stickyHeader column widths when resizing", () => {
+    const { container } = render(
+      <DataTable
+        stickyHeader
+        data={[{ id: "1", name: "Alpha" }]}
+        getRowId={(r) => r.id}
+        empty="none"
+        ariaLabel="StickyResizeDemo"
+        columns={[{ id: "name", header: "Name", sortValue: (r) => r.name, cell: (r) => r.name }]}
+      />,
+    );
+    const stickyHead = container.querySelector('[data-slot="sticky-head"] th') as HTMLElement;
+    expect(stickyHead).toBeTruthy();
+    vi.spyOn(stickyHead, "getBoundingClientRect").mockReturnValue({
+      width: 100,
+      height: 40,
+      top: 0,
+      left: 0,
+      bottom: 40,
+      right: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    const resizer = stickyHead.querySelector('[data-slot="column-resizer"]')!;
+    fireEvent.pointerDown(resizer, { clientX: 100 });
+    fireEvent.pointerMove(window, { clientX: 160 });
+    fireEvent.pointerUp(window);
+
+    const bodyCell = container.querySelector("tbody td") as HTMLElement;
+    expect(stickyHead).toHaveStyle({ width: "160px" });
+    expect(bodyCell).toHaveStyle({ width: "160px" });
+  });
 });
