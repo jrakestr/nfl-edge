@@ -58,7 +58,8 @@ export type ReviewContest = {
   name: string | null;
   entries: number;
   placesPaid: number | null;
-  top1Score: number;
+  /** Null when the contest came from the gamecenter API (no full field, no 99th-percentile line). */
+  top1Score: number | null;
   cashScore: number | null;
 };
 
@@ -125,7 +126,8 @@ export function portfolio(
     worst: actuals.length ? actuals[0]! : null,
     meanActual: mean(actuals),
     meanProj: mean(projs),
-    top1Count: contest ? actuals.filter((a) => a >= contest.top1Score).length : null,
+    top1Count:
+      contest && contest.top1Score != null ? actuals.filter((a) => a >= (contest.top1Score as number)).length : null,
     cashCount:
       contest && contest.cashScore != null ? actuals.filter((a) => a >= (contest.cashScore as number)).length : null,
   };

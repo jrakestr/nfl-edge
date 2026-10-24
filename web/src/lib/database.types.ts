@@ -2466,10 +2466,11 @@ export type Database = {
           ingested_at: string
           places_paid: number | null
           slate_id: string | null
+          source: string
           source_file: string
           source_sha256: string
-          top1_rank: number
-          top1_score: number
+          top1_rank: number | null
+          top1_score: number | null
         }
         Insert: {
           cash_score?: number | null
@@ -2479,10 +2480,11 @@ export type Database = {
           ingested_at?: string
           places_paid?: number | null
           slate_id?: string | null
+          source?: string
           source_file: string
           source_sha256: string
-          top1_rank: number
-          top1_score: number
+          top1_rank?: number | null
+          top1_score?: number | null
         }
         Update: {
           cash_score?: number | null
@@ -2492,10 +2494,11 @@ export type Database = {
           ingested_at?: string
           places_paid?: number | null
           slate_id?: string | null
+          source?: string
           source_file?: string
           source_sha256?: string
-          top1_rank?: number
-          top1_score?: number
+          top1_rank?: number | null
+          top1_score?: number | null
         }
         Relationships: []
       }

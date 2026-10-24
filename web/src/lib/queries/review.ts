@@ -58,7 +58,7 @@ export async function slateContests(slateId: string): Promise<ReviewContest[]> {
     name: r.contest_name != null ? String(r.contest_name) : null,
     entries: Number(r.entries),
     placesPaid: num(r.places_paid),
-    top1Score: Number(r.top1_score),
+    top1Score: num(r.top1_score),
     cashScore: num(r.cash_score),
   }));
 }

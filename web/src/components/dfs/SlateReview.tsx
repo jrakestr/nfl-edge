@@ -63,7 +63,9 @@ function PortfolioCard({
         <Stat
           label="Top 1%"
           value={p.top1Count == null ? dash : String(p.top1Count)}
-          note={contest ? `at or above ${fixed(contest.top1Score, 2)}` : "no contest file"}
+          note={
+            !contest ? "no contest file" : contest.top1Score == null ? "API load; no top-1% line" : `at or above ${fixed(contest.top1Score, 2)}`
+          }
         />
         <Stat
           label="Cash"

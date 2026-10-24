@@ -227,3 +227,47 @@ def test_unchanged_sha_returns_before_parse(monkeypatch, tmp_path):
     monkeypatch.setattr(dk, "conn", _boom)
     result = dk.ingest_standings(path)
     assert result.status == "unchanged" and result.contest_key == 9
+
+
+# ---------------------------------------------------------------- gamecenter API ownership JSON
+
+OWN_JSON = """{"ck":"195661349","dg":153428,"entries":2,"cash":140.82,
+ "rows":[{"rank":1,"entryKey":"5255787216","user":"a (1/2)","pts":50.1,
+          "lineup":"DST Panthers  FLEX Derrick Henry QB Brock Purdy RB Derrick Henry"},
+         {"rank":2,"entryKey":"5255787217","user":"b","pts":40.0,"lineup":"QB Brock Purdy"}],
+ "players":[{"name":"Derrick Henry","pos":"RB","own":31.62,"fpts":17.7},
+            {"name":"Derrick Henry","pos":"FLEX","own":31.62,"fpts":17.7},
+            {"name":"Brock Purdy","pos":"QB","own":10.38,"fpts":28.48},
+            {"name":"Panthers","pos":"DST","own":5.1,"fpts":26.0}]}"""
+
+
+def test_parse_ownership_json_collapses_flex_to_one_row_with_total_ownership():
+    dumps = dk.parse_ownership_json(OWN_JSON)
+    assert len(dumps) == 1
+    d = dumps[0]
+    assert d.contest_key == 195661349
+    assert d.cash_score == D("140.82")
+    assert [e["entry_id"] for e in d.entries] == [5255787216, 5255787217]
+    henry = next(p for p in d.players if p["player_name"] == "Derrick Henry")
+    assert henry["roster_position"] == "RB"
+    assert henry["pct_drafted"] == D("0.316200")  # not summed over RB + FLEX
+    assert henry["fpts"] == D("17.7")
+    assert len(d.players) == 3
+
+
+def test_parse_ownership_json_accepts_dict_of_contests():
+    text = '{"195661349": ' + OWN_JSON + ', "2": ' + OWN_JSON.replace('"ck":"195661349"', '"ck":"2"') + "}"
+    assert [d.contest_key for d in dk.parse_ownership_json(text)] == [195661349, 2]
+
+
+def test_parse_ownership_json_flex_only_player_has_no_position_yet():
+    d = dk.parse_ownership_json(OWN_JSON.replace('"pos":"RB","own":31.62', '"pos":"FLEX","own":31.62'))[0]
+    henry = next(p for p in d.players if p["player_name"] == "Derrick Henry")
+    assert henry["roster_position"] is None
+
+
+def test_parse_ownership_json_rejects_bad_shape():
+    with pytest.raises(dk.DkFileError, match="missing 'players'"):
+        dk.parse_ownership_json('{"ck":"1","rows":[]}')
+    with pytest.raises(dk.DkFileError, match="not JSON"):
+        dk.parse_ownership_json("nope")

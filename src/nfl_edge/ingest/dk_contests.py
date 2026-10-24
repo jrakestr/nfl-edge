@@ -3,6 +3,8 @@
 `draftkings-contest-entry-history.csv` -> raw.dk_entry_history (upsert on Entry_Key, never trimmed).
 `contest-standings-<contest_key>.zip` -> raw.dk_contests / dk_contest_players / dk_contest_entries,
 plus raw.dk_entry_slots for entries that appear in the history file.
+`dk-ownership-<contest_key>.json` (ops/dk-ownership.js, gamecenter API) -> the same tables with
+source='api' and no top-1% columns; for contests whose CSV export DK has already purged.
 
 The standings CSV holds two tables side by side under one header: entries on the left, the
 contest's player table (ownership and points) on the right. Any other header stops the load.
@@ -14,6 +16,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import json
 import re
 import zipfile
 from collections import defaultdict
@@ -46,6 +49,9 @@ MIN_SLATE_COVERAGE = 0.99
 # quarters of Main, not 90%. 0.32 keeps those (the smallest loaded Main contest is 0.328)
 # and leaves a contest that only covers 30% of Main unresolved.
 MIN_SLATE_FIT = 0.32
+# API dumps only see players on the top ~500 rosters (190-210 names on a 520-670 name Main
+# slate, 0.28-0.40), so their fit floor is lower. Coverage stays at 0.99.
+MIN_API_SLATE_FIT = 0.20
 CLASSIC_GAME = "Classic"
 HISTORY_FILENAME = "draftkings-contest-entry-history.csv"
 
@@ -407,7 +413,7 @@ def fpts_map(players: list[dict]) -> dict[str, Decimal]:
     return out
 
 
-def resolve_slate_id(names: set[str], slates: dict[str, set[str]]) -> str | None:
+def resolve_slate_id(names: set[str], slates: dict[str, set[str]], min_fit: float = MIN_SLATE_FIT) -> str | None:
     """Smallest model slate that covers the contest, and that the contest covers back.
 
     Coverage is one way: a primetime contest's names all sit on Main, so Main would win
@@ -423,7 +429,7 @@ def resolve_slate_id(names: set[str], slates: dict[str, set[str]]) -> str | None
         both = names & have
         cov = len(both) / len(names)
         fit = len(both) / len(have)
-        if cov >= MIN_SLATE_COVERAGE and fit >= MIN_SLATE_FIT:
+        if cov >= MIN_SLATE_COVERAGE and fit >= min_fit:
             scored.append((-round(cov, 4), len(have), sid))
     return min(scored)[2] if scored else None
 
@@ -569,6 +575,170 @@ def ingest_standings(
     return res
 
 
+# ---------------------------------------------------------------- gamecenter API ownership
+
+@dataclass
+class OwnershipDump:
+    """One contest pulled by ops/dk-ownership.js: top-~500 entries plus DK's per-player totals."""
+    contest_key: int
+    entries: list[dict]            # rank, entry_id, entry_name, points, lineup
+    players: list[dict]            # player_name, roster_position (non-FLEX), pct_drafted, fpts
+    cash_score: Decimal | None
+
+
+def parse_ownership_json(text: str) -> list[OwnershipDump]:
+    """A dk-ownership JSON file holds one contest object or a dict of them keyed by contest key.
+
+    `percentDrafted` in the API is the player's contest-wide total (the same number on his RB and
+    FLEX rows), so the player table collapses to one row per player under his non-FLEX position.
+    A player seen only at FLEX keeps roster_position None; the loader fills it from the slate's
+    salary file and refuses the contest if it cannot.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise DkFileError(f"not JSON: {e}") from None
+    objs = [data] if isinstance(data, dict) and "ck" in data else list(data.values()) if isinstance(data, dict) else None
+    if not objs:
+        raise DkFileError("ownership JSON has no contest objects (expected keys ck, rows, players)")
+    out: list[OwnershipDump] = []
+    for d in objs:
+        for k in ("ck", "rows", "players"):
+            if k not in d:
+                raise DkFileError(f"ownership JSON object missing {k!r}")
+        ck = int(d["ck"])
+        entries = []
+        for r in d["rows"]:
+            entries.append({
+                "rank": int(r["rank"]), "entry_id": int(r["entryKey"]),
+                "entry_name": (r.get("user") or "").strip() or None,
+                "points": Decimal(str(r["pts"])) if r.get("pts") is not None else None,
+                "lineup": (r.get("lineup") or "").strip(),
+            })
+        if not entries:
+            raise DkFileError(f"contest {ck}: no leaderboard rows")
+        ids = [e["entry_id"] for e in entries]
+        if len(ids) != len(set(ids)):
+            raise DkFileError(f"contest {ck}: duplicate entry keys")
+        by_name: dict[str, dict] = {}
+        for p in d["players"]:
+            name = str(p["name"]).strip()
+            if p.get("own") is None:
+                raise DkFileError(f"contest {ck}: {name!r} has no percentDrafted")
+            own = (Decimal(str(p["own"])) / Decimal(100)).quantize(Decimal("0.000001"))
+            row = by_name.setdefault(name, {"player_name": name, "roster_position": None,
+                                            "pct_drafted": own, "fpts": None})
+            if row["pct_drafted"] != own:
+                raise DkFileError(f"contest {ck}: {name!r} has two different percentDrafted values")
+            if p.get("fpts") is not None:
+                row["fpts"] = Decimal(str(p["fpts"]))
+            if p.get("pos") and p["pos"] != "FLEX":
+                row["roster_position"] = p["pos"]
+        if not by_name:
+            raise DkFileError(f"contest {ck}: no player rows")
+        cash = d.get("cash")
+        out.append(OwnershipDump(
+            contest_key=ck, entries=entries, players=list(by_name.values()),
+            cash_score=Decimal(str(cash)) if cash is not None else None,
+        ))
+    return out
+
+
+def _salary_positions(slate_id: str) -> dict[str, str]:
+    df = read_sql(
+        "select name, min(position) as position from raw.dk_salaries "
+        "where site = 'dk' and slate_id = %s and position is not null group by name", (slate_id,))
+    return {str(r["name"]).strip(): str(r["position"]) for r in df.to_dicts()}
+
+
+def ingest_ownership(path: Path, slate_id: str | None = None, force: bool = False) -> list[ContestResult]:
+    """dk-ownership JSON -> raw.dk_contests (source='api') + dk_contest_players + dk_contest_entries.
+
+    Field size comes from raw.dk_entry_history (the API dump only has the top ~500), so a contest
+    with no history row is refused. top1 columns stay null: the 99th-percentile line needs the
+    full field. A contest already loaded from a full standings CSV is left alone unless --force.
+    """
+    raw = path.read_bytes()
+    sha = hashlib.sha256(raw).hexdigest()
+    dumps = parse_ownership_json(raw.decode("utf-8"))
+    slates = _salary_slates()
+    results: list[ContestResult] = []
+    for dump in dumps:
+        ck = dump.contest_key
+        prior = read_sql("select source_sha256, source from raw.dk_contests where contest_key = %s", (ck,))
+        if not prior.is_empty() and not force:
+            if prior[0, "source"] == "standings":
+                results.append(ContestResult(contest_key=ck, status="unchanged"))
+                continue
+            if prior[0, "source_sha256"] == sha:
+                results.append(ContestResult(contest_key=ck, status="unchanged"))
+                continue
+        hist = _history_for(ck)
+        field_size = next((h["contest_entries"] for h in hist if h["contest_entries"]), None)
+        if not field_size:
+            raise DkFileError(f"contest {ck}: no raw.dk_entry_history row with Contest_Entries; "
+                              "load dk-history first")
+        paid = {h["places_paid"] for h in hist if h["places_paid"] is not None}
+        if len(paid) > 1:
+            raise DkFileError(f"contest {ck}: history rows disagree on Places_Paid {sorted(paid)}")
+        places_paid = paid.pop() if paid else None
+        fpts = fpts_map(dump.players)
+        sid = slate_id or resolve_slate_id(set(fpts), slates, min_fit=MIN_API_SLATE_FIT)
+        flex_only = [p for p in dump.players if p["roster_position"] is None]
+        if flex_only:
+            if sid is None:
+                raise DkFileError(f"contest {ck}: no slate resolved, cannot place FLEX-only players "
+                                  f"({', '.join(p['player_name'] for p in flex_only)})")
+            pos = _salary_positions(sid)
+            missing = [p["player_name"] for p in flex_only if p["player_name"] not in pos]
+            if missing:
+                raise DkFileError(f"contest {ck}: FLEX-only players not in {sid} salaries: {', '.join(missing)}")
+            for p in flex_only:
+                p["roster_position"] = pos[p["player_name"]]
+        position = {p["player_name"]: p["roster_position"] for p in dump.players}
+        name = next((_ENTRY_SUFFIX_RE.sub("", h["entry_name"] or "") or None for h in hist), None)
+        res = ContestResult(contest_key=ck, status="loaded", entries=field_size, players=len(dump.players),
+                            cash_score=dump.cash_score, slate_id=sid, contest_name=name,
+                            history_entries=field_size)
+        mine_ids = {h["entry_key"] for h in hist}
+        slot_rows: list[tuple] = []
+        for e in dump.entries:
+            if e["entry_id"] not in mine_ids:
+                continue
+            res.mine += 1
+            out = entry_slots(e, fpts, position)
+            if "miss" in out:
+                res.misses.append((e["entry_id"], out["miss"]))
+                continue
+            res.slot_entries += 1
+            for s in out["slots"]:
+                slot_rows.append((e["entry_id"], s["slot_order"], ck, s["slot"], s["position"],
+                                  s["player_name"], s["fpts"]))
+        with conn() as c, c.cursor() as cur:
+            cur.execute("delete from raw.dk_contests where contest_key = %s", (ck,))
+            cur.execute(
+                "insert into raw.dk_contests (contest_key, contest_name, entries, places_paid, top1_rank, "
+                "top1_score, cash_score, slate_id, source_file, source_sha256, source) "
+                "values (%s,%s,%s,%s,null,null,%s,%s,%s,%s,'api')",
+                (ck, name, field_size, places_paid, dump.cash_score, sid, path.name, sha))
+            with cur.copy("copy raw.dk_contest_players (contest_key, player_name, roster_position, "
+                          "pct_drafted, fpts, top1_rate) from stdin") as cp:
+                for p in dump.players:
+                    cp.write_row((ck, p["player_name"], p["roster_position"], p["pct_drafted"], p["fpts"], None))
+            with cur.copy("copy raw.dk_contest_entries (contest_key, entry_id, rank, entry_name, points, "
+                          "lineup) from stdin") as cp:
+                for e in dump.entries:
+                    cp.write_row((ck, e["entry_id"], e["rank"], e["entry_name"], e["points"], e["lineup"]))
+            if slot_rows:
+                with cur.copy("copy raw.dk_entry_slots (entry_key, slot_order, contest_key, slot, position, "
+                              "player_name, fpts) from stdin") as cp:
+                    for r in slot_rows:
+                        cp.write_row(r)
+            c.commit()
+        results.append(res)
+    return results
+
+
 def _group_history(rows: list[dict]) -> dict[int, list[dict]]:
     out: dict[int, list[dict]] = defaultdict(list)
     for r in rows:
@@ -692,7 +862,8 @@ def load_folder(directory: Path, *, dry_run: bool = False, force: bool = False) 
 
 __all__ = [
     "DkFileError", "ScanRow", "Standings", "cash_line", "contest_key_from_name", "entry_slots",
-    "fpts_map", "gap_contests", "history_by_contest", "ingest_standings", "load_folder",
-    "load_history", "parse_history", "parse_lineup", "parse_standings", "player_top1_rates",
+    "fpts_map", "gap_contests", "history_by_contest", "ingest_ownership", "ingest_standings",
+    "load_folder", "load_history", "parse_history", "parse_lineup", "parse_ownership_json",
+    "parse_standings", "player_top1_rates",
     "resolve_slate_id", "scan_folder", "top1_line",
 ]

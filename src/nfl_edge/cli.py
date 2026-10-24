@@ -366,13 +366,35 @@ def ingest_dk_standings(
         raise typer.Exit(code=1)
 
 
+@ingest_app.command("dk-ownership")
+def ingest_dk_ownership(
+    paths: Annotated[list[Path], typer.Argument(exists=True, dir_okay=False, help="dk-ownership-<id>.json from ops/dk-ownership.js")],
+    slate: str = typer.Option(None, help="Force the model slate id (default: resolved from raw.dk_salaries)"),
+    force: bool = typer.Option(False, "--force", help="Reload even when unchanged or already loaded from a standings CSV"),
+):
+    """Gamecenter-API ownership JSON -> raw.dk_contests (source='api'). No top-1% line; use for purged CSVs."""
+    from .ingest import dk_contests as dk
+
+    failed = False
+    for p in paths:
+        try:
+            for r in dk.ingest_ownership(p, slate_id=slate, force=force):
+                _echo_standings(r)
+        except (dk.DkFileError, RuntimeError) as e:
+            typer.echo(f"error: {p.name}: {e}")
+            failed = True
+    if failed:
+        raise typer.Exit(code=1)
+
+
 def _echo_standings(r) -> None:
     if r.status == "unchanged":
         typer.echo(f"{r.contest_key}: unchanged, skipped")
         return
+    top1 = f"top1 {r.top1_score}" if r.top1_score is not None else "top1 n/a (api)"
     typer.echo(
         f"{r.contest_key} {r.contest_name or '(no history row)'}: {r.entries} entries, "
-        f"{r.players} player rows, top1 {r.top1_score}, cash {r.cash_score}, "
+        f"{r.players} player rows, {top1}, cash {r.cash_score}, "
         f"slate {r.slate_id or 'unresolved'}, "
         f"mine {r.mine} ({r.slot_entries} with slots)"
     )
