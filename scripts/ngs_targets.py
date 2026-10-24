@@ -11,7 +11,8 @@ OUT = sys.argv[2]
 FIX = {"LAR": "LA", "WSH": "WAS", "JAC": "JAX"}
 
 # --- slate: teams, opponents, salaries, DK status ---
-rows = list(csv.DictReader(open(DK, encoding="utf-8-sig")))
+with open(DK, encoding="utf-8-sig") as f:
+    rows = list(csv.DictReader(f))
 opp, kick, sal = {}, {}, {}
 for r in rows:
     away, home = r["Game Info"].split(" ")[0].split("@")
@@ -182,5 +183,6 @@ for t in sorted(teams):
 for _, c in sorted(tm, reverse=True):
     out.append(line(c))
 
-open(OUT, "w").write("\n".join(out) + "\n")
+with open(OUT, "w") as f:
+    f.write("\n".join(out) + "\n")
 print(f"wrote {OUT}; weeks in pbp: {sorted(pbp['week'].unique().to_list())}")

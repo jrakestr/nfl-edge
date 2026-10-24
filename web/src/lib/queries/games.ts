@@ -288,7 +288,7 @@ export async function skillPlayersForWeek(
                u.team,
                u.position,
                u.week,
-               u.snap_pct::float8 as snap_pct,
+               u.offense_pct::float8 as snap_pct,
                u.target_share::float8 as target_share,
                u.fpts_ppr::float8 as fpts_ppr,
                (coalesce(u.targets, 0) + coalesce(u.carries, 0))::float8 as opps,
