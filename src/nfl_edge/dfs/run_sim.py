@@ -37,11 +37,11 @@ def run(
         opto._run(tools, [site, "sim", "cid", "file", str(iterations)])
         gpp = opto._newest(tools, f"{site}_gpp_sim_lineups_*.csv")
         exp = opto._newest(tools, f"{site}_gpp_sim_player_exposure_*.csv")
-    shutil.copy2(gpp, export_dir / "gpp_lineups.csv")
+    lineups = parse_gpp_csv(gpp)
+    gpp.unlink(missing_ok=True)
     shutil.copy2(exp, export_dir / "gpp_exposure.csv")
     return {
-        "gpp_path": str(export_dir / "gpp_lineups.csv"),
         "exposure_path": str(export_dir / "gpp_exposure.csv"),
-        "lineups": parse_gpp_csv(gpp),
+        "lineups": lineups,
         "exposure": parse_exposure_csv(exp, slate_rows or []),
     }

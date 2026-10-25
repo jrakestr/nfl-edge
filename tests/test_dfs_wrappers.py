@@ -493,7 +493,8 @@ def test_run_sim_stages_cid_file_command(tmp_path, monkeypatch):
     out = S.run(exp, site="dk", iterations=5000, slate_rows=[])
     assert seen["args"] == ["dk", "sim", "cid", "file", "5000"]
     assert out["lineups"] == [{"lineup_id": "0"}]
-    assert (exp / "gpp_lineups.csv").is_file()
+    assert not (exp / "gpp_lineups.csv").exists()
+    assert not gpp.exists()
     assert (exp / "gpp_exposure.csv").is_file()
 
 
@@ -518,8 +519,12 @@ def test_run_sim_showdown_stages_sd_sim_cid_file(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(S, "parse_gpp_csv", lambda _p: [])
     monkeypatch.setattr(S, "parse_exposure_csv", lambda _p, _r: [])
-    S.run(exp, site="dk", iterations=5000, slate_rows=[], showdown=True)
+    out = S.run(exp, site="dk", iterations=5000, slate_rows=[], showdown=True)
     assert seen["args"] == ["dk", "sd_sim", "cid", "file", "5000"]
+    assert out["lineups"] == []
+    assert not (exp / "gpp_lineups.csv").exists()
+    assert not gpp.exists()
+    assert (exp / "gpp_exposure.csv").is_file()
 
 
 def test_resolve_uv_fallback_when_not_on_path(monkeypatch, tmp_path):
