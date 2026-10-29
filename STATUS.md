@@ -1,5 +1,13 @@
 # Status
 
+## Odds/DK blocked on the Mac's network; Refresh fetches salaries and runs at inactives (2026-10-29)
+
+What changed: the Mac's DNS (10.7.1.60/10.7.2.60, Cisco Umbrella) sends `api.the-odds-api.com` and `www.draftkings.com` to block page `146.112.61.106`, which is the `SSLV3_ALERT_HANDSHAKE_FAILURE` in `cron-lines.log` since 2026-10-28. FantasyPros, ESPN, GitHub and Supabase resolve. No code bug. `ops/week-rebuild.sh` now runs `dk-fetch`, else `storage pull-salaries`, and treats an odds failure as soft. Refresh (`workflow._refresh`) runs `dk-fetch`. `refresh.yml` adds slots after each inactives list (Sun 16:35, Sun 20:00, Sun/Mon/Thu 23:55 UTC, set for ET standard time). Docs no longer ask for manual CSV exports.
+
+What was verified: `tests/test_workflow.py`, `test_week_rebuild_plist.py`, `test_dk_lobby.py` 30 passed, ruff clean. Dispatched Refresh run 40952321726: odds 11 books (remaining=19835), FantasyPros injuries written, 20 week-8 DK slates fetched and pushed. `storage pull-salaries --week 8` on the Mac pulled them all, including `showdown-car-gb`.
+
+What was deferred: Refresh pulls inactives into `raw.player_overrides` but never re-sims, so the newest run does not reflect them until a sim runs. The same Refresh logged `espn-league: loc_weekly_scores has team names ESPN no longer uses: NightmareOn39thSt` (soft, nothing written).
+
 ## Weeks 6–7 graded, week 8 Tuesday sim + lines (2026-10-28)
 
 What changed: the Tuesday 09:00 grade agent had logged `unreachable, skipped` since week 6, so `ops/week-grade.sh` was run by hand. Week 6 left `2026_06_HOU_JAX` (London, neutral cutoff 00:00 ET) ungraded: its newest pre-cutoff run `b464417e` was an Actions `workflow` sim whose draws existed only in Supabase Storage, and an earlier prune had nulled its `draws_path`. Draws were pulled (`storage pull-draws --week 6 --run-id b464417e…`), `proj_games`/`proj_players.draws_path` restored for that run (14 / 454 rows), and week 6 re-graded. `grade-jev` crashed in its report (conditional inside an f-string format spec); fixed in `c2fd6c2`. Week 8 sim `70d1b98f` (20k, 14/14) on HEAD with two working-tree changes committed first: `5818af8` (opportunity check allows targets ≤ pass_att under untargeted attempts; HEAD without it failed 28/28 team checks on run `e1a931f4`, which is superseded and left in place) and `c6f81fc` (an `active` override admits a non-ACT roster player and takes QB1 precedence). The uncommitted external-usage blend (`config/sim.yaml` `external_usage_*`, `priors/__init__.py`, untracked `priors/external_usage.py`) was stashed for the sim and restored after; it did not run.
