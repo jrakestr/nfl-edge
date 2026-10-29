@@ -243,7 +243,8 @@ def load_dk_salaries(season: int, week: int) -> dict[str, float]:
 
 
 def _team_checks(t: TeamDraws, p: pp.PlayerDraws | None, usage: pl.DataFrame, d: GameDraws,
-                 side: str, prior: TeamPrior, game_id: str, cfg: dict) -> list[dict]:
+                 side: str, prior: TeamPrior, game_id: str, cfg: dict,
+                 target_rate: float = 1.0) -> list[dict]:
     base = {"game_id": game_id, "team": t.team}
     out = []
 
@@ -268,7 +269,11 @@ def _team_checks(t: TeamDraws, p: pp.PlayerDraws | None, usage: pl.DataFrame, d:
                   & (p.cmp.sum(0) == p.rec.sum(0)) & (p.pass_td.sum(0) == p.rec_td.sum(0))
                   & (p.int.sum(0) == t.int)).mean()
             add("qb_totals", ok, 1.0, ok == 1.0)
-        ok = ((p.targets.sum(0) == t.pass_att) & (p.carries.sum(0) == t.rush_att)).mean()
+        # With untargeted attempts (throwaways, spikes) receivers split Bin(pass_att, rate), so
+        # their targets sum to at most pass_att; carries always sum to rush_att exactly.
+        tgt_sum = p.targets.sum(0)
+        tgt_ok = (tgt_sum == t.pass_att) if target_rate >= 1.0 else (tgt_sum <= t.pass_att)
+        ok = (tgt_ok & (p.carries.sum(0) == t.rush_att)).mean()
         add("opportunity_totals", ok, 1.0, ok == 1.0)
     # (5) mean points vs E[drives] * ppd_adj; (6) mean plays vs E[drives] * plays_per_drive
     exp_pts = d.drives_mean * d.ppd_adj[side]
@@ -304,9 +309,10 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
         eff = qb_adjusted_efficiency(priors.efficiency.filter(pl.col("player_id").is_in(usage["player_id"])), factor)
         if usage.is_empty():
             raise ValueError(f"{game_id}: no usage priors for {t.team}")
-        p = pp.allocate(t, usage, eff, cfg, rng, target_rate=float(getattr(priors, "target_rate", 1.0)))
+        target_rate = float(getattr(priors, "target_rate", 1.0))
+        p = pp.allocate(t, usage, eff, cfg, rng, target_rate=target_rate)
         pdraws[t.team] = p
-        checks += _team_checks(t, p, usage, d, side, prior, game_id, cfg)
+        checks += _team_checks(t, p, usage, d, side, prior, game_id, cfg, target_rate=target_rate)
         fp = {"dk": np.empty_like(p.rec_yds, dtype=float), "fd": np.empty_like(p.rec_yds, dtype=float),
               "ppr": np.empty_like(p.rec_yds, dtype=float)}
         for i, pid in enumerate(p.player_ids):

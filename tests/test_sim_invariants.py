@@ -230,6 +230,25 @@ def test_opportunity_totals_every_draw(draws, home_players):
     assert (p.fum_lost <= p.carries + p.rec).all()
 
 
+def test_opportunity_totals_check_honours_untargeted_attempts(draws):
+    # untargeted-attempts (6e69f6b) makes receiver targets Bin(pass_att, rate) < pass_att by
+    # design; the invariant must compare <= under that rate and == without it.
+    from nfl_edge.sim import slate
+
+    rng = np.random.default_rng(3)
+    p = players.allocate(draws.home, _usage("HOME"), _efficiency("HOME"), CFG, rng, target_rate=0.9)
+    assert (p.targets.sum(axis=0) <= draws.home.pass_att).all()
+    assert (p.targets.sum(axis=0) < draws.home.pass_att).any()
+    usage = _usage("HOME")
+    rows = slate._team_checks(draws.home, p, usage, draws, "home", _team("HOME"), "g", CFG,
+                              target_rate=0.9)
+    opp = next(r for r in rows if r["check_name"] == "opportunity_totals")
+    assert opp["passed"] is True
+    rows = slate._team_checks(draws.home, p, usage, draws, "home", _team("HOME"), "g", CFG)
+    opp = next(r for r in rows if r["check_name"] == "opportunity_totals")
+    assert opp["passed"] is False
+
+
 def test_allocation_tracks_shares(draws, home_players):
     p = home_players
     ids = p.player_ids
