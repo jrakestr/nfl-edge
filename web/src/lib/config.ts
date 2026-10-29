@@ -24,6 +24,7 @@ export const NAV = [
   { href: "/lineups", label: "Lineups", match: /^\/lineups|\/dfs\/(?![^/]+\/[^/]+\/review)/, icon: "lineups", group: "DFS" },
   { href: "/research", label: "Research Lab", match: /^\/research/, icon: "research", group: "DFS" },
   { href: "/review", label: "Slate review", match: /^\/review|\/week\/\d+\/dfs\/[^/]+\/[^/]+\/review/, icon: "review", group: "DFS" },
+  { href: "/history", label: "Contest history", match: /^\/history/, icon: "history", group: "DFS" },
   { href: "/grading", label: "Grading", match: /^\/grading/, icon: "grading", group: "Grade" },
   { href: "/week/1/claims", label: "Claims", match: /\/week\/\d+\/claims/, icon: "claims", group: "Grade" },
   { href: "/league", label: "LOC league", match: /^\/league/, icon: "league", group: "League" },

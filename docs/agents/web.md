@@ -12,7 +12,9 @@
 - Players table plus/minus: upserts `model.player_point_edits` (a whole-point `delta`
   for that player-week). Display only. It does not change `proj_players` or priors.
   The `Adjusted` column is this week's sim plus his average miss from earlier weeks
-  (`model.player_proj_actual`, week < W). The `Yours` column is `Adjusted + delta`
+  (`model.player_proj_actual`, week < W). `Pts/$` is that chosen projection
+  (DK, NFLGameSim, FantasyPros, Adjusted, or Yours) per $1,000 of salary.
+  The `Yours` column is `Adjusted + delta`
   (not `DK pts + delta`), and is blank (`—`) with no stepper buttons when `Adjusted`
   is null. It is not saved back into the sim. Optimize can build lineups on those
   display numbers (Adjusted, Yours, NFLGameSim, FantasyPros). That read does not

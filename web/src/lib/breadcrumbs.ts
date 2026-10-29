@@ -20,6 +20,7 @@ const ROOT: Record<string, string> = {
   lineups: "Lineups",
   review: "Slate review",
   research: "Research Lab",
+  history: "Contest history",
   grading: "Grading",
   claims: "Claims",
   league: "LOC league",

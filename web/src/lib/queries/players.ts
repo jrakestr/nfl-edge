@@ -495,3 +495,51 @@ export async function actualsByPlayer(
   }
   return { graded: rows.length > 0, byPlayer };
 }
+
+/**
+ * Inverse-MAE^2 source weights per position strictly before `week` in `season` (as-of rule).
+ * Used to compute the adaptive `blend_fpts` column on the Players and Optimizer tables.
+ */
+export async function sourceWeightsByPosition(
+  season: number,
+  week: number,
+): Promise<Record<string, { ours: number; fp: number; ngs: number }>> {
+  if (week <= 1) return {};
+  try {
+    const rows = await sql()`
+      select pa.position,
+             avg(abs(pa.proj_dk_mean - pa.actual_dk))::float8 as mae_ours,
+             count(*) filter (where fp.fpts_dk is not null)::int as n_fp,
+             avg(abs(fp.fpts_dk - pa.actual_dk)) filter (where fp.fpts_dk is not null)::float8 as mae_fp,
+             count(*) filter (where ngs.fpts_dk is not null)::int as n_ngs,
+             avg(abs(ngs.fpts_dk - pa.actual_dk)) filter (where ngs.fpts_dk is not null)::float8 as mae_ngs
+      from model.player_proj_actual pa
+      left join raw.external_players fp
+        on fp.source = 'fantasypros' and fp.season = pa.season
+        and fp.week = pa.week and fp.player_id = pa.player_id
+      left join raw.external_players ngs
+        on ngs.source = 'nflgamesim' and ngs.season = pa.season
+        and ngs.week = pa.week and ngs.player_id = pa.player_id
+      where pa.season = ${season} and pa.week < ${week}
+        and pa.had_opportunity and pa.actual_dk is not null and pa.proj_dk_mean is not null
+      group by pa.position`;
+    const out: Record<string, { ours: number; fp: number; ngs: number }> = {};
+    for (const r of rows) {
+      if (!r.position || r.mae_ours == null) continue;
+      const invOurs = 1 / Math.max(Number(r.mae_ours), 0.5) ** 2;
+      const invFp = Number(r.n_fp ?? 0) >= 10 && r.mae_fp != null ? 1 / Math.max(Number(r.mae_fp), 0.5) ** 2 : 0;
+      const invNgs = Number(r.n_ngs ?? 0) >= 10 && r.mae_ngs != null ? 1 / Math.max(Number(r.mae_ngs), 0.5) ** 2 : 0;
+      const sum = invOurs + invFp + invNgs;
+      if (sum > 0) {
+        out[String(r.position)] = {
+          ours: invOurs / sum,
+          fp: invFp / sum,
+          ngs: invNgs / sum,
+        };
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}

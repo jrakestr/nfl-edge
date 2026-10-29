@@ -406,8 +406,10 @@ export const WeekPlayerSchema = z.object({
   fpts_dk_mean: numOrNull,
   fpts_dk_sd: numOrNull.optional(),
   ngs_fpts: numOrNull.optional(),
-  /** FantasyPros projected DK points (benchmark only; the sim never reads it). */
+  /**FantasyPros projected DK points (benchmark only; the sim never reads it). */
   fp_fpts: numOrNull.optional(),
+  /** As-of inverse-MAE^2 learned blend of DK pts, FantasyPros, and NFLGameSim. */
+  blend_fpts: numOrNull.optional(),
   /** Average of (actual minus sim) over earlier weeks this season. Null when he has no graded week. */
   mean_miss: numOrNull.optional(),
   /** Whole points added to a display copy of the sim. The sim column stays put. */

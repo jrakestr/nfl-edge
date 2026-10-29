@@ -44,7 +44,7 @@ export const DEFAULT_POS_BOUNDS: Record<FlexPos, PosBound> = {
 export type ConstructionId = "cash" | "single" | "mass";
 
 /** Which number the web optimizer treats as a player's points. */
-export type PointSource = "dk" | "ngs" | "fp" | "adjusted" | "yours";
+export type PointSource = "dk" | "blend" | "ngs" | "fp" | "adjusted" | "yours";
 
 export type SolveControls = {
   construction: ConstructionId;

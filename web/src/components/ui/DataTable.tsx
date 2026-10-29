@@ -8,7 +8,7 @@ import {
   useLegacyTable as useReactTable,
   type LegacyColumnDef as ColumnDef,
 } from "@tanstack/react-table/legacy";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, GripVertical, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { MetricLabel, type Metric } from "@/lib/icons";
@@ -169,9 +169,47 @@ function DataTableInner<T extends object>({
   const sortDir = state.sort ? state.dir : (defaultSort?.dir ?? "desc");
   const sorting: SortingState = sortId ? [{ id: sortId, desc: sortDir === "desc" }] : [];
 
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [draggingColId, setDraggingColId] = useState<string | null>(null);
+  const [dragOverColId, setDragOverColId] = useState<string | null>(null);
+
+  const orderedColumns = useMemo(() => {
+    if (columnOrder.length === 0) return columns;
+    const byId = new Map(columns.map((c) => [c.id, c]));
+    const seen = new Set<string>();
+    const out: DataColumn<T>[] = [];
+    for (const id of columnOrder) {
+      const col = byId.get(id);
+      if (col) {
+        out.push(col);
+        seen.add(id);
+      }
+    }
+    for (const col of columns) {
+      if (!seen.has(col.id)) out.push(col);
+    }
+    return out;
+  }, [columns, columnOrder]);
+
+  const reorderColumn = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    setColumnOrder((prev) => {
+      const base = prev.length > 0 ? [...prev] : columns.map((c) => c.id);
+      for (const c of columns) {
+        if (!base.includes(c.id)) base.push(c.id);
+      }
+      const fromIdx = base.indexOf(sourceId);
+      const toIdx = base.indexOf(targetId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      base.splice(fromIdx, 1);
+      base.splice(toIdx, 0, sourceId);
+      return base;
+    });
+  };
+
   const defs = useMemo<ColumnDef<T>[]>(
     () =>
-      columns.map((col) => ({
+      orderedColumns.map((col) => ({
         id: col.id,
         accessorFn: (row) => col.sortValue?.(row) ?? "",
         enableSorting: col.sortable !== false,
@@ -179,7 +217,7 @@ function DataTableInner<T extends object>({
         cell: ({ row }) => col.cell(row.original),
         meta: col,
       })),
-    [columns],
+    [orderedColumns],
   );
 
   const table = useReactTable({
@@ -268,9 +306,9 @@ function DataTableInner<T extends object>({
       scroller.removeEventListener("scroll", apply);
       window.removeEventListener("resize", apply);
     };
-  }, [stickyHeader, filtered, columns, sortId, sortDir, colWidths]);
+  }, [stickyHeader, filtered, orderedColumns, sortId, sortDir, colWidths]);
 
-  const categorySpans = useMemo(() => computeCategorySpans(columns), [columns]);
+  const categorySpans = useMemo(() => computeCategorySpans(orderedColumns), [orderedColumns]);
 
   const headerRows = (mode: "frozen" | "layout" | "normal") => (
     <TableHeader
@@ -281,7 +319,7 @@ function DataTableInner<T extends object>({
     >
       {mode !== "layout" && headerNote ? (
         <TableRow className="hover:bg-transparent">
-          <TableHead colSpan={columns.length} resizable={false} className="h-auto bg-muted py-2">
+          <TableHead colSpan={orderedColumns.length} resizable={false} className="h-auto bg-muted py-2">
             {headerNote}
           </TableHead>
         </TableRow>
@@ -311,9 +349,11 @@ function DataTableInner<T extends object>({
       {table.getHeaderGroups().map((hg) => (
         <TableRow key={hg.id} className="hover:bg-transparent">
           {hg.headers.map((h) => {
-            const col = columns.find((c) => c.id === h.id);
+            const col = orderedColumns.find((c) => c.id === h.id);
             const sortable = col?.sortable !== false;
             const active = sortId === h.id;
+            const isDragging = draggingColId === h.id;
+            const isDragOver = dragOverColId === h.id && draggingColId !== h.id;
             const widthPx = colWidths[h.id] ?? col?.size;
             const widthStyle: React.CSSProperties | undefined =
               widthPx != null
@@ -327,6 +367,15 @@ function DataTableInner<T extends object>({
                   : undefined;
             const label = (
               <span className={cn("inline-flex max-w-full items-end gap-1 whitespace-normal", col?.align === "right" && "ml-auto text-right")}>
+                {mode !== "layout" ? (
+                  <GripVertical
+                    size={13}
+                    strokeWidth={1.5}
+                    aria-hidden
+                    data-slot="column-drag-grip"
+                    className="shrink-0 cursor-grab opacity-0 transition-opacity group-hover/th:opacity-60 active:cursor-grabbing"
+                  />
+                ) : null}
                 <span>{col?.metric ? <MetricLabel metric={col.metric}>{col.header}</MetricLabel> : col?.header}</span>
                 {sortable ? (
                   active ? (
@@ -346,12 +395,44 @@ function DataTableInner<T extends object>({
                 key={h.id}
                 data-col-id={h.id}
                 data-active-sort={active ? sortDir : undefined}
+                data-dragging={isDragging ? "true" : undefined}
+                data-drag-over={isDragOver ? "true" : undefined}
+                draggable={mode !== "layout"}
+                onDragStart={(e) => {
+                  if (mode === "layout") return;
+                  setDraggingColId(h.id);
+                  e.dataTransfer?.setData("text/plain", h.id);
+                  if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  if (mode === "layout") return;
+                  e.preventDefault();
+                  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+                  if (dragOverColId !== h.id) setDragOverColId(h.id);
+                }}
+                onDragLeave={() => {
+                  if (dragOverColId === h.id) setDragOverColId(null);
+                }}
+                onDrop={(e) => {
+                  if (mode === "layout") return;
+                  e.preventDefault();
+                  const sourceId = e.dataTransfer?.getData("text/plain") || draggingColId;
+                  if (sourceId) reorderColumn(sourceId, h.id);
+                  setDraggingColId(null);
+                  setDragOverColId(null);
+                }}
+                onDragEnd={() => {
+                  setDraggingColId(null);
+                  setDragOverColId(null);
+                }}
                 resizable={mode !== "layout"}
                 onResizeWidth={(w) => setColumnWidth(h.id, w)}
                 style={widthStyle}
                 className={cn(
-                  "t-colhead text-muted-foreground",
+                  "t-colhead text-muted-foreground select-none transition-colors",
                   mode !== "layout" && (active ? "bg-sorted-col text-foreground border-b-2 border-b-line" : "bg-muted"),
+                  isDragging && "opacity-50",
+                  isDragOver && "border-l-2 border-l-line bg-line-tint/40",
                   col?.align === "right" && "text-right",
                   col?.headClassName,
                 )}
@@ -470,6 +551,18 @@ function DataTableInner<T extends object>({
         aria-label={ariaLabel}
       >
         {toolbar}
+        {columnOrder.length > 0 ? (
+          <div className="flex items-center justify-end border-b border-border-soft bg-surface-inset px-3 py-1.5">
+            <button
+              type="button"
+              onClick={() => setColumnOrder([])}
+              className="inline-flex items-center gap-1 rounded px-2 py-0.5 t-caption font-semibold text-muted-foreground hover:bg-card hover:text-foreground"
+            >
+              <RotateCcw size={13} aria-hidden />
+              Reset column order
+            </button>
+          </div>
+        ) : null}
         {stickyHeader ? (
           <div
             data-slot="sticky-head"
@@ -485,7 +578,7 @@ function DataTableInner<T extends object>({
           <TableBody>
             {visibleRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="py-6 text-center t-caption">
+                <TableCell colSpan={orderedColumns.length} className="py-6 text-center t-caption">
                   {empty}
                 </TableCell>
               </TableRow>
@@ -501,7 +594,7 @@ function DataTableInner<T extends object>({
                     onClick={onRowClick ? () => onRowClick(row.original) : extra.onClick}
                   >
                     {row.getVisibleCells().map((cell) => {
-                      const col = columns.find((c) => c.id === cell.column.id);
+                      const col = orderedColumns.find((c) => c.id === cell.column.id);
                       const activeCol = sortId === cell.column.id;
                       const widthPx = colWidths[cell.column.id] ?? col?.size;
                       const cellStyle: React.CSSProperties | undefined =
@@ -517,6 +610,7 @@ function DataTableInner<T extends object>({
                       return (
                         <TableCell
                           key={cell.id}
+                          data-col-id={cell.column.id}
                           data-active-sort={activeCol ? sortDir : undefined}
                           style={cellStyle}
                           className={cn(
@@ -535,10 +629,10 @@ function DataTableInner<T extends object>({
               })
             )}
           </TableBody>
-          {visibleRows.length > 0 && columns.some((c) => c.footer !== undefined) ? (
+          {visibleRows.length > 0 && orderedColumns.some((c) => c.footer !== undefined) ? (
             <TableFooter data-slot="table-footer">
               <TableRow className="bg-surface-inset font-semibold hover:bg-surface-inset">
-                {columns.map((col) => (
+                {orderedColumns.map((col) => (
                   <TableCell
                     key={col.id}
                     className={cn(

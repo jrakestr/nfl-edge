@@ -217,5 +217,43 @@ describe("DataTable", () => {
     expect(tfoot).toHaveTextContent("Totals");
     expect(tfoot).toHaveTextContent("40.0");
   });
+
+  it("reorders columns via drag-and-drop and resets column order", () => {
+    const { container } = render(
+      <DataTable
+        syncUrl={false}
+        data={[{ id: "1", name: "Alpha", pts: 24.5, sal: 6200 }]}
+        getRowId={(r) => r.id}
+        empty="none"
+        ariaLabel="DragColDemo"
+        columns={[
+          { id: "name", header: "Player", cell: (r) => r.name },
+          { id: "pts", header: "Points", align: "right", cell: (r) => r.pts },
+          { id: "sal", header: "Salary", align: "right", cell: (r) => r.sal },
+        ]}
+      />,
+    );
+
+    const getHeaderIds = () =>
+      Array.from(container.querySelectorAll("thead th[data-col-id]")).map((el) =>
+        el.getAttribute("data-col-id"),
+      );
+
+    expect(getHeaderIds()).toEqual(["name", "pts", "sal"]);
+
+    const salHeader = container.querySelector('th[data-col-id="sal"]')!;
+    const ptsHeader = container.querySelector('th[data-col-id="pts"]')!;
+
+    fireEvent.dragStart(salHeader);
+    fireEvent.dragOver(ptsHeader);
+    fireEvent.drop(ptsHeader);
+    fireEvent.dragEnd(salHeader);
+
+    expect(getHeaderIds()).toEqual(["name", "sal", "pts"]);
+
+    const resetBtn = screen.getByRole("button", { name: /Reset column order/i });
+    fireEvent.click(resetBtn);
+    expect(getHeaderIds()).toEqual(["name", "pts", "sal"]);
+  });
 });
 

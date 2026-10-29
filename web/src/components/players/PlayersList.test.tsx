@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { GamesSelectionProvider } from "@/components/shell/GamesSelection";
 import type { StripGame } from "@/lib/kickoff";
 import { PLAYER_CELL, PlayersList } from "./PlayersList";
@@ -218,6 +218,34 @@ describe("PlayersList slate rows", () => {
     expect(screen.getByText("Full Only")).toBeInTheDocument();
     expect(screen.queryByText("Main Only")).not.toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(3);
+  });
+
+  it("points per dollar follows the projection source", () => {
+    render(
+      <PlayersList
+        players={[
+          {
+            ...MAIN[0]!,
+            ngs_fpts: 24,
+            fp_fpts: 10,
+            mean_miss: 1.8,
+            point_delta: 2,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Pts/$" })).toBeInTheDocument();
+    const source = screen.getByRole("group", { name: "Points per dollar source" });
+    fireEvent.click(within(source).getByRole("button", { name: "NFLGameSim" }));
+    expect(screen.getByText("3.00")).toBeInTheDocument();
+    fireEvent.click(within(source).getByRole("button", { name: "FantasyPros" }));
+    expect(screen.getByText("1.25")).toBeInTheDocument();
+    fireEvent.click(within(source).getByRole("button", { name: "Adjusted" }));
+    expect(screen.getByText("2.50")).toBeInTheDocument();
+    fireEvent.click(within(source).getByRole("button", { name: "Yours" }));
+    expect(screen.getByText("2.75")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Increase points for Jahmyr Gibbs" }));
+    expect(screen.getByText("2.88")).toBeInTheDocument();
   });
 
   it("shows ceiling and pts rank and not leverage, floor, or extra ranks", () => {
@@ -538,9 +566,9 @@ describe("PlayersList NFLGameSim", () => {
     expect(screen.queryByRole("button", { name: /Decrease points for/i })).not.toBeInTheDocument();
     const row = screen.getByRole("row", { name: /jahmyr gibbs/i });
     const cells = row.querySelectorAll("td");
-    // Player(0), Team(1), Opp(2), Kickoff(3), Salary(4), DK pts(5), NFLGameSim(6), FantasyPros(7), Adjusted(8), Yours(9)
-    expect(cells[8]).toHaveTextContent("—");
+    // Player(0), Team(1), Opp(2), Kickoff(3), Salary(4), DK pts(5), NFLGameSim(6), FantasyPros(7), Blend(8), Adjusted(9), Yours(10)
     expect(cells[9]).toHaveTextContent("—");
+    expect(cells[10]).toHaveTextContent("—");
   });
 
   it("sorts by the bench from ?sort=ngs&dir=desc", () => {

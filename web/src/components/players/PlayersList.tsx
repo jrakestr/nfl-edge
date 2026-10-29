@@ -33,6 +33,9 @@ import {
 } from "react";
 import { savePlayerDelta } from "@/lib/actions/player-points";
 import { adjustedForMiss, editedPoints } from "@/lib/player-edit";
+import { POINT_SOURCE_LABEL, POINT_SOURCES, projectionPoints } from "@/lib/optimize/points";
+import type { PointSource } from "@/lib/optimize/types";
+import { ptsPerK } from "@/lib/review";
 import { CURRENT_SEASON } from "@/lib/config";
 
 type PlayersViewMode = "projections" | "statsuite";
@@ -243,6 +246,7 @@ export function PlayersList({
 }) {
   const weekN = typeof week === "number" ? week : Number(week);
   const [mode, setMode] = useState<PlayersViewMode>("projections");
+  const [ppdSource, setPpdSource] = useState<PointSource>("dk");
   const { picks, toggle, setPicks } = useSlatePicks(slateId);
   const edits = usePointEdits({ season, week: weekN, site, slate });
   const live = useLiveSearchParams();
@@ -468,6 +472,12 @@ export function PlayersList({
         ]
       : [];
 
+  function ppd(p: WeekPlayer): number | null {
+    const live = edits.deltas[p.player_id];
+    const row = live == null ? p : { ...p, point_delta: live };
+    return ptsPerK(projectionPoints(row, ppdSource), p.salary);
+  }
+
   function pickAction(key: PickKey, p: WeekPlayer) {
     const id = p.player_dk_id;
     if (!id) return;
@@ -479,6 +489,20 @@ export function PlayersList({
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="t-title">Players</h1>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Points per dollar source">
+            <span className="t-caption text-muted-foreground">Pts/$</span>
+            {POINT_SOURCES.map((id) => (
+              <Button
+                key={id}
+                type="button"
+                size="sm"
+                variant={ppdSource === id ? "secondary" : "outline"}
+                onClick={() => setPpdSource(id)}
+              >
+                {POINT_SOURCE_LABEL[id]}
+              </Button>
+            ))}
+          </div>
           <ToggleGroup
             type="single"
             value={mode}
@@ -670,6 +694,18 @@ export function PlayersList({
             ),
           },
           {
+            id: "blend",
+            header: "Blend",
+            group: "PROJECTIONS",
+            align: "right",
+            sortValue: (p) => p.blend_fpts,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(p.blend_fpts)}
+              </span>
+            ),
+          },
+          {
             id: "adj",
             header: "Adjusted",
             group: "PROJECTIONS",
@@ -804,6 +840,18 @@ export function PlayersList({
                 </span>
               );
             },
+          },
+          {
+            id: "ppd",
+            header: "Pts/$",
+            group: "VALUE & OWNERSHIP",
+            align: "right",
+            sortValue: (p) => ppd(p),
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {num(ppd(p), 2)}
+              </span>
+            ),
           },
           {
             id: "injury",

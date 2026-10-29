@@ -37,6 +37,15 @@ describe("Sidebar slate links", () => {
     loc.pathname = "/week/1/players/dk/full";
   });
 
+  it("Scenario 11: Contest history link at /history sits in DFS group and is current on /history", () => {
+    loc.pathname = "/history";
+    render(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(screen.getByRole("link", { name: "Contest history" })).toHaveAttribute("href", "/history");
+    expect(screen.getByRole("link", { name: "Contest history" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Players" })).not.toHaveAttribute("aria-current");
+    loc.pathname = "/week/1/players/dk/full";
+  });
+
   it("marks Players as current on /players/[game]/[player]", () => {
     loc.pathname = "/players/2026_01_NO_DET/00-0039139";
     render(<Sidebar collapsed={false} onToggle={() => {}} />);

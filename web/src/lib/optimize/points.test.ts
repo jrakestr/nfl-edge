@@ -19,8 +19,9 @@ function wp(partial: Partial<WeekPlayer> = {}): WeekPlayer {
 
 describe("projectionPoints", () => {
   it("reads each players-table source and leaves a blank column blank", () => {
-    const row = wp({ ngs_fpts: 21, fp_fpts: 16, mean_miss: 2, point_delta: -1 });
+    const row = wp({ ngs_fpts: 21, fp_fpts: 16, blend_fpts: 18.4, mean_miss: 2, point_delta: -1 });
     expect(projectionPoints(row, "dk")).toBe(18);
+    expect(projectionPoints(row, "blend")).toBe(18.4);
     expect(projectionPoints(row, "ngs")).toBe(21);
     expect(projectionPoints(row, "fp")).toBe(16);
     expect(projectionPoints(row, "adjusted")).toBe(20);
@@ -28,11 +29,13 @@ describe("projectionPoints", () => {
     expect(projectionPoints(wp({ mean_miss: null, point_delta: 4 }), "adjusted")).toBeNull();
     expect(projectionPoints(wp({ mean_miss: null, point_delta: 4 }), "yours")).toBeNull();
     expect(projectionPoints(wp(), "fp")).toBeNull();
+    expect(projectionPoints(wp(), "blend")).toBeNull();
   });
 
   it("treats an unknown query value as DK pts", () => {
     expect(asPointSource(null)).toBe("dk");
     expect(asPointSource("nope")).toBe("dk");
+    expect(asPointSource("blend")).toBe("blend");
     expect(asPointSource("adjusted")).toBe("adjusted");
   });
 

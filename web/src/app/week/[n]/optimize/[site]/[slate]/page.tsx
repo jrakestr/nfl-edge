@@ -4,7 +4,8 @@ import { Optimizer } from "@/components/optimize/Optimizer";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { dfsLineups, salaryLookup, salaryPositions, slateCorrelations, slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
-import { editsByPlayer, fpByPlayer, missByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
+import { blendPoints } from "@/lib/player-edit";
+import { editsByPlayer, fpByPlayer, missByPlayer, ngsByPlayer, slatePlayers, sourceWeightsByPosition } from "@/lib/queries/players";
 import { stripGames } from "@/lib/queries/strip-games";
 import { slateCorrIds } from "@/lib/optimize/stack-suggestions";
 import { lineupRunForWeek } from "@/lib/queries/runs";
@@ -63,19 +64,26 @@ export default async function Page({
     sid ? slateGameInfos(siteKey, sid) : Promise.resolve([] as string[]),
   ]);
   const ids = players.map((p) => p.player_id);
-  const [ngs, fp, miss, edits] = await Promise.all([
+  const [ngs, fp, miss, edits, posWeights] = await Promise.all([
     weekOk && ids.length ? ngsByPlayer(season, week, ids) : Promise.resolve({} as Record<string, number>),
     weekOk && ids.length ? fpByPlayer(season, week, ids) : Promise.resolve({} as Record<string, number>),
     weekOk ? missByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
     weekOk ? editsByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
+    weekOk ? sourceWeightsByPosition(season, week) : Promise.resolve({} as Awaited<ReturnType<typeof sourceWeightsByPosition>>),
   ]);
-  const merged = players.map((p) => ({
-    ...p,
-    ngs_fpts: ngs[p.player_id] ?? null,
-    fp_fpts: fp[p.player_id] ?? null,
-    mean_miss: miss[p.player_id] ?? null,
-    point_delta: edits[p.player_id] ?? 0,
-  }));
+  const merged = players.map((p) => {
+    const ngsVal = ngs[p.player_id] ?? null;
+    const fpVal = fp[p.player_id] ?? null;
+    const w = p.position ? (posWeights[p.position] ?? null) : null;
+    return {
+      ...p,
+      ngs_fpts: ngsVal,
+      fp_fpts: fpVal,
+      blend_fpts: blendPoints(p.fpts_dk_mean, fpVal, ngsVal, w),
+      mean_miss: miss[p.player_id] ?? null,
+      point_delta: edits[p.player_id] ?? 0,
+    };
+  });
   const pairs = run ? await slateCorrelations(run.run_id, slateCorrIds(players)) : [];
   const teams = Object.fromEntries(Object.entries(lookup).map(([k, v]) => [k, v.team]));
   const strip = infos.length ? filterGamesForSlate(chips, infos) : chips;

@@ -4,7 +4,8 @@ import { PlayersList } from "@/components/players/PlayersList";
 import { SlateSelector } from "@/components/shell/SlateSelector";
 import { CURRENT_SEASON } from "@/lib/config";
 import { slateGameInfos, slateId, slatesForWeek } from "@/lib/queries/dfs";
-import { actualsByPlayer, editsByPlayer, fpByPlayer, missByPlayer, ngsByPlayer, slatePlayers } from "@/lib/queries/players";
+import { blendPoints } from "@/lib/player-edit";
+import { actualsByPlayer, editsByPlayer, fpByPlayer, missByPlayer, ngsByPlayer, slatePlayers, sourceWeightsByPosition } from "@/lib/queries/players";
 import { stripGames } from "@/lib/queries/strip-games";
 import { pickDefaultRun, runsForWeek, slateGameCount } from "@/lib/queries/runs";
 import { filterGamesForSlate, missingSlateNotice, requestedSlate, resolveSlate } from "@/lib/slate";
@@ -82,17 +83,22 @@ export default async function Page({
           players.map((p) => p.player_id),
         )
       : {};
-  const [actuals, miss, edits] = await Promise.all([
+  const [actuals, miss, edits, posWeights] = await Promise.all([
     weekOk && players.length ? actualsByPlayer(season, week) : Promise.resolve(null),
     weekOk ? missByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
     weekOk ? editsByPlayer(season, week) : Promise.resolve({} as Record<string, number>),
+    weekOk ? sourceWeightsByPosition(season, week) : Promise.resolve({} as Awaited<ReturnType<typeof sourceWeightsByPosition>>),
   ]);
   const merged = players.map((p) => {
     const a = actuals?.byPlayer[p.player_id];
+    const ngsVal = ngs[p.player_id] ?? null;
+    const fpVal = fp[p.player_id] ?? null;
+    const w = p.position ? (posWeights[p.position] ?? null) : null;
     return {
       ...p,
-      ngs_fpts: ngs[p.player_id] ?? null,
-      fp_fpts: fp[p.player_id] ?? null,
+      ngs_fpts: ngsVal,
+      fp_fpts: fpVal,
+      blend_fpts: blendPoints(p.fpts_dk_mean, fpVal, ngsVal, w),
       mean_miss: miss[p.player_id] ?? null,
       point_delta: edits[p.player_id] ?? 0,
       actual_dk: a?.fpts_dk ?? null,
