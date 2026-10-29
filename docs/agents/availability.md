@@ -3,6 +3,9 @@
 - Week-keyed. Every ingest is scoped by its note prefix: it writes and clears only
   its own rows and never touches manual or claims-promote rows.
 - A positive signal never clears an OUT.
+- A manual `active` row admits a player the nflverse roster still lists non-ACT (EXE, RES)
+  into the usage pool for that week. Use it when a player is activated and the roster
+  feed has not caught up. Nothing else bypasses `status = 'ACT'`.
 - DK Status O/D/Q writes overrides. Pass `--status-from` from the widest slate
   (usually `full`). A blank DK Status clears only DK-sourced rows.
 - FantasyPros injury rows (prefix `fp `) write only out/doubtful.
