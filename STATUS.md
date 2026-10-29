@@ -22,7 +22,7 @@ What changed: the Mac's DNS (10.7.1.60/10.7.2.60, Cisco Umbrella) sends `api.the
 
 What was verified: `tests/test_workflow.py`, `test_week_rebuild_plist.py`, `test_dk_lobby.py` 30 passed, ruff clean. Dispatched Refresh run 40952321726: odds 11 books (remaining=19835), FantasyPros injuries written, 20 week-8 DK slates fetched and pushed. `storage pull-salaries --week 8` on the Mac pulled them all, including `showdown-car-gb`.
 
-What was deferred: Refresh pulls inactives into `raw.player_overrides` but never re-sims, so the newest run does not reflect them until a sim runs. The same Refresh logged `espn-league: loc_weekly_scores has team names ESPN no longer uses: NightmareOn39thSt` (soft, nothing written).
+What was deferred: Refresh pulls inactives into `raw.player_overrides` but never re-sims, so the newest run does not reflect them until a sim runs. The same Refresh logged `espn-league: loc_weekly_scores has team names ESPN no longer uses: NightmareOn39thSt` (soft, nothing written). Resolved the same day: ESPN team 1 (Jamie Clark, CLAR) is now `The Loser Squad`; renamed `fantasy.loc_teams` (1) and `loc_weekly_scores` team/opp_team (7/7), then `ingest espn-league --season 2026` wrote weeks 1–8.
 
 ## Weeks 6–7 graded, week 8 Tuesday sim + lines (2026-10-28)
 
