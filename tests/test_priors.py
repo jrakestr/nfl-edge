@@ -632,3 +632,13 @@ def test_efficiency_neff_is_kish_on_touch_weights():
     # positional ypt is (80*17+60*17)/(10*17*2) = 7.0; star raw 8.0
     expected = lam * 8.0 + (1 - lam) * 7.0
     assert star["yds_per_target"] == pytest.approx(expected)
+
+
+def test_roster_admits_active_override_when_feed_says_non_act():
+    # A player the roster feed still lists EXE/RES enters the pool only through a manual
+    # `active` override for that exact week (Jacobs wk7 2026: FantasyPros projected him,
+    # nflverse roster had not moved off EXE).
+    body = inspect.getsource(usage.load_roster)
+    assert "lower(status) = 'active'" in body
+    assert "week = {week}" in body
+    assert "(r.status = 'ACT' or r.gsis_id in (select player_id from forced))" in body

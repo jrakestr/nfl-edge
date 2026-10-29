@@ -110,13 +110,20 @@ def build(qb_weeks: pl.DataFrame, starters: pl.DataFrame, fallback_qb1: pl.DataF
         })
     )
 
-    # raw.schedules keeps naming an injured starter; a ruled-out starter yields to the fallback
-    # (usage QB1, which already skips out/doubtful/ir QBs) so the team is priced on who plays.
+    # raw.schedules keeps naming an injured or stale backup starter; a ruled-out starter yields
+    # to the fallback, and an explicit `active` QB override on the team takes starter precedence.
     if overrides is not None and not overrides.is_empty():
         ruled_out = overrides.filter(
             pl.col("status").str.to_lowercase().is_in(list(RULED_OUT))
         )["player_id"].to_list()
         starters = starters.filter(~pl.col("qb_id").is_in(ruled_out))
+        active_qbs = set(
+            overrides.filter(pl.col("status").str.to_lowercase() == "active")["player_id"].to_list()
+        )
+        if active_qbs and not fallback_qb1.is_empty():
+            forced_teams = fallback_qb1.filter(pl.col("player_id").is_in(list(active_qbs)))["team"].to_list()
+            if forced_teams:
+                starters = starters.filter(~pl.col("team").is_in(forced_teams))
     teams = pl.concat([starters.select(["team"]), fallback_qb1.select(["team"])]).unique()
     out = (
         teams.join(starters, on="team", how="left")

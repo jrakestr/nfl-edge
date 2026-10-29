@@ -76,16 +76,22 @@ def load_roster(season: int, week: int) -> pl.DataFrame:
     """Active offensive skill players on each team's latest roster at or before the target week.
 
     Bye-week teams have no roster rows for that week, so the latest week is taken per team.
+    A non-ACT roster row (EXE, RES, ...) still enters when a `raw.player_overrides` row for this
+    week says `active`: the override is the activation the roster feed has not published yet.
     """
     return read_sql(
         f"""
         with latest as (
           select team, max(week) as week from raw.rosters_weekly
           where season = {season} and week <= {week} group by team
+        ), forced as (
+          select player_id from raw.player_overrides
+          where season = {season} and week = {week} and lower(status) = 'active'
         )
         select r.team, r.gsis_id as player_id, r.position, r.full_name
         from raw.rosters_weekly r join latest l on l.team = r.team and l.week = r.week
-        where r.season = {season} and r.status = 'ACT'
+        where r.season = {season}
+          and (r.status = 'ACT' or r.gsis_id in (select player_id from forced))
           and r.position in ('QB','RB','WR','TE','FB','HB')
         """
     ).with_columns(pl.col("position").replace(POS_MAP))
@@ -159,20 +165,27 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
         out = out.with_columns([(pl.col(s) * pl.col("_mult")).alias(s) for s in SHARE_COLS])
     else:
         out = out.with_columns(pl.lit(1.0).alias("_mult"))
-    # QB1: announced starter (schedules) if rostered and not ruled out; else depth-chart QB1;
-    # else most weighted attempts. QB2: next by the same ordering (takes the non-starter attempts).
+    # QB1: explicit `active` QB override first, else announced starter (schedules) if rostered
+    # and not ruled out, else depth-chart QB1, else most weighted attempts. QB2: next in order.
+    active_ov_ids: set[str] = (
+        set(overrides.filter(pl.col("status").str.to_lowercase() == "active")["player_id"].to_list())
+        if overrides is not None and not overrides.is_empty()
+        else set()
+    )
     qbs = out.filter((pl.col("position") == "QB") & (pl.col("_mult") > 0))
     if starters is not None and not starters.is_empty():
         qbs = qbs.join(starters.select(["team", pl.col("qb_id").alias("_starter")]), on="team", how="left") \
             .with_columns((pl.col("player_id") == pl.col("_starter")).fill_null(False).alias("_is_starter"))
     else:
         qbs = qbs.with_columns(pl.lit(False).alias("_is_starter"))
+    qbs = qbs.with_columns(pl.col("player_id").is_in(list(active_ov_ids)).alias("_is_forced_starter"))
     if depth is not None and not depth.is_empty():
         qbs = qbs.join(depth.select(["player_id", "depth_rank"]), on="player_id", how="left")
     else:
         qbs = qbs.with_columns(pl.lit(None, dtype=pl.Int32).alias("depth_rank"))
     qbs = qbs.with_columns(pl.col("depth_rank").fill_null(99)).sort(
-        ["team", "_is_starter", "depth_rank", "w_attempts"], descending=[False, True, False, True]
+        ["team", "_is_forced_starter", "_is_starter", "depth_rank", "w_attempts"],
+        descending=[False, True, True, False, True],
     ).with_columns(pl.int_range(pl.len()).over("team").alias("_rank"))
     flags = qbs.select("player_id", (pl.col("_rank") == 0).alias("is_qb1"), (pl.col("_rank") == 1).alias("is_qb2"))
     out = out.join(flags, on="player_id", how="left").with_columns(
