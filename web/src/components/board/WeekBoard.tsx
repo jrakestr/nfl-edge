@@ -15,6 +15,8 @@ import { toStripGame } from "@/lib/kickoff";
 import { BoardGamesFilter } from "./BoardGamesFilter";
 import { WeekHeader, type View } from "./WeekHeader";
 import { WeekScoreboard } from "./WeekScoreboard";
+import { BetsPanel } from "./BetsPanel";
+import { weekBets } from "@/lib/bets";
 import { maxIso, noProjectionsNotice } from "@/lib/format";
 
 export type WeekBoardProps = {
@@ -143,6 +145,7 @@ export function WeekBoard(p: WeekBoardProps) {
       {header}
       {strip.length ? <GameStrip games={strip} /> : null}
       <BoardGamesFilter />
+      <BetsPanel {...weekBets(p.rows, p.checks)} linesAsOf={linesAsOf} runId={run.run_id} runCreatedAt={run.created_at} />
       <WeekScoreboard board={p.scoreboard} />
 
       {missingVerdicts > 0 ? (
