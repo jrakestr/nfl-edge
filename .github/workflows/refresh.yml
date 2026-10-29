@@ -1,17 +1,13 @@
 # The only scheduled job: fresh lines, scores, injury status, DK salary files, a full LOC pull
-# (standings, not snapshot-only), grading of finished weeks, and the change check. Thu–Mon at
-# 9 AM, noon, 3 PM and 6 PM Phoenix (UTC-7, no DST), plus one run just after each inactives
-# list posts (90 min before kickoff, ET standard time); 3 Odds API credits each. The LOC page
-# button uses loc.yml. Also has a Run workflow button. Everything else is button-only (phase.yml).
+# (standings, not snapshot-only), grading of finished weeks, and the change check. Daily at
+# 8 PM Phoenix (UTC-7, no DST); 3 Odds API credits each. Inactives are pulled by hand
+# (docs/ops.md "Before kickoff"). The LOC page button uses loc.yml. Also has a Run workflow
+# button. Everything else is button-only (phase.yml).
 name: Refresh
 
 on:
   schedule:
-    - cron: "0 16,19,22 * * 0,1,4,5,6"   # 9:00, 12:00, 15:00 Phoenix, Thu–Mon
-    - cron: "0 1 * * 0,1,2,5,6"          # 18:00 Phoenix, Thu–Mon (next UTC day)
-    - cron: "35 16 * * 0"                # Sunday 1:00 ET inactives (11:30 ET)
-    - cron: "0 20 * * 0"                 # Sunday 4:05/4:25 ET inactives (2:35/2:55 ET)
-    - cron: "55 23 * * 0,1,4"            # SNF / MNF / TNF inactives (6:45–6:50 ET)
+    - cron: "0 3 * * *"   # 20:00 Phoenix daily (temporary; see STATUS.md)
   workflow_dispatch:
     inputs:
       week:

@@ -146,7 +146,7 @@ export function WorkflowPage({ unlocked, season, week, runs, slates, changeCheck
         <h1 className="t-title">Workflow</h1>
         <p className="mt-1 t-caption">
           {season} week {week}. Each button starts a GitHub run; one pipeline runs at a time. Refresh also runs on
-          its own Thu–Mon at 9, 12, 3 and 6 Phoenix time, and that run pulls LOC standings.
+          its own daily at 8 PM Phoenix time, and that run pulls LOC standings.
         </p>
       </header>
 

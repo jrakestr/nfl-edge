@@ -1,5 +1,21 @@
 # Status
 
+## Refresh daily 20:00 Phoenix (temporary, 2026-10-29)
+
+What changed: `refresh.yml` runs once a day at `0 3 * * *` (20:00 Phoenix) until the operator says the pipeline is stable. Web Workflow page and docs say so. `docs/ops.md` gains "Before kickoff" (DNS check, `dk-fetch`, odds, `fantasypros-status` at kickoff minus 75 minutes, re-sim when a starter is out). Wed/Fri injury step is `fantasypros-status` + `change-check`, not an overrides CSV. AGENTS.md: dk-fetch, inactives source, diagnose-before-reporting.
+
+To restore the previous schedule, replace the one cron line with:
+
+```
+    - cron: "0 16,19,22 * * 0,1,4,5,6"   # 9:00, 12:00, 15:00 Phoenix, Thu–Mon
+    - cron: "0 1 * * 0,1,2,5,6"          # 18:00 Phoenix, Thu–Mon (next UTC day)
+    - cron: "35 16 * * 0"                # Sunday 1:00 ET inactives (11:30 ET)
+    - cron: "0 20 * * 0"                 # Sunday 4:05/4:25 ET inactives (2:35/2:55 ET)
+    - cron: "55 23 * * 0,1,4"            # SNF / MNF / TNF inactives (6:45–6:50 ET)
+```
+
+What was deferred: from 2026-11-01 (ET standard time) the Sunday 08:40 Phoenix rebuild runs at 10:40 ET, 50 minutes before the 1:00 ET inactives list, so its `sun-inactives` sim no longer sees inactives. Plist unchanged; Sundays need `fantasypros-status`, `sim`, `lines` by hand at ~09:45 Phoenix. Saturday 20:00 Refresh and Mac rebuild overlap (6 odds credits; Refresh `lines` can catch the Mac sim mid-insert for a few seconds, the Mac re-runs `lines` after). No auto re-sim after inactives; no staleness alert.
+
 ## Odds/DK blocked on the Mac's network; Refresh fetches salaries and runs at inactives (2026-10-29)
 
 What changed: the Mac's DNS (10.7.1.60/10.7.2.60, Cisco Umbrella) sends `api.the-odds-api.com` and `www.draftkings.com` to block page `146.112.61.106`, which is the `SSLV3_ALERT_HANDSHAKE_FAILURE` in `cron-lines.log` since 2026-10-28. FantasyPros, ESPN, GitHub and Supabase resolve. No code bug. `ops/week-rebuild.sh` now runs `dk-fetch`, else `storage pull-salaries`, and treats an odds failure as soft. Refresh (`workflow._refresh`) runs `dk-fetch`. `refresh.yml` adds slots after each inactives list (Sun 16:35, Sun 20:00, Sun/Mon/Thu 23:55 UTC, set for ET standard time). Docs no longer ask for manual CSV exports.

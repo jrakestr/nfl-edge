@@ -9,10 +9,11 @@ Five LaunchAgents on this Mac run the jobs below. Clock times are America/Phoeni
 GitHub → nfl-edge → Actions → **Run phase** → Run workflow: pick a phase (refresh, ingest,
 salaries, sim, lines, props, dfs, grade), optionally "run from here" through DFS, week, slate,
 draws, field size, iterations. One pipeline run at a time. DFS upload CSVs are attached to the
-run as an artifact. **Refresh** is the only schedule (Thu–Mon 9:00, 12:00, 15:00, 18:00 Phoenix,
-plus one run just after each inactives list posts: Sunday 16:35 and 20:00 UTC, Sun/Mon/Thu
-23:55 UTC) and also has its own button. Each run pulls FantasyPros injuries into
-`raw.player_overrides` and prints the change check; it does not re-sim. That scheduled run includes a full `ingest espn-league` (standings,
+run as an artifact. **Refresh** is the only schedule (daily 20:00 Phoenix, temporary; see
+STATUS.md) and also has its own button. Each run pulls odds, FantasyPros injuries into
+`raw.player_overrides`, and DK salary files, and prints the change check; it does not re-sim.
+20:00 is after every inactives list, so inactives are pulled by hand (see Before kickoff). That
+scheduled run includes a full `ingest espn-league` (standings,
 scores, rosters, transactions). The LOC page button dispatches `loc.yml`, which is that pull alone.
 
 Salary files come from the DK lobby: `nfl-edge dk-fetch` runs in every Refresh and in the
@@ -51,10 +52,12 @@ Tuesday, after the 09:00 grade agent:
 1. `nfl-edge sim --season 2026 --week W --draws 20000`
 2. `nfl-edge lines --season 2026 --week W`
 
-Wednesday / Friday, when the injury report changes a starter or a usage share:
+Wednesday / Friday, after the injury report:
 
-3. `nfl-edge overrides --season 2026 --week W --file data/overrides/2026_wkWW.csv`
-4. Repeat steps 1 and 2. Skip step 4 when the override did not change a starter or a usage share.
+3. `nfl-edge ingest fantasypros-status --season 2026 --week W`, then `nfl-edge change-check --week W`
+4. When the change check says `re-sim suggested` for a game that has not started, repeat steps 1 and 2.
+
+A manual overrides CSV (`nfl-edge overrides`, below) is only for correcting FantasyPros.
 
 Saturday 20:00 (`--note sat-final`):
 
@@ -66,6 +69,18 @@ Sunday 08:40 (`--note sun-inactives`):
 - Same salary fetch and missing-file exit as Saturday.
 - The sim must finish by 08:50 Phoenix. A sim still running then is killed, `drop-incomplete` removes that partial run, and Saturday stays live (`sun-inactives: sim not complete by 08:50, Saturday run kept`). The same removal happens when the Sunday game count does not match the slate. Any other sim error prints `sun-inactives: sim failed, Saturday run left intact` and exits with the sim's code. That path does not call `drop-incomplete`.
 - Lines, props, and DFS then run to completion. A line is logged if the clock passes 09:30. Lineups and Optimize keep Saturday's lineups and show `Sunday build in progress` until the new run has `dfs_lineups`.
+
+## Before kickoff
+
+Run on this Mac with `DATABASE_URL` unset, in order. Each check names the one action when it fails.
+
+1. `dig +short api.the-odds-api.com www.draftkings.com`. `146.112.61.106` means a Cisco Umbrella block (the error then shows as `SSLV3_ALERT_HANDSHAKE_FAILURE`). Change network, or use the Actions fallbacks in steps 2 and 3.
+2. `nfl-edge dk-fetch --week W`. Fails: `nfl-edge storage pull-salaries --week W` (the copy the last Refresh fetched).
+3. `nfl-edge ingest odds-api --markets h2h,spreads,totals --regions us`. Fails: `gh workflow run refresh.yml -f week=W`.
+4. Inactives post 90 minutes before kickoff, and FantasyPros marks them OUT about 10 minutes later. At kickoff minus 75 minutes: `nfl-edge ingest fantasypros-status --season 2026 --week W`, then `nfl-edge change-check --week W`.
+5. A starter on a team still to play is out: `nfl-edge sim --season 2026 --week W --draws 20000`, then `nfl-edge lines --season 2026 --week W`, before kickoff.
+
+Kickoff minus 75 minutes, Phoenix clock (ET standard time from 2026-11-01): Sunday 1:00 ET games 09:45, 4:05 ET 12:50, 4:25 ET 13:10, Thursday/Monday 8:15 ET 17:00, Sunday 8:20 ET 17:05. The Sunday 08:40 rebuild now runs before the 1:00 ET inactives list, so step 4 and step 5 are needed on Sundays too.
 
 ## Scheduled jobs
 

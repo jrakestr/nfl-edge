@@ -28,6 +28,10 @@ DFS and showdown, and every run is graded against results and closing lines.
 - Fail closed: if data is missing, ambiguous or partial, stop and name what's
   missing. Never guess, substitute or publish partial output.
 - Never print secrets, API keys or request URLs that contain keys.
+- DK salaries come from `nfl-edge dk-fetch`. Never ask for a CSV export.
+- Inactives come from `nfl-edge ingest fantasypros-status`, run at kickoff minus 75 minutes.
+- Report a failure with its cause. Reproduce it, check DNS (`dig +short <host>`) and
+ the latest Actions log (`gh run view`) before calling something broken.
 
 ## Read when touching…
 | Area | File |
@@ -42,6 +46,7 @@ DFS and showdown, and every run is graded against results and closing lines.
 | `web/` | [docs/agents/web.md](docs/agents/web.md) + [docs/design-system.md](docs/design-system.md) |
 | Env, DB, deploy, LLMs | [docs/agents/infra.md](docs/agents/infra.md) |
 | Ops scripts | [docs/ops.md](docs/ops.md) |
+| Pre-game checks | [docs/ops.md#before-kickoff](docs/ops.md#before-kickoff) |
 
 Durable rules live in these files. Weekly checklists, open incidents and
 trailing todos live in STATUS.md.

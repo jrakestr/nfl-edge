@@ -20,12 +20,22 @@
   bookmaker in the dedupe key; `captured_at` = bookmaker `last_update`; one
   `fetched_at` per pull.
 - Fail closed on unmapped names. Skip unmatched events unless none match.
-- `ops/lines-only.sh` and `ops/week-rebuild.sh` pull `h2h,spreads,totals`
-  (3 credits). One explicit pull, never a poll.
+- `ops/lines-only.sh`, `ops/week-rebuild.sh` and Actions Refresh pull
+  `h2h,spreads,totals` (3 credits). One explicit pull, never a poll. A failed pull is
+  soft everywhere: lines use the newest stored pull.
+- `SSLV3_ALERT_HANDSHAKE_FAILURE` is a network block, not a code bug: run
+  `dig +short api.the-odds-api.com` first (`146.112.61.106` = Cisco Umbrella).
 - `model.market_lines_latest`: DraftKings when kickoff ≥
   `model.line_reference.effective_from` and that row has spread and total;
   otherwise nflverse. Games before that date use nflverse everywhere.
 - The manual market CSV is optional and used for edges only.
+
+## DK lobby (`nfl-edge dk-fetch`)
+- Every classic and showdown salary file for the week from DraftKings' public lobby
+  (`ingest/dk_lobby.py`, no login) into `data/dk/` and private Storage.
+- Runs in Refresh, the salaries/DFS phases and the Mac rebuild (which falls back to
+  `storage pull-salaries`). Never ask for a manual CSV export.
+- Same DNS block as the Odds API on Umbrella networks.
 
 ## Props
 - BettingPros (`nfl-edge bettingpros --api --season S --week W`) reads
@@ -53,6 +63,9 @@
 ## FantasyPros (Python CLI only)
 - `FANTASY_PROS_API_KEY` in `.env` only. Pulls append to
   `raw.fantasypros_snapshots` keyed by `fetched_at`.
+- `nfl-edge ingest fantasypros-status` is the inactives source: FantasyPros marks
+  inactives OUT about 10 minutes after the list posts (verified week 7, 2026). Run it
+  at kickoff minus 75 minutes (docs/ops.md "Before kickoff").
 - `nfl-edge ingest fantasypros-news` pulls `GET /nfl/news` into
   `raw.fantasypros_news` (append-only on `news_id`, preserving `created_at` and
   `first_seen_at`). Display and qualitative research audit only; never read by
