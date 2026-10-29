@@ -11,6 +11,7 @@ from nfl_edge.ingest.odds_api import UnmappedTeam
 
 WEEK01 = Path(__file__).parent.parent / "data" / "benchmarks" / "nflgamesim_players_2026_week01.csv"
 WEEK02 = Path(__file__).parent.parent / "data" / "benchmarks" / "nflgamesim_players_2026_week02.csv"
+WEEK07_PASTE = Path(__file__).parent.parent / "docs" / "nflgamesim-players-week7.md"
 
 TEAMS = {
     "MIN": {"city": "Minnesota", "nick": "Vikings"},
@@ -103,3 +104,42 @@ def test_resolve_games_unique_zero_duplicate():
     assert out[1]["game_id"] is None  # duplicate pair stays null
     assert out[2]["game_id"] is None  # unknown pair stays null
     assert {(u["name"], u["hits"]) for u in unresolved} == {("B", 2), ("C", 0)}
+
+
+def test_parse_paste_merges_sections_and_scores_dk():
+    sched = pl.DataFrame({
+        "game_id": ["2026_07_GB_DET", "2026_07_IND_MIN", "2026_07_DAL_PHI"],
+        "home_team": ["DET", "MIN", "PHI"],
+        "away_team": ["GB", "IND", "DAL"],
+    })
+    rows = P.parse_paste(WEEK07_PASTE.read_text(), schedules=sched)
+    by_name = {r["name"]: r for r in rows}
+
+    # Jahmyr Gibbs appears in Fantasy Points, Rushing, and Receiving
+    gibbs = by_name["Jahmyr Gibbs"]
+    assert gibbs["team"] == "DET" and gibbs["opponent"] == "GB"
+    assert gibbs["fpts_dk"] == pytest.approx(31.8)
+    assert gibbs["rush_att"] == pytest.approx(21.05)
+    assert gibbs["rec"] == pytest.approx(5.17)
+
+    # CeeDee Lamb appears only in Receiving -> DK points computed from box stats
+    lamb = by_name["Ceedee Lamb"]
+    assert lamb["team"] == "DAL" and lamb["opponent"] == "PHI"
+    assert lamb["rec"] == pytest.approx(5.75)
+    assert lamb["rec_yds"] == pytest.approx(80.55)
+    assert lamb["rec_td"] == pytest.approx(0.55)
+    assert lamb["fpts_dk"] == pytest.approx(17.1)
+
+    # Will Reichard in Kicking -> PTS column
+    reichard = by_name["Will Reichard"]
+    assert reichard["fpts_dk"] == pytest.approx(12.35)
+
+    # Punters excluded
+    assert "Matt Araiza" not in by_name
+
+    # Defense included when schedule has opponent
+    min_dst = by_name["Minnesota Vikings"]
+    assert min_dst["position"] == "DST"
+    assert min_dst["team"] == "MIN" and min_dst["opponent"] == "IND"
+    assert min_dst["fpts_dk"] == pytest.approx(14.15)
+

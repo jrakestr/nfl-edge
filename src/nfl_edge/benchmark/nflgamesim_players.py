@@ -144,7 +144,7 @@ def _dk_dst_fpts(pts_allowed: float, sacks: float, ints: float, rules: dict) -> 
         if round(pts_allowed) <= b["max"]:
             pa_pts = float(b["pts"])
             break
-    return round(pa_pts + sacks * r["sack"] + ints * r["int"], 1)
+    return round(pa_pts + sacks * r["sack"] + ints * r["int"], 2)
 
 
 def parse_paste(
@@ -295,24 +295,24 @@ def parse_paste(
                 rec["pass_att"] = vals[0]
                 rec["pass_cmp"] = vals[1]
                 if not rec["_has_fpts"]:
-                    rec["pass_yds"] = round(vals[3], 1)
-                    rec["pass_td"] = round(vals[5], 1)
-                    rec["pass_int"] = round(vals[6], 1)
+                    rec["pass_yds"] = vals[3]
+                    rec["pass_td"] = vals[5]
+                    rec["pass_int"] = vals[6]
             elif section == "rushing":
                 # ATT, YDS, AVG, LG, TD
                 rec["rush_att"] = vals[0]
                 if not rec["_has_fpts"]:
-                    rec["rush_yds"] = round(vals[1], 1)
-                    rec["rush_td"] = round(vals[4], 1)
+                    rec["rush_yds"] = vals[1]
+                    rec["rush_td"] = vals[4]
             elif section == "receiving":
                 # ATT, YDS, AVG, LG, TD
                 rec["rec"] = vals[0]
                 if not rec["_has_fpts"]:
-                    rec["rec_yds"] = round(vals[1], 1)
-                    rec["rec_td"] = round(vals[4], 1)
+                    rec["rec_yds"] = vals[1]
+                    rec["rec_td"] = vals[4]
             elif section == "kicking":
                 # ATT, MADE, PCT, LG, XP, PTS
-                rec["fpts_dk"] = round(vals[5], 1)
+                rec["fpts_dk"] = vals[5]
             i += 2
             continue
 
