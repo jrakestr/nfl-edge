@@ -1561,9 +1561,10 @@ def grade(
         if jg["n_players"] > 0:
             typer.echo(f"grade-jev {season} wk{week} main: {jg['n_players']} pre-kickoff audited players graded")
             for v in jg["verdicts"]:
+                resid = v["mean_residual_dk"]
                 typer.echo(
                     f"  {v['verdict']:<8} n={v['players']:<3} "
-                    f"resid={v['mean_residual_dk']:+6.2f if v['mean_residual_dk'] is not None else '     -'} "
+                    f"resid={f'{resid:+6.2f}' if resid is not None else '     -'} "
                     f"snap={v['mean_realized_snap_pct'] if v['mean_realized_snap_pct'] is not None else 0.0:.2f} "
                     f"dnp={v['dnp_rate']:.1%}"
                 )
@@ -1653,11 +1654,12 @@ def grade_jev_cmd(
         typer.echo("  no pre-kickoff audited rows with final actuals")
         return
     for v in r["verdicts"]:
+        resid = v["mean_residual_dk"]
         typer.echo(
             f"  {v['verdict']:<8} n={v['players']:<3} "
             f"proj={v['mean_proj_dk'] if v['mean_proj_dk'] is not None else '-':>6} "
             f"actual={v['mean_actual_dk'] if v['mean_actual_dk'] is not None else '-':>6} "
-            f"resid={v['mean_residual_dk']:+6.2f if v['mean_residual_dk'] is not None else '     -'} "
+            f"resid={f'{resid:+6.2f}' if resid is not None else '     -'} "
             f"snap={v['mean_realized_snap_pct'] if v['mean_realized_snap_pct'] is not None else 0.0:.2f} "
             f"dnp={v['dnp_rate']:.1%}"
         )
