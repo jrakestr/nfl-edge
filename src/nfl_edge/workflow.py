@@ -97,8 +97,8 @@ def _salaries(ctx: Context) -> list[Step]:
     slates = week_slates(ctx.season, ctx.week)
     if not slates:
         raise PhaseFailed(
-            f"no DK salary files for {ctx.season} week {ctx.week}; upload "
-            f"DKSalaries_{ctx.season}_wk{ctx.week:02d}_<slate>.csv"
+            f"no DK salary files for {ctx.season} week {ctx.week}; "
+            f"`nfl-edge dk-fetch --week {ctx.week}` found none in the DK lobby"
         )
     steps = [_step("dk-salaries", *ctx.sw(), "--slate", s, "--salaries-only") for s in slates]
     steps.append(_step("dk-salaries", *ctx.sw(), "--merge-status",
@@ -227,7 +227,7 @@ def _each_week(cmd: str, then: Callable[[int], list[list[str]]]) -> Callable:
 
 
 def _refresh(ctx: Context) -> list[Step]:
-    """Lines and scores, injuries, full LOC pull, grade what finished, then the change check.
+    """Lines and scores, injuries, DK salary files, full LOC pull, grade, then the change check.
 
     The LOC step is the full `ingest espn-league` (standings, scores, rosters, transactions),
     which also appends a status snapshot. `--snapshot-only` does not move standings.
@@ -240,6 +240,7 @@ def _refresh(ctx: Context) -> list[Step]:
         _step("ingest", *season, "--lines-only", soft=True),
         Step(fn=_each_week("stale-weeks", lambda w: [["lines", *season, "--week", str(w)]])),
         _step("ingest", "fantasypros-status", *sw, soft=True),
+        _step("dk-fetch", *sw, soft=True),
         _step("ingest", "espn-league", *season, soft=True),
         _step("ingest", "live", *sw, soft=True),
         _step("actuals", *sw, soft=True),

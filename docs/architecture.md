@@ -49,7 +49,7 @@ nfl-edge/
 │   │   ├── opportunity.py    # load_ff_opportunity (expected stats)
 │   │   ├── consensus.py      # load_ff_rankings("week") — FantasyPros ECR
 │   │   ├── context.py        # depth charts, snap counts, rosters, injuries*
-│   │   └── dk_salaries.py    # DK/FD player export CSV (manual or scraper)
+│   │   └── dk_salaries.py    # DK/FD player export CSV (from dk_lobby.py)
 │   ├── priors/               # turn history into per-game inputs
 │   │   ├── team.py           # pace, pass rate, EPA/play, off/def strength
 │   │   ├── usage.py          # target/carry share, red-zone share, snap %
@@ -147,7 +147,7 @@ Automate the Tue/Sat/Sun steps with a scheduled task once the CLI is stable.
 - **Injuries:** nflverse's injury feed ended after 2024. v1 uses depth charts + weekly rosters + manual overrides in a `player_overrides.yaml`. Later: scrape official team reports.
 - **Ownership:** no free source. Start heuristic, then fit a model on your own contest exports.
 - **Prop lines:** manual entry in v1. Keep the `market_props` schema so a scraper or paid feed can drop in later without touching the model.
-- **DK salaries:** DK's CSV export per slate, dropped into `data/dk/`; or the existing draftkings-nfl-stats-scraper skill.
+- **DK salaries:** `nfl-edge dk-fetch` pulls every slate's export from the DK lobby (`ingest/dk_lobby.py`) into `data/dk/` and Storage.
 - **FantasyPros API:** reference docs and OpenAPI spec in `docs/vendor/fantasypros/`; display benchmark until promoted (gate in AGENTS.md).
 
 ## 8. Build order

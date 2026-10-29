@@ -1,7 +1,8 @@
 #!/bin/bash
 # Saturday 20:00 / Sunday 08:40 MST. Week from raw.schedules.
 # Sunday: sim must finish by 08:50 or Saturday stays live. lines/props/dfs run to
-# completion; log if past 09:30. DK slates from files on disk; Status merge after salaries.
+# completion; log if past 09:30. DK slates from the DK lobby (dk-fetch), else the copies in
+# private Storage (Actions fetches them on every Refresh); Status merge after salaries.
 # DB or github.com unreachable: one line, exit 0.
 set -euo pipefail
 ROOT="/Users/home/Development/nfl-edge"
@@ -92,10 +93,14 @@ if [ -z "${WEEK// }" ]; then
 fi
 WW=$(printf '%02d' "$WEEK")
 PROPS_CSV="$ROOT/data/props/props_${SEASON}_wk${WW}.csv"
+# Some networks block draftkings.com at DNS; then the Storage copy from Actions is used.
+/usr/bin/env -u DATABASE_URL "$NFL" dk-fetch --season "$SEASON" --week "$WEEK" 2>&1 \
+  || /usr/bin/env -u DATABASE_URL "$NFL" storage pull-salaries --season "$SEASON" --week "$WEEK" 2>&1 \
+  || true
 shopt -s nullglob
 DK_CSVS=("$ROOT/data/dk/DKSalaries_${SEASON}_wk${WW}_"*.csv)
 if [ ${#DK_CSVS[@]} -eq 0 ]; then
-  echo "no DKSalaries_${SEASON}_wk${WW}_*.csv in data/dk/"
+  echo "no DK salary files for week $WEEK: dk-fetch and storage pull-salaries both came back empty"
   exit 1
 fi
 SLATES=()
@@ -179,17 +184,15 @@ printf '%s\n' "$push_out"
 
 soft_note
 # Odds API: 3 credits, one pull per run. RecentDuplicate is a no-op. CLI prints remaining=.
+# Soft: some networks block the-odds-api.com at DNS; lines then use the newest stored pull
+# (Actions Refresh pulls odds Thu–Mon).
 set +e
 odds_out=$(/usr/bin/env -u DATABASE_URL "$NFL" ingest odds-api --markets h2h,spreads,totals --regions us 2>&1)
 odds_code=$?
 set -e
 printf '%s\n' "$odds_out"
 if [ "$odds_code" -ne 0 ] && ! printf '%s' "$odds_out" | grep -qi 'recent duplicate'; then
-  if is_unreachable "$odds_out"; then
-    echo "unreachable, skipped"
-    exit 0
-  fi
-  exit "$odds_code"
+  echo "odds-api failed (exit $odds_code), lines use the newest stored pull"
 fi
 soft_note
 capture /usr/bin/env -u DATABASE_URL "$NFL" lines --season "$SEASON" --week "$WEEK"

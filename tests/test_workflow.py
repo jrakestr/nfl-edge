@@ -91,7 +91,7 @@ def test_salaries_overrides_csv_when_present(slates, tmp_path):
 
 def test_salaries_without_files_fails_with_a_reason(monkeypatch):
     monkeypatch.setattr(W.dk, "week_dk_csvs", lambda s, w: [])
-    with pytest.raises(W.PhaseFailed, match="DKSalaries_2026_wk07_<slate>.csv"):
+    with pytest.raises(W.PhaseFailed, match="dk-fetch --week 7"):
         W.plan("salaries", W.Context(2026, 7))
 
 
@@ -237,7 +237,8 @@ def test_refresh_order_and_never_sims():
     W.run_phase("refresh", W.Context(2026, 7), runner=run, recorder=FakeRecorder())
     heads = [c[:2] for c in run.calls]
     assert heads == [["ingest", "odds-api"], ["ingest", "--season"], ["stale-weeks", "--season"],
-                     ["ingest", "fantasypros-status"], ["ingest", "espn-league"],
+                     ["ingest", "fantasypros-status"], ["dk-fetch", "--season"],
+                     ["ingest", "espn-league"],
                      ["ingest", "live"], ["actuals", "--season"],
                      ["ungraded-completed", "--season"], ["change-check", "--season"]]
     assert not any(c[0] == "sim" for c in run.calls)

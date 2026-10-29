@@ -1,12 +1,15 @@
 # DFS
 
 ## Slates and files
-- DK salary CSVs live in gitignored `data/dk/`. DFS is slate-scoped (classic:
+- DK salary files come from the DK lobby via `nfl-edge dk-fetch` (no login) into
+  gitignored `data/dk/` and private Storage. Never ask for a manual CSV export.
+  DFS is slate-scoped (classic:
   main/early/full/afternoon/turbo/primetime; showdown separate). Each slate has its
   own DK IDs; upload CSVs must use that slate's IDs.
 - Unknown slate key: show an empty state naming the expected DK CSV. Never
   substitute Main.
-- `ops/week-rebuild.sh` discovers slates from the CSVs on disk.
+- `ops/week-rebuild.sh` runs `dk-fetch` (else `storage pull-salaries`) and builds every
+  slate that comes back.
 - Player joins go through `raw.players` + `raw.dk_player_crosswalk`
   (LAR→LA, JAC→JAX, WSH→WAS).
 - Upload line 1 is the site header (`QB,RB,RB,WR,WR,WR,TE,FLEX,DST` or the

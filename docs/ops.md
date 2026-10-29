@@ -9,13 +9,21 @@ Five LaunchAgents on this Mac run the jobs below. Clock times are America/Phoeni
 GitHub → nfl-edge → Actions → **Run phase** → Run workflow: pick a phase (refresh, ingest,
 salaries, sim, lines, props, dfs, grade), optionally "run from here" through DFS, week, slate,
 draws, field size, iterations. One pipeline run at a time. DFS upload CSVs are attached to the
-run as an artifact. **Refresh** is the only schedule (Thu–Mon 9:00, 12:00, 15:00, 18:00 Phoenix)
-and also has its own button. That scheduled run includes a full `ingest espn-league` (standings,
+run as an artifact. **Refresh** is the only schedule (Thu–Mon 9:00, 12:00, 15:00, 18:00 Phoenix,
+plus one run just after each inactives list posts: Sunday 16:35 and 20:00 UTC, Sun/Mon/Thu
+23:55 UTC) and also has its own button. Each run pulls FantasyPros injuries into
+`raw.player_overrides` and prints the change check; it does not re-sim. That scheduled run includes a full `ingest espn-league` (standings,
 scores, rosters, transactions). The LOC page button dispatches `loc.yml`, which is that pull alone.
 
-Salary files and draws reach the runner through private Supabase Storage:
-`nfl-edge storage push-salaries --week W` after saving the DK CSVs, and
-`nfl-edge storage push-draws --week W` after a sim on the Mac. A cloud sim pushes its own draws.
+Salary files come from the DK lobby: `nfl-edge dk-fetch` runs in every Refresh and in the
+salaries/DFS phases and pushes the files to private Supabase Storage. Draws reach the runner
+through Storage too: `nfl-edge storage push-draws --week W` after a sim on the Mac. A cloud sim
+pushes its own draws.
+
+Some networks block `draftkings.com` and `the-odds-api.com` at DNS (for example Cisco Umbrella,
+which sends both to `146.112.61.106` and causes `SSLV3_ALERT_HANDSHAKE_FAILURE`). On such a
+network the Mac jobs log the odds and DK fetch failures and continue on what Actions stored.
+Check with `dig +short api.the-odds-api.com`.
 
 Repository secrets (Settings → Secrets and variables → Actions): `DATABASE_URL` (Supabase
 **session pooler** URI; the direct host is IPv6-only and unreachable from Actions),
@@ -50,12 +58,12 @@ Wednesday / Friday, when the injury report changes a starter or a usage share:
 
 Saturday 20:00 (`--note sat-final`):
 
-- Put that week's `data/dk/DKSalaries_2026_wkWW_*.csv` files on disk before 20:00. Zero files: the agent prints `no DKSalaries_2026_wkWW_*.csv in data/dk/` and exits 1 before the sim.
-- The agent then ingests, loads every salary file, merges DK status, applies `data/overrides/2026_wkWW.csv` when that file exists, pulls FantasyPros injuries (non-fatal), sims 20k, pulls odds, runs lines, props, and one DFS build per salary file.
+- The agent runs `nfl-edge dk-fetch` (DK lobby, no login). When that fails (some networks block `draftkings.com` at DNS) it runs `storage pull-salaries`, which gets the files every Actions Refresh fetches. Neither returns a file: it prints `no DK salary files for week W` and exits 1 before the sim.
+- The agent then ingests, loads every salary file, merges DK status, applies `data/overrides/2026_wkWW.csv` when that file exists, pulls FantasyPros injuries (non-fatal), sims 20k, pulls odds (non-fatal; lines use the newest stored pull), runs lines, props, and one DFS build per salary file.
 
 Sunday 08:40 (`--note sun-inactives`):
 
-- Re-export the salary CSVs before 08:40. Same missing-file exit as Saturday.
+- Same salary fetch and missing-file exit as Saturday.
 - The sim must finish by 08:50 Phoenix. A sim still running then is killed, `drop-incomplete` removes that partial run, and Saturday stays live (`sun-inactives: sim not complete by 08:50, Saturday run kept`). The same removal happens when the Sunday game count does not match the slate. Any other sim error prints `sun-inactives: sim failed, Saturday run left intact` and exits with the sim's code. That path does not call `drop-incomplete`.
 - Lines, props, and DFS then run to completion. A line is logged if the clock passes 09:30. Lineups and Optimize keep Saturday's lineups and show `Sunday build in progress` until the new run has `dfs_lineups`.
 
@@ -95,9 +103,9 @@ Verify: `launchctl print gui/$(id -u)/com.nfl-edge.lines-only` (`state`, `runs`,
 - Does not write: the live Sunday sim when the clock is already 08:50, when the sim is still running at 08:50, or when the Sunday game count does not match the slate. Those paths remove the partial run and leave Saturday live. A Sunday sim that errors some other way is not removed.
 - Log: `output/cron-rebuild.log`.
 
-Order: ingest for the week, `dk-salaries --salaries-only` per file, `dk-salaries --merge-status`, optional `data/overrides/2026_wkWW.csv`, `ingest fantasypros-status` (one line and continue on failure), sim, one odds-api pull (3 credits), lines, props (`data/props/props_2026_wkWW.csv` when that file exists, otherwise `props` with no `--file`), `dfs --lineups 150 --field 20000` once per salary file, then `benchmark fantasypros` and `ingest fantasypros-rankings` (both non-fatal).
+Order: ingest for the week, `dk-fetch` (else `storage pull-salaries`), `dk-salaries --salaries-only` per file, `dk-salaries --merge-status`, optional `data/overrides/2026_wkWW.csv`, `ingest fantasypros-status` (one line and continue on failure), sim, one odds-api pull (3 credits), lines, props (`data/props/props_2026_wkWW.csv` when that file exists, otherwise `props` with no `--file`), `dfs --lineups 150 --field 20000` once per salary file, then `benchmark fantasypros` and `ingest fantasypros-rankings` (both non-fatal).
 
-An odds-api failure here stops the job before lines, props, and DFS. `RecentDuplicate` does not. Unreachable logs `unreachable, skipped` and exits 0. Any other odds failure exits with that command's code. `lines-only` does the opposite: it logs the odds failure and continues.
+An odds-api failure logs one line and the job continues, same as `lines-only`.
 
 Verify: `launchctl print gui/$(id -u)/com.nfl-edge.week-rebuild` shows both calendar intervals and no `RunAtLoad`.
 
@@ -244,7 +252,7 @@ The 30-minute lines cadence ended Sunday 2026-09-13 23:59 America/Los_Angeles. A
 
 Wednesday 2026-09-09 ~15:00 (before NE@SEA lock, 20:20 ET / 18:20 Phoenix)
 
-1. Re-export TNF showdown from DK → `data/dk/DKSalaries_2026_wk01_showdown.csv`
+1. `nfl-edge dk-fetch --week 1` (writes `data/dk/DKSalaries_2026_wk01_showdown.csv`)
 2. `nfl-edge ingest --season 2026 --week 1`
 3. `nfl-edge dk-salaries --season 2026 --week 1 --slate showdown`
 4. `nfl-edge sim --season 2026 --week 1 --draws 20000 --note wed-final`
@@ -253,9 +261,9 @@ Wednesday 2026-09-09 ~15:00 (before NE@SEA lock, 20:20 ET / 18:20 Phoenix)
 7. `nfl-edge dfs --season 2026 --week 1 --site dk --slate showdown --lineups 150` (field size and iterations from `config/sim.yaml` `dfs:`; `--field-size`, `--iterations`, `--full-field` override)
 8. `cd web && vercel` (preview, not `--prod`)
 
-Saturday 2026-09-12 20:00 (LaunchAgent, `--note sat-final`): Main and Full CSVs on disk before 20:00. The agent ran the rebuild. No Vercel CLI.
+Saturday 2026-09-12 20:00 (LaunchAgent, `--note sat-final`): the agent ran the rebuild. No Vercel CLI.
 
-Sunday 2026-09-13 08:40 (LaunchAgent, `--note sun-inactives`): re-export Main and Full before 08:40. Sim dead at 08:50 keeps Saturday. No Vercel CLI.
+Sunday 2026-09-13 08:40 (LaunchAgent, `--note sun-inactives`): sim dead at 08:50 keeps Saturday. No Vercel CLI.
 
 ## DFS lineup audit
 
