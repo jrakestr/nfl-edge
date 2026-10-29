@@ -14,12 +14,17 @@ import {
   drawerBreakdown,
   entryFor,
   fixed,
+  lineupAccuracy,
   lowOwnedHits,
   portfolio,
+  projectionAccuracy,
   signedFixed,
   topScorers,
+  type AccuracyRow,
   type ContestRow,
+  type LineupAccuracy,
   type Portfolio,
+  type ProjectionAccuracy,
   type ReviewContest,
   type ReviewData,
   type ReviewLineup,
@@ -81,6 +86,83 @@ function PortfolioCard({
   );
 }
 
+/** The lower of the two errors is bold; a tie leaves both plain. */
+function MaePair({ sim, adj }: { sim: number; adj: number }) {
+  return (
+    <>
+      <td className={cn("tnum px-3 py-2 text-right", sim < adj && "font-semibold")}>{fixed(sim, 2)}</td>
+      <td className={cn("tnum px-3 py-2 text-right", adj < sim && "font-semibold")}>{fixed(adj, 2)}</td>
+    </>
+  );
+}
+
+function AccuracyCard({ acc, lineups }: { acc: ProjectionAccuracy; lineups: LineupAccuracy | null }) {
+  const head = ["Group", "Players", "Sim MAE", "Adjusted MAE", "Sim bias", "Adjusted bias"];
+  return (
+    <section className="card flex flex-col gap-4 p-4" aria-label="Projection accuracy">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="t-sentence font-semibold">Sim vs Adjusted</h2>
+        <span className="t-caption text-muted-foreground">
+          Adjusted is the sim plus his average miss from earlier weeks. Bias is actual minus projection.
+        </span>
+      </div>
+      {acc.rows.length === 0 ? (
+        <p className="t-caption text-muted-foreground">No player on this slate has both an Adjusted number and an actual.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full t-body" aria-label="Player accuracy">
+            <thead className="bg-muted">
+              <tr className="text-left t-colhead text-muted-foreground">
+                {head.map((h, i) => (
+                  <th key={h} className={cn("px-3 py-2 font-medium", i > 0 && "text-right")}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {acc.rows.map((r: AccuracyRow) => (
+                <tr key={r.group} className="border-t border-border-soft">
+                  <td className="px-3 py-2">{r.group}</td>
+                  <td className="tnum px-3 py-2 text-right">{r.n}</td>
+                  <MaePair sim={r.simMae} adj={r.adjMae} />
+                  <td className="tnum px-3 py-2 text-right">{signedFixed(r.simBias, 2)}</td>
+                  <td className="tnum px-3 py-2 text-right">{signedFixed(r.adjBias, 2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="t-caption text-muted-foreground">
+        Same players in both columns: a sim above zero, an actual, and at least one earlier graded week.
+        {acc.noMiss ? ` ${acc.noMiss} with no earlier week left out.` : ""}
+      </p>
+      {lineups ? (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <Stat label="Lineups" value={String(lineups.n)} />
+          <Stat label="Mean actual" value={fixed(lineups.actualMean, 2)} />
+          <Stat
+            label="Sim total"
+            value={fixed(lineups.simMean, 2)}
+            note={`correlation with actual ${fixed(lineups.simCorr, 2)}`}
+          />
+          <Stat
+            label="Adjusted total"
+            value={fixed(lineups.adjMean, 2)}
+            note={`correlation with actual ${fixed(lineups.adjCorr, 2)}`}
+          />
+        </div>
+      ) : null}
+      {lineups ? (
+        <p className="t-caption text-muted-foreground">
+          Lineup totals add the nine slots. A slot with no earlier week keeps its sim number in the Adjusted total.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 const nameCell = (r: { name: string; position: string | null }) => (
   <span className="flex items-center gap-2 whitespace-nowrap">
     <PositionPill position={r.position} />
@@ -101,6 +183,7 @@ const SCORER_COLUMNS: DataColumn<ScorerRow>[] = [
   { id: "name", header: "Player", sortValue: (r) => r.name, cell: nameCell },
   { id: "salary", header: "Salary", align: "right", sortValue: (r) => r.salary, cell: (r) => (r.salary == null ? dash : `$${r.salary.toLocaleString("en-US")}`), className: "tnum" },
   { id: "proj", header: "Proj", align: "right", sortValue: (r) => r.proj, cell: (r) => fixed(r.proj, 1), className: "tnum" },
+  { id: "adjusted", header: "Adjusted", align: "right", sortValue: (r) => r.adjusted, cell: (r) => fixed(r.adjusted, 1), className: "tnum" },
   { id: "actual", header: "Actual", align: "right", sortValue: (r) => r.actual, cell: (r) => fixed(r.actual, 2), className: "tnum font-semibold" },
   { id: "own", header: "Own%", align: "right", sortValue: (r) => r.contestOwn, cell: (r) => pct(r.contestOwn, 1), className: "tnum" },
   { id: "ours", header: "Our exposure", align: "right", sortValue: (r) => r.ours, cell: (r) => pct(r.ours, 0), className: "tnum" },
@@ -319,6 +402,8 @@ export function SlateReview({
     [data, loaded],
   );
   const lineupCols = useMemo(() => lineupColumns(loaded ? contest : null), [contest, loaded]);
+  const accuracy = useMemo(() => (data ? projectionAccuracy(data.facts) : null), [data]);
+  const lineupAcc = useMemo(() => (data ? lineupAccuracy(data.lineups, data.facts) : null), [data]);
 
   const base = `/week/${week}/dfs/${site}/${slate}`;
   return (
@@ -351,6 +436,7 @@ export function SlateReview({
             hrefFor={(key) => `${base}/review?contest=${key}`}
           />
           <PortfolioCard p={summary} total={data.totalLineups} contest={loaded ? contest : null} />
+          {accuracy ? <AccuracyCard acc={accuracy} lineups={lineupAcc} /> : null}
           {loaded ? (
             <>
               <Panel title="Chalk" note="Most-owned players in the contest">

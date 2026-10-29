@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { missByPlayer } from "@/lib/queries/players";
 import type {
   ContestPlayer,
   ReviewContest,
@@ -209,11 +210,13 @@ export async function slateReview(args: {
 }): Promise<ReviewData | null> {
   const run = await gradedRun(args.site, args.slateId);
   if (!run) return null;
-  const [contests, ids, facts] = await Promise.all([
+  const [contests, ids, rawFacts, miss] = await Promise.all([
     slateContests(args.slateId),
     dkIds(args.site, args.slateId),
     reviewFacts(run.runId, args.site, args.slateId, args.season, args.week),
+    missByPlayer(args.season, args.week),
   ]);
+  const facts = rawFacts.map((f) => ({ ...f, meanMiss: miss[f.playerId] ?? null }));
   const contest = contests.find((c) => c.key === args.contestKey) ?? contests[0] ?? null;
   const [lineups, players] = await Promise.all([
     reviewLineups(run.runId, args.site, args.slateId, ids),

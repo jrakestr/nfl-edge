@@ -4,6 +4,8 @@
  * %Drafted column; the sim's own_field_sim never stands in for it.
  */
 
+import { adjustedForMiss } from "@/lib/player-edit";
+
 export const PANEL_SIZE = 15;
 export const LOW_OWN_MAX = 0.1;
 export const LOW_OWN_MIN_PTS_PER_K = 3;
@@ -51,6 +53,8 @@ export type ReviewFact = {
   ownOurs: number | null;
   ownFieldSim: number | null;
   actual: number | null;
+  /** Average of (actual minus sim) over this season's weeks before the slate. Null with no graded week. */
+  meanMiss?: number | null;
 };
 
 export type ReviewContest = {
@@ -193,6 +197,7 @@ export type ScorerRow = {
   team: string | null;
   salary: number | null;
   proj: number | null;
+  adjusted: number | null;
   actual: number;
   contestOwn: number | null;
   ours: number;
@@ -222,6 +227,7 @@ export function topScorers(
       team: f.team,
       salary: f.salary,
       proj: f.proj,
+      adjusted: adjustedProj(f),
       actual,
       contestOwn: c ? c.own : null,
       ours: share,
@@ -229,6 +235,123 @@ export function topScorers(
     });
   }
   return rows.sort((a, b) => b.actual - a.actual).slice(0, PANEL_SIZE);
+}
+
+/** The players table's Adjusted column, rebuilt for the slate: sim plus his earlier-week miss. */
+export function adjustedProj(f: Pick<ReviewFact, "proj" | "meanMiss">): number | null {
+  return adjustedForMiss(f.proj, f.meanMiss);
+}
+
+export const ACCURACY_GROUPS = ["All", "QB", "RB", "WR", "TE"] as const;
+
+export type AccuracyRow = {
+  group: string;
+  n: number;
+  simMae: number;
+  adjMae: number;
+  /** Mean of actual minus projection. Positive means the projection ran low. */
+  simBias: number;
+  adjBias: number;
+};
+
+export type ProjectionAccuracy = {
+  rows: AccuracyRow[];
+  /** Players with a sim and an actual but no earlier graded week, left out of both columns. */
+  noMiss: number;
+};
+
+function meanOf(xs: number[]): number {
+  return xs.reduce((s, v) => s + v, 0) / xs.length;
+}
+
+/**
+ * Sim against Adjusted on the same players: a positive sim projection, an actual, and an
+ * earlier-week miss. A player with no miss has no Adjusted and is counted in `noMiss`.
+ */
+export function projectionAccuracy(facts: ReviewFact[]): ProjectionAccuracy {
+  const graded = facts.filter((f) => f.actual != null && f.proj != null && f.proj > 0);
+  const both = graded.filter((f) => adjustedProj(f) != null);
+  const rows: AccuracyRow[] = [];
+  for (const group of ACCURACY_GROUPS) {
+    const set = group === "All" ? both : both.filter((f) => f.position === group);
+    if (!set.length) continue;
+    const simErr = set.map((f) => (f.actual as number) - (f.proj as number));
+    const adjErr = set.map((f) => (f.actual as number) - (adjustedProj(f) as number));
+    rows.push({
+      group,
+      n: set.length,
+      simMae: meanOf(simErr.map(Math.abs)),
+      adjMae: meanOf(adjErr.map(Math.abs)),
+      simBias: meanOf(simErr),
+      adjBias: meanOf(adjErr),
+    });
+  }
+  return { rows, noMiss: graded.length - both.length };
+}
+
+function pearson(xs: number[], ys: number[]): number | null {
+  if (xs.length < 3) return null;
+  const mx = meanOf(xs);
+  const my = meanOf(ys);
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < xs.length; i++) {
+    sxy += (xs[i]! - mx) * (ys[i]! - my);
+    sxx += (xs[i]! - mx) ** 2;
+    syy += (ys[i]! - my) ** 2;
+  }
+  return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : null;
+}
+
+export type LineupAccuracy = {
+  n: number;
+  simMean: number;
+  adjMean: number;
+  actualMean: number;
+  /** Correlation of lineup projection with lineup actual across the graded lineups. */
+  simCorr: number | null;
+  adjCorr: number | null;
+};
+
+/**
+ * Nine-slot totals under the sim and under Adjusted. A slot with no earlier-week miss keeps
+ * its sim number in the Adjusted total. Lineups with no actual or an unresolved slot are left out.
+ */
+export function lineupAccuracy(lineups: Pick<ReviewLineup, "actual" | "slots">[], facts: ReviewFact[]): LineupAccuracy | null {
+  const byId = new Map(facts.map((f) => [f.playerId, f]));
+  const byName = new Map(facts.map((f) => [nameKey(f.name), f]));
+  const sims: number[] = [];
+  const adjs: number[] = [];
+  const acts: number[] = [];
+  for (const l of lineups) {
+    if (l.actual == null) continue;
+    let sim = 0;
+    let adj = 0;
+    let ok = true;
+    for (const s of l.slots) {
+      const f = (s.playerId ? byId.get(s.playerId) : undefined) ?? byName.get(nameKey(s.name));
+      if (!f || f.proj == null) {
+        ok = false;
+        break;
+      }
+      sim += f.proj;
+      adj += adjustedProj(f) ?? f.proj;
+    }
+    if (!ok) continue;
+    sims.push(sim);
+    adjs.push(adj);
+    acts.push(l.actual);
+  }
+  if (!acts.length) return null;
+  return {
+    n: acts.length,
+    simMean: meanOf(sims),
+    adjMean: meanOf(adjs),
+    actualMean: meanOf(acts),
+    simCorr: pearson(sims, acts),
+    adjCorr: pearson(adjs, acts),
+  };
 }
 
 export type DrawerSlot = {

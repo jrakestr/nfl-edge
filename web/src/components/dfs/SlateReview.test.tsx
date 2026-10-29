@@ -90,6 +90,20 @@ describe("SlateReview", () => {
     expect(within(slots).getByText("99.00")).toBeInTheDocument();
   });
 
+  it("grades sim and Adjusted against actuals on the same players", () => {
+    const withMiss = facts.map((f, i) => (i < 3 ? { ...f, meanMiss: 1 } : f));
+    render(<SlateReview data={data({ facts: withMiss })} week={6} site="dk" slate="main" />);
+    const card = screen.getByLabelText("Projection accuracy");
+    const all = within(card).getByText("All").closest("tr")!;
+    expect(within(all).getByText("3")).toBeInTheDocument();
+    expect(within(all).getAllByText("0.00")).toHaveLength(2);
+    expect(within(all).getByText("1.00")).toBeInTheDocument();
+    expect(within(all).getByText("−1.00")).toBeInTheDocument();
+    expect(within(card).getByText(/7 with no earlier week left out/)).toBeInTheDocument();
+    const scorers = screen.getByLabelText("Top scorers");
+    expect(within(scorers).getByText("Adjusted")).toBeInTheDocument();
+  });
+
   it("keeps contest panels empty without a standings file", () => {
     render(
       <SlateReview

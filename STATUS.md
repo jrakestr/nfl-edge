@@ -1,5 +1,13 @@
 # Status
 
+## Slate review grades Adjusted against actuals (2026-10-29)
+
+What changed: the slate review (`/week/W/dfs/dk/{slate}/review`) gains a "Sim vs Adjusted" card: MAE and bias by All/QB/RB/WR/TE on the same players (sim > 0, an actual, and a miss from weeks < W via `missByPlayer`), a count of players left out for having no earlier week, and lineup totals with their correlation to lineup actuals under each projection (a slot with no earlier week keeps its sim number). Top scorers gains an Adjusted column. Helpers in `web/src/lib/review.ts` (`adjustedProj`, `projectionAccuracy`, `lineupAccuracy`).
+
+What was verified: web lint, typecheck, 744 tests, build. Live numbers (same logic in Python against Supabase), player MAE sim vs Adjusted: wk5 main 5.16 vs 6.05 (n 236), wk6 main 4.45 vs 5.11 (218), wk7 main 4.44 vs 5.46 (212), wk7 full 4.35 vs 5.28 (254). Adjusted is worse in every position group, and its bias is more negative (it overprojects: wk7 full −0.26 sim vs −1.01 Adjusted). Lineup correlation with actual, wk7 full: sim −0.02, Adjusted −0.23.
+
+What was deferred: Adjusted adds the whole raw average miss with no shrinkage, and the sim already absorbs part of that miss through `priors/calibration.py` (as-of actual/projected ratios), so the correction is counted twice. A shrunk version (miss × n/(n+k)) would need the calibration.md out-of-sample test before it replaces the column; Optimize still offers Adjusted as a point source.
+
 ## Refresh daily 20:00 Phoenix (temporary, 2026-10-29)
 
 What changed: `refresh.yml` runs once a day at `0 3 * * *` (20:00 Phoenix) until the operator says the pipeline is stable. Web Workflow page and docs say so. `docs/ops.md` gains "Before kickoff" (DNS check, `dk-fetch`, odds, `fantasypros-status` at kickoff minus 75 minutes, re-sim when a starter is out). Wed/Fri injury step is `fantasypros-status` + `change-check`, not an overrides CSV. AGENTS.md: dk-fetch, inactives source, diagnose-before-reporting.

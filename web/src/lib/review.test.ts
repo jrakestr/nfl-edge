@@ -3,8 +3,10 @@ import {
   contestRows,
   drawerBreakdown,
   entryFor,
+  lineupAccuracy,
   lowOwnedHits,
   portfolio,
+  projectionAccuracy,
   ptsPerK,
   topScorers,
   type ContestPlayer,
@@ -184,5 +186,58 @@ describe("entryFor", () => {
     expect(entryFor(l, 1)!.rank).toBe(20);
     expect(entryFor(l, 3)).toBeNull();
     expect(entryFor(l, null)).toBeNull();
+  });
+});
+
+describe("projectionAccuracy", () => {
+  const facts = [
+    fact({ name: "q", position: "QB", proj: 20, meanMiss: 4, actual: 26 }),
+    fact({ name: "w", position: "WR", proj: 10, meanMiss: -2, actual: 6 }),
+    fact({ name: "new", position: "WR", proj: 12, meanMiss: null, actual: 30 }),
+    fact({ name: "out", position: "RB", proj: 0, meanMiss: 3, actual: 0 }),
+    fact({ name: "dnp", position: "TE", proj: 8, meanMiss: 1, actual: null }),
+  ];
+  it("compares sim and Adjusted on the same players and counts those with no earlier week", () => {
+    const acc = projectionAccuracy(facts);
+    expect(acc.noMiss).toBe(1);
+    const all = acc.rows.find((r) => r.group === "All")!;
+    expect(all.n).toBe(2);
+    expect(all.simMae).toBeCloseTo(5, 6);
+    expect(all.adjMae).toBeCloseTo(2, 6);
+    expect(all.simBias).toBeCloseTo(1, 6);
+    expect(all.adjBias).toBeCloseTo(0, 6);
+    expect(acc.rows.map((r) => r.group)).toEqual(["All", "QB", "WR"]);
+  });
+  it("returns no rows when nobody has an earlier week", () => {
+    expect(projectionAccuracy([fact({ name: "a", meanMiss: null })]).rows).toEqual([]);
+  });
+});
+
+describe("lineupAccuracy", () => {
+  const facts = [
+    fact({ name: "a", proj: 10, meanMiss: 2 }),
+    fact({ name: "b", proj: 20, meanMiss: null }),
+    fact({ name: "c", proj: 5, meanMiss: -1 }),
+  ];
+  it("sums nine-slot totals and keeps the sim for a slot with no earlier week", () => {
+    const acc = lineupAccuracy(
+      [
+        lineup(["a", "b"], { actual: 40 }),
+        lineup(["b", "c"], { actual: 20 }),
+        lineup(["a", "c"], { actual: 10 }),
+        lineup(["a", "b"], { actual: null }),
+        lineup(["a", "zz"], { actual: 50 }),
+      ],
+      facts,
+    )!;
+    expect(acc.n).toBe(3);
+    expect(acc.simMean).toBeCloseTo((30 + 25 + 15) / 3, 6);
+    expect(acc.adjMean).toBeCloseTo((32 + 24 + 16) / 3, 6);
+    expect(acc.actualMean).toBeCloseTo(70 / 3, 6);
+    expect(acc.simCorr).not.toBeNull();
+    expect(acc.adjCorr).not.toBeNull();
+  });
+  it("is null with no graded lineup", () => {
+    expect(lineupAccuracy([lineup(["a"], { actual: null })], facts)).toBeNull();
   });
 });
