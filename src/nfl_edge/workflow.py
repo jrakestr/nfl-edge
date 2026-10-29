@@ -226,6 +226,17 @@ def _each_week(cmd: str, then: Callable[[int], list[list[str]]]) -> Callable:
     return fn
 
 
+def _fetch_and_load_salaries(ctx: Context, run: Runner) -> None:
+    """dk-fetch, then load every file it left so the web sees the week's slates."""
+    run(["dk-fetch", *ctx.sw()])
+    slates = week_slates(ctx.season, ctx.week)
+    for s in slates:
+        run(["dk-salaries", *ctx.sw(), "--slate", s, "--salaries-only"])
+    if slates:
+        run(["dk-salaries", *ctx.sw(), "--merge-status",
+             "--status-from", status_authority(ctx.season, ctx.week) or slates[0]])
+
+
 def _refresh(ctx: Context) -> list[Step]:
     """Lines and scores, injuries, DK salary files, full LOC pull, grade, then the change check.
 
@@ -239,8 +250,8 @@ def _refresh(ctx: Context) -> list[Step]:
               soft=True),
         _step("ingest", *season, "--lines-only", soft=True),
         Step(fn=_each_week("stale-weeks", lambda w: [["lines", *season, "--week", str(w)]])),
+        Step(fn=_fetch_and_load_salaries, soft=True),
         _step("ingest", "fantasypros-status", *sw, soft=True),
-        _step("dk-fetch", *sw, soft=True),
         _step("ingest", "espn-league", *season, soft=True),
         _step("ingest", "live", *sw, soft=True),
         _step("actuals", *sw, soft=True),

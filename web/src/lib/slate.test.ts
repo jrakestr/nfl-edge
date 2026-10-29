@@ -69,7 +69,7 @@ describe("resolveSlate", () => {
 describe("missingSlateNotice", () => {
   it("names the expected DK CSV", () => {
     expect(missingSlateNotice(2026, 1, "afternoon")).toBe(
-      "Afternoon has no salaries loaded for this week. Expected data/dk/DKSalaries_2026_wk01_afternoon.csv.",
+      "Afternoon has no salaries loaded for 2026 week 1. Run the Salaries phase on Workflow; it pulls every slate from the DK lobby.",
     );
   });
 });

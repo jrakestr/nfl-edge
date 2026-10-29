@@ -35,6 +35,9 @@
   (`ingest/dk_lobby.py`, no login) into `data/dk/` and private Storage.
 - Runs in Refresh, the salaries/DFS phases and the Mac rebuild (which falls back to
   `storage pull-salaries`). Never ask for a manual CSV export.
+- `dk-fetch` only writes files. The web reads `raw.dk_salaries`, filled by
+  `dk-salaries --salaries-only` per slate plus `--merge-status`; Refresh, the salaries
+  phase and the Mac rebuild run both after fetching.
 - Same DNS block as the Odds API on Umbrella networks.
 
 ## Props

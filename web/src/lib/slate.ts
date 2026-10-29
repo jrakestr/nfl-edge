@@ -81,8 +81,7 @@ export function fallbackNotice(requested: string): string {
 }
 
 export function missingSlateNotice(season: number, week: number, slate: string): string {
-  const ww = String(week).padStart(2, "0");
-  return `${slateLabel(slate)} has no salaries loaded for this week. Expected data/dk/DKSalaries_${season}_wk${ww}_${slate}.csv.`;
+  return `${slateLabel(slate)} has no salaries loaded for ${season} week ${week}. Run the Salaries phase on Workflow; it pulls every slate from the DK lobby.`;
 }
 
 export function slatePairKey(away: string, home: string): string {

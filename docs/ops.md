@@ -11,7 +11,8 @@ salaries, sim, lines, props, dfs, grade), optionally "run from here" through DFS
 draws, field size, iterations. One pipeline run at a time. DFS upload CSVs are attached to the
 run as an artifact. **Refresh** is the only schedule (daily 20:00 Phoenix, temporary; see
 STATUS.md) and also has its own button. Each run pulls odds, FantasyPros injuries into
-`raw.player_overrides`, and DK salary files, and prints the change check; it does not re-sim.
+`raw.player_overrides`, and DK salary files (fetched and loaded into `raw.dk_salaries`), and
+prints the change check; it does not re-sim.
 20:00 is after every inactives list, so inactives are pulled by hand (see Before kickoff). That
 scheduled run includes a full `ingest espn-league` (standings,
 scores, rosters, transactions). The LOC page button dispatches `loc.yml`, which is that pull alone.

@@ -6,7 +6,7 @@
   DFS is slate-scoped (classic:
   main/early/full/afternoon/turbo/primetime; showdown separate). Each slate has its
   own DK IDs; upload CSVs must use that slate's IDs.
-- Unknown slate key: show an empty state naming the expected DK CSV. Never
+- Unknown slate key: show an empty state pointing at the Salaries phase. Never
   substitute Main.
 - `ops/week-rebuild.sh` runs `dk-fetch` (else `storage pull-salaries`) and builds every
   slate that comes back.

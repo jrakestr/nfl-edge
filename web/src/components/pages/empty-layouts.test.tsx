@@ -67,13 +67,13 @@ describe("empty sidebar layouts", () => {
     expect(screen.queryByText("QB")).not.toBeInTheDocument();
   });
 
-  it("unknown slate empty state names the CSV and has no Main players", () => {
+  it("unknown slate empty state points at the Salaries phase and has no Main players", () => {
     render(
       <EmptyState title="afternoon has no salaries">
         {missingSlateNotice(2026, 1, "afternoon")}
       </EmptyState>,
     );
-    expect(screen.getByText(/DKSalaries_2026_wk01_afternoon.csv/)).toBeInTheDocument();
+    expect(screen.getByText(/Run the Salaries phase on Workflow/)).toBeInTheDocument();
     expect(screen.queryByText("Jahmyr Gibbs")).not.toBeInTheDocument();
   });
 

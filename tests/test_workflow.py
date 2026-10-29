@@ -231,13 +231,14 @@ def test_sql_recorder_writes_start_and_finish(monkeypatch):
     assert got["host"] == "github" and got["finished_at"] is not None
 
 
-def test_refresh_order_and_never_sims():
+def test_refresh_order_and_never_sims(monkeypatch):
+    monkeypatch.setattr(W.dk, "week_dk_csvs", lambda s, w: [])
     steps = W.plan("refresh", W.Context(2026, 7))
     run = FakeRunner(out="")
     W.run_phase("refresh", W.Context(2026, 7), runner=run, recorder=FakeRecorder())
     heads = [c[:2] for c in run.calls]
     assert heads == [["ingest", "odds-api"], ["ingest", "--season"], ["stale-weeks", "--season"],
-                     ["ingest", "fantasypros-status"], ["dk-fetch", "--season"],
+                     ["dk-fetch", "--season"], ["ingest", "fantasypros-status"],
                      ["ingest", "espn-league"],
                      ["ingest", "live"], ["actuals", "--season"],
                      ["ungraded-completed", "--season"], ["change-check", "--season"]]
@@ -245,6 +246,19 @@ def test_refresh_order_and_never_sims():
     assert all(s.soft for s in steps if s.args and s.args[0] == "ingest")
     espn = [c for c in run.calls if c[:2] == ["ingest", "espn-league"]]
     assert espn == [["ingest", "espn-league", "--season", "2026"]]
+
+
+def test_refresh_loads_every_fetched_slate_then_merges_status(slates):
+    run = FakeRunner(out="")
+    W.run_phase("refresh", W.Context(2026, 7), runner=run, recorder=FakeRecorder())
+    i = run.calls.index(["dk-fetch", "--season", "2026", "--week", "7"])
+    sw = ["--season", "2026", "--week", "7"]
+    assert run.calls[i + 1:i + 5] == [
+        ["dk-salaries", *sw, "--slate", "full", "--salaries-only"],
+        ["dk-salaries", *sw, "--slate", "main", "--salaries-only"],
+        ["dk-salaries", *sw, "--slate", "showdown", "--salaries-only"],
+        ["dk-salaries", *sw, "--merge-status", "--status-from", "full"],
+    ]
 
 
 def test_refresh_lines_each_stale_week_and_grades_finished_ones():
