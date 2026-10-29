@@ -70,7 +70,7 @@ export function blendPoints(
 export function checkPointEdit(input: PointEdit): string | null {
   if (!Number.isInteger(input.season) || input.season < 2000 || input.season > 2100) return "Bad season.";
   if (!Number.isInteger(input.week) || input.week < 1 || input.week > 22) return "Bad week.";
-  if (input.site !== "dk" && input.site !== "fd") return "Bad site.";
+  if (input.site !== "dk") return "Bad site.";
   if (!/^[a-z0-9_-]{1,32}$/.test(input.slate)) return "Bad slate.";
   if (!/^[A-Za-z0-9._-]{1,64}$/.test(input.playerId)) return "Bad player.";
   if (!Number.isInteger(input.delta) || input.delta < -100 || input.delta > 100) {

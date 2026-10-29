@@ -41,7 +41,7 @@ export default async function Page({
   const week = Number(n);
   const seasonParam = Number(one(sp.season));
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
-  const siteKey = site === "fd" ? "fd" : "dk";
+  const siteKey = "dk";
   const weekOk = Number.isInteger(week) && week >= 1 && week <= 22;
   const pinned = one(sp.run);
   const available = weekOk ? await slatesForWeek(season, week, siteKey) : [];

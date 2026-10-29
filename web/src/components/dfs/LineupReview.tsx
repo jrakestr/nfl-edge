@@ -17,7 +17,6 @@ import { lineupActual, type LineupActual } from "@/lib/lineup-actuals";
 import { CONSTRUCTION_LABEL, type ConstructionId } from "@/lib/optimize/construction";
 import type { DkActual } from "@/lib/queries/dfs";
 import { MetricLabel } from "@/lib/icons";
-import { cn } from "@/lib/utils";
 
 type SortKey = "proj" | "win" | "roi" | "actual";
 
@@ -124,7 +123,7 @@ export function LineupReview({
   const [sort, setSort] = useState<SortKey>("win");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const siteKey = site === "fd" ? "fd" : "dk";
+  const siteKey = "dk";
   const sid = slateId;
   const visible = useMemo(
     () => lineups.filter((l) => (l.construction ?? "mass") === method),
@@ -202,11 +201,9 @@ export function LineupReview({
             </p>
           ) : null}
           <div className="flex items-center gap-3">
-            {siteKey === "dk" ? (
-              <Link href={`/week/${week}/dfs/dk/${slate}/review`} className="t-body text-muted-foreground underline-offset-2 hover:underline">
-                Slate review
-              </Link>
-            ) : null}
+            <Link href={`/week/${week}/dfs/dk/${slate}/review`} className="t-body text-muted-foreground underline-offset-2 hover:underline">
+              Slate review
+            </Link>
             <Button
               type="button"
               size="sm"
@@ -218,26 +215,6 @@ export function LineupReview({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <nav className="flex h-8 items-center gap-1" aria-label="Site">
-            {(
-              [
-                ["dk", "DraftKings"],
-                ["fd", "FanDuel"],
-              ] as const
-            ).map(([id, label]) => (
-              <Link
-                key={id}
-                href={`/week/${week}/dfs/${id}/${slate}`}
-                aria-current={siteKey === id ? "page" : undefined}
-                className={cn(
-                  "px-2 t-body",
-                  siteKey === id ? "text-foreground font-semibold" : "text-muted-foreground",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
           <SlateSelector week={week} site={siteKey} page="dfs" slate={slate} slates={slates} />
           {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
           {present.length ? (

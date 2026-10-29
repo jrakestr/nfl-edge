@@ -1,6 +1,6 @@
 /** Product labels for the top-bar trail. Nested week routes skip the "Edge board" prefix. */
 
-const SITE: Record<string, string> = { dk: "DK", fd: "FD" };
+const SITE: Record<string, string> = { dk: "DK" };
 const SLATE: Record<string, string> = {
   main: "Main",
   full: "Full",

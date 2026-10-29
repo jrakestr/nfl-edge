@@ -57,7 +57,7 @@ describe("empty sidebar layouts", () => {
     expect(screen.getByRole("heading", { name: "Week 99 · XX · yy" })).toBeInTheDocument();
     expect(screen.getByText("No lineups for this slate yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export selected" })).toBeDisabled();
-    expect(screen.getByText("DraftKings")).toBeInTheDocument();
+    expect(screen.queryByText("FanDuel")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Slate")).toBeInTheDocument();
   });
 

@@ -28,12 +28,12 @@ export default async function Page({
   params,
   searchParams,
 }: PageProps<"/week/[n]/optimize/[site]/[slate]">) {
-  const { n, site, slate: pathSlate } = await params;
+  const { n, slate: pathSlate } = await params;
   const sp = await searchParams;
   const week = Number(n);
   const seasonParam = Number(one(sp.season));
   const season = Number.isInteger(seasonParam) && seasonParam > 2000 ? seasonParam : CURRENT_SEASON;
-  const siteKey = site === "fd" ? "fd" : "dk";
+  const siteKey = "dk";
   const weekOk = Number.isInteger(week) && week >= 1 && week <= 22;
   const available = weekOk ? await slatesForWeek(season, week, siteKey) : [];
   const requested = requestedSlate(pathSlate, one(sp.slate));

@@ -117,9 +117,8 @@ export function pathContext(
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] === "week" && /^\d+$/.test(parts[1] ?? "")) {
     const week = Number(parts[1]);
-    const site = parts[3] === "fd" ? "fd" : "dk";
     const pathSlate = parts[2] === "games" ? undefined : parts[4];
-    return { week, site, slate: requestedSlate(pathSlate, querySlate ?? undefined) };
+    return { week, site: "dk", slate: requestedSlate(pathSlate, querySlate ?? undefined) };
   }
   return { week: null, site: "dk", slate: "main" };
 }
