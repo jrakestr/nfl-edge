@@ -34,6 +34,10 @@ priors:
   calibration_off: [pass_rate]  # OOS wk5 (fit wk1-3): pass_rate made carries worse (MAE 5.69 -> 5.93)
   role_min_offense_pct: 0.10    # under this offensive snap share in each recent team game: no usage
   role_games: 3
+  # External usage shrinkage (priors/external_usage.py), fit as-of on graded weeks < W only.
+  external_usage_blend: false   # off until the calibration.md OOS gate and operator OK
+  external_usage_k_weeks: 2.0
+  external_usage_max_weight: 0.50
 team:
   plays_per_game_sd: 6
   pass_rate_sd: 0.03        # per-draw noise around the script-adjusted pass rate

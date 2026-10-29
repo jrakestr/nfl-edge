@@ -7,7 +7,19 @@ from dataclasses import dataclass, field
 
 import polars as pl
 
-from . import calibration, common, depth, efficiency, elo, kicking, qb, role, team, usage
+from . import (
+    calibration,
+    common,
+    depth,
+    efficiency,
+    elo,
+    external_usage,
+    kicking,
+    qb,
+    role,
+    team,
+    usage,
+)
 
 
 @dataclass
@@ -47,6 +59,26 @@ def build(season: int, week: int, c: dict | None = None) -> Priors:
         u = calibration.apply_usage(u, factors, shares, role.depth_starters(dc.to_dicts()),
                                     float(c.get("role_min_offense_pct", 0.10)))
         tp = team.TeamPriors(calibration.apply_teams(tp.teams, factors), tp.league)
+    if c.get("external_usage_blend", False):
+        ext_hist = external_usage.load_history(season, week)
+        ext_weights = external_usage.fit_weights(
+            ext_hist,
+            float(c.get("external_usage_k_weeks", 2.0)),
+            float(c.get("external_usage_max_weight", 0.50)),
+        )
+        ruled_out = (
+            set(
+                ov.filter(pl.col("status").str.to_lowercase().is_in(["out", "doubtful", "ir"]))[
+                    "player_id"
+                ].to_list()
+            )
+            if not ov.is_empty()
+            else set()
+        )
+        u = external_usage.apply_external_usage(
+            u, external_usage.load_external_week(season, week), ext_weights, ruled_out
+        )
+        factors["external_usage"] = ext_weights
     target_rate = calibration.load_target_rate(season, week) if c.get("untargeted_attempts") else 1.0
     return Priors(
         season=season,
