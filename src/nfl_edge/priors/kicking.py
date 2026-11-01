@@ -32,8 +32,9 @@ def fg_distance_mix(made: dict[str, float]) -> list[float] | None:
     return [x / n for x in parts]
 
 
-def team_kickers(roster: pl.DataFrame, overrides: pl.DataFrame | None) -> dict[str, str]:
-    """{team: player_id} for teams with exactly one active kicker who is not ruled out."""
+def team_kickers(roster: pl.DataFrame, overrides: pl.DataFrame | None,
+                 depth: pl.DataFrame | None = None) -> dict[str, str]:
+    """{team: player_id} for teams with one active kicker (or PK1 on the depth chart when >= 2)."""
     if roster.is_empty():
         return {}
     out_ids: set[str] = set()
@@ -43,8 +44,22 @@ def team_kickers(roster: pl.DataFrame, overrides: pl.DataFrame | None) -> dict[s
         )["player_id"].to_list())
     by_team: dict[str, list[str]] = {}
     for row in roster.iter_rows(named=True):
-        by_team.setdefault(row["team"], []).append(row["player_id"])
-    return {team: ids[0] for team, ids in by_team.items() if len(ids) == 1 and ids[0] not in out_ids}
+        if row["player_id"] not in out_ids:
+            by_team.setdefault(row["team"], []).append(row["player_id"])
+    rank_by_id: dict[str, int] = {}
+    if depth is not None and not depth.is_empty():
+        for row in depth.iter_rows(named=True):
+            if row.get("player_id") and row.get("depth_rank") is not None:
+                rank_by_id[row["player_id"]] = int(row["depth_rank"])
+    out: dict[str, str] = {}
+    for team, ids in by_team.items():
+        if len(ids) == 1:
+            out[team] = ids[0]
+        elif len(ids) > 1 and rank_by_id:
+            ranked = sorted((rank_by_id.get(i, 99), i) for i in ids)
+            if ranked[0][0] < ranked[1][0]:
+                out[team] = ranked[0][1]
+    return out
 
 
 def load_roster_kickers(season: int, week: int) -> pl.DataFrame:
@@ -73,7 +88,10 @@ def load_fg_made(season: int, week: int) -> dict[str, float]:
 
 
 def build(season: int, week: int, overrides: pl.DataFrame | None = None) -> dict:
+    from . import depth
+
+    k_depth = depth.load_depth(season, week, positions=("K", "PK"), pos_map={"PK": "K"})
     return {
-        "kickers": team_kickers(load_roster_kickers(season, week), overrides),
+        "kickers": team_kickers(load_roster_kickers(season, week), overrides, depth=k_depth),
         "fg_mix": fg_distance_mix(load_fg_made(season, week)),
     }

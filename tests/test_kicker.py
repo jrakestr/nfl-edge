@@ -95,12 +95,17 @@ def test_fg_distance_mix_from_made_counts():
 
 def test_team_kickers_one_active_not_ruled_out():
     roster = pl.DataFrame({
-        "team": ["SF", "WAS", "KC", "KC", "BUF"],
-        "player_id": ["k_sf", "k_was", "k_kc1", "k_kc2", "k_buf"],
+        "team": ["SF", "WAS", "KC", "KC", "BUF", "LA", "LA"],
+        "player_id": ["k_sf", "k_was", "k_kc1", "k_kc2", "k_buf", "k_mcmanus", "k_karty"],
     })
     overrides = pl.DataFrame({"player_id": ["k_buf"], "status": ["out"]})
+    depth = pl.DataFrame({"team": ["LA", "LA"], "player_id": ["k_mcmanus", "k_karty"],
+                          "position": ["K", "K"], "depth_rank": [1, 2]})
     assert kicking.team_kickers(roster, overrides) == {"SF": "k_sf", "WAS": "k_was"}
     assert kicking.team_kickers(roster, None) == {"SF": "k_sf", "WAS": "k_was", "BUF": "k_buf"}
+    assert kicking.team_kickers(roster, overrides, depth=depth) == {
+        "SF": "k_sf", "WAS": "k_was", "LA": "k_mcmanus",
+    }
 
 
 def test_kicker_projection_ties_to_team_draws(draws):

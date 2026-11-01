@@ -18,6 +18,12 @@
   CLI path `data/dfs/<run_id>/<site>/<slate>/`.
 
 ## Optimizer
+- Python classic mass (`constructions.json` `"points": "adjusted"`) optimizes on
+  Adjusted: half sim, half the newest FantasyPros DK row pulled before kickoff.
+  Defenses keep the sim. A projected player with no FantasyPros row is left out
+  (`no_fantasypros` in `report.txt`). No FantasyPros rows for the week stops the
+  export. Ownership and the persisted `proj_fpts` stay on the sim. Basis: STATUS
+  2026-10-29 optimizer backtest. Showdown, cash and single still use the sim.
 - Web optimizer point source (`pts`): DK pts (default), NFLGameSim, FantasyPros,
   Adjusted, or Yours. DK pts keeps the construction objective (cash = p25, single =
   mean + ceiling − ownership). Any other source uses that number as the points:

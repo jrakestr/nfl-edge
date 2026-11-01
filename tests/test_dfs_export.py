@@ -201,6 +201,34 @@ def test_single_fpts_uses_named_ceiling_and_own_weights():
     assert by_name(rows)["Patrick Mahomes"]["Fpts"] == pytest.approx(expect)
 
 
+def test_adjusted_points_split_sim_and_fp_and_defense_keeps_sim():
+    fp = {"00-0033873": 18.4, "00-0039139": 15.0}
+    pts = D.adjusted_points(PROJ, fp, SLATE)
+    assert pts["00-0033873"] == pytest.approx((22.4 + 18.4) / 2)
+    assert pts["KC_DST"] == 7.5
+    assert "00-0036900" not in pts
+
+
+def test_mass_points_replace_mean_drop_no_fp_and_keep_sim_ownership():
+    pts = D.adjusted_points(PROJ, {"00-0033873": 18.4, "00-0039139": 15.0}, SLATE)
+    base, _ = D.build_projections(SLATE, PROJ, site="dk")
+    rows, report = D.build_projections(
+        SLATE, PROJ, site="dk", construction=C.profile("classic", "mass"), points=pts,
+    )
+    got = by_name(rows)
+    assert got["Patrick Mahomes"]["Fpts"] == pytest.approx(20.4)
+    assert got["Patrick Mahomes"]["Own%"] == by_name(base)["Patrick Mahomes"]["Own%"]
+    assert got["Chiefs"]["Fpts"] == 7.5
+    dropped = {r["name"] for r in report if r["kind"] == "no_fantasypros"}
+    assert dropped == {r["name"] for r in SLATE if r["player_id"] in ("00-0036900", "00-0037837")}
+    assert dropped.isdisjoint(got)
+
+
+def test_classic_mass_optimizes_on_adjusted():
+    assert C.profile("classic", "mass")["points"] == "adjusted"
+    assert "points" not in C.profile("showdown", "mass")
+
+
 def test_projections_fd_uses_fd_points():
     rows, _ = D.build_projections(SLATE, PROJ, site="fd")
     assert by_name(rows)["Patrick Mahomes"]["Fpts"] == 20.0

@@ -246,9 +246,17 @@ def test_depth_chart_cold_start_includes_ranks_4_and_5():
 
 
 def test_announced_starter_beats_attempts_for_qb1():
-    ros = _roster(extra=[("T", "qb2", "QB", "QB Two")])
-    u = usage.build(_pw(), ros, 2025, 9, UCFG)                      # no starters -> most attempts
+    ros = _roster(extra=[("T", "qb2", "QB", "QB Two"), ("T", "qb3", "QB", "QB Three")])
+    pw = pl.concat([_pw(), pl.DataFrame(
+        [(2025, 1, "qb2", "T", "QB", 0, 2, 10, 30, 25, 0.0, 0.1, 1.0, 1.0, 0.2),
+         (2025, 1, "qb3", "T", "QB", 0, 5, 2, 30, 25, 0.0, 0.2, 1.0, 1.0, 0.2)],
+        orient="row", schema=PW_COLS,
+    )])
+    u = usage.build(pw, ros, 2025, 9, UCFG)                       # no starters -> most attempts
     assert u.filter(pl.col("is_qb1"))["player_id"].to_list() == ["qb"]
+    # QB3 is neither QB1 nor QB2, so his carry_share and rz_carry_share are zeroed
+    qb3 = u.filter(pl.col("player_id") == "qb3").row(0, named=True)
+    assert qb3["carry_share"] == 0.0 and qb3["rz_carry_share"] == 0.0
     depth = pl.DataFrame({"player_id": ["qb2"], "depth_rank": [1]})
     st = pl.DataFrame({"team": ["T"], "qb_id": ["qb2"]})
     u = usage.build(_pw(), ros, 2025, 9, UCFG, starters=st, depth=depth)

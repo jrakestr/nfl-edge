@@ -14,7 +14,7 @@ import polars as pl
 
 from ..db import read_sql
 
-SKILL_DEPTH = ("QB", "RB", "WR", "TE", "FB", "HB")
+SKILL_DEPTH = ("QB", "RB", "WR", "TE")
 POS_MAP = {"FB": "RB", "HB": "RB"}
 
 

@@ -438,7 +438,10 @@ def build_projections(
     slate: list[dict], proj: dict[str, dict], site: str = "dk",
     showdown: bool = False,
     construction: dict | None = None,
+    points: dict[str, float] | None = None,
 ) -> tuple[list[dict], list[dict]]:
+    """`points` replaces the sim mean in Fpts (ownership still reads the sim);
+    a projected player missing from it is left out of the pool."""
     mean_key = "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
     sd_key = "fpts_fd_sd" if site == "fd" else "fpts_dk_sd"
     players = _flex_slate(slate) if showdown else _unique_slate(slate)
@@ -476,6 +479,14 @@ def build_projections(
             })
         else:
             mean, sd = _fnum(stats.get(mean_key)), _fnum(stats.get(sd_key))
+            if points is not None:
+                if pid not in points:
+                    report.append({
+                        "kind": "no_fantasypros", "name": row.get("name"),
+                        "team": row.get("team"), "position": pos, "player_id": pid,
+                    })
+                    continue
+                mean = points[pid]
         if construction is not None and stats is not None:
             fpts = C.adjusted_fpts(
                 mean,
@@ -501,6 +512,37 @@ def build_projections(
             "StdDev": sd,
         })
     return out, report
+
+
+def adjusted_points(proj: dict[str, dict], fp: dict[str, float], slate: list[dict]) -> dict[str, float]:
+    """Half sim, half FantasyPros DK points; defenses keep the sim (FantasyPros has none)."""
+    dst = {str(r["player_id"]) for r in slate if r.get("player_id") and map_position(r.get("position")) == "DST"}
+    out: dict[str, float] = {}
+    for pid, stats in proj.items():
+        sim = stats.get("fpts_dk_mean")
+        if sim is None:
+            continue
+        if pid in dst:
+            out[pid] = float(sim)
+        elif pid in fp:
+            out[pid] = (float(sim) + fp[pid]) / 2
+    return out
+
+
+def load_fantasypros(run_id: str, season: int, week: int) -> dict[str, float]:
+    """Newest FantasyPros DK points per player pulled before his game's kickoff."""
+    rows = read_sql(
+        "select distinct on (fp.player_id) fp.player_id, fp.fpts_dk::float8 as fpts_dk "
+        "from raw.external_players fp "
+        "join model.proj_players pp on pp.run_id = %s and pp.player_id = fp.player_id "
+        "join raw.schedules g on g.game_id = pp.game_id "
+        "where fp.source = 'fantasypros' and fp.season = %s and fp.week = %s "
+        "and fp.fpts_dk is not null "
+        "and fp.ingested_at < ((g.gameday || ' ' || g.gametime)::timestamp at time zone 'America/New_York') "
+        "order by fp.player_id, fp.ingested_at desc",
+        (run_id, season, week),
+    )
+    return {str(r["player_id"]): float(r["fpts_dk"]) for r in rows.to_dicts()}
 
 
 def build_player_ids(slate: list[dict]) -> list[dict]:
@@ -670,8 +712,19 @@ def run(
     names = {r["player_id"]: r["name"] for r in slate_rows if r.get("player_id") and r.get("name")}
     showdown = slate_type_for(slate) == "showdown"
     prof = C.profile(slate, construction)
+    points = None
+    if prof.get("points") == "adjusted":
+        if site != "dk":
+            raise RuntimeError(f"Adjusted points are DK-only; {construction} on {site} has no FantasyPros number")
+        fp = load_fantasypros(run_id, season, week)
+        if not fp:
+            raise RuntimeError(
+                f"no FantasyPros rows pulled before kickoff for {season} week {week}; "
+                f"{construction} optimizes on Adjusted (half sim, half FantasyPros)"
+            )
+        points = adjusted_points(proj, fp, slate_rows)
     projections, report = build_projections(
-        slate_rows, proj, site=site, showdown=showdown, construction=prof,
+        slate_rows, proj, site=site, showdown=showdown, construction=prof, points=points,
     )
     report = injury_dropped + role_dropped + report
     ids = build_player_ids(slate_rows)
@@ -701,6 +754,7 @@ def run(
         "unmatched_salaries": len(unmatched),
         "correlations": len(cfg["custom_correlations"]),
         "construction": construction,
+        "points": prof.get("points") or "sim",
         "contest": (contest or "gpp").strip().lower(),
         "field_size": effective_field_size(structure, field_size),
         "settings": settings_from_config(cfg, construction),

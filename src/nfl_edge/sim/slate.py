@@ -342,6 +342,15 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
     for side, t, prior in sides:
         factor, att_share = qb_channel(priors, t.team)
         usage = priors.usage.filter(pl.col("team") == t.team).with_columns(pl.lit(att_share).alias("qb_att_share"))
+        if att_share >= 1.0 and "is_qb2" in usage.columns:
+            keep = (~pl.col("is_qb2").fill_null(False)).cast(pl.Float64)
+            usage = usage.with_columns(
+                (pl.col("carry_share") * keep).alias("carry_share"),
+                (pl.col("rz_carry_share") * keep).alias("rz_carry_share"),
+            ).with_columns(
+                [(pl.col(c) / pl.col(c).sum()).fill_nan(0.0).alias(c)
+                 for c in ("carry_share", "rz_carry_share")]
+            )
         eff = qb_adjusted_efficiency(priors.efficiency.filter(pl.col("player_id").is_in(usage["player_id"])), factor)
         if usage.is_empty():
             raise ValueError(f"{game_id}: no usage priors for {t.team}")

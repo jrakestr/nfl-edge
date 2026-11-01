@@ -68,6 +68,7 @@ def load_player_weeks(season: int, week: int) -> pl.DataFrame:
         left join ot on ot.season = ps.season and ot.week = ps.week and ot.team = ps.team
         left join sn on sn.season = ps.season and sn.week = ps.week and sn.player_id = ps.player_id
         where ps.position in ('QB','RB','WR','TE','FB','HB')
+          and (coalesce(ps.targets, 0) + coalesce(ps.carries, 0) + coalesce(ps.attempts, 0)) > 0
         """
     ).with_columns(pl.col("position").replace(POS_MAP))
 
@@ -191,11 +192,14 @@ def build(pw: pl.DataFrame, roster: pl.DataFrame, season: int, week: int, c: dic
     out = out.join(flags, on="player_id", how="left").with_columns(
         pl.col("is_qb1").fill_null(False), pl.col("is_qb2").fill_null(False)
     )
-    # renormalize within team: targets among non-QBs, carries among everyone
+    # renormalize within team: targets among non-QBs, carries among non-QBs and active passers
     non_qb = pl.col("position") != "QB"
+    can_carry = non_qb | pl.col("is_qb1") | pl.col("is_qb2")
     out = out.with_columns(
         pl.when(non_qb).then(pl.col("target_share")).otherwise(0.0).alias("target_share"),
         pl.when(non_qb).then(pl.col("rz_target_share")).otherwise(0.0).alias("rz_target_share"),
+        pl.when(can_carry).then(pl.col("carry_share")).otherwise(0.0).alias("carry_share"),
+        pl.when(can_carry).then(pl.col("rz_carry_share")).otherwise(0.0).alias("rz_carry_share"),
     ).with_columns(
         [(pl.col(s) / pl.col(s).sum().over("team")).fill_nan(0.0).alias(s) for s in SHARE_COLS]
     )

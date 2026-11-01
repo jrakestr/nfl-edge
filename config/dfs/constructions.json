@@ -36,6 +36,7 @@
     },
     "mass": {
       "objective": "jittered_mean",
+      "points": "adjusted",
       "floor_percentile": 25,
       "ceiling_weight": 0,
       "ownership_penalty": 0,
