@@ -1,5 +1,38 @@
 # Status
 
+## Defender–offense correlation (2026-11-01)
+- Every sim now splits each team's sacks, interceptions and fumble recoveries (from the opponent's draws) across its DL/LB/DB, using as-of shares from `raw.defender_weeks` (migration 0053). The split runs on its own rng stream, so offense, DST and kicker draws are unchanged. Defender rows go to `proj_players` and the parquet. Correlations are stored only for each team's top 6 defenders (`players.defender_corr_top`) against non-defenders, which took week 8 from about 7k to about 12k rows per run.
+- Defenders are excluded from props, `players_complete`, player proj-vs-actual, research context, rebuild counts, the Players list and the edge-board drawer. The DFS pool needs a DK salary, so defenders never enter it. Pills show DL/LB/DB on the DST color, and the correlation strip now takes position from the sim row.
+- Week 8 dry run: 697 defenders on 28 teams, mean DK 0.2, max 0.96. Defender vs opposing QB correlation runs −0.09 to +0.08, which is weak because team sacks barely move QB DK points in the sim.
+- Open:
+  - Shrink uses `shrink_k_usage` (uncalibrated for defenders).
+  - Defender injuries are only handled by roster status ACT, because FantasyPros/DK status covers skill players and DST only.
+  - 4 of 216 2026 team-weeks credit one fewer sack to defenders than the offense took (wk1 KC, wk2 CAR, wk3 JAX, wk6 ARI).
+  - The defense-priors files landed in commit `47b04ac` (a concurrent agent's commit).
+
+## Optimizer projection backtest: GPP lineups on Adjusted beat sim (2026-10-29)
+- Setup: `scripts/opto_projection_backtest.py`. It reuses each week's original pre-kickoff export (`data/dfs/<run>/dk/main`) and changes only `Fpts`. Each variant gets 4 rebuilds of 150 lineups, scored against `slate_actuals`, and against full mini-MAX standings in weeks 5–6. Week 3 has no main export. Weeks 2 and 4 only have the top ~500 entries. Week 7 has no contest loaded. FantasyPros was pulled before kickoff only from week 5 on.
+- Weeks 5–6, 1,200 lineups per variant:
+
+  | Variant | Top 1% | Avg finish pct |
+  |---|---|---|
+  | sim | 0 | 68.7 |
+  | half sim, half salary prior | 3 | 66.5 |
+  | Adjusted (50/50) | 9 | 60.0 |
+  | 25% sim, 75% FantasyPros | 10 | 61.0 |
+  | FantasyPros only | 10 | 59.8 |
+
+- Average lineup points by week:
+
+  | Variant | Wk 5 | Wk 6 | Wk 7 |
+  |---|---|---|---|
+  | sim | 127.7 | 98.0 | 112.7 |
+  | Adjusted (50/50) | 129.0 | 112.1 | 111.7 |
+
+  Rebuild-to-rebuild standard deviation is about 1 point. The salary prior was mixed across weeks 2, 4, 5 and 6 (−3.2, +3.1, −6.4, +11.2), so it is dropped.
+- The cause is the optimizer's winner's curse. In week 7 the most-used players' sim projections ran above FantasyPros (Gibbs 33.8 vs 26.2, Jalon Daniels 14.7 vs 0.5).
+- Not shipped: the Python mass pipeline still optimizes on the sim. Switching it to Adjusted needs operator OK under the calibration gate. The evidence is 2 contest weeks, and week 6 carries it. The web optimizer can already use Adjusted as its point source.
+
 ## Adjusted = half sim, half FantasyPros (2026-10-29)
 - Out-of-sample, weeks 5–7, 747 players across 40 games: player error vs actual was 0.124 below the sim (95% CI −0.194 to −0.055). It was no worse than the sim at any position in any week. Every per-player miss correction tried made things worse.
 - The Players table, the optimizer's Adjusted/Yours sources and the slate review all use `(sim + fp_fpts)/2`. It is blank when FantasyPros is missing. The review only uses FantasyPros rows pulled before kickoff.
