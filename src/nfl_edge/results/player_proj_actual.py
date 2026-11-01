@@ -239,7 +239,7 @@ def build_week(season: int, week: int, *, missing_games_only: bool = False) -> d
     run_ids = [r["run_id"] for r in runs.to_dicts()]
     cover = read_sql(
         "select distinct run_id::text as run_id, game_id from model.proj_players "
-        "where run_id = any(%s::uuid[]) and position not in ('DST', 'K')",
+        "where run_id = any(%s::uuid[]) and position not in ('DST', 'K', 'DL', 'LB', 'DB')",
         (run_ids,),
     )
     games_by_run: dict[str, set[str]] = {}
@@ -251,7 +251,7 @@ def build_week(season: int, week: int, *, missing_games_only: bool = False) -> d
     proj_df = read_sql(
         "select run_id::text as run_id, player_id, game_id, team, position, "
         "fpts_dk_mean::float8 as fpts_dk_mean, stat_summary, draws_path "
-        "from model.proj_players where run_id = any(%s::uuid[]) and position not in ('DST', 'K')",
+        "from model.proj_players where run_id = any(%s::uuid[]) and position not in ('DST', 'K', 'DL', 'LB', 'DB')",
         (sorted(set(chosen.values())),),
     )
     proj = [r for r in proj_df.to_dicts() if chosen.get(str(r["game_id"])) == r["run_id"]]

@@ -26,6 +26,7 @@ from ..market.edge import (
     prob_to_american,
 )
 from ..outputs.lines_io import resolve_run
+from ..sim.players import NON_OFFENSE_POSITIONS
 
 STAT_LABELS = {
     "pass_yds": "passing yards",
@@ -403,7 +404,7 @@ def fair_props(run_id: str) -> dict:
         return {"run_id": run_id, "n_rows": 0, "by_stat": {}}
     by_path: dict[str, list[dict]] = {}
     for r in loc.to_dicts():
-        if r.get("position") in ("DST", "K") or not r.get("draws_path"):
+        if r.get("position") in NON_OFFENSE_POSITIONS or not r.get("draws_path"):
             continue
         by_path.setdefault(r["draws_path"], []).append(r)
     need = ["player_id", "pass_yds", "pass_td", "int", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td"]

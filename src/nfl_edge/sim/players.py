@@ -29,6 +29,9 @@ from .game import TeamDraws
 
 SHARE_TOL = 1e-3
 SHARE_COLS = ("target_share", "carry_share", "rz_target_share", "rz_carry_share")
+DEFENDER_POSITIONS = ("DL", "LB", "DB")
+# proj_players positions that are not offensive skill players (no props, no offense completeness)
+NON_OFFENSE_POSITIONS = ("DST", "K", *DEFENDER_POSITIONS)
 
 
 @dataclass

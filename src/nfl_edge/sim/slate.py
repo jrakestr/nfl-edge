@@ -196,6 +196,42 @@ def kicker_projection(t: TeamDraws, kicker_id: str, game_id: str, mix: list[floa
     return row, pl.DataFrame(cols), pts["dk"]
 
 
+DEFENDER_STATS = ("sacks", "int", "fum_rec")
+
+
+def defender_projection(dd: pp.DefenderDraws, game_id: str, rules: dict, taken: set[str],
+                        ) -> tuple[list[dict], pl.DataFrame, dict[str, np.ndarray]]:
+    """proj_players rows, parquet frame and DK points per draw for one team's defenders.
+
+    Offensive stat columns are zero (defender `int` is not a thrown interception), so props
+    and offense readers never pick them up. Ids already projected on offense are skipped.
+    """
+    n = dd.sacks.shape[1]
+    rows, frames, dk = [], [], {}
+    for i, pid in enumerate(dd.player_ids):
+        if pid in taken:
+            continue
+        stats = dd.stats(i)
+        pts = scoring.score_defender(stats, rules).astype(float)
+        dk[pid] = pts
+        rows.append({
+            "player_id": pid, "game_id": game_id, "team": dd.team, "position": dd.positions[i],
+            "stat_summary": {**{k: _summarize(k, stats[k]) for k in DEFENDER_STATS},
+                             "fpts_ppr": _summarize("fpts_ppr", pts)},
+            "fpts_dk_mean": float(pts.mean()), "fpts_dk_sd": float(pts.std()),
+            "fpts_fd_mean": float(pts.mean()), "fpts_fd_sd": float(pts.std()),
+        })
+        cols = {"draw_no": np.arange(n, dtype=np.int32),
+                "player_id": np.repeat(np.array([pid], dtype=object), n)}
+        for s in PLAYER_STATS:
+            cols[s] = np.zeros(n, dtype=np.int16)
+        for site in ("dk", "fd", "ppr"):
+            cols[f"fpts_{site}"] = pts.astype(np.float32)
+        frames.append(pl.DataFrame(cols))
+    frame = pl.concat(frames) if frames else pl.DataFrame()
+    return rows, frame, dk
+
+
 def _histogram(arr: np.ndarray, n_bins: int = 20) -> dict:
     counts, edges = np.histogram(arr, bins=n_bins)
     return {"bins": [round(float(x), 4) for x in edges], "counts": [int(c) for c in counts]}
@@ -366,6 +402,26 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
         proj_players.append(row)
         frames.append(kframe)
 
+    # Defenders split the opponent's sacks, ints and fumbles lost (own rng stream; other draws unchanged)
+    shares = getattr(priors, "defense", None)
+    shares = shares if isinstance(shares, pl.DataFrame) else pl.DataFrame()
+    drng = game_rng(seed, f"{game_id}:DEF")
+    def_dk: dict[str, np.ndarray] = {}
+    for (_, t, _), (_, opp, _) in ((sides[0], sides[1]), (sides[1], sides[0])):
+        dd = pp.allocate_defense(t.team, opp, pdraws.get(opp.team), shares, cfg, drng)
+        if dd is None:
+            checks.append({"game_id": game_id, "team": t.team, "check_name": "defenders_projected",
+                           "value": 0.0, "threshold": 1.0, "passed": False, "severity": "warning",
+                           "detail": "no defender shares"})
+            continue
+        rows, dframe, dk = defender_projection(dd, game_id, rules, set(fpts_dk))
+        proj_players += rows
+        if dframe.height:
+            frames.append(dframe)
+        top = int(cfg["players"].get("defender_corr_top", 6))
+        for pid in sorted(dk, key=lambda k: -float(dk[k].mean()))[:top]:
+            def_dk[pid] = dk[pid]
+
     # parquet
     out_dir.mkdir(parents=True, exist_ok=True)
     ppath = out_dir / f"{game_id}.parquet"
@@ -398,18 +454,20 @@ def simulate_one(g: dict, priors: pr.Priors, cfg: dict, rules: dict, n: int, see
                            "threshold": float(thr), "passed": gap <= thr, "severity": "warning",
                            "detail": f"fair={fair:.1f} market={float(mkt):.1f}"})
 
-    # within-game correlations on DK points
-    ids = list(fpts_dk)
-    m = np.vstack([fpts_dk[i] for i in ids])
+    # within-game correlations on DK points; defender-defender pairs are not stored
+    ids = list(fpts_dk) + list(def_dk)
+    m = np.vstack([fpts_dk[i] for i in fpts_dk] + [def_dk[i] for i in def_dk])
+    is_def = np.array([False] * len(fpts_dk) + [True] * len(def_dk))
     sd = m.std(axis=1)
     keep = sd > 0
     corr_rows = []
     if keep.sum() >= 2:
         c = np.corrcoef(m[keep])
         kid = [i for i, k in zip(ids, keep) if k]
+        kdef = is_def[keep]
         iu = np.triu_indices(len(kid), k=1)
         corr_rows = [{"player_id_a": kid[a], "player_id_b": kid[b], "corr_dk": float(c[a, b])}
-                     for a, b in zip(*iu)]
+                     for a, b in zip(*iu) if not (kdef[a] and kdef[b])]
     corr = pl.DataFrame(corr_rows, schema={"player_id_a": pl.Utf8, "player_id_b": pl.Utf8, "corr_dk": pl.Float64})
     return proj_game, proj_players, checks, corr
 
@@ -457,7 +515,7 @@ def run(season: int, week: int, draws: int | None = None, seed: int | None = Non
         game_ids = games["game_id"].to_list()
         n_game_files = sum(1 for gid in game_ids if (out_dir / f"{gid}.game.parquet").is_file())
         n_player_files = sum(1 for gid in game_ids if (out_dir / f"{gid}.parquet").is_file())
-        off_games = {row["game_id"] for row in ppl if row.get("position") not in ("DST", "K")}
+        off_games = {row["game_id"] for row in ppl if row.get("position") not in pp.NON_OFFENSE_POSITIONS}
         n_player_games = len(off_games)
         chk.append({"game_id": None, "team": None, "check_name": "games_complete",
                     "value": float(n_game_files), "threshold": float(slate_n),
