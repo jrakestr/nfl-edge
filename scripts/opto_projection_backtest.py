@@ -64,8 +64,6 @@ def variant_mean(v, p, prior):
     if v == "sal50":
         a, b = prior.get(p["pos"], (None, None))
         return None if sim is None or a is None else 0.5 * sim + 0.5 * (a + b * p["salary"])
-    if p["pos"] == "DST":
-        return sim
     if sim is None or fp is None:
         return None
     w = {"adj50": 0.5, "adj25": 0.25, "fp": 0.0}[v]

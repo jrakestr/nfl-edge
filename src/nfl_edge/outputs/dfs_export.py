@@ -514,17 +514,12 @@ def build_projections(
     return out, report
 
 
-def adjusted_points(proj: dict[str, dict], fp: dict[str, float], slate: list[dict]) -> dict[str, float]:
-    """Half sim, half FantasyPros DK points; defenses keep the sim (FantasyPros has none)."""
-    dst = {str(r["player_id"]) for r in slate if r.get("player_id") and map_position(r.get("position")) == "DST"}
+def adjusted_points(proj: dict[str, dict], fp: dict[str, float]) -> dict[str, float]:
+    """Half sim, half FantasyPros DK points across all positions (including DST)."""
     out: dict[str, float] = {}
     for pid, stats in proj.items():
         sim = stats.get("fpts_dk_mean")
-        if sim is None:
-            continue
-        if pid in dst:
-            out[pid] = float(sim)
-        elif pid in fp:
+        if sim is not None and pid in fp:
             out[pid] = (float(sim) + fp[pid]) / 2
     return out
 
@@ -722,7 +717,7 @@ def run(
                 f"no FantasyPros rows pulled before kickoff for {season} week {week}; "
                 f"{construction} optimizes on Adjusted (half sim, half FantasyPros)"
             )
-        points = adjusted_points(proj, fp, slate_rows)
+        points = adjusted_points(proj, fp)
     projections, report = build_projections(
         slate_rows, proj, site=site, showdown=showdown, construction=prof, points=points,
     )
@@ -759,9 +754,13 @@ def run(
         "field_size": effective_field_size(structure, field_size),
         "settings": settings_from_config(cfg, construction),
         "mean_by_dk": {
-            str(r["player_dk_id"]): _fnum((proj.get(r.get("player_id")) or {}).get(
-                "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
-            ))
+            str(r["player_dk_id"]): (
+                points[r["player_id"]]
+                if points is not None and r.get("player_id") in points
+                else _fnum((proj.get(r.get("player_id")) or {}).get(
+                    "fpts_fd_mean" if site == "fd" else "fpts_dk_mean"
+                ))
+            )
             for r in slate_rows
             if r.get("player_dk_id") and r.get("player_id") and r.get("player_id") in proj
         },

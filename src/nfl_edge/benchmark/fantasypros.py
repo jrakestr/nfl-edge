@@ -74,17 +74,23 @@ def _num(v) -> float | None:
         return None
 
 
-def dk_points(stats: dict, rules: dict) -> float:
+def dk_points(stats: dict, rules: dict, position: str | None = None) -> float:
     """Expected DK points from FantasyPros stat means, scored with config/scoring.yaml (`dk`).
 
     `pass_yds_300`, `rush_yds_100` and `rec_yds_100` are FantasyPros' expected counts of a bonus
     game (a probability), so each bonus is probability x bonus points rather than a threshold on
     the mean. `fumbles` is fumbles lost: FantasyPros' own STD points reproduce only when it is
     scored at -2 (see test_fp_points_identity). `ret_tds` are return TDs at 6, as results/actuals.py
-    adds them to realized points. This converts an external projection for display; it is not a sim.
+    adds them to realized points. DST and K use FantasyPros' published `points` (the DST brackets and
+    sack/turnover weights in `NFLDSTPlayerProjections` match DK's DST scoring, and K has no distance
+    splits in the v2 payload). This converts an external projection for display; it is not a sim.
     """
     def g(key: str) -> float:
         return _num(stats.get(key)) or 0.0
+
+    pos = (position or "").upper()
+    if pos in ("DST", "DEF", "D", "K") or "def_sack" in stats or "fga" in stats:
+        return g("points")
 
     return (
         g("pass_yds") * rules["pass_yd"] + g("pass_tds") * rules["pass_td"]
@@ -124,7 +130,7 @@ def project_rows(resp: dict, fp_map: dict[str, str], catalog: pl.DataFrame,
             "match_reason": m.reason or "matched",
             "stats": stats,
             **{col: _num(stats.get(key)) for key, col in STAT_MAP.items()},
-            "fpts_dk": dk_points(stats, dk_rules) if stats else None,
+            "fpts_dk": dk_points(stats, dk_rules, pos) if stats else None,
         }
         rows.append(row)
         if m.player_id is None:

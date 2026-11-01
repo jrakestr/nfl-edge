@@ -19,18 +19,19 @@
 
 ## Optimizer
 - Python classic mass (`constructions.json` `"points": "adjusted"`) optimizes on
-  Adjusted: half sim, half the newest FantasyPros DK row pulled before kickoff.
-  Defenses keep the sim. A projected player with no FantasyPros row is left out
-  (`no_fantasypros` in `report.txt`). No FantasyPros rows for the week stops the
-  export. Ownership and the persisted `proj_fpts` stay on the sim. Basis: STATUS
-  2026-10-29 optimizer backtest. Showdown, cash and single still use the sim.
+  Adjusted: half sim, half the newest FantasyPros DK row pulled before kickoff
+  (across all positions including DST). A projected player with no FantasyPros row
+  is left out (`no_fantasypros` in `report.txt`). No FantasyPros rows for the week
+  stops the export. Ownership stays on the sim; persisted `proj_fpts` uses Adjusted.
+  Basis: STATUS 2026-10-29 optimizer backtest. Showdown, cash and single still use
+  the sim.
 - Web optimizer point source (`pts`): DK pts (default), NFLGameSim, FantasyPros,
   Adjusted, or Yours. DK pts keeps the construction objective (cash = p25, single =
   mean + ceiling − ownership). Any other source uses that number as the points:
   cash does not substitute the sim floor; single entry still subtracts ownership
   and does not add the sim ceiling. A player with no usable number for the chosen
-  source is out of the pool. A defense with a blank source (no FantasyPros number
-  for Adjusted and Yours) stays on DK pts. A lock in that state stops the solve.
+  source is out of the pool. A defense with a blank source stays on DK pts.
+  A lock in that state stops the solve.
 - Choose the classic mode (Cash / Single Entry / Mass GPP) before the build. One
   shared config for Python and web: `config/dfs/dk_classic.json` (`num_uniques`,
   max exposure). Never ship `num_uniques=1` with no cap.

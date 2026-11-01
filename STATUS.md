@@ -31,7 +31,7 @@
 
   Rebuild-to-rebuild standard deviation is about 1 point. The salary prior was mixed across weeks 2, 4, 5 and 6 (−3.2, +3.1, −6.4, +11.2), so it is dropped.
 - The cause is the optimizer's winner's curse. In week 7 the most-used players' sim projections ran above FantasyPros (Gibbs 33.8 vs 26.2, Jalon Daniels 14.7 vs 0.5).
-- Shipped with operator OK: classic mass now optimizes on Adjusted (`constructions.json` `"points": "adjusted"`). The evidence is 2 contest weeks, and week 6 carries most of it. Re-grade top-1% and finish percentile once week 8–9 standings are loaded. Smoke test on week 8 main (run 70d1b98f): 342 players in the pool, 11 left out for having no FantasyPros row. Week 8 lineups already persisted were built on the sim; the next `nfl-edge dfs` run rebuilds them.
+- Shipped with operator OK: classic mass now optimizes on Adjusted (`constructions.json` `"points": "adjusted"`), and `ingest/fantasypros.py` pulls `position=ALL` (QB/RB/WR/TE/K/DST) so DST also uses `(sim + FantasyPros) / 2` and `proj_fpts` persists the Adjusted total. Backfilled all 32 DSTs across weeks 1–8 into `raw.fantasypros_snapshots` and `raw.external_players`. The evidence is 2 contest weeks, and week 6 carries most of it. Re-grade top-1% and finish percentile once week 8–9 standings are loaded.
 
 ## Adjusted = half sim, half FantasyPros (2026-10-29)
 - Out-of-sample, weeks 5–7, 747 players across 40 games: player error vs actual was 0.124 below the sim (95% CI −0.194 to −0.055). It was no worse than the sim at any position in any week. Every per-player miss correction tried made things worse.

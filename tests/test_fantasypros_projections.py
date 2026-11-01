@@ -65,6 +65,10 @@ def test_dk_points_scores_bonus_probabilities_and_returns():
             + 0.1 * 3 - 0.2 + 0.1 * 2 + 0.01 * 6)
     assert B.dk_points(stats, DK) == pytest.approx(want)
     assert B.dk_points({}, DK) == 0.0
+    dst_stats = {"points": 7.65, "points_ppr": 7.65, "def_sack": 2.89, "def_int": 0.8}
+    assert B.dk_points(dst_stats, DK, "DST") == pytest.approx(7.65)
+    k_stats = {"points": 9.49, "fga": 2.48, "fg": 2.07, "xpt": 3.28}
+    assert B.dk_points(k_stats, DK, "K") == pytest.approx(9.49)
 
 
 def test_fp_points_identity_confirms_stat_meaning():

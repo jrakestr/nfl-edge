@@ -41,7 +41,7 @@ def test_projections_ok_counts_one_call():
     path, params = t.calls[0]
     assert path == "/nfl/2026/projections"
     assert params["week"] == 5
-    assert params["positions"] == "QB:RB:WR:TE"
+    assert params["position"] == "ALL"
 
 
 def test_season_week_mismatch_fails_closed():

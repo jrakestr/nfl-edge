@@ -19,7 +19,6 @@ import certifi
 from ..config import fantasypros_api_key
 
 BASE_URL = "https://api.fantasypros.com/public/v2/json"
-OFFENSE = "QB:RB:WR:TE"
 _SSL = ssl.create_default_context(cafile=certifi.where())
 
 Transport = Callable[[str, dict, str], tuple[int, dict]]
@@ -83,7 +82,7 @@ class Client:
 
     def projections(self, season: int, week: int) -> dict:
         path = f"/nfl/{season}/projections"
-        body = self._get(path, {"week": week, "positions": OFFENSE})
+        body = self._get(path, {"week": week, "position": "ALL"})
         self._check_week(body, season, week, path)
         self._non_empty(body, "players", path)
         return body

@@ -201,16 +201,16 @@ def test_single_fpts_uses_named_ceiling_and_own_weights():
     assert by_name(rows)["Patrick Mahomes"]["Fpts"] == pytest.approx(expect)
 
 
-def test_adjusted_points_split_sim_and_fp_and_defense_keeps_sim():
-    fp = {"00-0033873": 18.4, "00-0039139": 15.0}
-    pts = D.adjusted_points(PROJ, fp, SLATE)
+def test_adjusted_points_split_sim_and_fp_across_all_positions():
+    fp = {"00-0033873": 18.4, "00-0039139": 15.0, "KC_DST": 6.5}
+    pts = D.adjusted_points(PROJ, fp)
     assert pts["00-0033873"] == pytest.approx((22.4 + 18.4) / 2)
-    assert pts["KC_DST"] == 7.5
+    assert pts["KC_DST"] == pytest.approx((7.5 + 6.5) / 2)
     assert "00-0036900" not in pts
 
 
 def test_mass_points_replace_mean_drop_no_fp_and_keep_sim_ownership():
-    pts = D.adjusted_points(PROJ, {"00-0033873": 18.4, "00-0039139": 15.0}, SLATE)
+    pts = D.adjusted_points(PROJ, {"00-0033873": 18.4, "00-0039139": 15.0, "KC_DST": 6.5})
     base, _ = D.build_projections(SLATE, PROJ, site="dk")
     rows, report = D.build_projections(
         SLATE, PROJ, site="dk", construction=C.profile("classic", "mass"), points=pts,
@@ -218,7 +218,7 @@ def test_mass_points_replace_mean_drop_no_fp_and_keep_sim_ownership():
     got = by_name(rows)
     assert got["Patrick Mahomes"]["Fpts"] == pytest.approx(20.4)
     assert got["Patrick Mahomes"]["Own%"] == by_name(base)["Patrick Mahomes"]["Own%"]
-    assert got["Chiefs"]["Fpts"] == 7.5
+    assert got["Chiefs"]["Fpts"] == pytest.approx(7.0)
     dropped = {r["name"] for r in report if r["kind"] == "no_fantasypros"}
     assert dropped == {r["name"] for r in SLATE if r["player_id"] in ("00-0036900", "00-0037837")}
     assert dropped.isdisjoint(got)
