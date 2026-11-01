@@ -265,16 +265,15 @@ export type PeerOption = {
   team: string | null;
   position: string | null;
   fpts_dk_mean: number | null;
+  /** FantasyPros DK points for this week. Null when that pull has no row. */
+  fp_fpts: number | null;
 };
 
-/** Same-position peer options on the current run for Start/Sit head-to-head comparisons. */
+/** Every other player on the current run, for head-to-head compare. */
 export async function positionPeersForRun(
   runId: string,
-  position: string | null,
   excludePlayerId: string,
-  limit = 25,
 ): Promise<PeerOption[]> {
-  if (!position) return [];
   const rows = await sql()`
     select pp.player_id,
            coalesce(p.display_name, pp.player_id) as display_name,
@@ -284,18 +283,24 @@ export async function positionPeersForRun(
     from model.proj_players pp
     left join raw.players p on p.gsis_id = pp.player_id
     where pp.run_id = ${runId}::uuid
-      and pp.position = ${position}
       and pp.player_id <> ${excludePlayerId}
-      and pp.fpts_dk_mean is not null
-    order by pp.fpts_dk_mean desc nulls last
-    limit ${limit}`;
-  return rows.map((r) => ({
-    player_id: String(r.player_id),
-    display_name: String(r.display_name),
-    team: r.team != null ? String(r.team) : null,
-    position: r.position != null ? String(r.position) : null,
-    fpts_dk_mean: r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null,
-  }));
+    order by pp.fpts_dk_mean desc nulls last, coalesce(p.display_name, pp.player_id)`;
+  const meta = await sql()`select season, week from model.sim_runs where run_id = ${runId}::uuid`;
+  const season = Number(meta[0]?.season ?? 0);
+  const week = Number(meta[0]?.week ?? 0);
+  const ids = rows.map((r) => String(r.player_id));
+  const fp = season && week ? await fpByPlayer(season, week, ids) : {};
+  return rows.map((r) => {
+    const id = String(r.player_id);
+    return {
+      player_id: id,
+      display_name: String(r.display_name),
+      team: r.team != null ? String(r.team) : null,
+      position: r.position != null ? String(r.position) : null,
+      fpts_dk_mean: r.fpts_dk_mean != null ? Number(r.fpts_dk_mean) : null,
+      fp_fpts: fp[id] ?? null,
+    };
+  });
 }
 
 /** Top 10 DK projections per game for the edge-board drawer. */

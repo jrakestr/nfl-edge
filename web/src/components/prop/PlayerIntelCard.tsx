@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { computeDetailHolistic, type HolisticTier } from "@/lib/holistic-score";
+import { adjustedPoints } from "@/lib/player-edit";
 import { signed } from "@/lib/edge";
 import type { PeerOption } from "@/lib/queries/players";
 import type { Hist, PlayerNewsItem } from "@/lib/types";
@@ -45,6 +46,110 @@ function barTone(score: number): string {
   if (score >= 52) return "bg-line";
   if (score >= 38) return "bg-warn";
   return "bg-edge-neg";
+}
+
+function peerLabel(p: PeerOption): string {
+  const adj = adjustedPoints(p.fpts_dk_mean, p.fp_fpts);
+  const pts = adj != null ? `${adj.toFixed(1)} pts` : "—";
+  return `${p.display_name} (${p.position ?? "—"} · ${p.team ?? "FA"} · ${pts})`;
+}
+
+function ComparePicker({
+  peers,
+  value,
+  disabled,
+  onPick,
+}: {
+  peers: PeerOption[];
+  value: string;
+  disabled: boolean;
+  onPick: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = peers.find((p) => p.player_id === value) ?? null;
+  const shown = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return peers;
+    return peers.filter((p) =>
+      `${p.display_name} ${p.team ?? ""} ${p.position ?? ""}`.toLowerCase().includes(needle),
+    );
+  }, [peers, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label="Compare start/sit vs player"
+        className="w-full justify-start"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="truncate">{selected ? peerLabel(selected) : "Compare vs…"}</span>
+      </Button>
+      {open ? (
+        <div className="absolute right-0 z-50 mt-1 flex w-72 flex-col rounded-lg border border-border bg-popover p-1 shadow-md">
+          <Input
+            aria-label="Search players"
+            value={query}
+            placeholder="Search all players"
+            className="h-8"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <ul role="listbox" aria-label="Players" className="mt-1 max-h-72 overflow-y-auto">
+            <li>
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === "none"}
+                className="w-full rounded-md px-2 py-1 text-left t-caption text-muted-foreground hover:bg-muted"
+                onClick={() => {
+                  onPick("none");
+                  setOpen(false);
+                }}
+              >
+                Clear comparison
+              </button>
+            </li>
+            {shown.map((p) => (
+              <li key={p.player_id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={value === p.player_id}
+                  className="w-full rounded-md px-2 py-1 text-left t-caption hover:bg-muted"
+                  onClick={() => {
+                    onPick(p.player_id);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                >
+                  {peerLabel(p)}
+                </button>
+              </li>
+            ))}
+            {shown.length === 0 ? (
+              <li className="px-2 py-2 t-caption text-muted-foreground">No players</li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function SubscoreBar({ label, score }: { label: string; score: number }) {
@@ -230,34 +335,16 @@ export function PlayerIntelCard({
             {loading && compareId === "none" ? "Synthesizing…" : "AI Holistic Brief"}
           </Button>
           {peers.length > 0 ? (
-            <div className="flex items-center gap-1.5">
-              <Select
-                value={compareId}
-                onValueChange={(v) => {
-                  setCompareId(v);
-                  if (v !== "none") {
-                    void runHeadToHead(v);
-                  } else {
-                    setCompareResult(null);
-                  }
-                }}
-              >
-                <SelectTrigger
-                  aria-label="Compare start/sit vs peer"
-                  className="h-8 flex-1 rounded-md t-caption"
-                >
-                  <SelectValue placeholder="Start/Sit vs…" />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectItem value="none">Start/Sit vs {position ?? "Peer"}…</SelectItem>
-                  {peers.map((p) => (
-                    <SelectItem key={p.player_id} value={p.player_id}>
-                      {p.display_name} ({p.team ?? "FA"} · {p.fpts_dk_mean?.toFixed(1) ?? "—"} pts)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ComparePicker
+              peers={peers}
+              value={compareId}
+              disabled={loading}
+              onPick={(v) => {
+                setCompareId(v);
+                if (v !== "none") void runHeadToHead(v);
+                else setCompareResult(null);
+              }}
+            />
           ) : null}
         </div>
       </div>
@@ -345,13 +432,13 @@ export function PlayerIntelCard({
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-1.5 text-muted-foreground">Sim Mean / Ceiling (P90)</td>
+                  <td className="py-1.5 text-muted-foreground">Adjusted / Ceiling (P90)</td>
                   <td className="py-1.5 text-right font-semibold text-foreground">
-                    {compareResult.playerA.sim.mean?.toFixed(1) ?? "—"} /{" "}
+                    {compareResult.playerA.sim.adjusted?.toFixed(1) ?? "—"} /{" "}
                     {compareResult.playerA.sim.ceiling_p90?.toFixed(1) ?? "—"}
                   </td>
                   <td className="py-1.5 text-right font-semibold text-foreground">
-                    {compareResult.playerB.sim.mean?.toFixed(1) ?? "—"} /{" "}
+                    {compareResult.playerB.sim.adjusted?.toFixed(1) ?? "—"} /{" "}
                     {compareResult.playerB.sim.ceiling_p90?.toFixed(1) ?? "—"}
                   </td>
                 </tr>

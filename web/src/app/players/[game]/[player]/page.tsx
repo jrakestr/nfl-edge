@@ -51,7 +51,7 @@ export default async function PlayerDetailPage({ params }: PageProps<"/players/[
     playerUsage(player, season, week),
     defenseVsPosition(season, week, opp, header?.position ?? null),
     run ? propHistogram(run.run_id, player, "fpts_ppr") : Promise.resolve(null),
-    run ? positionPeersForRun(run.run_id, header?.position ?? null, player) : Promise.resolve([]),
+    run ? positionPeersForRun(run.run_id, player) : Promise.resolve([]),
   ]);
   const histByStat: Record<string, Hist | null> = {};
   let log: Awaited<ReturnType<typeof playerLog>> = [];

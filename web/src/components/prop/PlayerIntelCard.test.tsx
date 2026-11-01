@@ -173,6 +173,7 @@ describe("PlayerIntelCard", () => {
             team: "ATL",
             position: "RB",
             fpts_dk_mean: 21.8,
+            fp_fpts: null,
           },
         ]}
       />,
@@ -189,6 +190,136 @@ describe("PlayerIntelCard", () => {
       ).toBeInTheDocument();
     });
 
+    vi.unstubAllGlobals();
+  });
+
+  it("searches the full compare list, not a capped menu", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({
+        playerA: { name: "Jahmyr Gibbs", team: "DET", holistic: { score: 90, tier: "ELITE" }, sim: {}, usage: {}, defense: {} },
+        playerB: { name: "Deep Roster", team: "SEA", holistic: { score: 40, tier: "FADE" }, sim: {}, usage: {}, defense: {} },
+        synthesis: {
+          recommended_player_id: "00-deep",
+          recommended_name: "Deep Roster",
+          recommendation_mode: "ALL_PURPOSE_EDGE",
+          headline: "Deep Roster over Gibbs.",
+          bullets: [],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const peers = Array.from({ length: 40 }, (_, i) => ({
+      player_id: `00-peer-${i}`,
+      display_name: `Peer ${i}`,
+      team: "DAL",
+      position: "RB",
+      fpts_dk_mean: 10,
+      fp_fpts: null,
+    }));
+    peers.push({
+      player_id: "00-deep",
+      display_name: "Deep Roster",
+      team: "SEA",
+      position: "WR",
+      fpts_dk_mean: 8,
+      fp_fpts: null,
+    });
+
+    render(
+      <PlayerIntelCard
+        playerId="00-0039139"
+        position="RB"
+        gameId="2026_07_GB_DET"
+        season={2026}
+        week={7}
+        fptsHist={SAMPLE_HIST}
+        usage={SAMPLE_USAGE}
+        defense={SAMPLE_DEFENSE}
+        news={SAMPLE_NEWS}
+        peers={peers}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Compare start/sit vs player" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Search players" }), {
+      target: { value: "Deep Roster" },
+    });
+    fireEvent.click(screen.getByRole("option", { name: /Deep Roster/ }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain("compare_id=00-deep");
+    expect(screen.getByText("Deep Roster over Gibbs.")).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows adjusted points instead of the sim mean", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({
+        playerA: {
+          name: "Rico Dowdle",
+          team: "PIT",
+          holistic: { score: 45, tier: "FADE" },
+          sim: { mean: 9.9, adjusted: 11.4, ceiling_p90: 16.9 },
+          usage: {},
+          defense: {},
+        },
+        playerB: {
+          name: "Rachaad White",
+          team: "WAS",
+          holistic: { score: 56, tier: "FLEX" },
+          sim: { mean: 9.9, adjusted: 8.2, ceiling_p90: 17.5 },
+          usage: {},
+          defense: {},
+        },
+        synthesis: {
+          recommended_player_id: "00-white",
+          recommended_name: "Rachaad White",
+          recommendation_mode: "GPP_CEILING",
+          headline: "White over Dowdle.",
+          bullets: [],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <PlayerIntelCard
+        playerId="00-0036139"
+        position="RB"
+        gameId="2026_08_CLE_PIT"
+        season={2026}
+        week={8}
+        fptsHist={SAMPLE_HIST}
+        usage={SAMPLE_USAGE}
+        defense={SAMPLE_DEFENSE}
+        news={SAMPLE_NEWS}
+        peers={[
+          {
+            player_id: "00-white",
+            display_name: "Rachaad White",
+            team: "WAS",
+            position: "RB",
+            fpts_dk_mean: 9.9,
+            fp_fpts: 6.5,
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Compare start/sit vs player" }));
+    expect(screen.getByRole("option", { name: "Rachaad White (RB · WAS · 8.2 pts)" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: /Rachaad White/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Adjusted / Ceiling (P90)")).toBeInTheDocument();
+    });
+    expect(screen.getByText("11.4 / 16.9")).toBeInTheDocument();
+    expect(screen.getByText("8.2 / 17.5")).toBeInTheDocument();
+    expect(screen.queryByText("Sim Mean / Ceiling (P90)")).not.toBeInTheDocument();
+    expect(screen.queryByText("9.9 / 16.9")).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });
 });
