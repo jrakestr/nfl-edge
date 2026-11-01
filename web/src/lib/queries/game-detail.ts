@@ -29,12 +29,14 @@ export async function gameDetail(runId: string, gameId: string): Promise<GameDet
     sql()`
       select coalesce(pa.display_name, c.player_id_a) as a,
              coalesce(pb.display_name, c.player_id_b) as b,
-             pa.position as a_pos,
-             pb.position as b_pos,
+             coalesce(xa.position, pa.position) as a_pos,
+             coalesce(xb.position, pb.position) as b_pos,
              c.corr_dk::float8 as corr
       from model.player_correlations c
       join model.proj_players xa
         on xa.run_id = c.run_id and xa.player_id = c.player_id_a and xa.game_id = ${gameId}
+      left join model.proj_players xb
+        on xb.run_id = c.run_id and xb.player_id = c.player_id_b
       left join raw.players pa on pa.gsis_id = c.player_id_a
       left join raw.players pb on pb.gsis_id = c.player_id_b
       where c.run_id = ${runId}::uuid and c.corr_dk is not null
