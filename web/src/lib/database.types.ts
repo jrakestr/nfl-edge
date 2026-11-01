@@ -3825,6 +3825,45 @@ export type Database = {
       }
     }
     Views: {
+      defender_weeks: {
+        Row: {
+          def_group: string | null
+          fum_rec: number | null
+          ints: number | null
+          opponent_team: string | null
+          player_id: string | null
+          sacks: number | null
+          season: number | null
+          season_type: string | null
+          team: string | null
+          week: number | null
+        }
+        Insert: {
+          def_group?: never
+          fum_rec?: never
+          ints?: never
+          opponent_team?: string | null
+          player_id?: string | null
+          sacks?: never
+          season?: number | null
+          season_type?: never
+          team?: string | null
+          week?: number | null
+        }
+        Update: {
+          def_group?: never
+          fum_rec?: never
+          ints?: never
+          opponent_team?: string | null
+          player_id?: string | null
+          sacks?: never
+          season?: number | null
+          season_type?: never
+          team?: string | null
+          week?: number | null
+        }
+        Relationships: []
+      }
       dk_contest_player_totals: {
         Row: {
           contest_key: number | null

@@ -56,3 +56,15 @@ def test_migration_0050_defines_fk_and_lookup_indexes():
     assert "(split_part(slate_id, '_', 2)::int)" in sql_0051
 
 
+def test_migration_0053_defender_weeks_view():
+    from nfl_edge.config import ROOT
+
+    sql = (ROOT / "db" / "migrations" / "0053_defender_weeks_view.sql").read_text().lower()
+    assert "create or replace view raw.defender_weeks with (security_invoker = true)" in sql
+    for key, col in (("def_sacks", "sacks"), ("def_interceptions", "ints"),
+                     ("fumble_recovery_opp", "fum_rec")):
+        assert f"coalesce((s.stats->>'{key}')::numeric, 0) as {col}" in sql
+    assert "then 'dl'" in sql and "then 'lb'" in sql and "else 'db' end as def_group" in sql
+    assert "grant" not in sql
+
+
