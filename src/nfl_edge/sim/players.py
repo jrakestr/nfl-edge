@@ -15,6 +15,8 @@ outputs cannot disagree:
   fum_lost = Bin(carries + rec, fumble_lost_rate)
 DST v1 (dst_stats): pts_allowed / sacks / int / fum_rec from the opponent's draws; defensive TDs,
 safeties and blocked kicks are 0 because they would add points the game sim did not score.
+Defenders (allocate_defense): the same sacks / int / fum_rec split by priors/defense.py shares,
+so each event sums to the DST line exactly; points allowed stay on the DST row.
 """
 from __future__ import annotations
 
@@ -228,6 +230,37 @@ def allocate(team: TeamDraws, usage: pl.DataFrame, efficiency: pl.DataFrame, cfg
                        pass_yds=pass_yds, pass_td=pass_td, int=ints, carries=carries,
                        rush_yds=rush_yds, rush_td=rush_td, targets=targets, rec=rec,
                        rec_yds=rec_yds, rec_td=rec_td, fum_lost=fum_lost)
+
+
+@dataclass
+class DefenderDraws:
+    team: str
+    player_ids: list[str]
+    positions: list[str]
+    sacks: np.ndarray
+    int: np.ndarray
+    fum_rec: np.ndarray
+
+    def stats(self, i: int) -> dict[str, np.ndarray]:
+        return {"sacks": self.sacks[i], "int": self.int[i], "fum_rec": self.fum_rec[i]}
+
+
+def allocate_defense(team: str, opp: TeamDraws, opp_players: PlayerDraws | None,
+                     shares: pl.DataFrame, cfg: dict, rng: np.random.Generator) -> DefenderDraws | None:
+    """Split the sacks, interceptions and fumbles lost on `opp`'s draw across `team`'s defenders.
+
+    None when `team` has no defender shares. `rng` is the defenders' own stream.
+    """
+    s = shares.filter(pl.col("team") == team) if not shares.is_empty() else shares
+    if s.is_empty():
+        return None
+    conc = float(cfg["players"].get("usage_concentration", 40))
+    n = opp.sacks.shape[0]
+    fum = opp_players.fum_lost.sum(axis=0) if opp_players is not None else np.zeros(n, dtype=np.int64)
+    split = {col: _dirichlet_split(np.asarray(total, dtype=np.int64), s[col].to_numpy(), conc, rng)
+             for col, total in (("sack_share", opp.sacks), ("int_share", opp.int), ("fr_share", fum))}
+    return DefenderDraws(team=team, player_ids=s["player_id"].to_list(), positions=s["position"].to_list(),
+                         sacks=split["sack_share"], int=split["int_share"], fum_rec=split["fr_share"])
 
 
 def dst_stats(opp: TeamDraws, opp_players: PlayerDraws | None) -> dict[str, np.ndarray]:

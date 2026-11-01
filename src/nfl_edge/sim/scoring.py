@@ -1,6 +1,7 @@
 """Vectorized fantasy scoring from config/scoring.yaml. Applied to every draw.
 
 score_offense(stats, rules) -> {"dk", "fd", "ppr"}; score_dst(stats, rules) -> array;
+score_defender(stats, rules) -> array, the sack / int / fumble-recovery part of score_dst;
 score_kicker(stats, rules) -> {"dk", "fd", "ppr"} from FGs by distance and XPs made.
 PPR = DK rules without yardage bonuses and with INT/fumble at -2 (standard full-PPR).
 Captain multiplier is exposed via `captain()` but unused in this slice.
@@ -54,6 +55,14 @@ def score_dst(stats: dict[str, np.ndarray], rules: dict) -> np.ndarray:
         + s["sacks"] * r["sack"] + s["int"] * r["int"] + s["fum_rec"] * r["fumble_rec"]
         + s["td"] * r["td"] + s["safety"] * r["safety"] + s["block_kick"] * r["block_kick"]
     )
+
+
+def score_defender(stats: dict[str, np.ndarray], rules: dict) -> np.ndarray:
+    """A defender's share of the DST event points: sacks, interceptions, fumble recoveries."""
+    r = rules["dst"]
+    return (np.asarray(stats["sacks"], dtype=float) * r["sack"]
+            + np.asarray(stats["int"], dtype=float) * r["int"]
+            + np.asarray(stats["fum_rec"], dtype=float) * r["fumble_rec"])
 
 
 FG_BUCKETS = ("fg_0_39", "fg_40_49", "fg_50_plus")
