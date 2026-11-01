@@ -1,4 +1,4 @@
-import { adjustedForMiss, editedPoints } from "@/lib/player-edit";
+import { adjustedPoints, editedPoints } from "@/lib/player-edit";
 import type { WeekPlayer } from "@/lib/types";
 import type { ConstructionProfile } from "./construction";
 import type { PointSource } from "./types";
@@ -25,7 +25,7 @@ export function projectionPoints(p: WeekPlayer, source: PointSource): number | n
   if (source === "blend") return finite(p.blend_fpts);
   if (source === "ngs") return finite(p.ngs_fpts);
   if (source === "fp") return finite(p.fp_fpts);
-  const adjusted = adjustedForMiss(p.fpts_dk_mean, p.mean_miss);
+  const adjusted = adjustedPoints(p.fpts_dk_mean, p.fp_fpts);
   if (source === "adjusted") return adjusted;
   return editedPoints(adjusted, p.point_delta ?? 0);
 }

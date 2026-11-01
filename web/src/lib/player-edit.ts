@@ -9,14 +9,18 @@ export type PointEdit = {
   delta: number;
 };
 
-/** This week's sim plus his average miss from earlier weeks. Blank when either number is missing. */
-export function adjustedForMiss(
+/**
+ * Half this week's sim, half FantasyPros. Blank when either number is missing.
+ * Weeks 3–7 of 2026 graded the earlier "sim plus his average miss" as worse than the sim;
+ * this even split beat the sim at every position on weeks 5–7 (STATUS 2026-10-29).
+ */
+export function adjustedPoints(
   sim: number | null | undefined,
-  meanMiss: number | null | undefined,
+  fp: number | null | undefined,
 ): number | null {
-  if (sim == null || meanMiss == null) return null;
-  if (!Number.isFinite(sim) || !Number.isFinite(meanMiss)) return null;
-  return sim + meanMiss;
+  if (sim == null || fp == null) return null;
+  if (!Number.isFinite(sim) || !Number.isFinite(fp)) return null;
+  return (sim + fp) / 2;
 }
 
 /** The copy of Adjusted after the plus and minus steps. One step is one point. */

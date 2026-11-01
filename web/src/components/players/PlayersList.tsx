@@ -32,7 +32,7 @@ import {
   type ReactNode,
 } from "react";
 import { savePlayerDelta } from "@/lib/actions/player-points";
-import { adjustedForMiss, editedPoints } from "@/lib/player-edit";
+import { adjustedPoints, editedPoints } from "@/lib/player-edit";
 import { POINT_SOURCE_LABEL, POINT_SOURCES, projectionPoints } from "@/lib/optimize/points";
 import type { PointSource } from "@/lib/optimize/types";
 import { ptsPerK } from "@/lib/review";
@@ -521,7 +521,7 @@ export function PlayersList({
         </div>
         {toolbar}
         <p className="t-caption text-muted-foreground">
-          Plus and minus change your copy by one point. Adjusted is the sim plus his average miss from earlier weeks.
+          Plus and minus change your copy by one point. Adjusted is half the sim and half FantasyPros.
         </p>
         {fallbackFrom ? <p className="t-caption text-warn">{fallbackNotice(fallbackFrom)}</p> : null}
       </header>
@@ -710,10 +710,10 @@ export function PlayersList({
             header: "Adjusted",
             group: "PROJECTIONS",
             align: "right",
-            sortValue: (p) => adjustedForMiss(p.fpts_dk_mean, p.mean_miss),
+            sortValue: (p) => adjustedPoints(p.fpts_dk_mean, p.fp_fpts),
             cell: (p) => (
               <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
-                {num(adjustedForMiss(p.fpts_dk_mean, p.mean_miss))}
+                {num(adjustedPoints(p.fpts_dk_mean, p.fp_fpts))}
               </span>
             ),
           },
@@ -724,13 +724,13 @@ export function PlayersList({
             align: "right",
             sortValue: (p) =>
               editedPoints(
-                adjustedForMiss(p.fpts_dk_mean, p.mean_miss),
+                adjustedPoints(p.fpts_dk_mean, p.fp_fpts),
                 edits.deltas[p.player_id] ?? p.point_delta ?? 0,
               ),
             cell: (p) => (
               <PointStepper
                 name={p.display_name}
-                base={adjustedForMiss(p.fpts_dk_mean, p.mean_miss)}
+                base={adjustedPoints(p.fpts_dk_mean, p.fp_fpts)}
                 delta={p.point_delta ?? 0}
                 playerId={p.player_id}
                 excluded={Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id))}
@@ -815,6 +815,19 @@ export function PlayersList({
             cell: (p) => (
               <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
                 {ownPct(p.proj_own)}
+              </span>
+            ),
+          },
+          {
+            id: "sim-own",
+            header: "Sim own",
+            group: "VALUE & OWNERSHIP",
+            metric: "ownership",
+            align: "right",
+            sortValue: (p) => p.sim_own,
+            cell: (p) => (
+              <span className={tone(Boolean(p.player_dk_id && picks.excl.includes(p.player_dk_id)))}>
+                {ownPct(p.sim_own)}
               </span>
             ),
           },

@@ -191,15 +191,15 @@ describe("entryFor", () => {
 
 describe("projectionAccuracy", () => {
   const facts = [
-    fact({ name: "q", position: "QB", proj: 20, meanMiss: 4, actual: 26 }),
-    fact({ name: "w", position: "WR", proj: 10, meanMiss: -2, actual: 6 }),
-    fact({ name: "new", position: "WR", proj: 12, meanMiss: null, actual: 30 }),
-    fact({ name: "out", position: "RB", proj: 0, meanMiss: 3, actual: 0 }),
-    fact({ name: "dnp", position: "TE", proj: 8, meanMiss: 1, actual: null }),
+    fact({ name: "q", position: "QB", proj: 20, fp: 28, actual: 26 }),
+    fact({ name: "w", position: "WR", proj: 10, fp: 6, actual: 6 }),
+    fact({ name: "new", position: "WR", proj: 12, fp: null, actual: 30 }),
+    fact({ name: "out", position: "RB", proj: 0, fp: 3, actual: 0 }),
+    fact({ name: "dnp", position: "TE", proj: 8, fp: 9, actual: null }),
   ];
-  it("compares sim and Adjusted on the same players and counts those with no earlier week", () => {
+  it("compares sim and Adjusted on the same players and counts those with no FantasyPros number", () => {
     const acc = projectionAccuracy(facts);
-    expect(acc.noMiss).toBe(1);
+    expect(acc.noAdjusted).toBe(1);
     const all = acc.rows.find((r) => r.group === "All")!;
     expect(all.n).toBe(2);
     expect(all.simMae).toBeCloseTo(5, 6);
@@ -208,18 +208,18 @@ describe("projectionAccuracy", () => {
     expect(all.adjBias).toBeCloseTo(0, 6);
     expect(acc.rows.map((r) => r.group)).toEqual(["All", "QB", "WR"]);
   });
-  it("returns no rows when nobody has an earlier week", () => {
-    expect(projectionAccuracy([fact({ name: "a", meanMiss: null })]).rows).toEqual([]);
+  it("returns no rows when nobody has a FantasyPros number", () => {
+    expect(projectionAccuracy([fact({ name: "a", fp: null })]).rows).toEqual([]);
   });
 });
 
 describe("lineupAccuracy", () => {
   const facts = [
-    fact({ name: "a", proj: 10, meanMiss: 2 }),
-    fact({ name: "b", proj: 20, meanMiss: null }),
-    fact({ name: "c", proj: 5, meanMiss: -1 }),
+    fact({ name: "a", proj: 10, fp: 14 }),
+    fact({ name: "b", proj: 20, fp: null }),
+    fact({ name: "c", proj: 5, fp: 3 }),
   ];
-  it("sums nine-slot totals and keeps the sim for a slot with no earlier week", () => {
+  it("sums nine-slot totals and keeps the sim for a slot with no Adjusted number", () => {
     const acc = lineupAccuracy(
       [
         lineup(["a", "b"], { actual: 40 }),

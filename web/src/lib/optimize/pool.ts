@@ -12,7 +12,7 @@ export function toOptPlayer(p: WeekPlayer, source: PointSource = "dk"): OptPlaye
   if (!id || !pos || p.salary == null || !p.team) return null;
   if (!inOptimizerPool(p.override_status, p.override_updated_at, p.run_created_at)) return null;
   const raw = projectionPoints(p, source);
-  // Defenses are not graded in the miss table, so Adjusted and Yours are blank.
+  // A defense with no FantasyPros number has a blank Adjusted and Yours.
   // A classic lineup still needs one, and that defense stays on DK pts.
   const proj = source === "dk" || (raw == null && pos === "DST") ? (raw ?? p.fpts_dk_mean ?? 0) : raw;
   if (proj == null) return null;

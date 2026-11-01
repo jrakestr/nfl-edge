@@ -1,5 +1,10 @@
 # Status
 
+## Adjusted = half sim, half FantasyPros (2026-10-29)
+- Out-of-sample, weeks 5–7, 747 players across 40 games: player error vs actual was 0.124 below the sim (95% CI −0.194 to −0.055). It was no worse than the sim at any position in any week. Every per-player miss correction tried made things worse.
+- The Players table, the optimizer's Adjusted/Yours sources and the slate review all use `(sim + fp_fpts)/2`. It is blank when FantasyPros is missing. The review only uses FantasyPros rows pulled before kickoff.
+- Open: the Blend column's inverse-MAE² weights still include FantasyPros weeks 1–4, which were pulled after the games (leaky). Next: backtest a fix for lineup overprojection on GPP metrics.
+
 ## Slate review grades Adjusted against actuals (2026-10-29)
 
 What changed: the slate review (`/week/W/dfs/dk/{slate}/review`) gains a "Sim vs Adjusted" card: MAE and bias by All/QB/RB/WR/TE on the same players (sim > 0, an actual, and a miss from weeks < W via `missByPlayer`), a count of players left out for having no earlier week, and lineup totals with their correlation to lineup actuals under each projection (a slot with no earlier week keeps its sim number). Top scorers gains an Adjusted column. Helpers in `web/src/lib/review.ts` (`adjustedProj`, `projectionAccuracy`, `lineupAccuracy`).

@@ -3,7 +3,8 @@ import { WeekBoard, type WeekBoardProps } from "./WeekBoard";
 import { DEFAULT_FILTERS } from "./filters";
 import { NO_SCOREBOARD, NO_TRACK, asFailed, asScheduleRows, fixture, fixtureChecks, fixtureRows, fixtureVerdicts } from "@/test/fixture";
 import { sortVerdicts } from "@/lib/queries/verdicts";
-import { homeLine, line, maxEdge } from "@/lib/edge";
+import { sortBoardRows } from "@/lib/board-sort";
+import { homeLine, line } from "@/lib/edge";
 import { noProjectionsNotice } from "@/lib/format";
 
 // The board's client children (WeekHeader, RunBadge) read the router; the route test stubs it.
@@ -30,7 +31,7 @@ function props(over: Partial<WeekBoardProps> = {}): WeekBoardProps {
     runs: [run],
     stale: false,
     verdicts: sortVerdicts(fixtureVerdicts()),
-    rows: fixtureRows().sort((a, b) => maxEdge(b) - maxEdge(a)),
+    rows: sortBoardRows(fixtureRows()),
     checks: fixtureChecks(),
     track: NO_TRACK,
     scoreboard: NO_SCOREBOARD,
@@ -40,7 +41,7 @@ function props(over: Partial<WeekBoardProps> = {}): WeekBoardProps {
 
 describe("/week/[n] against the Week 1 fixture", () => {
   it("marks two market-gap games with different captions and does not resort them", () => {
-    const rows = fixtureRows().sort((a, b) => maxEdge(b) - maxEdge(a));
+    const rows = sortBoardRows(fixtureRows());
     const a = rows[0]!;
     const b = rows[1]!;
     const checks = fixtureChecks();
@@ -88,13 +89,17 @@ describe("/week/[n] against the Week 1 fixture", () => {
     expect(list!.querySelector("article")).toHaveAttribute("data-game", rowBtn.closest("[data-game]")?.getAttribute("data-game"));
   });
 
-  it("plain english: one card per game, biggest edge first", () => {
+  it("plain english: one card per game, ordered by kickoff ascending", () => {
     render(<WeekBoard {...props()} />);
     expect(screen.queryByRole("region", { name: "Week summary" })).not.toBeInTheDocument();
     const cards = screen.getAllByRole("article");
     expect(cards).toHaveLength(16);
-    const edges = cards.map((c) => c.getAttribute("data-game")!).map((g) => fixture.games.find((x) => (x as { game_id: string }).game_id === g) as { max_edge: number });
-    for (let i = 1; i < edges.length; i++) expect(edges[i - 1].max_edge).toBeGreaterThanOrEqual(edges[i].max_edge);
+    const kickoffs = cards
+      .map((c) => c.getAttribute("data-game")!)
+      .map((g) => (fixture.games.find((x) => (x as { game_id: string }).game_id === g) as { kickoff: string; game_id: string }));
+    for (let i = 1; i < kickoffs.length; i++) {
+      expect(`${kickoffs[i - 1].kickoff} ${kickoffs[i - 1].game_id}` <= `${kickoffs[i].kickoff} ${kickoffs[i].game_id}`).toBe(true);
+    }
   });
 
   it("table: four tiles then a row per game; track record reads 'No graded weeks yet'", () => {

@@ -1,5 +1,4 @@
 import { sql } from "@/lib/db";
-import { missByPlayer } from "@/lib/queries/players";
 import type {
   ContestPlayer,
   ReviewContest,
@@ -152,7 +151,7 @@ export async function reviewFacts(
            pp.boom_rate::float8 as boom, pp.bust_rate::float8 as bust,
            e.top1_pct::float8 as top1_pct,            e.own_ours::float8 as own_ours,
            e.own_field_sim::float8 as own_field_sim,
-           a.dk_pts::float8 as actual
+           a.dk_pts::float8 as actual, fp.fpts_dk::float8 as fp
     from (
       select distinct on (player_id) player_id, name, team, position, salary
       from raw.dk_salaries
@@ -164,7 +163,12 @@ export async function reviewFacts(
       on e.run_id = ${runId}::uuid and e.site = ${site} and e.slate_id = ${slateId}
      and e.player_id = s.player_id
     left join model.slate_actuals a
-      on a.season = ${season} and a.week = ${week} and a.player_id = s.player_id`;
+      on a.season = ${season} and a.week = ${week} and a.player_id = s.player_id
+    left join raw.schedules g on g.game_id = pp.game_id
+    left join raw.external_players fp
+      on fp.source = 'fantasypros' and fp.season = ${season} and fp.week = ${week}
+     and fp.player_id = s.player_id
+     and fp.ingested_at < ((g.gameday || ' ' || g.gametime)::timestamp at time zone 'America/New_York')`;
   return rows.map((r) => ({
     playerId: String(r.player_id),
     name: String(r.name),
@@ -181,6 +185,7 @@ export async function reviewFacts(
     ownOurs: num(r.own_ours),
     ownFieldSim: num(r.own_field_sim),
     actual: num(r.actual),
+    fp: num(r.fp),
   }));
 }
 
@@ -210,13 +215,11 @@ export async function slateReview(args: {
 }): Promise<ReviewData | null> {
   const run = await gradedRun(args.site, args.slateId);
   if (!run) return null;
-  const [contests, ids, rawFacts, miss] = await Promise.all([
+  const [contests, ids, facts] = await Promise.all([
     slateContests(args.slateId),
     dkIds(args.site, args.slateId),
     reviewFacts(run.runId, args.site, args.slateId, args.season, args.week),
-    missByPlayer(args.season, args.week),
   ]);
-  const facts = rawFacts.map((f) => ({ ...f, meanMiss: miss[f.playerId] ?? null }));
   const contest = contests.find((c) => c.key === args.contestKey) ?? contests[0] ?? null;
   const [lineups, players] = await Promise.all([
     reviewLineups(run.runId, args.site, args.slateId, ids),

@@ -428,6 +428,8 @@ export const WeekPlayerSchema = z.object({
   p90: numOrNull.optional(),
   ceiling: numOrNull.optional(),
   proj_own: numOrNull.optional(),
+  /** Share of simulated field lineups that include this player (`own_field_sim`). */
+  sim_own: numOrNull.optional(),
   value: numOrNull.optional(),
   override_status: z.string().nullable().optional(),
   override_updated_at: z.union([z.date(), z.string()]).nullable().optional(),

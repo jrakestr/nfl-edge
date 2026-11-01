@@ -44,10 +44,9 @@ vi.mock("@/lib/queries/verdicts", async (importOriginal) => {
 vi.mock("@/lib/queries/board", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@/lib/queries/board")>();
   const { fixtureRows: rows } = await import("@/test/fixture");
-  const { maxEdge: me } = await import("@/lib/edge");
   return {
     ...orig,
-    boardRows: async () => rows().sort((a, b) => me(b) - me(a)),
+    boardRows: async () => orig.sortBoardRows(rows()),
     scheduleRows: async () => [],
   };
 });
@@ -95,7 +94,7 @@ async function renderWeek(view?: string) {
 }
 
 describe("WeekPage", () => {
-  it("renders 16 VerdictCards sorted by max_edge and five warn games", async () => {
+  it("renders 16 VerdictCards sorted by kickoff asc and five warn games", async () => {
     await renderWeek();
     const cards = screen.getAllByRole("article");
     expect(cards).toHaveLength(16);

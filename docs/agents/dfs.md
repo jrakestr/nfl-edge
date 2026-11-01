@@ -23,8 +23,8 @@
   mean + ceiling − ownership). Any other source uses that number as the points:
   cash does not substitute the sim floor; single entry still subtracts ownership
   and does not add the sim ceiling. A player with no usable number for the chosen
-  source is out of the pool. Defenses are not in the miss table, so a defense with
-  a blank source stays on DK pts. A lock in that state stops the solve.
+  source is out of the pool. A defense with a blank source (no FantasyPros number
+  for Adjusted and Yours) stays on DK pts. A lock in that state stops the solve.
 - Choose the classic mode (Cash / Single Entry / Mass GPP) before the build. One
   shared config for Python and web: `config/dfs/dk_classic.json` (`num_uniques`,
   max exposure). Never ship `num_uniques=1` with no cap.

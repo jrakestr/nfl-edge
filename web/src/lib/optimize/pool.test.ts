@@ -35,11 +35,11 @@ describe("poolFromPlayers", () => {
     ).toThrow(/Jordan Love .* more than once/);
   });
 
-  it("builds on Adjusted and drops a player with no miss", () => {
+  it("builds on Adjusted and drops a player with no FantasyPros number", () => {
     const pool = poolFromPlayers(
       [
-        wp({ player_id: "00-love", player_dk_id: "1", display_name: "Jordan Love", mean_miss: 2 }),
-        wp({ player_id: "00-willis", player_dk_id: "2", display_name: "Malik Willis", mean_miss: null }),
+        wp({ player_id: "00-love", player_dk_id: "1", display_name: "Jordan Love", fp_fpts: 22 }),
+        wp({ player_id: "00-willis", player_dk_id: "2", display_name: "Malik Willis", fp_fpts: null }),
       ],
       { points: "adjusted" },
     );
@@ -48,7 +48,7 @@ describe("poolFromPlayers", () => {
 
   it("builds Yours as Adjusted plus the saved step", () => {
     const pool = poolFromPlayers(
-      [wp({ player_id: "00-love", player_dk_id: "1", display_name: "Jordan Love", mean_miss: 2, point_delta: 3 })],
+      [wp({ player_id: "00-love", player_dk_id: "1", display_name: "Jordan Love", fp_fpts: 22, point_delta: 3 })],
       { points: "yours" },
     );
     expect(pool[0]?.proj).toBe(23);
@@ -64,7 +64,7 @@ describe("poolFromPlayers", () => {
           display_name: "Packers",
           position: "DST",
           fpts_dk_mean: 8,
-          mean_miss: null,
+          fp_fpts: null,
         }),
       ],
       { points: "adjusted" },

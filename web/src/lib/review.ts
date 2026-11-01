@@ -4,7 +4,7 @@
  * %Drafted column; the sim's own_field_sim never stands in for it.
  */
 
-import { adjustedForMiss } from "@/lib/player-edit";
+import { adjustedPoints } from "@/lib/player-edit";
 
 export const PANEL_SIZE = 15;
 export const LOW_OWN_MAX = 0.1;
@@ -53,8 +53,8 @@ export type ReviewFact = {
   ownOurs: number | null;
   ownFieldSim: number | null;
   actual: number | null;
-  /** Average of (actual minus sim) over this season's weeks before the slate. Null with no graded week. */
-  meanMiss?: number | null;
+  /** FantasyPros DK points pulled before his kickoff. Null when none was pulled in time. */
+  fp?: number | null;
 };
 
 export type ReviewContest = {
@@ -237,9 +237,9 @@ export function topScorers(
   return rows.sort((a, b) => b.actual - a.actual).slice(0, PANEL_SIZE);
 }
 
-/** The players table's Adjusted column, rebuilt for the slate: sim plus his earlier-week miss. */
-export function adjustedProj(f: Pick<ReviewFact, "proj" | "meanMiss">): number | null {
-  return adjustedForMiss(f.proj, f.meanMiss);
+/** The players table's Adjusted column, rebuilt for the slate: half sim, half pre-kickoff FantasyPros. */
+export function adjustedProj(f: Pick<ReviewFact, "proj" | "fp">): number | null {
+  return adjustedPoints(f.proj, f.fp);
 }
 
 export const ACCURACY_GROUPS = ["All", "QB", "RB", "WR", "TE"] as const;
@@ -256,8 +256,8 @@ export type AccuracyRow = {
 
 export type ProjectionAccuracy = {
   rows: AccuracyRow[];
-  /** Players with a sim and an actual but no earlier graded week, left out of both columns. */
-  noMiss: number;
+  /** Players with a sim and an actual but no FantasyPros number before kickoff, left out of both columns. */
+  noAdjusted: number;
 };
 
 function meanOf(xs: number[]): number {
@@ -265,8 +265,8 @@ function meanOf(xs: number[]): number {
 }
 
 /**
- * Sim against Adjusted on the same players: a positive sim projection, an actual, and an
- * earlier-week miss. A player with no miss has no Adjusted and is counted in `noMiss`.
+ * Sim against Adjusted on the same players: a positive sim projection, an actual, and a
+ * pre-kickoff FantasyPros number. A player without one has no Adjusted and is counted in `noAdjusted`.
  */
 export function projectionAccuracy(facts: ReviewFact[]): ProjectionAccuracy {
   const graded = facts.filter((f) => f.actual != null && f.proj != null && f.proj > 0);
@@ -286,7 +286,7 @@ export function projectionAccuracy(facts: ReviewFact[]): ProjectionAccuracy {
       adjBias: meanOf(adjErr),
     });
   }
-  return { rows, noMiss: graded.length - both.length };
+  return { rows, noAdjusted: graded.length - both.length };
 }
 
 function pearson(xs: number[], ys: number[]): number | null {
@@ -315,7 +315,7 @@ export type LineupAccuracy = {
 };
 
 /**
- * Nine-slot totals under the sim and under Adjusted. A slot with no earlier-week miss keeps
+ * Nine-slot totals under the sim and under Adjusted. A slot with no Adjusted number keeps
  * its sim number in the Adjusted total. Lineups with no actual or an unresolved slot are left out.
  */
 export function lineupAccuracy(lineups: Pick<ReviewLineup, "actual" | "slots">[], facts: ReviewFact[]): LineupAccuracy | null {

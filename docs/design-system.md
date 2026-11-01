@@ -161,8 +161,8 @@ Horizontally scrollable kickoff-grouped chips on the Edge board (below WeekHeade
 
 ### Edge board (`/week/[n]`)
 - Week summary sentence card with Plain English / Table toggle. Plain English also has Full / Compact (`?density=compact`; omitted when Full).
-- Plain English: stack of `VerdictCard`s sorted by |max edge|. Compact collapses each game to one 48px row (matchup, three market edges, warning dot) that expands on click. Table: four summary tiles then the dense table below.
-- Table, one row per game, sorted by |max edge| desc. Columns: matchup (dots + abbrs, kickoff), `EdgeCell` spread, `EdgeCell` total, `EdgeCell` ML (as prob), P(cover) at market, `MarketPill`, `CheckStatus`.
+- Plain English: stack of `VerdictCard`s sorted by kickoff asc (first to last game played). Compact collapses each game to one 48px row (matchup, three market edges, warning dot) that expands on click. Table: four summary tiles then the dense table below.
+- Table, one row per game, sorted by kickoff asc. Columns: matchup (dots + abbrs, kickoff), `EdgeCell` spread, `EdgeCell` total, `EdgeCell` ML (as prob), P(cover) at market, `MarketPill`, `CheckStatus`.
 - Row click → `Sheet` drawer: score distribution (margin and total from the run's line grid), fair vs. market history, top-10 player projections with `DistributionSpark`, correlation heat strip for that game.
 - Filters (top-left, persistent): slate (main/early/late/primetime), min |edge|, hide flat.
 
@@ -176,7 +176,7 @@ Horizontally scrollable kickoff-grouped chips on the Edge board (below WeekHeade
 
 ### Player library (`/week/[n]/players/[site]/[slate]`)
 - `SlateSelector` from ingested slates. Rows from `slatePlayers` (one DK id; real position, never FLEX).
-- Columns: name + `PositionPill` + injury, team, opponent, kickoff, salary, DK pts, Pts rk, ceiling (`fpts_ppr` p90), ownership, value, Pts/$ (points per $1,000 from the source picked in the header: DK, NFLGameSim, FantasyPros, Adjusted, or Yours), typical game. No DK id, Floor, Val rk, or Ceil rk — dropped so the 15px scale fits. Ranks are position-relative `tnum` text over the slate, not badges. No Leverage column until `parse_exposure_csv` reads by position. Game filter is the strip (`games=`), not a table select.
+- Columns: name + `PositionPill` + injury, team, opponent, kickoff, salary, DK pts, Pts rk, ceiling (`fpts_ppr` p90), ownership (`own_field_proj`), Sim own (`own_field_sim`, share of the simulated field), value, Pts/$ (points per $1,000 from the source picked in the header: DK, NFLGameSim, FantasyPros, Adjusted, or Yours), typical game. No DK id, Floor, Val rk, or Ceil rk — dropped so the 15px scale fits. Ranks are position-relative `tnum` text over the slate, not badges. No Leverage column until `parse_exposure_csv` reads by position. Game filter is the strip (`games=`), not a table select.
 - Row actions: Lock, Exclude, Add to stack. Persisted as comma-separated `player_dk_id`s in URL (`lock`, `excl`, `stack`) and `localStorage` key `nfl-edge.slate:{slateId}`. URL wins on load.
 - Stale OUT/D (override after the run) grey the projection and drop from the optimizer pool. Q stays in.
 

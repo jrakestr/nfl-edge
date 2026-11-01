@@ -10,6 +10,7 @@ import polars as pl
 from . import (
     calibration,
     common,
+    defense,
     depth,
     efficiency,
     elo,
@@ -34,6 +35,7 @@ class Priors:
     kicking: dict = field(default_factory=dict)   # {"kickers": {team: player_id}, "fg_mix": [..]}
     target_rate: float = 1.0                      # share of pass attempts thrown to a receiver
     calibration: dict = field(default_factory=dict)  # realized-outcome factors applied (1.0 = none)
+    defense: pl.DataFrame = field(default_factory=pl.DataFrame)  # defender event shares (priors/defense.py)
 
 
 def build(season: int, week: int, c: dict | None = None) -> Priors:
@@ -91,4 +93,5 @@ def build(season: int, week: int, c: dict | None = None) -> Priors:
         kicking=kicking.build(season, week, ov),
         target_rate=target_rate,
         calibration=factors,
+        defense=defense.defense_priors(season, week, c, overrides=ov),
     )

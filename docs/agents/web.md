@@ -11,8 +11,9 @@
   key are server env only. No long job runs in a request.
 - Players table plus/minus: upserts `model.player_point_edits` (a whole-point `delta`
   for that player-week). Display only. It does not change `proj_players` or priors.
-  The `Adjusted` column is this week's sim plus his average miss from earlier weeks
-  (`model.player_proj_actual`, week < W). `Pts/$` is that chosen projection
+  The `Adjusted` column is half this week's sim and half FantasyPros (blank when
+  either is missing). The slate review grades it with FantasyPros rows pulled before
+  each game's kickoff only. `Pts/$` is that chosen projection
   (DK, NFLGameSim, FantasyPros, Adjusted, or Yours) per $1,000 of salary.
   The `Yours` column is `Adjusted + delta`
   (not `DK pts + delta`), and is blank (`—`) with no stepper buttons when `Adjusted`

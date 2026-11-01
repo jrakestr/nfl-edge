@@ -79,6 +79,7 @@ const MAIN: WeekPlayer[] = [
     floor: 10,
     ceiling: 28,
     proj_own: 0.22,
+    sim_own: 0.184,
     value: 2.275,
     typical_dk: 20,
     hist: null,
@@ -228,7 +229,6 @@ describe("PlayersList slate rows", () => {
             ...MAIN[0]!,
             ngs_fpts: 24,
             fp_fpts: 10,
-            mean_miss: 1.8,
             point_delta: 2,
           },
         ]}
@@ -241,11 +241,20 @@ describe("PlayersList slate rows", () => {
     fireEvent.click(within(source).getByRole("button", { name: "FantasyPros" }));
     expect(screen.getByText("1.25")).toBeInTheDocument();
     fireEvent.click(within(source).getByRole("button", { name: "Adjusted" }));
-    expect(screen.getByText("2.50")).toBeInTheDocument();
+    expect(screen.getByText("1.76")).toBeInTheDocument();
     fireEvent.click(within(source).getByRole("button", { name: "Yours" }));
-    expect(screen.getByText("2.75")).toBeInTheDocument();
+    expect(screen.getByText("2.01")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Increase points for Jahmyr Gibbs" }));
-    expect(screen.getByText("2.88")).toBeInTheDocument();
+    expect(screen.getByText("2.14")).toBeInTheDocument();
+  });
+
+  it("shows simulated field ownership next to projected Own", () => {
+    render(<PlayersList players={MAIN} />);
+    expect(screen.getByRole("columnheader", { name: "Own" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Sim own" })).toBeInTheDocument();
+    expect(screen.getByText("22.0%")).toBeInTheDocument();
+    expect(screen.getByText("18.4%")).toBeInTheDocument();
+    expect(screen.getByText("5.0%")).toBeInTheDocument();
   });
 
   it("shows ceiling and pts rank and not leverage, floor, or extra ranks", () => {
@@ -477,7 +486,7 @@ describe("PlayersList NFLGameSim", () => {
             ...MAIN[0]!,
             player_id: "00-0039139",
             fpts_dk_mean: 18.2,
-            mean_miss: 2.0,
+            fp_fpts: 22.2,
             point_delta: 0,
           },
         ]}
@@ -520,7 +529,7 @@ describe("PlayersList NFLGameSim", () => {
             ...MAIN[0]!,
             player_id: "00-0039139",
             fpts_dk_mean: 18.2,
-            mean_miss: 2.0,
+            fp_fpts: 22.2,
             point_delta: 0,
           },
         ]}
@@ -545,14 +554,14 @@ describe("PlayersList NFLGameSim", () => {
     expect(screen.getByText("23.2")).toBeInTheDocument();
   });
 
-  it("renders em dashes in Adjusted and Yours with no stepper buttons when mean_miss is null", () => {
+  it("renders em dashes in Adjusted and Yours with no stepper buttons when FantasyPros is missing", () => {
     render(
       <PlayersList
         players={[
           {
             ...MAIN[0]!,
             fpts_dk_mean: 18.2,
-            mean_miss: null,
+            fp_fpts: null,
             point_delta: 0,
           },
         ]}

@@ -1,0 +1,15 @@
+game_id,season,week,gameday,gametime,away_team,home_team,source,market_spread_home,market_total,market_ml_home,market_ml_away,market_p_home_novig,sim_home_pts,sim_away_pts,sim_total,sim_margin_home,sim_p_home_win,sim_pick_winner,sim_ats_lean,sim_total_lean,edge_spread_home,edge_total,edge_ml_home,status,actual_home_pts,actual_away_pts,actual_margin_home,actual_total,actual_winner,pick_winner_result,margin_within_7,ats_result
+2026_08_BAL_BUF,2026,8,2026-11-01,13:00,BAL,BUF,nflgamesim,-3.0,54.5,-170,142,0.6038,28.8,31.6,60.4,-2.8,0.4132,BAL,BAL,over,-5.8,5.9,-0.1906,pending,,,,,,,,
+2026_08_TEN_CIN,2026,8,2026-11-01,13:00,TEN,CIN,nflgamesim,-12.5,46.5,-675,490,0.8371,31.1,14.6,45.7,16.5,0.8736,CIN,CIN,under,4.0,-0.8,0.0365,pending,,,,,,,,
+2026_08_ARI_DAL,2026,8,2026-11-01,13:00,ARI,DAL,nflgamesim,-7.0,54.5,-305,245,0.7221,29.2,22.4,51.6,6.8,0.6877,DAL,ARI,under,-0.2,-2.9,-0.0344,pending,,,,,,,,
+2026_08_MIN_DET,2026,8,2026-11-01,13:00,MIN,DET,nflgamesim,-3.0,46.5,-170,142,0.6038,24.3,19.0,43.3,5.3,0.6575,DET,DET,under,2.3,-3.2,0.0537,pending,,,,,,,,
+2026_08_LV_NYJ,2026,8,2026-11-01,13:00,LV,NYJ,nflgamesim,-1.5,45.5,-122,102,0.5261,28.3,16.7,45.0,11.6,0.8274,NYJ,NYJ,under,10.1,-0.5,0.3013,pending,,,,,,,,
+2026_08_CLE_PIT,2026,8,2026-11-01,13:00,CLE,PIT,nflgamesim,-3.5,39.5,-192,160,0.6309,17.6,21.1,38.7,-3.5,0.3981,CLE,CLE,under,-7.0,-0.8,-0.2328,pending,,,,,,,,
+2026_08_ATL_TB,2026,8,2026-11-01,13:00,ATL,TB,nflgamesim,-2.5,43.5,-135,114,0.5514,21.5,22.7,44.2,-1.2,0.467,ATL,ATL,over,-3.7,0.7,-0.0844,pending,,,,,,,,
+2026_08_IND_JAX,2026,8,2026-11-01,13:00,IND,JAX,nflgamesim,-10.0,46.5,-500,380,0.8,30.6,17.5,48.1,13.1,0.8047,JAX,JAX,over,3.1,1.6,0.0047,pending,,,,,,,,
+2026_08_LAC_LA,2026,8,2026-11-01,16:05,LAC,LA,nflgamesim,-6.5,45.5,-278,225,0.705,26.3,16.0,42.3,10.4,0.7547,LA,LA,under,3.9,-3.2,0.0497,pending,,,,,,,,
+2026_08_KC_DEN,2026,8,2026-11-01,16:25,KC,DEN,nflgamesim,1.5,40.5,-102,-118,0.4826,16.1,21.5,37.6,-5.4,0.3349,KC,KC,under,-3.9,-2.9,-0.1477,pending,,,,,,,,
+2026_08_NE_MIA,2026,8,2026-11-01,16:25,NE,MIA,nflgamesim,7.0,43.5,260,-325,0.2665,23.3,26.2,49.5,-2.9,0.3953,NE,MIA,over,4.1,6.0,0.1288,pending,,,,,,,,
+2026_08_PHI_WAS,2026,8,2026-11-01,20:20,PHI,WAS,nflgamesim,-5.5,40.5,-250,205,0.6854,26.6,17.6,44.2,9.0,0.717,WAS,WAS,over,3.5,3.7,0.0316,pending,,,,,,,,
+2026_08_CHI_SEA,2026,8,2026-11-02,20:15,CHI,SEA,nflgamesim,-3.0,46.5,-170,142,0.6038,25.6,23.0,48.6,2.6,0.5887,SEA,CHI,over,-0.4,2.1,-0.0151,pending,,,,,,,,
+2026_08_CAR_GB,2026,8,2026-10-29,20:15,CAR,GB,nflgamesim,-3.5,47.5,-192,160,0.6309,20.3,23.0,43.3,-2.7,0.4207,CAR,CAR,under,-6.2,-4.2,-0.2102,final,27,19,8,46,GB,incorrect,no,incorrect

@@ -18,12 +18,12 @@ SKILL_DEPTH = ("QB", "RB", "WR", "TE", "FB", "HB")
 POS_MAP = {"FB": "RB", "HB": "RB"}
 
 
-def _finish(df: pl.DataFrame) -> pl.DataFrame:
+def _finish(df: pl.DataFrame, pos_map: dict[str, str] = POS_MAP) -> pl.DataFrame:
     if df.is_empty():
         return pl.DataFrame(schema={"team": pl.Utf8, "player_id": pl.Utf8, "position": pl.Utf8,
                                     "depth_rank": pl.Int32})
     return (
-        df.with_columns(pl.col("position").replace(POS_MAP), pl.col("depth_rank").cast(pl.Int32))
+        df.with_columns(pl.col("position").replace(pos_map), pl.col("depth_rank").cast(pl.Int32))
         .filter(pl.col("depth_rank").is_not_null())
         .sort(["team", "player_id", "depth_rank"])
         .unique(subset=["team", "player_id"], keep="first")
@@ -31,7 +31,8 @@ def _finish(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def load_depth(season: int, week: int) -> pl.DataFrame:
+def load_depth(season: int, week: int, positions: tuple[str, ...] = SKILL_DEPTH,
+               pos_map: dict[str, str] = POS_MAP) -> pl.DataFrame:
     weekly = read_sql(
         """
         with latest as (
@@ -43,10 +44,10 @@ def load_depth(season: int, week: int) -> pl.DataFrame:
         from raw.depth_charts d join latest l on l.club_code = d.club_code and l.week = d.week
         where d.season = %s and d.gsis_id is not null and d.depth_position = any(%s)
         """,
-        (season, week, season, list(SKILL_DEPTH)),
+        (season, week, season, list(positions)),
     )
     if not weekly.is_empty():
-        return _finish(weekly)
+        return _finish(weekly, pos_map)
     daily = read_sql(
         """
         with cutoff as (
@@ -60,6 +61,6 @@ def load_depth(season: int, week: int) -> pl.DataFrame:
         from raw.depth_charts d join snap on snap.dt = d.dt
         where d.season = %s and d.gsis_id is not null and d.depth_position = any(%s)
         """,
-        (season, week, season, season, list(SKILL_DEPTH)),
+        (season, week, season, season, list(positions)),
     )
-    return _finish(daily)
+    return _finish(daily, pos_map)

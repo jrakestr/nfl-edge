@@ -145,6 +145,7 @@ export async function slatePlayers(runId: string, site: string, slateId: string)
            (pp.stat_summary -> 'fpts_ppr' ->> 'p25')::float8 as p25,
            (pp.stat_summary -> 'fpts_ppr' ->> 'p90')::float8 as ceiling,
            e.own_field_proj::float8 as proj_own,
+           e.own_field_sim::float8 as sim_own,
            mapped.avg_points::float8 as typical_dk,
            ov.status as override_status,
            ov.updated_at as override_updated_at,

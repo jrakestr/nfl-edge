@@ -103,11 +103,11 @@ function AccuracyCard({ acc, lineups }: { acc: ProjectionAccuracy; lineups: Line
       <div className="flex flex-wrap items-baseline gap-3">
         <h2 className="t-sentence font-semibold">Sim vs Adjusted</h2>
         <span className="t-caption text-muted-foreground">
-          Adjusted is the sim plus his average miss from earlier weeks. Bias is actual minus projection.
+          Adjusted is half the sim and half FantasyPros, using only FantasyPros numbers pulled before kickoff. Bias is actual minus projection.
         </span>
       </div>
       {acc.rows.length === 0 ? (
-        <p className="t-caption text-muted-foreground">No player on this slate has both an Adjusted number and an actual.</p>
+        <p className="t-caption text-muted-foreground">No player on this slate has both an actual and a FantasyPros number pulled before his kickoff.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full t-body" aria-label="Player accuracy">
@@ -135,8 +135,8 @@ function AccuracyCard({ acc, lineups }: { acc: ProjectionAccuracy; lineups: Line
         </div>
       )}
       <p className="t-caption text-muted-foreground">
-        Same players in both columns: a sim above zero, an actual, and at least one earlier graded week.
-        {acc.noMiss ? ` ${acc.noMiss} with no earlier week left out.` : ""}
+        Same players in both columns: a sim above zero, an actual, and a FantasyPros number before kickoff.
+        {acc.noAdjusted ? ` ${acc.noAdjusted} with no FantasyPros number in time left out.` : ""}
       </p>
       {lineups ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -156,7 +156,7 @@ function AccuracyCard({ acc, lineups }: { acc: ProjectionAccuracy; lineups: Line
       ) : null}
       {lineups ? (
         <p className="t-caption text-muted-foreground">
-          Lineup totals add the nine slots. A slot with no earlier week keeps its sim number in the Adjusted total.
+          Lineup totals add the nine slots. A slot with no Adjusted number keeps its sim number in the Adjusted total.
         </p>
       ) : null}
     </section>

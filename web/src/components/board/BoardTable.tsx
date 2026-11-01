@@ -19,7 +19,7 @@ import { type Filters, applyFilters } from "./filters";
 import { useGameOpen } from "./useGameOpen";
 
 /**
- * Dense table, one row per game (44px), sorted by |max edge| desc. Row click / Enter opens the
+ * Dense table, one row per game (44px), sorted by kickoff asc. Row click / Enter opens the
  * drawer via `?game=`; j/k move the cursor. Filters come from the URL via <BoardFilters>.
  */
 export function BoardTable({

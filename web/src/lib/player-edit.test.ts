@@ -1,4 +1,4 @@
-import { adjustedForMiss, checkPointEdit, editedPoints } from "./player-edit";
+import { adjustedPoints, checkPointEdit, editedPoints } from "./player-edit";
 
 const edit = {
   season: 2026,
@@ -9,16 +9,16 @@ const edit = {
   delta: -1,
 };
 
-describe("adjustedForMiss", () => {
-  it("adds his average miss to this week's sim", () => {
-    expect(adjustedForMiss(18.4, 0.9)).toBeCloseTo(19.3);
-    expect(adjustedForMiss(18.4, -2)).toBeCloseTo(16.4);
+describe("adjustedPoints", () => {
+  it("splits the sim and FantasyPros evenly", () => {
+    expect(adjustedPoints(18.4, 20.4)).toBeCloseTo(19.4);
+    expect(adjustedPoints(10, 6)).toBeCloseTo(8);
   });
 
-  it("stays blank when the sim or the miss is missing", () => {
-    expect(adjustedForMiss(null, 0.9)).toBeNull();
-    expect(adjustedForMiss(18.4, null)).toBeNull();
-    expect(adjustedForMiss(undefined, undefined)).toBeNull();
+  it("stays blank when the sim or FantasyPros is missing", () => {
+    expect(adjustedPoints(null, 0.9)).toBeNull();
+    expect(adjustedPoints(18.4, null)).toBeNull();
+    expect(adjustedPoints(undefined, undefined)).toBeNull();
   });
 });
 

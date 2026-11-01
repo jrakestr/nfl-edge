@@ -29,8 +29,8 @@ export type WeekBoardProps = {
   run: RunOption | null;
   runs: RunOption[];
   stale: boolean;
-  verdicts: VerdictRow[]; // sorted by max_edge desc, fail rows last
-  rows: BoardRow[]; // sorted by |max edge| desc
+  verdicts: VerdictRow[]; // sorted by kickoff asc, fail rows last
+  rows: BoardRow[]; // sorted by kickoff asc
   checks: Record<string, GameChecks>;
   track: TrackRecord;
   scoreboard: WeekScoreboardData;
@@ -43,25 +43,18 @@ export type WeekBoardProps = {
 /** The Edge board, pure over its props (the page loads them; the route test feeds a fixture). */
 export function WeekBoard(p: WeekBoardProps) {
   const rowOf = Object.fromEntries(p.rows.map((r) => [r.game_id, r]));
-  const rank = (id: string) => {
-    const r = rowOf[id];
-    if (!r) return 0;
-    if (r.is_final) return 2;
-    if (r.has_started) return 1;
-    return 0;
+  const kickoffKey = (v: VerdictRow) => {
+    const r = rowOf[v.game_id];
+    if (r) return `${r.gameday} ${r.gametime ?? "99:99"} ${r.game_id}`;
+    const ko = v.payload.kickoff?.trim() ?? "";
+    const withTime = ko.includes(" ") ? ko : `${ko} 99:99`;
+    return `${withTime} ${v.game_id}`;
   };
   const verdicts = [...p.verdicts].sort((a, b) => {
-    const d = rank(a.game_id) - rank(b.game_id);
-    if (d !== 0) return d;
     const fa = a.payload.status === "fail" ? 1 : 0;
     const fb = b.payload.status === "fail" ? 1 : 0;
     if (fa !== fb) return fa - fb;
-    const ra = rowOf[a.game_id];
-    const rb = rowOf[b.game_id];
-    if (ra && (ra.is_final || ra.has_started)) {
-      return `${ra.gameday} ${ra.gametime ?? ""}`.localeCompare(`${rb?.gameday ?? ""} ${rb?.gametime ?? ""}`);
-    }
-    return b.payload.max_edge - a.payload.max_edge;
+    return kickoffKey(a).localeCompare(kickoffKey(b));
   });
   const remainingRows = p.rows.filter((r) => !r.has_started);
   const remainingIds = new Set(remainingRows.map((r) => r.game_id));
