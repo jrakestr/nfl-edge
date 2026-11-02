@@ -92,6 +92,69 @@ export function showdownConstraints(
     }
   }
 
+  const sd = controls.showdownScript;
+  if (sd === "shootout") {
+    const qbs = players.map((p, i) => (p.position === "QB" ? i : -1)).filter((i) => i >= 0);
+    if (qbs.length) {
+      constraints.push({
+        name: "sd_shootout_qb",
+        vars: qbs.flatMap((i) => [
+          { name: c(i), coef: 1 },
+          { name: f(i), coef: 1 },
+        ]),
+        bound: { kind: "lo", val: 1 },
+      });
+    }
+    const passCatchers = players
+      .map((p, i) => (p.position === "WR" || p.position === "TE" ? i : -1))
+      .filter((i) => i >= 0);
+    if (passCatchers.length >= 3) {
+      constraints.push({
+        name: "sd_shootout_wrte",
+        vars: passCatchers.flatMap((i) => [
+          { name: c(i), coef: 1 },
+          { name: f(i), coef: 1 },
+        ]),
+        bound: { kind: "lo", val: 3 },
+      });
+    }
+    const dsts = players.map((p, i) => (p.position === "DST" ? i : -1)).filter((i) => i >= 0);
+    if (dsts.length) {
+      constraints.push({
+        name: "sd_shootout_nodst_cpt",
+        vars: dsts.map((i) => ({ name: c(i), coef: 1 })),
+        bound: { kind: "eq", val: 0 },
+      });
+    }
+  } else if (sd === "away_control" || sd === "home_control") {
+    const leadSide = sd === "home_control" ? "home" : "away";
+    const leadIdxs = players.map((p, i) => (p.homeAway === leadSide ? i : -1)).filter((i) => i >= 0);
+    if (leadIdxs.length >= 4) {
+      constraints.push({
+        name: `sd_${sd}_lead`,
+        vars: leadIdxs.flatMap((i) => [
+          { name: c(i), coef: 1 },
+          { name: f(i), coef: 1 },
+        ]),
+        bound: { kind: "db", lo: 4, up: 5 },
+      });
+    }
+  } else if (sd === "defensive") {
+    const rbDst = players
+      .map((p, i) => (p.position === "RB" || p.position === "DST" ? i : -1))
+      .filter((i) => i >= 0);
+    if (rbDst.length >= 2) {
+      constraints.push({
+        name: "sd_def_rbdst",
+        vars: rbDst.flatMap((i) => [
+          { name: c(i), coef: 1 },
+          { name: f(i), coef: 1 },
+        ]),
+        bound: { kind: "lo", val: 2 },
+      });
+    }
+  }
+
   return { objective, constraints, binaries };
 }
 

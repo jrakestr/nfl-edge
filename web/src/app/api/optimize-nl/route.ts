@@ -18,6 +18,9 @@ const SCHEMA = {
     stackTeam: { type: "string" },
     stackN: { type: "integer" },
     bringBack: { type: "integer" },
+    shootoutTeams: { type: "array", items: { type: "string" } },
+    controlTeams: { type: "array", items: { type: "string" } },
+    grindTeams: { type: "array", items: { type: "string" } },
     fadeTeams: { type: "array", items: { type: "string" } },
     windows: { type: "array", items: { type: "string", enum: ["early", "afternoon", "primetime"] } },
     excludeWindows: { type: "array", items: { type: "string", enum: ["early", "afternoon", "primetime"] } },
@@ -39,6 +42,9 @@ If a phrase is ambiguous (late games, a shared last name), put a question in que
 "Points per dollar", "value", "pts/$", and "bang for the buck" all mean the value metric (projection per $1k).
 "Sort", "rank", or "show by X" is a view, not a filter: emit sortBy (value, proj, salary, own, or ceiling) with sortDir and no pool filter.
 "Only", "at least", or "top N value" is a filter: emit minValue or topValuePerPos.
+"Shootout in the X game" or "game stack X": emit shootoutTeams with that team's NFL abbreviation.
+"X controls the game", "X blowout", or "X RB + DST script": emit controlTeams with that team's NFL abbreviation.
+"Defensive grind in X" or "slugfest in X": emit grindTeams with that team's NFL abbreviation.
 Emit tokens only. Never emit projection numbers.
 Do not output a SolveControls object.`;
 

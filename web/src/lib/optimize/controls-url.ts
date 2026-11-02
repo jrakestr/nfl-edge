@@ -5,6 +5,9 @@ import {
   DEFAULT_SHOWDOWN,
   type ConstructionId,
   type FlexEligible,
+  type GameScriptKind,
+  type GameStance,
+  type ShowdownScriptKind,
   type SolveControls,
 } from "./types";
 
@@ -24,7 +27,44 @@ export const CONTROL_PARAMS = [
   "flexWR",
   "flexTE",
   "reqStack",
+  "scripts",
+  "sdScript",
 ] as const;
+
+const GAME_SCRIPTS = new Set<GameScriptKind>(["shootout", "control", "grind", "fade"]);
+const SHOWDOWN_SCRIPTS = new Set<ShowdownScriptKind>([
+  "shootout",
+  "home_control",
+  "away_control",
+  "defensive",
+]);
+
+export function parseGameScripts(raw: string | null): GameStance[] {
+  if (!raw) return [];
+  const out: GameStance[] = [];
+  for (const part of raw.split(",")) {
+    const [gameId, script, team] = part.trim().split(":");
+    if (!gameId || !script || !GAME_SCRIPTS.has(script as GameScriptKind)) continue;
+    out.push({
+      gameId,
+      script: script as GameScriptKind,
+      ...(team ? { team } : {}),
+    });
+  }
+  return out;
+}
+
+export function formatGameScripts(stances: GameStance[] | undefined): string {
+  if (!stances?.length) return "";
+  return stances
+    .map((s) => (s.team ? `${s.gameId}:${s.script}:${s.team}` : `${s.gameId}:${s.script}`))
+    .join(",");
+}
+
+function asShowdownScript(raw: string | null): ShowdownScriptKind | null {
+  if (raw && SHOWDOWN_SCRIPTS.has(raw as ShowdownScriptKind)) return raw as ShowdownScriptKind;
+  return null;
+}
 
 function asConstruction(raw: string | null, fallback: ConstructionId): ConstructionId {
   if (raw === "cash" || raw === "single" || raw === "mass") return raw;
@@ -48,6 +88,8 @@ function flag(raw: string | null, fallback: boolean): boolean {
 
 export function parseSolveControls(sp: URLSearchParams, showdown: boolean): SolveControls {
   const base = showdown ? { ...DEFAULT_SHOWDOWN } : classicBaseline();
+  const gameScripts = parseGameScripts(sp.get("scripts"));
+  const showdownScript = asShowdownScript(sp.get("sdScript"));
   return {
     ...base,
     construction: asConstruction(sp.get("construction"), base.construction),
@@ -68,6 +110,8 @@ export function parseSolveControls(sp: URLSearchParams, showdown: boolean): Solv
       TE: flag(sp.get("flexTE"), true),
     },
     requireStack: flag(sp.get("reqStack"), base.requireStack),
+    ...(gameScripts.length ? { gameScripts } : {}),
+    ...(showdownScript ? { showdownScript } : {}),
   };
 }
 
@@ -99,5 +143,8 @@ export function applySolveControls(
   setOrDel("flexWR", flex.WR ? "1" : "0", flex.WR);
   setOrDel("flexTE", flex.TE ? "1" : "0", flex.TE);
   setOrDel("reqStack", controls.requireStack ? "1" : "0", controls.requireStack === def.requireStack);
+  const scriptsStr = formatGameScripts(controls.gameScripts);
+  setOrDel("scripts", scriptsStr, scriptsStr === "");
+  setOrDel("sdScript", controls.showdownScript ?? "", !controls.showdownScript);
   return p;
 }

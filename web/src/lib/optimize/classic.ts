@@ -64,9 +64,24 @@ export function forcedInPlayers(players: OptPlayer[], controls: SolveControls): 
 
 /** Plain-language conflict for an impossible classic pick set. Null if the set can be built. */
 export function classicForcedInError(players: OptPlayer[], controls: SolveControls): string | null {
+  const stances = controls.gameScripts ?? [];
+  const shootouts = stances.filter((s) => s.script === "shootout");
+  if (shootouts.length > 1) {
+    return `${shootouts.length} shootout game stacks selected; a classic lineup has 1 quarterback so pick 1 shootout game`;
+  }
   const forced = forcedInPlayers(players, controls);
   const qbs = forced.filter((p) => p.position === "QB").length;
   if (qbs > 1) return `${qbs} quarterbacks selected; a classic lineup has room for 1`;
+  if (shootouts.length === 1 && qbs === 1) {
+    const sh = shootouts[0]!;
+    const lockedQb = forced.find((p) => p.position === "QB")!;
+    if (lockedQb.game_id && lockedQb.game_id !== sh.gameId) {
+      return `${lockedQb.name} (${lockedQb.team}) is locked at QB, which conflicts with the ${sh.gameId.split("_").slice(2).join(" @ ")} shootout stack`;
+    }
+    if (sh.team && lockedQb.team !== sh.team) {
+      return `${lockedQb.name} (${lockedQb.team}) is locked at QB, which conflicts with the ${sh.team} shootout stack`;
+    }
+  }
   const dsts = forced.filter((p) => p.position === "DST").length;
   if (dsts > 1) return `${dsts} defenses selected; a classic lineup has room for 1`;
   if (forced.length > 9) return `${forced.length} players selected; a classic lineup has room for 9`;
@@ -201,6 +216,124 @@ export function classicConstraints(
         vars: vars([first]),
         bound: { kind: "eq", val: 1 },
       });
+    }
+  }
+
+  for (const stance of controls.gameScripts ?? []) {
+    const gid = stance.gameId;
+    const gameIdxs = players
+      .map((p, i) => (p.game_id === gid ? i : -1))
+      .filter((i) => i >= 0);
+    if (!gameIdxs.length) continue;
+
+    if (stance.script === "shootout") {
+      // Primary shootout stack: QB must come from this game (or stance.team if specified),
+      // with >= 2 same-team pass catchers (WR/TE) and >= 1 opposing skill player (RB/WR/TE),
+      // and neither team's DST in this game is allowed.
+      const qbIdxs = gameIdxs.filter(
+        (i) => players[i]!.position === "QB" && (!stance.team || players[i]!.team === stance.team),
+      );
+      if (qbIdxs.length) {
+        constraints.push({
+          name: `script_shootout_qb_${gid}`,
+          vars: vars(qbIdxs),
+          bound: { kind: "eq", val: 1 },
+        });
+      }
+      const gameTeams = [...new Set(gameIdxs.map((i) => players[i]!.team))];
+      for (const tm of gameTeams) {
+        if (stance.team && tm !== stance.team) continue;
+        const tmQb = gameIdxs.filter((i) => players[i]!.team === tm && players[i]!.position === "QB");
+        const tmWrTe = gameIdxs.filter(
+          (i) => players[i]!.team === tm && (players[i]!.position === "WR" || players[i]!.position === "TE"),
+        );
+        const oppSkill = gameIdxs.filter(
+          (i) => players[i]!.team !== tm && players[i]!.position !== "QB" && players[i]!.position !== "DST",
+        );
+        const minStack = Math.max(controls.stackN, 2);
+        const minBring = Math.max(controls.bringBack, 1);
+        if (tmQb.length && tmWrTe.length >= minStack) {
+          constraints.push({
+            name: `script_shootout_stk_${gid}_${tm}`,
+            vars: [...vars(tmWrTe, 1), ...vars(tmQb, -minStack)],
+            bound: { kind: "lo", val: 0 },
+          });
+        }
+        if (tmQb.length && oppSkill.length >= minBring) {
+          constraints.push({
+            name: `script_shootout_opp_${gid}_${tm}`,
+            vars: [...vars(oppSkill, 1), ...vars(tmQb, -minBring)],
+            bound: { kind: "lo", val: 0 },
+          });
+        }
+      }
+      const gameDsts = gameIdxs.filter(
+        (i) => players[i]!.position === "DST" && !lockSet.has(players[i]!.player_dk_id),
+      );
+      if (gameDsts.length) {
+        constraints.push({
+          name: `script_shootout_nodst_${gid}`,
+          vars: vars(gameDsts),
+          bound: { kind: "eq", val: 0 },
+        });
+      }
+    } else if (stance.script === "control") {
+      // Game-control / blowout script for stance.team:
+      // requires >= 1 RB from the controlling team and blocks opposing RBs (unless locked).
+      const leadTeam = stance.team || players[gameIdxs[0]!]!.team;
+      const leadRbs = gameIdxs.filter(
+        (i) => players[i]!.team === leadTeam && players[i]!.position === "RB",
+      );
+      if (leadRbs.length) {
+        constraints.push({
+          name: `script_ctrl_rb_${gid}`,
+          vars: vars(leadRbs),
+          bound: { kind: "lo", val: 1 },
+        });
+      }
+      const trailRbs = gameIdxs.filter(
+        (i) =>
+          players[i]!.team !== leadTeam &&
+          players[i]!.position === "RB" &&
+          !lockSet.has(players[i]!.player_dk_id),
+      );
+      if (trailRbs.length) {
+        constraints.push({
+          name: `script_ctrl_notrailrb_${gid}`,
+          vars: vars(trailRbs),
+          bound: { kind: "eq", val: 0 },
+        });
+      }
+    } else if (stance.script === "grind") {
+      // Defensive grind: cap total players from this game to <= 2 and exclude unlocked QBs from this game.
+      const unlockedQbs = gameIdxs.filter(
+        (i) => players[i]!.position === "QB" && !lockSet.has(players[i]!.player_dk_id),
+      );
+      if (unlockedQbs.length) {
+        constraints.push({
+          name: `script_grind_noqb_${gid}`,
+          vars: vars(unlockedQbs),
+          bound: { kind: "eq", val: 0 },
+        });
+      }
+      const lockedInGame = gameIdxs.filter((i) => lockSet.has(players[i]!.player_dk_id)).length;
+      constraints.push({
+        name: `script_grind_cap_${gid}`,
+        vars: vars(gameIdxs),
+        bound: { kind: "up", val: Math.max(2, lockedInGame) },
+      });
+    } else if (stance.script === "fade") {
+      // Full game fade: exclude all unlocked non-DST players from this game.
+      const fadeIdxs = gameIdxs.filter(
+        (i) => players[i]!.position !== "DST" && !lockSet.has(players[i]!.player_dk_id),
+      );
+      if (fadeIdxs.length) {
+        constraints.push({
+          name: `script_fade_${gid}`,
+          vars: vars(fadeIdxs),
+          bound: { kind: "eq", val: 0 },
+        });
+      }
     }
   }
 

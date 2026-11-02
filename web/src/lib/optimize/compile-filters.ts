@@ -1,6 +1,6 @@
 import { hasStarted } from "@/lib/kickoff";
 import { classicForcedInError, flexConstructionError } from "./classic";
-import { DEFAULT_CLASSIC, type OptPlayer, type SolveControls } from "./types";
+import { DEFAULT_CLASSIC, type GameStance, type OptPlayer, type SolveControls } from "./types";
 
 export type SortKey = "value" | "proj" | "salary" | "own" | "ceiling";
 
@@ -14,6 +14,9 @@ export type FilterTokens = {
   stackTeam?: string;
   stackN?: number;
   bringBack?: number;
+  shootoutTeams?: string[];
+  controlTeams?: string[];
+  grindTeams?: string[];
   fadeTeams?: string[];
   windows?: Array<"early" | "afternoon" | "primetime">;
   excludeWindows?: Array<"early" | "afternoon" | "primetime">;
@@ -142,6 +145,38 @@ export function compileFilters(
   if (tokens.lineups != null) patch.lineups = tokens.lineups;
   if (tokens.stackN != null) patch.stackN = tokens.stackN;
   if (tokens.bringBack != null) patch.bringBack = tokens.bringBack;
+
+  const gameScripts: GameStance[] = [];
+  const findGameForTeam = (tm: string): string | null => {
+    const upper = tm.toUpperCase();
+    const hit = players.find((p) => p.team === upper && p.game_id);
+    return hit?.game_id ?? null;
+  };
+  for (const tm of tokens.shootoutTeams ?? []) {
+    const gid = findGameForTeam(tm);
+    if (gid && !gameScripts.some((s) => s.gameId === gid)) {
+      gameScripts.push({ gameId: gid, script: "shootout", team: tm.toUpperCase() });
+    }
+  }
+  for (const tm of tokens.controlTeams ?? []) {
+    const gid = findGameForTeam(tm);
+    if (gid && !gameScripts.some((s) => s.gameId === gid)) {
+      gameScripts.push({ gameId: gid, script: "control", team: tm.toUpperCase() });
+    }
+  }
+  for (const tm of tokens.grindTeams ?? []) {
+    const gid = findGameForTeam(tm);
+    if (gid && !gameScripts.some((s) => s.gameId === gid)) {
+      gameScripts.push({ gameId: gid, script: "grind", team: null });
+    }
+  }
+  if (gameScripts.length) {
+    patch.gameScripts = gameScripts;
+    if (gameScripts.some((s) => s.script === "shootout")) {
+      if (patch.stackN == null) patch.stackN = 2;
+      if (patch.bringBack == null) patch.bringBack = 1;
+    }
+  }
 
   const remaining = players.filter((p) => !excl.has(p.player_dk_id));
   // sortBy/sortDir are a view, not a filter — ignored here.

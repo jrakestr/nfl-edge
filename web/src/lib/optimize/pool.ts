@@ -28,6 +28,7 @@ export function toOptPlayer(p: WeekPlayer, source: PointSource = "dk"): OptPlaye
     opponent: p.opponent ?? null,
     salary: p.salary,
     proj,
+    simProj: p.fpts_dk_mean ?? null,
     value,
     proj_own: p.proj_own ?? null,
     p25: p.p25 ?? null,

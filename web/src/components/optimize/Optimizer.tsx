@@ -7,6 +7,7 @@ import { SlateSelector } from "@/components/shell/SlateSelector";
 import { selectedOnSlate } from "@/lib/games-param";
 import type { StripGame } from "@/lib/kickoff";
 import { LineupCard } from "@/components/dfs/LineupCard";
+import { GameScriptBuilder } from "@/components/optimize/GameScriptBuilder";
 import { PhraseBox } from "@/components/optimize/PhraseBox";
 import { StackSuggestions } from "@/components/optimize/StackSuggestions";
 import { Button } from "@/components/ui/button";
@@ -386,6 +387,12 @@ export function Optimizer({
             {busy ? "Solving…" : "Generate"}
           </Button>
         </div>
+        <GameScriptBuilder
+          players={pool}
+          controls={controls}
+          showdown={showdown}
+          onChange={patch}
+        />
         <PhraseBox
           pool={pool}
           week={week}

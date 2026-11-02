@@ -9,6 +9,8 @@ export type OptPlayer = {
   opponent: string | null;
   salary: number;
   proj: number;
+  /** Sim mean (fpts_dk_mean). p25/p90 describe this center, not `proj`, when the point source is not "dk". */
+  simProj?: number | null;
   value: number;
   proj_own: number | null;
   p25: number | null;
@@ -46,6 +48,16 @@ export type ConstructionId = "cash" | "single" | "mass";
 /** Which number the web optimizer treats as a player's points. */
 export type PointSource = "dk" | "blend" | "ngs" | "fp" | "adjusted" | "yours";
 
+export type GameScriptKind = "shootout" | "control" | "grind" | "fade";
+
+export type ShowdownScriptKind = "shootout" | "home_control" | "away_control" | "defensive";
+
+export type GameStance = {
+  gameId: string;
+  script: GameScriptKind;
+  team?: string | null;
+};
+
 export type SolveControls = {
   construction: ConstructionId;
   /** DK pts keeps the sim objective. Any other source uses that number as the points. */
@@ -66,6 +78,10 @@ export type SolveControls = {
   excludes: string[];
   stackIds: string[];
   requireStack: boolean;
+  /** Per-game hand-built script stances for Classic slates. */
+  gameScripts?: GameStance[];
+  /** Single-game script stance for Showdown slates. */
+  showdownScript?: ShowdownScriptKind | null;
 };
 
 export const DEFAULT_CLASSIC: SolveControls = {

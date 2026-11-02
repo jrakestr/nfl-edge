@@ -1,5 +1,6 @@
 import { addUniqueness, classicConstraints, classicForcedInError, flexConstructionError } from "./classic";
 import { adjustedFpts, profile, type SlateKind } from "./construction";
+import { scriptAdjustedObjective } from "./game-script";
 import { solveMip } from "./glpk";
 import { sourceObjective } from "./points";
 import { assertUniquePlayerIds, jitterProj, playerKey } from "./pool";
@@ -18,7 +19,8 @@ export function playerObjective(
     controls.points !== "dk"
       ? sourceObjective(p.proj, p.proj_own, prof)
       : adjustedFpts(p.proj, p.p25, p.p90, p.proj_own, prof);
-  return jitterProj(raw, controls.randomness, rng);
+  const scripted = scriptAdjustedObjective(p, raw, controls, kind === "showdown");
+  return jitterProj(scripted, controls.randomness, rng);
 }
 
 function selected(vars: Record<string, number>, players: OptPlayer[], prefix = "x"): OptPlayer[] {
