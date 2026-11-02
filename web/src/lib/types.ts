@@ -12,9 +12,11 @@ const numOrNull = z.number().nullable();
 export const ChipSchema = z
   .object({
     label: z.string().optional(), // absent on home_wins
-    prob: num,
-    market_prob: num,
-    edge: num,
+    // home_wins sets edge/market_prob null when the snapshot has no moneyline
+    // (lines.py); prob can also be null when home_win_prob is missing.
+    prob: numOrNull,
+    market_prob: numOrNull,
+    edge: numOrNull,
     kelly: num.optional(),
     price: z.number().int().nullable().optional(),
     market_type: z.string().optional(),
